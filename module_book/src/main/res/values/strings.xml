@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">module_book</string>
+    <string name="setting">设置</string>
+    <string name="download">下载</string>
+    <string name="add_local_book">添加本地图书</string>
+    <string name="library">书库</string>
+    <string name="my_book_shelf">我的书架</string>
+    <string name="read_to">读至第 </string>
+    <string name="chapter">  章</string>
+    <string name="cover">封面</string>
+</resources>

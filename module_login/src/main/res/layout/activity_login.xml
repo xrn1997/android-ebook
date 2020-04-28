@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="viewModel"
+            type="com.ebook.login.mvvm.viewmodel.LoginViewModel" />
+    </data>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#333333"
+        tools:context="com.ebook.login.LoginActivity">
+
+        <TextView
+            android:id="@+id/id_tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="90dp"
+            android:text="@string/ebook"
+            android:textColor="#ffffff"
+            android:textSize="48sp"
+            android:textStyle="bold" />
+
+
+        <EditText
+            android:id="@+id/id_et_username"
+            style="@style/EditText_login"
+            android:layout_width="match_parent"
+            android:layout_below="@id/id_tv_title"
+            android:layout_marginTop="40dp"
+            android:background="@drawable/editext_selector"
+            android:hint="@string/print_tel"
+            android:inputType="number"
+            android:maxLength="11"
+            android:text="@={viewModel.username}"
+            android:textColorHint="@color/color_black" />
+
+        <EditText
+            android:id="@+id/id_et_password"
+            style="@style/EditText_login"
+            android:layout_width="match_parent"
+            android:layout_below="@id/id_et_username"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/editext_selector"
+            android:hint="@string/print_pwd"
+            android:inputType="textWebPassword"
+            android:text="@={viewModel.password}"
+            android:textColorHint="@color/color_black" />
+
+
+        <Button
+            android:id="@+id/id_btn_login"
+            style="@style/Button_Login"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/id_et_password"
+            android:layout_marginLeft="60dp"
+            android:layout_marginTop="50dp"
+            android:layout_marginRight="60dp"
+            android:onClick="@{() -> viewModel.login()}"
+            android:text="@string/login" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/id_btn_login"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="30dp">
+
+            <TextView
+                android:id="@+id/id_tv_register"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="100dp"
+                android:text="@string/tel_register"
+                android:textColor="#ffffff" />
+
+            <TextView
+                android:id="@+id/id_tv_fgt_pwd"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/fgt_pwd"
+                android:textColor="#ffffff" />
+        </LinearLayout>
+    </RelativeLayout>
+</layout>
+

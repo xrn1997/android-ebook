@@ -1,0 +1,37 @@
+<resources>
+    <style name="AppTheme_NoTitleBar" parent="AppTheme"/>
+    <style name="AppTheme_FullScreen" parent="AppTheme_NoTitleBar">
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+    <style name="Button_Login" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/btn_bg_black</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">16dp</item>
+        <item name="android:textColor">#ffffff</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+    <style name="AppTheme_NoTitleBar.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <style name="AppTheme_NoTitleBar.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+    <style name="EditText_login">
+        <item name="android:layout_height">56dp</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:layout_marginStart">30dp</item>
+        <item name="android:layout_marginEnd">30dp</item>
+
+    </style>
+
+</resources>

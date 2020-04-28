@@ -1,0 +1,27 @@
+apply from: "../module.build.gradle"
+android {
+    defaultConfig {
+        //如果是独立模块，则使用当前组件的包名
+        if (isModule.toBoolean()) {
+            applicationId "com.ebook.main"
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    api project(':lib_common')
+    annotationProcessor rootProject.ext.dependencies["alibaba:arouter-compiler"]
+    annotationProcessor rootProject.ext.dependencies["dagger:dagger-compiler"]
+
+    if (!isLoginModule.toBoolean()) {
+        implementation project(path: ':module_login')
+    }
+
+    testImplementation rootProject.ext.support["junit"]
+    androidTestImplementation rootProject.ext.support["ext:junit"]
+    androidTestImplementation rootProject.ext.support["espresso-core"]
+}

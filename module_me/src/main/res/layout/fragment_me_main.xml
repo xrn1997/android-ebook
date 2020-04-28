@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:id="@+id/view_user_layout"
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        android:background="#8a8a8a">
+
+        <ImageView
+            android:id="@+id/view_user_image"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_centerInParent="true"
+            android:contentDescription="@string/head_portrait"
+            android:src="@color/color_white" />
+
+        <TextView
+            android:id="@+id/view_user_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/view_user_image"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="8dp"
+            android:text="@string/xiaoming"
+            android:textColor="#ffffff"
+            android:textSize="18sp"/>
+    </RelativeLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="32dp"
+        android:background="#ededed" />
+
+    <com.ebook.common.view.SettingBarView
+        android:id="@+id/view_setting_news_type"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:set_left_icon="@drawable/me_icon_company"
+        app:set_left_icon_visable="true"
+        app:set_title="设置新闻类型" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="32dp"
+        android:background="#ededed" />
+
+    <com.ebook.common.view.SettingBarView
+        android:id="@+id/view_setting_news_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:set_left_icon="@drawable/me_icon_organization"
+        app:set_left_icon_visable="true"
+        app:set_title="添加新闻" />
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="32dp"
+        android:background="#ededed" />
+
+    <com.ebook.common.view.SettingBarView
+        android:id="@+id/view_setting"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:set_left_icon="@drawable/me_icon_setting"
+        app:set_left_icon_visable="true"
+        app:set_title="@string/setting" />
+</LinearLayout>

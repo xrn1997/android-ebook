@@ -1,0 +1,57 @@
+<resources>
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:textColorPrimary">@color/textColorPrimary</item>
+        <item name="toolbarStyle">@style/NoSpaceActionBarTheme</item>
+    </style>
+
+    <style name="NoSpaceActionBarTheme" parent="Base.Widget.AppCompat.Toolbar">
+        <item name="contentInsetStart">0dp</item>
+        <item name="contentInsetStartWithNavigation">0dp</item>
+    </style>
+    <!-- ToolBar菜单样式 -->
+    <style name="ToolbarTheme" parent="@style/ThemeOverlay.AppCompat.ActionBar">
+        <item name="actionMenuTextColor">@color/menu_color</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="AppTheme.BlackBackBar" parent="AppTheme">
+        <item name="colorPrimary">@color/color_black</item>
+        <item name="colorPrimaryDark">@color/color_white</item>
+        <item name="navigationIcon">@drawable/callback_white_icon</item>
+        <item name="toolbarStyle">@style/NoSpaceActionBarTheme</item>
+    </style>
+    <style name="AppTheme.BackBar" parent="AppTheme">
+        <item name="navigationIcon">@drawable/navbar_icon_return</item>
+        <item name="toolbarStyle">@style/NoSpaceActionBarTheme</item>
+    </style>
+
+
+    <style name="anim_pop_checkaddshelf">
+        <item name="android:windowEnterAnimation">@anim/anim_pop_checkaddshelf_in</item>
+        <item name="android:windowExitAnimation">@anim/anim_pop_checkaddshelf_out</item>
+    </style>
+
+    <style name="anim_pop_chapterlist">
+        <item name="android:windowEnterAnimation">@anim/anim_pop_chapterlist_in</item>
+        <item name="android:windowExitAnimation">@anim/anim_pop_chapterlist_out</item>
+    </style>'
+
+    <style name="anim_pop_moresetting">
+        <item name="android:windowEnterAnimation">@anim/anim_pop_moresetting_in</item>
+        <item name="android:windowExitAnimation">@anim/anim_pop_moresetting_out</item>
+    </style>
+
+    <style name="anim_pop_windowlight">
+        <item name="android:windowEnterAnimation">@anim/anim_pop_windowlight_in</item>
+        <item name="android:windowExitAnimation">@anim/anim_pop_windowlight_out</item>
+    </style>
+    <style name="anim_pop_windowmenumore">
+        <item name="android:windowEnterAnimation">@anim/anim_pop_windowmenumore_in</item>
+        <item name="android:windowExitAnimation">@anim/anim_pop_windowmenumore_out</item>
+    </style>
+</resources>

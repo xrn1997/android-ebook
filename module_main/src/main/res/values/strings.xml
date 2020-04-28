@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">module_main</string>
+    <string name="title_bookshelf">书架</string>
+    <string name="title_library">书库</string>
+    <string name="title_me">我的</string>
+    <string name="skip">跳过</string>
+    <string name="title_activity_register">RegisterActivity</string>
+</resources>

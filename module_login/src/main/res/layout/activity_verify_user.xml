@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+    <data>
+        <variable
+            name="viewModel"
+            type="com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel" />
+    </data>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#F3F5F7"
+        android:orientation="vertical">
+
+        <EditText
+            android:id="@+id/id_et_fgt_username"
+            style="@style/EditText_login"
+            android:layout_width="match_parent"
+            android:layout_marginTop="40dp"
+            android:background="@drawable/editext_selector"
+            android:hint="@string/print_tel"
+            android:inputType="number"
+            android:text="@={viewModel.username}"
+            android:maxLength="11"
+            android:textColorHint="#000000" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="30dp"
+            android:layout_marginEnd="30dp"
+            android:layout_marginTop="8dp">
+
+            <EditText
+                android:id="@+id/id_et_fgt_verify_code"
+                android:layout_width="match_parent"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:layout_height="56dp"
+                android:background="@drawable/editext_selector"
+                android:gravity="start|center"
+                android:text="@={viewModel.verifycode}"
+                android:hint="@string/print_verify_code"
+                android:inputType="number"
+                android:maxLength="6"
+                android:textColorHint="@color/color_black"
+                android:textSize="17sp" />
+            <Button
+                android:id="@+id/btn_verifycode"
+                android:layout_width="wrap_content"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:background="@drawable/btn_bg_black"
+                android:layout_height="56dp"
+                android:layout_gravity="end"
+                android:gravity="center"
+                android:text="@string/get_verify_code"
+                android:textColor="@color/color_white"
+                android:textSize="17sp" />
+        </FrameLayout>
+        <Button
+            android:id="@+id/id_btn_login"
+            style="@style/Button_Login"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="60dp"
+            android:layout_marginTop="50dp"
+            android:layout_marginRight="60dp"
+            android:onClick="@{() -> viewModel.verify()}"
+            android:text="@string/next" />
+
+    </LinearLayout>
+</layout>

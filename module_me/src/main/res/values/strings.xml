@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">module_me</string>
+    <string name="head_portrait">头像</string>
+    <string name="xiaoming">小明</string>
+    <string name="setting">设置</string>
+    <string name="exit">退出登录</string>
+</resources>

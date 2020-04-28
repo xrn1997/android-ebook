@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.ebook.me">
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:name="debug.MeApplication"
+        tools:targetApi="n">
+        <activity android:name="debug.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="com.ebook.me.NewsTypeAddActivity"
+            android:label="新闻类型设置"
+            android:theme="@style/AppTheme.BlackBackBar"
+            />
+        <activity
+            android:name="com.ebook.me.NewsTypeListActivity"
+            android:label="新闻类型列表"
+            android:theme="@style/AppTheme.BackBar"/>
+        <activity
+            android:name="com.ebook.me.NewsDetailAddActivity"
+            android:label="新闻添加"
+            android:theme="@style/AppTheme.BackBar" />
+    </application>
+
+</manifest>
