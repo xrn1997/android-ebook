@@ -30,7 +30,7 @@ public class NewsTypeShowAdapter extends BaseAdapter<NewsType, NewsTypeShowAdapt
 
     @Override
     protected int onBindLayout() {
-        return R.layout.item_news_type_show;
+        return R.layout.adapter_news_type_show_item;
     }
 
     @Override

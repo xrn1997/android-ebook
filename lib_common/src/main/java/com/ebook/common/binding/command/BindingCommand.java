@@ -1,7 +1,5 @@
 package com.ebook.common.binding.command;
 
-
-
 public class BindingCommand<T> {
     private BindingAction execute;
 

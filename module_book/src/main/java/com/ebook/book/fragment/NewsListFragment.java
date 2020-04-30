@@ -30,7 +30,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import androidx.lifecycle.ViewModelProvider;
 
 
-public class NewsListFragment extends BaseMvvmRefreshFragment<NewsDetail, FragmentNewsListBinding, NewsListViewModel> {
+public class NewsListFragment extends BaseMvvmRefreshFragment<FragmentNewsListBinding, NewsListViewModel> {
     private NewsType mNewsType;
     private NewsListAdatper mNewsListAdatper;
 

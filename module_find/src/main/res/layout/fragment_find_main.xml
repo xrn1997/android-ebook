@@ -1,13 +1,123 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<layout xmlns:tools="http://schemas.android.com/tools"
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="find"
-        />
-</LinearLayout>
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+        <variable
+            name="viewModel"
+            type="com.ebook.find.mvvm.viewmodel.LibraryViewModel" />
+    </data>
+
+    <FrameLayout
+        android:id="@+id/ll_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/bg_library"
+        android:orientation="vertical">
+
+        <com.refresh.lib.DaisyRefreshLayout
+            android:id="@+id/refview_library"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:enableLoadMore="@{viewModel.enableLoadMore}"
+            app:enableRefresh="@{viewModel.enableRefresh}"
+            app:onAutoRefreshCommand="@{viewModel.onAutoRefreshCommand}"
+            app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
+            app:onRefreshCommand="@{viewModel.onRefreshCommand}">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="70dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:paddingTop="5dp"
+                        android:paddingBottom="5dp"
+                        android:text="@string/book_type"
+                        android:textColor="@color/tv_btn_normal_black"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/kind_ll"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/tv_text_addshelf_pre"
+                    app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                    app:spanCount="4" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="10dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#ffffff"
+                    android:paddingLeft="40dp"
+                    android:paddingTop="15dp"
+                    android:paddingRight="40dp"
+                    android:paddingBottom="15dp">
+
+                    <FrameLayout
+                        android:id="@+id/fl_search"
+                        android:layout_width="match_parent"
+                        android:layout_height="25dp"
+                        android:transitionName="to_search"
+                        tools:ignore="UselessParent">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/bg_search_content"
+                            android:gravity="center"
+                            android:hint="@string/search_book_or_author"
+                            android:textColorHint="#6f6f6f"
+                            android:textSize="13sp" />
+
+                        <ImageView
+                            android:layout_width="13dp"
+                            android:layout_height="13dp"
+                            android:layout_gravity="center_vertical|start"
+                            android:layout_marginStart="10dp"
+                            android:src="@drawable/icon_search_nor" />
+                    </FrameLayout>
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp" />
+
+                <com.ebook.find.mvp.view.libraryview.LibraryKindBookListView
+                    android:id="@+id/lkbv_kindbooklist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:background="#ffffff"
+                    android:paddingBottom="10dp" />
+
+                <com.ebook.find.mvp.view.libraryview.LibraryNewBooksView
+                    android:id="@+id/lav_hotauthor"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#ffffff" />
+            </LinearLayout>
+        </com.refresh.lib.DaisyRefreshLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:layout_gravity="top"
+            android:background="@drawable/bg_shadow" />
+    </FrameLayout>
+</layout>

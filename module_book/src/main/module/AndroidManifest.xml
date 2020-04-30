@@ -41,32 +41,14 @@
             android:label="新闻详情"
             android:theme="@style/AppTheme.BackBar">
         </activity>
+        <service android:name=".service.DownloadService" />
         <activity
-            android:name=".mvp.view.impl.SearchActivity"
-            android:configChanges="locale|keyboardHidden|orientation|screenSize"
-            android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity"
-            android:theme="@style/CAppTransparentTheme"
-            android:windowSoftInputMode="stateHidden|adjustPan" />
-
-        <service android:name=".mvp.service.DownloadService" />
-
-        <activity
-            android:name=".mvp.view.impl.LibraryActivity"
+            android:name="com.ebook.basebook.mvp.view.impl.BookDetailActivity"
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity"
             android:theme="@style/CAppTransparentTheme" />
         <activity
-            android:name=".mvp.view.impl.ChoiceBookActivity"
-            android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity"/>
-        <activity
-            android:name=".mvp.view.impl.BookDetailActivity"
-            android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity"
-            android:theme="@style/CAppTransparentTheme" />
-        <activity
-            android:name=".mvp.view.impl.ReadBookActivity"
+            android:name="com.ebook.basebook.mvp.view.impl.ReadBookActivity"
             android:launchMode="singleTask"
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity">
@@ -76,10 +58,9 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".mvp.view.impl.ImportBookActivity"
+            android:name="com.ebook.basebook.mvp.view.impl.ImportBookActivity"
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity"
             android:theme="@style/CAppTransparentTheme" />
     </application>
-
 </manifest>

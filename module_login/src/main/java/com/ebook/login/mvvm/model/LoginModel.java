@@ -1,7 +1,6 @@
 package com.ebook.login.mvvm.model;
 
 import android.app.Application;
-import android.util.Log;
 
 import com.ebook.api.CommonService;
 import com.ebook.api.RetrofitManager;

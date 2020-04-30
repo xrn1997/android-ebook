@@ -6,7 +6,6 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
 
 import android.os.Bundle;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -36,7 +35,7 @@ public class BaseViewModel<M extends BaseModel> extends AndroidViewModel impleme
         return mUIChangeLiveData;
     }
 
-    public final class UIChangeLiveData extends SingleLiveEvent{
+    public final class UIChangeLiveData extends SingleLiveEvent {
         private SingleLiveEvent<Boolean> showInitLoadViewEvent;
         private SingleLiveEvent<Boolean> showTransLoadingViewEvent;
         private SingleLiveEvent<Boolean> showNoDataViewEvent;

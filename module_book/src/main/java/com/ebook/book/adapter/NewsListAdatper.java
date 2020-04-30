@@ -6,13 +6,14 @@ import android.view.View;
 
 import com.ebook.api.news.entity.NewsDetail;
 import com.ebook.book.R;
-import com.ebook.book.databinding.ItemNewsListBinding;
+
+import com.ebook.book.databinding.AdpaterNewsListItemBinding;
 import com.ebook.common.adapter.BaseBindAdapter;
 
 import androidx.databinding.ObservableArrayList;
 
 
-public class NewsListAdatper extends BaseBindAdapter<NewsDetail, ItemNewsListBinding> {
+public class NewsListAdatper extends BaseBindAdapter<NewsDetail, AdpaterNewsListItemBinding> {
 
 
     public NewsListAdatper(Context context, ObservableArrayList<NewsDetail> items) {
@@ -21,11 +22,11 @@ public class NewsListAdatper extends BaseBindAdapter<NewsDetail, ItemNewsListBin
 
     @Override
     protected int getLayoutItemId(int viewType) {
-        return R.layout.item_news_list;
+        return R.layout.adpater_news_list_item;
     }
 
     @Override
-    protected void onBindItem(ItemNewsListBinding binding, final NewsDetail item, final int position) {
+    protected void onBindItem(AdpaterNewsListItemBinding binding, final NewsDetail item, final int position) {
         binding.setNewsDetail(item);
         binding.viewNewsDetal.setOnClickListener(new View.OnClickListener(){
 
@@ -37,6 +38,4 @@ public class NewsListAdatper extends BaseBindAdapter<NewsDetail, ItemNewsListBin
             }
         });
     }
-
-
 }

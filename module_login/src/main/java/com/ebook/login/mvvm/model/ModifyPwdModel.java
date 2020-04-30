@@ -6,7 +6,6 @@ import com.ebook.api.CommonService;
 import com.ebook.api.RetrofitManager;
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.RxAdapter;
-import com.ebook.api.user.LoginDTO;
 import com.ebook.api.user.entity.User;
 import com.ebook.common.mvvm.model.BaseModel;
 

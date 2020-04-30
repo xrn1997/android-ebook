@@ -9,14 +9,14 @@ import android.widget.ImageView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.ebook.book.R;
-import com.ebook.book.databinding.ItemBookListBinding;
+import com.ebook.book.databinding.AdapterBookListItemBinding;
 import com.ebook.common.adapter.BaseBindAdapter;
 import com.ebook.db.entity.BookShelf;
 
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.ObservableArrayList;
 
-public class BookListAdapter extends BaseBindAdapter<BookShelf, ItemBookListBinding> {
+public class BookListAdapter extends BaseBindAdapter<BookShelf, AdapterBookListItemBinding> {
 
     public BookListAdapter(Context context, ObservableArrayList<BookShelf> items) {
         super(context, items);
@@ -24,13 +24,13 @@ public class BookListAdapter extends BaseBindAdapter<BookShelf, ItemBookListBind
 
     @Override
     protected int getLayoutItemId(int viewType) {
-        return R.layout.item_book_list;
+        return R.layout.adapter_book_list_item;
     }
 
     @Override
-    protected void onBindItem(ItemBookListBinding binding, BookShelf item, int position) {
+    protected void onBindItem(AdapterBookListItemBinding binding, BookShelf item, int position) {
         binding.setBookshelf(item);
-        binding.viewBookDetal.setOnClickListener(new View.OnClickListener() {
+        binding.viewBookDetail.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (mItemClickListener != null) {
@@ -38,7 +38,7 @@ public class BookListAdapter extends BaseBindAdapter<BookShelf, ItemBookListBind
                 }
             }
         });
-        binding.viewBookDetal.setOnLongClickListener(new View.OnLongClickListener(){
+        binding.viewBookDetail.setOnLongClickListener(new View.OnLongClickListener(){
             @Override
             public boolean onLongClick(View v) {
                 if (mOnItemLongClickListener != null) {

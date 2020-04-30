@@ -9,7 +9,7 @@ import android.widget.TextView;
 
 
 import com.ebook.book.R;
-import com.ebook.book.view.ChapterListView;
+import com.ebook.basebook.view.ChapterListView;
 import com.ebook.db.entity.BookShelf;
 
 import androidx.annotation.NonNull;

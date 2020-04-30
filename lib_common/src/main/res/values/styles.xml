@@ -31,27 +31,4 @@
     </style>
 
 
-    <style name="anim_pop_checkaddshelf">
-        <item name="android:windowEnterAnimation">@anim/anim_pop_checkaddshelf_in</item>
-        <item name="android:windowExitAnimation">@anim/anim_pop_checkaddshelf_out</item>
-    </style>
-
-    <style name="anim_pop_chapterlist">
-        <item name="android:windowEnterAnimation">@anim/anim_pop_chapterlist_in</item>
-        <item name="android:windowExitAnimation">@anim/anim_pop_chapterlist_out</item>
-    </style>'
-
-    <style name="anim_pop_moresetting">
-        <item name="android:windowEnterAnimation">@anim/anim_pop_moresetting_in</item>
-        <item name="android:windowExitAnimation">@anim/anim_pop_moresetting_out</item>
-    </style>
-
-    <style name="anim_pop_windowlight">
-        <item name="android:windowEnterAnimation">@anim/anim_pop_windowlight_in</item>
-        <item name="android:windowExitAnimation">@anim/anim_pop_windowlight_out</item>
-    </style>
-    <style name="anim_pop_windowmenumore">
-        <item name="android:windowEnterAnimation">@anim/anim_pop_windowmenumore_in</item>
-        <item name="android:windowExitAnimation">@anim/anim_pop_windowmenumore_out</item>
-    </style>
 </resources>

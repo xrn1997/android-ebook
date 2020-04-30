@@ -13,7 +13,7 @@ import com.refresh.lib.DaisyRefreshLayout;
 /**
  * Description: <下拉刷新、上拉加载更多的Fragment><br>
  */
-public abstract class BaseMvvmRefreshFragment<T, V extends ViewDataBinding, VM extends BaseRefreshViewModel> extends BaseMvvmFragment<V, VM> {
+public abstract class BaseMvvmRefreshFragment< V extends ViewDataBinding, VM extends BaseRefreshViewModel> extends BaseMvvmFragment<V, VM> {
     protected DaisyRefreshLayout mRefreshLayout;
     protected BaseAdapter.OnItemClickListener mItemClickListener;
     protected BaseAdapter.OnItemLongClickListener mOnItemLongClickListener;

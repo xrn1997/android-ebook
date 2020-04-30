@@ -12,7 +12,6 @@ import com.ebook.common.view.SettingBarView;
 import com.ebook.me.NewsDetailAddActivity;
 import com.ebook.me.NewsTypeListActivity;
 import com.ebook.me.R;
-import com.ebook.me.SettingActivity;
 
 
 public class MainMeFragment extends BaseFragment {

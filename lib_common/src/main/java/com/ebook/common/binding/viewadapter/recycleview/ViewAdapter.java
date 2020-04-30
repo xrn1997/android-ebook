@@ -4,7 +4,6 @@ import androidx.databinding.BindingAdapter;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-
 public class ViewAdapter {
     @BindingAdapter({"linearLayoutManager"})
     public static void setLinearLayoutManager(RecyclerView recyclerView,boolean b) {

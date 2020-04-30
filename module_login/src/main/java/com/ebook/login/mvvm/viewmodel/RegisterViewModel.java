@@ -12,11 +12,8 @@ import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.login.mvvm.model.RegisterModel;
 
-import java.util.Objects;
-
 import androidx.annotation.NonNull;
 import androidx.databinding.ObservableField;
-import androidx.databinding.ObservableInt;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 

@@ -7,10 +7,9 @@ import android.view.View;
 import com.ebook.api.newstype.entity.NewsType;
 import com.ebook.common.adapter.BaseBindAdapter;
 import com.ebook.me.R;
-import com.ebook.me.databinding.ItemNewsTypeShowBindingBinding;
+import com.ebook.me.databinding.AdapterNewsTypeShowBindingItemBinding;
 
-
-public class NewsTypeShowBindAdapter extends BaseBindAdapter<NewsType, ItemNewsTypeShowBindingBinding> {
+public class NewsTypeShowBindAdapter extends BaseBindAdapter<NewsType, AdapterNewsTypeShowBindingItemBinding> {
     private NewsTypeShowBindAdapter.DeleteClickLisenter mDeleteClickLisenter;
 
     public interface DeleteClickLisenter {
@@ -25,11 +24,11 @@ public class NewsTypeShowBindAdapter extends BaseBindAdapter<NewsType, ItemNewsT
     }
     @Override
     protected int getLayoutItemId(int viewType) {
-        return R.layout.item_news_type_show_binding;
+        return R.layout.adapter_news_type_show_binding_item;
     }
 
     @Override
-    protected void onBindItem(ItemNewsTypeShowBindingBinding binding, final NewsType item, int position) {
+    protected void onBindItem(AdapterNewsTypeShowBindingItemBinding binding, final NewsType item, int position) {
         binding.setNewsType(item);
         binding.btnMeNewsTypeDelete.setOnClickListener(new View.OnClickListener(){
             @Override

@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">module_find</string>
+    <string name="author">作者</string>
+    <string name="book_name">小说名</string>
+    <string name="cover">封面</string>
+    <string name="open_book">打开书籍</string>
+    <string name="more">更多</string>
+    <string name="book_type">小说类型</string>
+    <string name="library">书城</string>
+    <string name="search_book_or_author">搜书名、作者</string>
 </resources>

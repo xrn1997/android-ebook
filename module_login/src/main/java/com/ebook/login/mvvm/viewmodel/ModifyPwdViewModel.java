@@ -1,17 +1,14 @@
 package com.ebook.login.mvvm.viewmodel;
 
 import android.app.Application;
-import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.blankj.utilcode.util.SPUtils;
-import com.ebook.api.RetrofitManager;
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.ExceptionHandler;
-import com.ebook.api.user.LoginDTO;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.SingleLiveEvent;
 import com.ebook.common.mvvm.viewmodel.BaseViewModel;

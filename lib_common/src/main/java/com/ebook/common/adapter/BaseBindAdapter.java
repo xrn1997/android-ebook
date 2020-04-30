@@ -52,11 +52,11 @@ public abstract class BaseBindAdapter<T, B extends ViewDataBinding> extends Recy
 
     protected abstract void onBindItem(B binding, T item,int position);
 
-    public void setItemClickListener(OnItemClickListener itemClickListener) {
+    public void setItemClickListener(OnItemClickListener<T> itemClickListener) {
         mItemClickListener = itemClickListener;
     }
 
-    public void setOnItemLongClickListener(OnItemLongClickListener onItemLongClickListener) {
+    public void setOnItemLongClickListener(OnItemLongClickListener<T> onItemLongClickListener) {
         mOnItemLongClickListener = onItemLongClickListener;
     }
 

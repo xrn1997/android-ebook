@@ -8,7 +8,7 @@ import com.ebook.common.provider.IFindProvider;
 import com.ebook.find.fragment.MainFindFragment;
 
 
-@Route(path = "/find/main",name = "发现服务")
+@Route(path = "/find/main",name = "书库")
 public class FindProvider implements IFindProvider {
     @Override
     public Fragment getMainFindFragment() {

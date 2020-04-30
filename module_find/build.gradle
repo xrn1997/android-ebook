@@ -13,7 +13,7 @@ android {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_common')
-
+    implementation project(':lib_book')
     annotationProcessor rootProject.ext.dependencies["alibaba:arouter-compiler"]
     annotationProcessor rootProject.ext.dependencies["dagger:dagger-compiler"]
 

@@ -17,7 +17,6 @@ import com.ebook.common.R;
 import com.ebook.common.util.DisplayUtil;
 
 
-
 public class RotateProgressDialog extends DialogFragment {
 
   private TextView mTxtProgress;

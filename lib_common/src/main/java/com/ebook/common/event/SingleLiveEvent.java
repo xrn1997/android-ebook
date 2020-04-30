@@ -24,8 +24,6 @@ import androidx.annotation.MainThread;
 import androidx.annotation.Nullable;
 import android.util.Log;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**

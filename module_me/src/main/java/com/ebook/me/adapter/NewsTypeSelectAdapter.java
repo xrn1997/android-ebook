@@ -18,7 +18,7 @@ public class NewsTypeSelectAdapter extends BaseAdapter<NewsType, NewsTypeSelectA
 
     @Override
     protected int onBindLayout() {
-        return R.layout.item_news_type_select;
+        return R.layout.adapter_news_type_select_item;
     }
 
     @Override

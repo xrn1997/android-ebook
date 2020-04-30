@@ -10,8 +10,6 @@ import com.ebook.common.event.EventCode;
 import com.ebook.common.event.me.NewsTypeCrudEvent;
 import com.ebook.common.mvvm.BaseMvvmActivity;
 import com.ebook.me.mvvm.factory.MeViewModelFactory;
-import com.ebook.me.BR;
-import com.ebook.me.R;
 import com.ebook.me.databinding.ActivityNewsTypeAddBinding;
 import com.ebook.me.mvvm.viewmodel.NewsTypeAddViewModel;
 

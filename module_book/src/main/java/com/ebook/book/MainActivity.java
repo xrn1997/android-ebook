@@ -1,9 +1,8 @@
 package com.ebook.book;
 
-import android.os.Bundle;
 import android.view.KeyEvent;
 
-import com.ebook.book.fragment.MainBooksFragment;
+import com.ebook.book.fragment.MainBookFragment;
 import com.ebook.common.mvvm.BaseActivity;
 import com.ebook.common.util.ToastUtil;
 
@@ -17,7 +16,7 @@ public class MainActivity extends BaseActivity {
 
     @Override
     public void initView() {
-        getSupportFragmentManager().beginTransaction().replace(R.id.frame_content, MainBooksFragment.newInstance()).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.frame_content, MainBookFragment.newInstance()).commit();
     }
 
     @Override

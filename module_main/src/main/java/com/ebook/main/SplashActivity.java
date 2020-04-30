@@ -13,7 +13,6 @@ import android.widget.Button;
 import androidx.databinding.ViewDataBinding;
 
 import com.blankj.utilcode.util.SPUtils;
-import com.ebook.api.CommonService;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.mvvm.BaseMvvmActivity;
 import com.ebook.login.mvvm.factory.LoginViewModelFactory;

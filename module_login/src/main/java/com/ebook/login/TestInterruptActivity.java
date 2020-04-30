@@ -6,7 +6,6 @@ import com.alibaba.android.arouter.facade.annotation.Autowired;
 import com.alibaba.android.arouter.facade.annotation.Route;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.mvvm.BaseActivity;
-import com.ebook.login.R;
 
 @Route(path = KeyCode.Login.Test_PATH)
 public class TestInterruptActivity extends BaseActivity {

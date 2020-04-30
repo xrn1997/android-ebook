@@ -99,7 +99,7 @@
                     android:src="@drawable/icon_cursor"/>
             </LinearLayout>
 
-            <com.ebook.common.view.mprogressbar.MHorProgressBar
+            <com.ebook.basebook.view.mprogressbar.MHorProgressBar
                 android:id="@+id/mpb_durprogress"
                 android:layout_width="match_parent"
                 android:layout_height="3dp"

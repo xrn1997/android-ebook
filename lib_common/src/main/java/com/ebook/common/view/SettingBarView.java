@@ -21,7 +21,6 @@ import com.ebook.common.R;
 import com.ebook.common.binding.command.BindingCommand;
 
 
-
 public class SettingBarView extends RelativeLayout {
     private ImageView imgLeftIcon;
     private TextView txtSetTitle;

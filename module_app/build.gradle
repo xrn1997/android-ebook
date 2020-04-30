@@ -34,7 +34,7 @@ android {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation project(':lib_common')
+    api project(':lib_book')
     if (!isModule.toBoolean()) {
         implementation project(':module_main')
         implementation project(':module_find')

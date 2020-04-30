@@ -3,6 +3,7 @@ package com.ebook.common;
 import android.app.Application;
 
 import com.alibaba.android.arouter.launcher.ARouter;
+import com.ebook.common.BuildConfig;
 import com.ebook.common.util.log.KLog;
 import com.facebook.stetho.Stetho;
 
