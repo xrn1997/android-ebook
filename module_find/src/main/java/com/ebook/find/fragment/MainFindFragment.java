@@ -1,33 +1,37 @@
 package com.ebook.find.fragment;
 
+import android.content.Context;
 import android.content.Intent;
+import android.util.AttributeSet;
 import android.view.View;
 import android.widget.FrameLayout;
 
 import com.ebook.common.adapter.BaseBindAdapter;
 import com.ebook.common.mvvm.BaseMvvmRefreshFragment;
+import com.ebook.common.util.ObservableListUtil;
 import com.ebook.find.BR;
 import com.ebook.find.R;
+import com.ebook.find.adapter.LibraryBookAdapter;
+import com.ebook.find.adapter.LibraryBookListAdapter;
 import com.ebook.find.databinding.FragmentFindMainBinding;
 import com.ebook.find.entity.BookType;
 import com.ebook.find.adapter.BookTypeShowAdapter;
 import com.ebook.find.mvp.view.impl.ChoiceBookActivity;
 import com.ebook.find.mvp.view.impl.SearchActivity;
-import com.ebook.find.mvp.view.libraryview.LibraryKindBookListView;
-import com.ebook.find.mvp.view.libraryview.LibraryNewBooksView;
 import com.ebook.find.mvvm.factory.FindViewModelFactory;
 import com.ebook.find.mvvm.viewmodel.LibraryViewModel;
 import com.refresh.lib.DaisyRefreshLayout;
 
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 
 public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBinding,LibraryViewModel> {
     private FrameLayout flSearch;
     private BookTypeShowAdapter mBookTypeShowAdapter;
+    private LibraryBookListAdapter mLibraryKindBookAdapter;
     public static final String TAG = MainFindFragment.class.getSimpleName();
-
     public static MainFindFragment newInstance() {
         return new MainFindFragment();
     }
@@ -67,9 +71,35 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
     public void initView(View view) {
         flSearch = (FrameLayout) view.findViewById(R.id.fl_search);
         mBookTypeShowAdapter=new BookTypeShowAdapter(mActivity,mViewModel.getBookTypeList());
+        mLibraryKindBookAdapter=new LibraryBookListAdapter(mActivity,mViewModel.getLibraryKindBookLists());
+        mViewModel.getLibraryKindBookLists().addOnListChangedCallback(ObservableListUtil.getListChangedCallback(mLibraryKindBookAdapter));
+        MyRecycleviewManager myRecycleviewManager = new MyRecycleviewManager(mActivity);
+        myRecycleviewManager.setScrollEnabled(false);
+        myRecycleviewManager.setOrientation(RecyclerView.VERTICAL);
+        mBinding.lkbvKindbooklist.setLayoutManager(myRecycleviewManager);
+        mBinding.lkbvKindbooklist.setAdapter(mLibraryKindBookAdapter);
         mBinding.kindLl.setAdapter(mBookTypeShowAdapter);
     }
+    //自定义的manager，用于禁用滚动条
+    public static class MyRecycleviewManager extends LinearLayoutManager {
 
+        private boolean isScrollEnabled = true;
+
+        public MyRecycleviewManager(Context context) {
+            super(context);
+        }
+
+        public void setScrollEnabled(boolean flag) {
+            this.isScrollEnabled = flag;
+        }
+
+        @Override
+        public boolean canScrollVertically() {
+            return isScrollEnabled && super.canScrollVertically();
+        }
+
+    }
+    ////////////////////////////////
     @Override
     public void initListener() {
         super.initListener();
@@ -89,12 +119,8 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
     }
 
     @Override
-    public boolean enableToolbar() {
-        return true;
-    }
-
-    @Override
     public void initData() {
+        mViewModel.refreshData();
     }
 
     @Override

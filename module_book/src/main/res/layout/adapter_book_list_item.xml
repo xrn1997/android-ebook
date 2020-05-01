@@ -24,11 +24,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <FrameLayout
+            <androidx.cardview.widget.CardView
                 android:id="@+id/fl_content"
                 android:layout_width="70dp"
                 android:layout_height="100dp"
-                android:visibility="visible">
+                app:cardCornerRadius="10dp"
+                app:cardElevation="0dp">
                 <ImageView
                     android:id="@+id/iv_cover"
                     android:layout_width="match_parent"
@@ -37,7 +38,7 @@
                     app:imageUrl="@{bookshelf.bookInfo.coverUrl}"
                     app:placeHolder="@{@drawable/img_cover_default}"
                     android:contentDescription="@string/cover" />
-            </FrameLayout>
+            </androidx.cardview.widget.CardView>
 
             <RelativeLayout
                 android:layout_width="match_parent"

@@ -294,11 +294,11 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
 
     public static void main(String[] args) {
         final BookShelf bookShelfResult = new BookShelf();
-        bookShelfResult.setNoteUrl("http://www.gxwztv.com/ba598.shtml");
+        bookShelfResult.setNoteUrl("https://www.ztv.la/ba598.shtml");
         bookShelfResult.setFinalDate(System.currentTimeMillis());
         bookShelfResult.setDurChapter(0);
         bookShelfResult.setDurChapterPage(0);
-        bookShelfResult.setTag("http://www.gxwztv.com");
+        bookShelfResult.setTag("https://www.ztv.la");
         WebBookModelImpl.getInstance().getBookInfo(bookShelfResult).subscribe(new Observer<BookShelf>() {
             @Override
             public void onSubscribe(Disposable d) {

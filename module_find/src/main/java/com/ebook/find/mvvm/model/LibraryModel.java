@@ -23,10 +23,10 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
-import static com.ebook.find.mvp.presenter.impl.LibraryPresenterImpl.LIBRARY_CACHE_KEY;
+
 
 public class LibraryModel extends BaseModel {
-
+    public final static String LIBRARY_CACHE_KEY = "cache_library";
     public LibraryModel(Application application) {
         super(application);
     }
@@ -131,24 +131,24 @@ public class LibraryModel extends BaseModel {
 //获取书籍类型信息，此处用本地数据。
     public List<BookType> getBookTypeList(){
         List<BookType> bookTypeList=new ArrayList<>();
-        bookTypeList.add(new BookType("东方玄幻","http://www.gxwztv.com/xuanhuanxiaoshuo/"));
-        bookTypeList.add(new BookType("西方奇幻","http://www.gxwztv.com/qihuanxiaoshuo/"));
-        bookTypeList.add(new BookType("热血修真","http://www.gxwztv.com/xiuzhenxiaoshuo/"));
-        bookTypeList.add(new BookType("武侠仙侠","http://www.gxwztv.com/wuxiaxiaoshuo/"));
-        bookTypeList.add(new BookType("都市爽文","http://www.gxwztv.com/dushixiaoshuo/"));
-        bookTypeList.add(new BookType("言情暧昧","http://www.gxwztv.com/yanqingxiaoshuo/"));
-        bookTypeList.add(new BookType("灵异悬疑","http://www.gxwztv.com/lingyixiaoshuo/"));
-        bookTypeList.add(new BookType("运动竞技","http://www.gxwztv.com/jingjixiaoshuo/"));
-        bookTypeList.add(new BookType("历史架空","http://www.gxwztv.com/lishixiaoshuo/"));
-        bookTypeList.add(new BookType("耽美","http://www.gxwztv.com/danmeixiaoshuo/"));
-        bookTypeList.add(new BookType("科幻迷航","http://www.gxwztv.com/kehuanxiaoshuo/"));
-        bookTypeList.add(new BookType("游戏人生","http://www.gxwztv.com/youxixiaoshuo/"));
-        bookTypeList.add(new BookType("军事斗争","http://www.gxwztv.com/junshixiaoshuo/"));
-        bookTypeList.add(new BookType("商战人生","http://www.gxwztv.com/shangzhanxiaoshuo/"));
-        bookTypeList.add(new BookType("校园爱情","http://www.gxwztv.com/xiaoyuanxiaoshuo/"));
-        bookTypeList.add(new BookType("官场仕途","http://www.gxwztv.com/guanchangxiaoshuo/"));
-        bookTypeList.add(new BookType("娱乐明星","http://www.gxwztv.com/zhichangxiaoshuo/"));
-        bookTypeList.add(new BookType("其他","http://www.gxwztv.com/qitaxiaoshuo/"));
+        bookTypeList.add(new BookType("东方玄幻","https://www.ztv.la/xuanhuanxiaoshuo/"));
+        bookTypeList.add(new BookType("西方奇幻","https://www.ztv.la/qihuanxiaoshuo/"));
+        bookTypeList.add(new BookType("热血修真","https://www.ztv.la/xiuzhenxiaoshuo/"));
+        bookTypeList.add(new BookType("武侠仙侠","https://www.ztv.la/wuxiaxiaoshuo/"));
+        bookTypeList.add(new BookType("都市爽文","https://www.ztv.la/dushixiaoshuo/"));
+        bookTypeList.add(new BookType("言情暧昧","https://www.ztv.la/yanqingxiaoshuo/"));
+        bookTypeList.add(new BookType("灵异悬疑","https://www.ztv.la/lingyixiaoshuo/"));
+        bookTypeList.add(new BookType("运动竞技","https://www.ztv.la/jingjixiaoshuo/"));
+        bookTypeList.add(new BookType("历史架空","https://www.ztv.la/lishixiaoshuo/"));
+        bookTypeList.add(new BookType("耽美","https://www.ztv.la/danmeixiaoshuo/"));
+        bookTypeList.add(new BookType("科幻迷航","https://www.ztv.la/kehuanxiaoshuo/"));
+        bookTypeList.add(new BookType("游戏人生","https://www.ztv.la/youxixiaoshuo/"));
+        bookTypeList.add(new BookType("军事斗争","https://www.ztv.la/junshixiaoshuo/"));
+        bookTypeList.add(new BookType("商战人生","https://www.ztv.la/shangzhanxiaoshuo/"));
+        bookTypeList.add(new BookType("校园爱情","https://www.ztv.la/xiaoyuanxiaoshuo/"));
+        bookTypeList.add(new BookType("官场仕途","https://www.ztv.la/guanchangxiaoshuo/"));
+        bookTypeList.add(new BookType("娱乐明星","https://www.ztv.la/zhichangxiaoshuo/"));
+        bookTypeList.add(new BookType("其他","https://www.ztv.la/qitaxiaoshuo/"));
         return bookTypeList;
     }
 

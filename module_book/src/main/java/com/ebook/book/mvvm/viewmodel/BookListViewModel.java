@@ -53,29 +53,14 @@ public class BookListViewModel extends BaseRefreshViewModel<BookShelf, BookListM
 
     @Override
     public void loadMore() {
-        mModel.getBookShelfList().subscribe(new Observer<List<BookShelf>>() {
-            @Override
-            public void onSubscribe(Disposable d) {
 
-            }
-
-            @Override
-            public void onNext(List<BookShelf> value) {
-                if (value != null && value.size() > 0) {
-                    mList.clear();
-                    mList.addAll(value);
-                }
-                postStopLoadMoreEvent();
-            }
-
-            @Override
-            public void onError(Throwable e) {
-            }
-
-            @Override
-            public void onComplete() {
-            }
-        });
     }
+
+    @Override
+    public boolean enableLoadMore() {
+        return false;
+    }
+
+
 
 }

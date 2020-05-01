@@ -209,8 +209,20 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
             }
         }
 
-        Glide.with(this).load(coverUrl).dontAnimate().diskCacheStrategy(DiskCacheStrategy.AUTOMATIC).centerCrop().placeholder(R.drawable.img_cover_default).into(ivCover);
-        Glide.with(this).load(coverUrl).dontAnimate().diskCacheStrategy(DiskCacheStrategy.AUTOMATIC).centerCrop().apply(bitmapTransform(new BlurTransformation(6))).into(ivBlurCover);
+        Glide.with(this)
+                .load(coverUrl)
+                .dontAnimate()
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .centerCrop()
+                .placeholder(R.drawable.img_cover_default)
+                .into(ivCover);
+        Glide.with(this)
+                .load(coverUrl)
+                .dontAnimate()
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .centerCrop()
+                .apply(bitmapTransform(new BlurTransformation(6)))
+                .into(ivBlurCover);
         tvName.setText(name);
         tvAuthor.setText(author);
     }

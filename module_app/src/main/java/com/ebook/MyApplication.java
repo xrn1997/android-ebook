@@ -14,7 +14,7 @@ public class MyApplication extends BaseApplication {
         super.onCreate();
         RetrofitManager.init(this);
         GreenDaoManager.init(this);
-        startService(new Intent(this, DownloadService.class));
+       startService(new Intent(this, DownloadService.class));
 
     }
 }

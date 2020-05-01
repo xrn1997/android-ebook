@@ -188,7 +188,7 @@ public class DownloadService extends Service {
 
     private void downloading(final DownloadChapter data, final int durTime) {
         if (durTime < reTryTimes && isStartDownload) {
-//            isProgress(data);
+            isProgress(data);
             Observable.create(new ObservableOnSubscribe<BookContent>() {
                 @Override
                 public void subscribe(ObservableEmitter<BookContent> e) throws Exception {

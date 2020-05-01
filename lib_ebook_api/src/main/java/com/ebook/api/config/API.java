@@ -13,6 +13,6 @@ public class API {
     //本机IP地址
     public static final String URL_HOST_USER = "http://192.168.0.102:8762";
     public static final String URL_HOST_NEWS = "http://192.168.0.102:8767";
-    public static final String Resource_URL="http://www.gxwztv.com";
+    public static final String Resource_URL="https://www.ztv.la";
 
 }
