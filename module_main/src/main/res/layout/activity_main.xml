@@ -8,7 +8,6 @@
         android:id="@+id/frame_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="8dp"
         android:layout_above="@+id/navigation_main"
         />
     <com.google.android.material.bottomnavigation.BottomNavigationView

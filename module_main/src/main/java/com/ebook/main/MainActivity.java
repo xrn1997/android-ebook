@@ -2,6 +2,7 @@ package com.ebook.main;
 
 
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.MenuItem;
 
 import com.alibaba.android.arouter.facade.annotation.Autowired;
@@ -10,6 +11,7 @@ import com.ebook.common.provider.IBookProvider;
 import com.ebook.common.provider.IFindProvider;
 import com.ebook.common.provider.IMeProvider;
 import com.ebook.common.provider.INewsProvider;
+import com.ebook.common.util.ToastUtil;
 import com.ebook.main.entity.MainChannel;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -102,6 +104,25 @@ public class MainActivity extends BaseActivity {
             transaction.hide(from).add(R.id.frame_content, to, tag).commit();
         } else {
             transaction.hide(from).show(to).commit();
+        }
+    }
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            exit();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+    private long exitTime = 0;
+
+    public void exit() {
+        if ((System.currentTimeMillis() - exitTime) > 2000) {
+            ToastUtil.showToast("再按一次退出程序");
+            exitTime = System.currentTimeMillis();
+        } else {
+            finish();
+            System.exit(0);
         }
     }
 }

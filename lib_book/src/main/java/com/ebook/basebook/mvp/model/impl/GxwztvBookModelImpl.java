@@ -76,7 +76,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements IGxwztvBookMo
                 List<LibraryNewBook> libraryNewBooks = new ArrayList<LibraryNewBook>();
                 for (int i = 0; i < newBookEs.size(); i++) {
                     Element itemE = newBookEs.get(i).getElementsByTag("a").get(0);
-                    LibraryNewBook item = new LibraryNewBook(itemE.text(), TAG + itemE.attr("href"), TAG, "gxwztv.com");
+                    LibraryNewBook item = new LibraryNewBook(itemE.text(), TAG + itemE.attr("href"), TAG, "ztv.la");
                     libraryNewBooks.add(item);
                 }
                 result.setLibraryNewBooks(libraryNewBooks);
@@ -92,7 +92,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements IGxwztvBookMo
                     List<SearchBook> books = new ArrayList<SearchBook>();
                     for (int j = 0; j < bookEs.size(); j++) {
                         SearchBook searchBook = new SearchBook();
-                        searchBook.setOrigin("gxwztv.com");
+                        searchBook.setOrigin("ztv.la");
                         searchBook.setTag(TAG);
                         searchBook.setName(bookEs.get(j).getElementsByTag("span").get(0).text());
                         searchBook.setNoteUrl(TAG + bookEs.get(j).getElementsByTag("a").get(0).attr("href"));
@@ -113,7 +113,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements IGxwztvBookMo
                     Element firstBookE = kindEs.get(i).getElementsByTag("dl").get(0);
                     SearchBook firstBook = new SearchBook();
                     firstBook.setTag(TAG);
-                    firstBook.setOrigin("gxwztv.com");
+                    firstBook.setOrigin("ztv.la");
                     firstBook.setName(firstBookE.getElementsByTag("a").get(1).text());
                     firstBook.setNoteUrl(TAG + firstBookE.getElementsByTag("a").get(0).attr("href"));
                     firstBook.setCoverUrl(firstBookE.getElementsByTag("a").get(0).getElementsByTag("img").get(0).attr("src"));
@@ -124,7 +124,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements IGxwztvBookMo
                     for (int j = 0; j < otherBookEs.size(); j++) {
                         SearchBook item = new SearchBook();
                         item.setTag(TAG);
-                        item.setOrigin("gxwztv.com");
+                        item.setOrigin("ztv.la");
                         item.setKind(kindItem.getKindName());
                         item.setNoteUrl(TAG + otherBookEs.get(j).getElementsByTag("a").get(0).attr("href"));
                         item.setName(otherBookEs.get(j).getElementsByTag("a").get(0).text());
@@ -167,7 +167,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements IGxwztvBookMo
                             item.setAuthor(booksE.get(i).getElementsByClass("col-xs-2").get(0).text());
                             item.setKind(booksE.get(i).getElementsByClass("col-xs-1").get(0).text());
                             item.setLastChapter(booksE.get(i).getElementsByClass("col-xs-4").get(0).getElementsByTag("a").get(0).text());
-                            item.setOrigin("gxwztv.com");
+                            item.setOrigin("ztv.la");
                             item.setName(booksE.get(i).getElementsByClass("col-xs-3").get(0).getElementsByTag("a").get(0).text());
                             item.setNoteUrl(TAG + booksE.get(i).getElementsByClass("col-xs-3").get(0).getElementsByTag("a").get(0).attr("href"));
                             item.setCoverUrl("noimage");
@@ -227,7 +227,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements IGxwztvBookMo
         }
         bookInfo.setIntroduce("\u3000\u3000" + introduce);
         bookInfo.setChapterUrl(TAG + resultE.getElementsByClass("list-group-item tac").get(0).getElementsByTag("a").get(0).attr("href"));
-        bookInfo.setOrigin("gxwztv.com");
+        bookInfo.setOrigin("ztv.la");
         return bookInfo;
     }
 
