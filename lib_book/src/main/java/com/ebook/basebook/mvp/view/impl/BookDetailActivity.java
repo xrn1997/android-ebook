@@ -22,6 +22,7 @@ import com.ebook.basebook.mvp.presenter.IBookDetailPresenter;
 import com.ebook.basebook.mvp.presenter.impl.BookDetailPresenterImpl;
 import com.ebook.basebook.mvp.presenter.impl.ReadBookPresenterImpl;
 import com.ebook.basebook.mvp.view.IBookDetailView;
+import com.ebook.db.entity.BookShelf;
 
 import jp.wasabeef.glide.transformations.BlurTransformation;
 
@@ -98,10 +99,19 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
 
     @Override
     public void updateView() {
-        if (null != mPresenter.getBookShelf()) {
+        BookShelf bookShelf = mPresenter.getBookShelf();
+
+        if (null != bookShelf) {
+            Glide.with(this)
+                    .load(bookShelf.getBookInfo().getCoverUrl())
+                    .dontAnimate()
+                    .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                    .centerCrop()
+                    .placeholder(R.drawable.img_cover_default)
+                    .into(ivCover);
             if (mPresenter.getInBookShelf()) {
-                if (mPresenter.getBookShelf().getBookInfo().getChapterlist().size() > 0)
-                    tvChapter.setText(String.format(getString(R.string.tv_read_durprogress), mPresenter.getBookShelf().getBookInfo().getChapterlist().get(mPresenter.getBookShelf().getDurChapter()).getDurChapterName()));
+                if (bookShelf.getBookInfo().getChapterlist().size() > 0)
+                    tvChapter.setText(String.format(getString(R.string.tv_read_durprogress), bookShelf.getBookInfo().getChapterlist().get(bookShelf.getDurChapter()).getDurChapterName()));
                 else
                     tvChapter.setText("无章节");
                 tvShelf.setText("移出书架");
@@ -114,10 +124,10 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
                     }
                 });
             } else {
-                if (mPresenter.getBookShelf().getBookInfo().getChapterlist().size() == 0) {
+                if (bookShelf.getBookInfo().getChapterlist().size() == 0) {
                     tvChapter.setText("无章节");
                 } else {
-                    tvChapter.setText(String.format(getString(R.string.tv_searchbook_lastest), mPresenter.getBookShelf().getBookInfo().getChapterlist().get(mPresenter.getBookShelf().getBookInfo().getChapterlist().size() - 1).getDurChapterName()));
+                    tvChapter.setText(String.format(getString(R.string.tv_searchbook_lastest), bookShelf.getBookInfo().getChapterlist().get(bookShelf.getBookInfo().getChapterlist().size() - 1).getDurChapterName()));
                 }
                 tvShelf.setText("放入书架");
                 tvRead.setText("开始阅读");
@@ -130,16 +140,16 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
                 });
             }
             if (tvIntro.getText().toString().trim().length() == 0) {
-                tvIntro.setText(mPresenter.getBookShelf().getBookInfo().getIntroduce());
+                tvIntro.setText(bookShelf.getBookInfo().getIntroduce());
             }
             if (tvIntro.getVisibility() != View.VISIBLE) {
                 tvIntro.setVisibility(View.VISIBLE);
                 tvIntro.startAnimation(animShowInfo);
                 tvLoading.startAnimation(animHideLoading);
             }
-            if (mPresenter.getBookShelf().getBookInfo().getOrigin() != null && mPresenter.getBookShelf().getBookInfo().getOrigin().length() > 0) {
+            if (bookShelf.getBookInfo().getOrigin() != null && bookShelf.getBookInfo().getOrigin().length() > 0) {
                 tvOrigin.setVisibility(View.VISIBLE);
-                tvOrigin.setText("来源:" + mPresenter.getBookShelf().getBookInfo().getOrigin());
+                tvOrigin.setText("来源:" + bookShelf.getBookInfo().getOrigin());
             } else {
                 tvOrigin.setVisibility(View.GONE);
             }

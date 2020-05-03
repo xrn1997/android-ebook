@@ -54,7 +54,7 @@ public class BookListAdapter extends BaseBindAdapter<BookShelf, AdapterBookListI
 
     @BindingAdapter(value = {"imageUrl", "placeHolder"},requireAll = false)
     public static void loadImage(ImageView imageView, String url, Drawable holderDrawable) {
-        Log.d("glide_cover", "loadImage url: "+url);
+       // Log.d("glide_cover", "loadImage url: "+url);
         Glide.with(imageView.getContext())
                 .load(url)
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
