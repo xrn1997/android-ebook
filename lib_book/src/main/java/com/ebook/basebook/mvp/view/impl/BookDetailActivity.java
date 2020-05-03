@@ -109,6 +109,13 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
                     .centerCrop()
                     .placeholder(R.drawable.img_cover_default)
                     .into(ivCover);
+            Glide.with(this)
+                    .load(bookShelf.getBookInfo().getCoverUrl())
+                    .dontAnimate()
+                    .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                    .centerCrop()
+                    .apply(bitmapTransform(new BlurTransformation(6)))
+                    .into(ivBlurCover);
             if (mPresenter.getInBookShelf()) {
                 if (bookShelf.getBookInfo().getChapterlist().size() > 0)
                     tvChapter.setText(String.format(getString(R.string.tv_read_durprogress), bookShelf.getBookInfo().getChapterlist().get(bookShelf.getDurChapter()).getDurChapterName()));

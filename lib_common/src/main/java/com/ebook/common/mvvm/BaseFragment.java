@@ -23,6 +23,7 @@ import com.ebook.common.event.common.BaseFragmentEvent;
 import com.ebook.common.view.LoadingInitView;
 import com.ebook.common.view.NetErrorView;
 import com.ebook.common.view.NoDataView;
+import com.hwangjr.rxbus.RxBus;
 import com.trello.rxlifecycle3.components.support.RxAppCompatActivity;
 
 import org.greenrobot.eventbus.EventBus;
@@ -56,6 +57,7 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
         super.onCreate(savedInstanceState);
         mActivity = (RxAppCompatActivity) getActivity();
         ARouter.getInstance().inject(this);
+        RxBus.get().register(this);
         EventBus.getDefault().register(this);
     }
 
@@ -128,6 +130,7 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        RxBus.get().unregister(this);
         EventBus.getDefault().unregister(this);
     }
 

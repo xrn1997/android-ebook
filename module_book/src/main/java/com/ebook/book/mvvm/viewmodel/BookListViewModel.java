@@ -34,7 +34,7 @@ public class BookListViewModel extends BaseRefreshViewModel<BookShelf, BookListM
                     mList.clear();
                     mList.addAll(value);
                 } else {
-                    ToastUtil.showToast("没有数据");
+                //    ToastUtil.showToast("没有数据");
                    // postShowNoDataViewEvent(true);
                 }
                 postStopRefreshEvent();

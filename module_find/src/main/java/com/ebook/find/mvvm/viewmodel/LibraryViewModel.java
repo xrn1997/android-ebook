@@ -90,17 +90,6 @@ public class LibraryViewModel extends BaseRefreshViewModel<Library, LibraryModel
     }
 
     public ObservableArrayList<LibraryKindBookList> getLibraryKindBookLists() {
-        mModel.getLibraryData(mCache)
-                .subscribe(new SimpleObserver<Library>() {
-                    @Override
-                    public void onNext(Library value) {
-                        libraryKindBookLists.addAll(value.getKindBooks());
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                    }
-                });
         return libraryKindBookLists;
     }
 

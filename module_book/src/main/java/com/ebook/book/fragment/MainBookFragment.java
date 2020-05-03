@@ -157,6 +157,7 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
     }
     )
     public void hadAddOrRemoveBook(BookShelf bookShelf) {
-        autoLoadData();
+       mViewModel.refreshData();
+        //autoLoadData();
     }
 }

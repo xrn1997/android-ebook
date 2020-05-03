@@ -25,6 +25,7 @@ import com.ebook.common.manager.ActivityManager;
 import com.ebook.common.view.LoadingInitView;
 import com.ebook.common.view.NetErrorView;
 import com.ebook.common.view.NoDataView;
+import com.hwangjr.rxbus.RxBus;
 import com.trello.rxlifecycle3.components.support.RxAppCompatActivity;
 
 import org.greenrobot.eventbus.EventBus;
@@ -62,6 +63,7 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
         initListener();
         initData();
         EventBus.getDefault().register(this);
+        RxBus.get().register(this);
         ActivityManager.getInstance().addActivity(this);
     }
 
@@ -129,6 +131,7 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
     protected void onDestroy() {
         super.onDestroy();
         EventBus.getDefault().unregister(this);
+        RxBus.get().unregister(this);
         ActivityManager.getInstance().finishActivity(this);
     }
 
