@@ -2,6 +2,7 @@ package com.ebook.find.adapter;
 
 import android.content.Context;
 import android.content.Intent;
+import android.view.View;
 
 import com.ebook.basebook.mvp.presenter.impl.BookDetailPresenterImpl;
 import com.ebook.basebook.mvp.view.impl.BookDetailActivity;
@@ -11,10 +12,13 @@ import com.ebook.db.entity.LibraryKindBookList;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.find.R;
 import com.ebook.find.databinding.ViewLibraryKindbookBinding;
+import com.ebook.find.mvp.view.impl.ChoiceBookActivity;
 
 import androidx.databinding.ObservableArrayList;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
 import static com.blankj.utilcode.util.ActivityUtils.startActivity;
 
 
@@ -36,6 +40,18 @@ public class LibraryBookListAdapter extends BaseBindAdapter<LibraryKindBookList,
         searchBooks.addAll(item.getBooks());
         libraryBookAdapter=new LibraryBookAdapter(context,searchBooks);
         searchBooks.addOnListChangedCallback(ObservableListUtil.getListChangedCallback(libraryBookAdapter));
+        if(item.getKindUrl()!=null){
+            binding.tvMore.setVisibility(VISIBLE);
+            binding.tvMore.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    ChoiceBookActivity.startChoiceBookActivity(context,item.getKindName(),item.getKindUrl());
+                }
+            });
+        }else{
+            binding.tvMore.setVisibility(GONE);
+            binding.tvMore.setOnClickListener(null);
+        }
         libraryBookAdapter.setItemClickListener(new BaseBindAdapter.OnItemClickListener<SearchBook>() {
             @Override
             public void onItemClick(SearchBook searchBook, int position) {
