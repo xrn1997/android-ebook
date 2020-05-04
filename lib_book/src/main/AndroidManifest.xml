@@ -13,8 +13,8 @@
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.BookDetailActivity"
             android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity"
-            android:theme="@style/CAppTransparentTheme" />
+            android:theme="@style/CAppTransparentTheme"
+            tools:ignore="LockedOrientationActivity" />
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.ReadBookActivity"
             android:launchMode="singleTask"
@@ -23,12 +23,20 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain"/>
+                <data android:scheme="content"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain"/>
+                <data android:scheme="file"/>
             </intent-filter>
         </activity>
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.ImportBookActivity"
             android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity"
-            android:theme="@style/CAppTransparentTheme" />
+            android:theme="@style/CAppTransparentTheme"
+            tools:ignore="LockedOrientationActivity" />
     </application>
 </manifest>
