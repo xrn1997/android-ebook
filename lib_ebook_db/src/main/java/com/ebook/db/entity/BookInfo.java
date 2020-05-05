@@ -21,7 +21,7 @@ import java.util.List;
 public class BookInfo implements Parcelable, Cloneable {
 
     @Transient
-    public static final long REFRESH_DUR = 10 * 60 * 1000;
+    private static final long REFRESH_DUR = 10 * 60 * 1000;
 
     private String name; //小说名
 

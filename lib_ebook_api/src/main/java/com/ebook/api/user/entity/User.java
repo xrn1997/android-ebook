@@ -4,9 +4,11 @@ import java.io.Serializable;
 
 
 public class User implements Serializable {
-	private Long id;
-	private String username;
-	private String password;
+	private Long id;//ID
+	private String username;//用户名（账号）
+	private String password;//密码
+	private String image;//图片地址
+	private String nickname;//昵称
 
 	public User() {
 	}
