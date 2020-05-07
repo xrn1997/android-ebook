@@ -22,4 +22,6 @@ public interface RxBusTag {
      String CANCEL_DOWNLOAD = "rxbus_cancel_download";
 
      String ADD_DOWNLOAD_TASK = "rxbus_add_download_task";
+
+     String START_DOWNLOAD_SERVICE="rxbus_start_download_service";
 }

@@ -1,6 +1,7 @@
 package com.ebook.book.fragment;
 
 import android.content.Intent;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 
@@ -15,6 +16,7 @@ import com.ebook.basebook.mvp.view.impl.ImportBookActivity;
 import com.ebook.basebook.mvp.view.impl.ReadBookActivity;
 import com.ebook.book.mvvm.factory.BookViewModelFactory;
 import com.ebook.book.mvvm.viewmodel.BookListViewModel;
+import com.ebook.book.service.DownloadService;
 import com.ebook.common.adapter.BaseBindAdapter;
 import com.ebook.common.event.RxBusTag;
 import com.ebook.basebook.base.manager.BitIntentDataManager;
@@ -160,4 +162,15 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
        mViewModel.refreshData();
         //autoLoadData();
     }
+
+    @Subscribe(thread = EventThread.MAIN_THREAD,
+            tags = {
+                    @Tag(RxBusTag.START_DOWNLOAD_SERVICE)
+            }
+    )
+    public void startDownloadService(Object o) {
+        Log.e(TAG, "startDownloadService: 开启下载服务" );
+            mActivity.startService(new Intent(mActivity, DownloadService.class));
+    }
+
 }

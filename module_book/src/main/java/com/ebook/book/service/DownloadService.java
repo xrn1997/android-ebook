@@ -1,12 +1,10 @@
 //Copyright (c) 2017. 章钦豪. All rights reserved.
 package com.ebook.book.service;
 
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Handler;
@@ -72,7 +70,12 @@ public class DownloadService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (!isInit) {
             isInit = true;
-            notifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            notifyManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+                NotificationChannel notificationChannel =
+                        new NotificationChannel("40", "App Service",NotificationManager.IMPORTANCE_HIGH);
+                notifyManager.createNotificationChannel(notificationChannel);
+            }
             RxBus.get().register(this);
         }
         return super.onStartCommand(intent, flags, startId);
@@ -391,20 +394,13 @@ public class DownloadService extends Service {
         Intent mainIntent = new Intent(this, MainBookFragment.class);
         PendingIntent mainPendingIntent = PendingIntent.getActivity(this, 0, mainIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         //创建 Notification.Builder 对象
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this,"channel_01")
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this,"40")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 //点击通知后自动清除
                 .setAutoCancel(true)
                 .setContentTitle("正在下载：" + downloadChapter.getBookName())
                 .setContentText(downloadChapter.getDurChapterName() == null ? "  " : downloadChapter.getDurChapterName())
                 .setContentIntent(mainPendingIntent);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-            CharSequence name = "channel_011";
-            NotificationChannel notificationChannel =
-                    new NotificationChannel("channel_012",name,NotificationManager.IMPORTANCE_HIGH);
-            notifyManager.createNotificationChannel(notificationChannel);
-            builder.setChannelId("AppTestNotificationId");
-        }
         //发送通知
         notifyManager.notify(notifiId, builder.build());
     }
@@ -416,6 +412,7 @@ public class DownloadService extends Service {
             @Override
             public void run() {
                 Toast.makeText(getApplicationContext(), "全部离线章节下载完成", Toast.LENGTH_SHORT).show();
+                stopService(new Intent(getApplication(),DownloadService.class));
             }
         });
     }

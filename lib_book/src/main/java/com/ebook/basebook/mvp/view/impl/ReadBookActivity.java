@@ -256,6 +256,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
                                     item.setCoverUrl(mPresenter.getBookShelf().getBookInfo().getCoverUrl());
                                     result.add(item);
                                 }
+                                RxBus.get().post(RxBusTag.START_DOWNLOAD_SERVICE,new Object());
                                 RxBus.get().post(RxBusTag.ADD_DOWNLOAD_TASK, new DownloadChapterList(result));
                             }
                         });

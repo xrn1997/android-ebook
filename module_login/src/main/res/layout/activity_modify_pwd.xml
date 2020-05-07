@@ -13,7 +13,7 @@
 
     <EditText
         android:id="@+id/id_et_reg_1st_pwd"
-        style="@style/EditText_login"
+        style="@style/EditText"
         android:layout_width="match_parent"
         android:layout_marginTop="8dp"
         android:background="@drawable/editext_selector"
@@ -24,7 +24,7 @@
 
     <EditText
         android:id="@+id/id_et_reg_2nd_pwd"
-        style="@style/EditText_login"
+        style="@style/EditText"
         android:layout_width="match_parent"
         android:layout_marginTop="8dp"
         android:background="@drawable/editext_selector"

@@ -29,7 +29,7 @@
 
         <EditText
             android:id="@+id/id_et_username"
-            style="@style/EditText_login"
+            style="@style/EditText"
             android:layout_width="match_parent"
             android:layout_below="@id/id_tv_title"
             android:layout_marginTop="40dp"
@@ -42,7 +42,7 @@
 
         <EditText
             android:id="@+id/id_et_password"
-            style="@style/EditText_login"
+            style="@style/EditText"
             android:layout_width="match_parent"
             android:layout_below="@id/id_et_username"
             android:layout_marginTop="8dp"
