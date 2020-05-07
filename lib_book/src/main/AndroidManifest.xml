@@ -13,13 +13,11 @@
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.BookDetailActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/CAppTransparentTheme"
-            tools:ignore="LockedOrientationActivity" />
+            android:theme="@style/CAppTransparentTheme" />
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.ReadBookActivity"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity">
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -36,7 +34,6 @@
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.ImportBookActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/CAppTransparentTheme"
-            tools:ignore="LockedOrientationActivity" />
+            android:theme="@style/CAppTransparentTheme" />
     </application>
 </manifest>

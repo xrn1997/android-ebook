@@ -1,7 +1,7 @@
 package com.ebook.find.entity;
-/*
+/**
 * 书籍类型类
-* */
+*/
 public class BookType {
     private String bookType;
     private String url;

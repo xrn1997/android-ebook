@@ -36,14 +36,15 @@
 
     <Button
         android:id="@+id/id_btn_register"
-        style="@style/Button_Login"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="60dp"
+        android:layout_height="56dp"
+        android:background="@drawable/btn_selector"
         android:layout_marginTop="50dp"
-        android:layout_marginRight="60dp"
+        android:layout_marginStart="30dp"
+        android:layout_marginEnd="30dp"
         android:onClick="@{() -> viewModel.modify()}"
-        android:text="@string/define" />
+        android:text="@string/define"
+        android:textColor="@color/color_white"/>
 
 
 </LinearLayout>

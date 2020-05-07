@@ -23,9 +23,9 @@ import com.ebook.me.adapter.NewsTypeSelectAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
-/*
+/**
 * 下拉框
-* */
+*/
 public class NewsTypeBottomSelectDialog extends BottomSheetDialogFragment {
     public static final String TAG = NewsTypeBottomSelectDialog.class.getSimpleName();
     private RecyclerView mRecyclerView;

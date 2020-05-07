@@ -47,9 +47,9 @@ public class LoginActivity extends BaseMvvmActivity<ActivityLoginBinding, LoginV
     }
 
 
-    /*
+    /**
      * 禁止显示Toolbar，默认为true
-     * */
+     */
     @Override
     public boolean enableToolbar() {
         return false;

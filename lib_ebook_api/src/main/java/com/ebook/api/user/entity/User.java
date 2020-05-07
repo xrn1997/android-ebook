@@ -1,9 +1,10 @@
 package com.ebook.api.user.entity;
 
-import java.io.Serializable;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 
-public class User implements Serializable {
+public class User  implements Parcelable {
 	private Long id;//ID
 	private String username;//用户名（账号）
 	private String password;//密码
@@ -17,6 +18,30 @@ public class User implements Serializable {
 		this.username = username;
 		this.password = password;
 	}
+
+	protected User(Parcel in) {
+		if (in.readByte() == 0) {
+			id = null;
+		} else {
+			id = in.readLong();
+		}
+		username = in.readString();
+		password = in.readString();
+		image = in.readString();
+		nickname = in.readString();
+	}
+
+	public static final Creator<User> CREATOR = new Creator<User>() {
+		@Override
+		public User createFromParcel(Parcel in) {
+			return new User(in);
+		}
+
+		@Override
+		public User[] newArray(int size) {
+			return new User[size];
+		}
+	};
 
 	public Long getId() {
 		return id;
@@ -40,5 +65,24 @@ public class User implements Serializable {
 
 	public void setPassword(String password) {
 		this.password = password;
+	}
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags) {
+		if (id == null) {
+			dest.writeByte((byte) 0);
+		} else {
+			dest.writeByte((byte) 1);
+			dest.writeLong(id);
+		}
+		dest.writeString(username);
+		dest.writeString(password);
+		dest.writeString(image);
+		dest.writeString(nickname);
 	}
 }

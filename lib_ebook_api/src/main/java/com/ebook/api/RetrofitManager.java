@@ -64,7 +64,9 @@ public class RetrofitManager {
 
         return mRetrofit.create(CommonService.class);
     }
-
+    public CommentService getCommentService(){
+        return mRetrofit.create(CommentService.class);
+    }
     public NewsTypeService getNewsTypeService() {
 
         return mRetrofit.create(NewsTypeService.class);

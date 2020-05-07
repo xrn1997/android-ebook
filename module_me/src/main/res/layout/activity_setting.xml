@@ -12,7 +12,7 @@
         android:layout_marginLeft="12dp"
         android:layout_marginTop="20dp"
         android:layout_marginRight="12dp"
-        android:background="@drawable/shape_btn_blue_bg"
+        android:background="@drawable/btn_selector"
         android:text="@string/exit"
         android:textColor="#FFFFFF"
         android:textSize="16sp" />

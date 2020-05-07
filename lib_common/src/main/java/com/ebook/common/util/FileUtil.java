@@ -1,5 +1,10 @@
 package com.ebook.common.util;
 
+import android.content.ContentResolver;
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 
 import java.io.BufferedInputStream;
@@ -12,6 +17,9 @@ import java.util.regex.Pattern;
 
 
 public class FileUtil {
+    /**
+     * 判断是否是图片文件
+     */
     public static boolean isImageFile(String url){
         if(TextUtils.isEmpty(url)){
             return false;
@@ -21,6 +29,9 @@ public class FileUtil {
         Matcher matcher = pattern.matcher(url.toLowerCase());
         return matcher.find();
     }
+    /**
+     * 判断是否是视频文件
+     */
     public static boolean isVideoFile(String url){
         if(TextUtils.isEmpty(url)){
             return false;
@@ -37,6 +48,10 @@ public class FileUtil {
         String reg = "(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]";
         return url.matches(reg);
     }
+
+    /**
+     * 根据文件路径获得文件数据
+     */
     public static byte[] getFileByte(String filename) {
         File f = new File(filename);
         if (!f.exists()) {
@@ -66,5 +81,45 @@ public class FileUtil {
         }
         return null;
     }
+    /**
+     * 根据Uri返回文件绝对路径
+     * 兼容了file:///开头的 和 content://开头的情况
+     */
+    public static String getRealFilePathFromUri(final Context context, final Uri uri) {
+        if (null == uri) return null;
+        final String scheme = uri.getScheme();
+        String data = null;
+        if (scheme == null) {
+            data = uri.getPath();
+        }
+        else if (ContentResolver.SCHEME_FILE.equalsIgnoreCase(scheme)) {
+            data = uri.getPath();
+        } else if (ContentResolver.SCHEME_CONTENT.equalsIgnoreCase(scheme)) {
+            Cursor cursor = context.getContentResolver().query(uri, new String[]{MediaStore.Images.ImageColumns.DATA}, null, null, null);
+            if (null != cursor) {
+                if (cursor.moveToFirst()) {
+                    int index = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
+                    if (index > -1) {
+                        data = cursor.getString(index);
+                    }
+                }
+                cursor.close();
+            }
+        }
+        return data;
+    }
 
+    /**
+     * 检查文件是否存在
+     */
+    public static String checkDirPath(String dirPath) {
+        if (TextUtils.isEmpty(dirPath)) {
+            return "";
+        }
+        File dir = new File(dirPath);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        return dirPath;
+    }
 }

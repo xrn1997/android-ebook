@@ -12,7 +12,7 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#333333"
+        android:background="@drawable/login_cover"
         tools:context="com.ebook.login.LoginActivity">
 
         <TextView
@@ -20,7 +20,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
-            android:layout_marginTop="90dp"
+            android:layout_marginTop="40dp"
             android:text="@string/ebook"
             android:textColor="#ffffff"
             android:textSize="48sp"
@@ -38,7 +38,7 @@
             android:inputType="number"
             android:maxLength="11"
             android:text="@={viewModel.username}"
-            android:textColorHint="@color/color_black" />
+            android:textColorHint="@color/color_grey" />
 
         <EditText
             android:id="@+id/id_et_password"
@@ -50,20 +50,22 @@
             android:hint="@string/print_pwd"
             android:inputType="textWebPassword"
             android:text="@={viewModel.password}"
-            android:textColorHint="@color/color_black" />
+            android:textColorHint="@color/color_grey" />
 
 
         <Button
             android:id="@+id/id_btn_login"
-            style="@style/Button_Login"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_below="@id/id_et_password"
-            android:layout_marginLeft="60dp"
+            android:layout_marginStart="30dp"
+            android:layout_marginEnd="30dp"
             android:layout_marginTop="50dp"
-            android:layout_marginRight="60dp"
             android:onClick="@{() -> viewModel.login()}"
-            android:text="@string/login" />
+            android:text="@string/login"
+            android:background="@drawable/btn_selector"
+            android:textColor="@color/color_white"
+            android:textStyle="bold" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -78,14 +80,16 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="100dp"
                 android:text="@string/tel_register"
-                android:textColor="#ffffff" />
+                android:textColor="#ffffff"
+                android:textStyle="bold"/>
 
             <TextView
                 android:id="@+id/id_tv_fgt_pwd"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/fgt_pwd"
-                android:textColor="#ffffff" />
+                android:textColor="#ffffff"
+                android:textStyle="bold"/>
         </LinearLayout>
     </RelativeLayout>
 </layout>
