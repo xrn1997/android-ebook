@@ -72,7 +72,7 @@
                     android:layout_height="wrap_content"
                     android:layout_below="@+id/txt_book_author"
                     android:layout_marginTop="4dp"
-                    android:text="@{@string/read_to+String.valueOf(bookshelf.durChapter)+@string/chapter}"
+                    android:text="@{@string/read_to+String.valueOf(bookshelf.bookInfo.chapterlist.get(bookshelf.durChapter).durChapterName)}"
                     android:textColor="#888888"
                     android:textSize="12sp" />
             </RelativeLayout>

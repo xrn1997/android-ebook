@@ -12,7 +12,7 @@
         <activity
             android:name="com.ebook.common.view.profilePhoto.ClipImageActivity"
             android:label="修改头像"
-            android:screenOrientation="portrait"
+
             android:theme="@style/AppTheme.BackBar" />
         <provider
             android:name="androidx.core.content.FileProvider"

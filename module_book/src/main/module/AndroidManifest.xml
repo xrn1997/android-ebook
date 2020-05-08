@@ -44,13 +44,13 @@
         <service android:name=".service.DownloadService" />
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.BookDetailActivity"
-            android:screenOrientation="portrait"
+
             tools:ignore="LockedOrientationActivity"
             android:theme="@style/CAppTransparentTheme" />
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.ReadBookActivity"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait"
+
             tools:ignore="LockedOrientationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -59,7 +59,7 @@
         </activity>
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.ImportBookActivity"
-            android:screenOrientation="portrait"
+
             tools:ignore="LockedOrientationActivity"
             android:theme="@style/CAppTransparentTheme" />
     </application>

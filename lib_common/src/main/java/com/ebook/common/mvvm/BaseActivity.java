@@ -52,7 +52,8 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);//由系统选择屏幕方向
+        //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);//由系统选择屏幕方向
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);//竖屏
         super.setContentView(R.layout.activity_root1);
         mContentView = (ViewGroup) findViewById(android.R.id.content);
         initCommonView();

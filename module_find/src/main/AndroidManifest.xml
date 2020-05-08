@@ -29,11 +29,11 @@
         android:theme="@style/AppTheme">
         <activity
             android:name=".mvp.view.impl.ChoiceBookActivity"
-            android:screenOrientation="portrait" />
+             />
         <activity
             android:name=".mvp.view.impl.SearchActivity"
             android:configChanges="locale|keyboardHidden|orientation|screenSize"
-            android:screenOrientation="portrait"
+
             android:theme="@style/CAppTransparentTheme"
             android:windowSoftInputMode="stateHidden|adjustPan" />
     </application>

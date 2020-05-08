@@ -10,10 +10,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name="com.ebook.main.MainActivity"
-            android:screenOrientation="portrait"/>
-        <activity android:name="com.ebook.main.SplashActivity"
-            android:screenOrientation="portrait"
+        <activity android:name=".MainActivity"
+            />
+        <activity android:name=".SplashActivity"
+
             android:theme="@style/SplashTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

@@ -12,25 +12,20 @@
         <activity
             android:name=".LoginActivity"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait"
             android:label="登录" />
         <activity
             android:name=".RegisterActivity"
             android:label="注册"
-            android:screenOrientation="portrait"
             android:theme="@style/AppTheme.BackBar" />
         <activity
             android:name=".TestInterruptActivity"
-            android:screenOrientation="portrait"
             android:label="测试" />
         <activity
             android:name=".VerifyUserActivity"
-            android:screenOrientation="portrait"
             android:label="验证用户"
             android:theme="@style/AppTheme.BackBar" />
         <activity
             android:name=".ModifyPwdActivity"
-            android:screenOrientation="portrait"
             android:label="修改密码"
             android:theme="@style/AppTheme.BackBar" />
     </application>

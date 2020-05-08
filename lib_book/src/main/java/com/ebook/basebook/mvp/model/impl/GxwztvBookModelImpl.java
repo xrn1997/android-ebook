@@ -316,7 +316,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements IGxwztvBookMo
                     StringBuilder content = new StringBuilder();
                     for (int i = 0; i < contentEs.size(); i++) {
                         String temp = contentEs.get(i).text().trim();
-                        temp = temp.replaceAll(" ", "").replaceAll(" ", "");
+                        temp = temp.replaceAll(" ", "").replaceAll(" ", "").replaceAll("\\s*","");
                         if (temp.length() > 0) {
                             content.append("\u3000\u3000" + temp);
                             if (i < contentEs.size() - 1) {

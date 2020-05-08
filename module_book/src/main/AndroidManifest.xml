@@ -32,7 +32,7 @@
         <service android:name="com.ebook.book.service.DownloadService" />
         <activity
             android:name="com.ebook.book.NewsDetailActivity"
-            android:screenOrientation="portrait"
+
             android:label="新闻详情"
             android:theme="@style/AppTheme.BackBar">
         </activity>
