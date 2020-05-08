@@ -7,7 +7,11 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
+import com.ebook.me.mvvm.model.CommentModel;
+import com.ebook.me.mvvm.model.ModifyModel;
 import com.ebook.me.mvvm.model.NewsDetailAddModel;
+import com.ebook.me.mvvm.viewmodel.CommentViewModel;
+import com.ebook.me.mvvm.viewmodel.ModifyViewModel;
 import com.ebook.me.mvvm.viewmodel.NewsDetailAddViewModel;
 import com.ebook.me.mvvm.model.NewsTypeAddModel;
 import com.ebook.me.mvvm.model.NewsTypeListModel;
@@ -40,6 +44,7 @@ public class MeViewModelFactory extends ViewModelProvider.NewInstanceFactory {
 
     @NonNull
     @Override
+    @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
         if (modelClass.isAssignableFrom(NewsTypeAddViewModel.class)) {
             return (T) new NewsTypeAddViewModel(mApplication, new NewsTypeAddModel(mApplication));
@@ -47,6 +52,10 @@ public class MeViewModelFactory extends ViewModelProvider.NewInstanceFactory {
             return (T) new NewsTypeListViewModel(mApplication, new NewsTypeListModel(mApplication));
         }else if (modelClass.isAssignableFrom(NewsDetailAddViewModel.class)) {
             return (T) new NewsDetailAddViewModel(mApplication, new NewsDetailAddModel(mApplication));
+        }else if (modelClass.isAssignableFrom(CommentViewModel.class)) {
+            return (T) new CommentViewModel(mApplication, new CommentModel(mApplication));
+        }else if (modelClass.isAssignableFrom(ModifyViewModel.class)) {
+            return (T) new ModifyViewModel(mApplication, new ModifyModel(mApplication));
         }
         throw new IllegalArgumentException("Unknown ViewModel class: " + modelClass.getName());
     }

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+    <data>
+        <variable
+            name="viewModel"
+            type="com.ebook.me.mvvm.viewmodel.ModifyViewModel" />
+    </data>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#F3F5F7"
+        android:orientation="vertical">
+
+        <EditText
+            android:id="@+id/id_et_reg_1st_pwd"
+            style="@style/EditText"
+            android:layout_width="match_parent"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/editext_selector"
+            android:hint="@string/print_new_nickname"
+            android:inputType="textWebPassword"
+            android:textColorHint="#000000"  />
+        <Button
+            android:id="@+id/id_btn_register"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="@drawable/btn_selector"
+            android:layout_marginTop="50dp"
+            android:layout_marginStart="30dp"
+            android:layout_marginEnd="30dp"
+            android:text="@string/define"
+            android:textColor="@color/color_white"/>
+
+
+    </LinearLayout>
+</layout>

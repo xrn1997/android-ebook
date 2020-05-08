@@ -18,12 +18,13 @@
         android:id="@+id/view_user_layout"
         android:layout_width="match_parent"
         android:layout_height="200dp">
-        <ImageView
+        <com.ebook.common.view.profilePhoto.CircleImageView
             android:id="@+id/view_user_image"
             android:layout_width="60dp"
             android:layout_height="60dp"
             android:layout_centerInParent="true"
             android:background="@drawable/bg_shape"
+            android:padding="1dp"
             android:contentDescription="@string/head_portrait"
             android:src="@drawable/image_default" />
         <Button
@@ -61,6 +62,8 @@
         android:layout_height="wrap_content"
         app:set_left_icon="@drawable/me_icon_comment"
         app:set_left_icon_visable="true"
+        app:set_right_icon="@drawable/ic_angle_brackets"
+        app:set_right_icon_visable="true"
         app:set_title="我的评论" />
     <View
         android:layout_width="match_parent"
@@ -73,6 +76,8 @@
         android:layout_height="wrap_content"
         app:set_left_icon="@drawable/me_icon_inform"
         app:set_left_icon_visable="true"
+        app:set_right_icon="@drawable/ic_angle_brackets"
+        app:set_right_icon_visable="true"
         app:set_title="编辑资料" />
     <View
         android:layout_width="match_parent"
@@ -116,5 +121,7 @@
         android:layout_height="wrap_content"
         app:set_left_icon="@drawable/me_icon_setting"
         app:set_left_icon_visable="true"
+        app:set_right_icon="@drawable/ic_angle_brackets"
+        app:set_right_icon_visable="true"
         app:set_title="设置" />
 </LinearLayout>

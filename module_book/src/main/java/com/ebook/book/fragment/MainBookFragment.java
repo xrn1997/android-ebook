@@ -141,7 +141,7 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
 
     @Override
     public String getToolbarTitle() {
-        return null;
+        return "我的书架";
     }
 
     @Override

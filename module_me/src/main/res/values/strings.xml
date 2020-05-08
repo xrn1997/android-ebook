@@ -4,4 +4,6 @@
     <string name="xiaoming">小明</string>
     <string name="setting">设置</string>
     <string name="exit">退出登录</string>
+    <string name="print_new_nickname">请输入新昵称</string>
+    <string name="define">确定</string>
 </resources>

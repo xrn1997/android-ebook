@@ -9,6 +9,7 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.core.content.FileProvider;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.ebook.common.BuildConfig;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 
 import java.io.File;
@@ -114,16 +115,17 @@ public class MultiMediaUtil {
             public void accept(Boolean aBoolean) throws Exception {
                 if (aBoolean) {
                     File file = new File(path);
+
                     try {
                         if (file.createNewFile()) {
                             Intent intent = new Intent();
                             intent.setAction(MediaStore.ACTION_IMAGE_CAPTURE);
                             intent.addCategory(Intent.CATEGORY_DEFAULT);
                             if (activity != null) {
-                                intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(activity, "com.zjx.vcars.fileprovider", file));
+                                intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(activity, BuildConfig.LIBRARY_PACKAGE_NAME, file));
                                 activity.startActivityForResult(intent, requestcode);
                             } else if (fragment != null) {
-                                intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(fragment.getContext(), "com.zjx.vcars.fileprovider", file));
+                                intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(fragment.getContext(), BuildConfig.LIBRARY_PACKAGE_NAME, file));
                                 fragment.startActivityForResult(intent, requestcode);
                             }
                         }
@@ -176,10 +178,10 @@ public class MultiMediaUtil {
                             intent.addCategory(Intent.CATEGORY_DEFAULT);
                             //intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
                             if (activity != null) {
-                                intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(activity, "com.zjx.vcars.fileprovider", file));
+                                intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(activity, BuildConfig.LIBRARY_PACKAGE_NAME, file));
                                 activity.startActivityForResult(intent, requestcode);
                             } else if (fragment != null) {
-                                intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(fragment.getContext(), "com.zjx.vcars.fileprovider", file));
+                                intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(fragment.getContext(), BuildConfig.LIBRARY_PACKAGE_NAME, file));
                                 fragment.startActivityForResult(intent, requestcode);
                             }
 
@@ -198,14 +200,12 @@ public class MultiMediaUtil {
     //获取图片路径
     public static String getPhotoPath(AppCompatActivity activity) {
         String filename = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".jpg";
-        String filepath = activity.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath() + File.separator + filename;
-        return filepath;
+        return activity.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath() + File.separator + filename;
     }
 
     //获取视频的路径
     public static String getVideoPath(AppCompatActivity activity) {
         String filename = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".3gp";
-        String filepath = activity.getExternalFilesDir(Environment.DIRECTORY_MOVIES).getAbsolutePath() + File.separator + filename;
-        return filepath;
+        return activity.getExternalFilesDir(Environment.DIRECTORY_MOVIES).getAbsolutePath() + File.separator + filename;
     }
 }

@@ -6,6 +6,8 @@ import com.ebook.api.dto.RespDTO;
 import com.ebook.api.user.LoginDTO;
 import com.ebook.api.user.entity.User;
 
+import java.util.List;
+
 import io.reactivex.Observable;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -19,20 +21,20 @@ public interface CommentService {
     //添加评论
     @POST(API.URL_HOST_COMMENT + "comments/save")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    Observable<RespDTO<LoginDTO>> addComment(@Header("Authorization") String tolen, @Body Comment comment);
+    Observable<RespDTO<Comment>> addComment(@Header("Authorization") String tolen, @Body Comment comment);
 
     //删除评论
     @POST(API.URL_HOST_COMMENT + "comments/delete/{id}")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    Observable<RespDTO<LoginDTO>> deleteComment(@Header("Authorization") String tolen, @Path("id") Long id);
+    Observable<RespDTO<Integer>> deleteComment(@Header("Authorization") String tolen, @Path("id") Long id);
 
     //获得用户评论
     @GET(API.URL_HOST_COMMENT + "comments/query/name/{username}")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    Observable<RespDTO<LoginDTO>> getUserComments(@Header("Authorization") String tolen, @Path("username")String username);
+    Observable<RespDTO<List<Comment>>> getUserComments(@Header("Authorization") String tolen, @Path("username")String username);
 
     //获得章节评论
     @GET(API.URL_HOST_COMMENT + "comments/query/chapter/{chapterUrl}")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    Observable<RespDTO<LoginDTO>> getChapterComments(@Header("Authorization") String tolen, @Path("chapterUrl")String chapterUrl);
+    Observable<RespDTO<List<Comment>>> getChapterComments(@Header("Authorization") String tolen, @Path("chapterUrl")String chapterUrl);
 }

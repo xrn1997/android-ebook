@@ -6,29 +6,6 @@
     android:background="@android:color/black"
     android:orientation="vertical">
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="#173070">
-
-        <ImageView
-            android:id="@+id/iv_back"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center_vertical"
-            android:src="@drawable/btn_back_white" />
-
-        <TextView
-            android:id="@+id/stock_name"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_centerInParent="true"
-            android:gravity="center"
-            android:text="移动和缩放"
-            android:textColor="#ffffff"
-            android:textSize="20sp" />
-
-    </RelativeLayout>
 
     <!--圆形裁剪框示例
         app:clipBorderWidth="5dp"     ： 裁剪框边框宽度

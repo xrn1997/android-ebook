@@ -1,3 +1,9 @@
 <resources>
-
+    <style name="EditText">
+        <item name="android:layout_height">56dp</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:layout_marginStart">30dp</item>
+        <item name="android:layout_marginEnd">30dp</item>
+    </style>
 </resources>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.ebook.me">
+    package="com.ebook.me">
 
     <application
         android:allowBackup="true"
@@ -13,12 +13,12 @@
             android:name="com.ebook.me.NewsTypeAddActivity"
             android:label="新闻类型设置"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.BackBar"/>
+            android:theme="@style/AppTheme.BackBar" />
         <activity
             android:name="com.ebook.me.NewsTypeListActivity"
             android:label="新闻类型列表"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.BackBar"/>
+            android:theme="@style/AppTheme.BackBar" />
         <activity
             android:name="com.ebook.me.NewsDetailAddActivity"
             android:label="新闻添加"
@@ -29,12 +29,18 @@
             android:label="设置"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.BackBar" />
-        <activity android:name=".CommentActivity"
+        <activity
+            android:name=".CommentActivity"
             android:label="我的评论"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.BackBar"/>
-        <activity android:name=".EditInfromActivity"
+            android:theme="@style/AppTheme.BackBar" />
+        <activity
+            android:name=".EditInfromActivity"
             android:label="编辑资料"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.BackBar" />
+        <activity android:name=".ModifyNicknameActivity"
+            android:label="修改昵称"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.BackBar"/>
     </application>

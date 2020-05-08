@@ -3,56 +3,52 @@ package com.ebook.common.view.profilePhoto;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.ebook.common.R;
-import com.ebook.common.view.profilePhoto.ClipViewLayout;
+import com.ebook.common.mvvm.BaseActivity;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 
 /**
  * 头像裁剪Activity
  */
-public class ClipImageActivity extends AppCompatActivity implements View.OnClickListener {
+public class ClipImageActivity extends BaseActivity {
     private static final String TAG = "ClipImageActivity";
     private ClipViewLayout clipViewLayout1;
     private ClipViewLayout clipViewLayout2;
-    private ImageView back;
     private TextView btnCancel;
     private TextView btnOk;
     //类别 1: 圆形, 2: 正方形
     private int type;
 
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_clip_image);
-        type = getIntent().getIntExtra("type", 1);
-        initView();
+    public int onBindLayout() {
+        return R.layout.activity_clip_image;
     }
 
     /**
      * 初始化组件
      */
+    @Override
     public void initView() {
         clipViewLayout1 = (ClipViewLayout) findViewById(R.id.clipViewLayout1);
         clipViewLayout2 = (ClipViewLayout) findViewById(R.id.clipViewLayout2);
-        back = (ImageView) findViewById(R.id.iv_back);
         btnCancel = (TextView) findViewById(R.id.btn_cancel);
         btnOk = (TextView) findViewById(R.id.bt_ok);
-        //设置点击事件监听器
-        back.setOnClickListener(this);
-        btnCancel.setOnClickListener(this);
-        btnOk.setOnClickListener(this);
+
+    }
+
+    @Override
+    public void initData() {
+        type = getIntent().getIntExtra("type", 1);
     }
 
     @Override
@@ -72,17 +68,33 @@ public class ClipImageActivity extends AppCompatActivity implements View.OnClick
     }
 
     @Override
-    public void onClick(View v) {
-        int id = v.getId();
-        if (id == R.id.iv_back) {
-            finish();
-        } else if (id == R.id.btn_cancel) {
-            finish();
-        } else if (id == R.id.bt_ok) {
-            generateUriAndReturn();
-        }
+    public void initListener() {
+        super.initListener();
+        //设置点击事件监听器
+        btnCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+        btnOk.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                generateUriAndReturn();
+            }
+        });
     }
 
+    @Override
+    public String getTootBarTitle() {
+        return "截取";
+    }
+
+    @Override
+    public boolean enableToolbar() {
+        return true;
+    }
 
     /**
      * 生成Uri并且通过setResult返回给打开的activity

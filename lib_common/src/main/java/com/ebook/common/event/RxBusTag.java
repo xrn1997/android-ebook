@@ -24,4 +24,6 @@ public interface RxBusTag {
      String ADD_DOWNLOAD_TASK = "rxbus_add_download_task";
 
      String START_DOWNLOAD_SERVICE="rxbus_start_download_service";
+
+     String MODIFY_PROFIE_PICTURE="rxbus_modify_profie_picture";
 }

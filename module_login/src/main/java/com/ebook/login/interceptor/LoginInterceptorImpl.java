@@ -28,6 +28,7 @@ public class LoginInterceptorImpl implements IInterceptor {
                 // 不需要登录的直接进入这个页面
                 case KeyCode.Login.Login_PATH:
                 case KeyCode.Login.Register_PATH:
+                case KeyCode.Login.Modify_PATH:
                     callback.onContinue(postcard);
                     break;
                 // 需要登录的直接拦截下来
