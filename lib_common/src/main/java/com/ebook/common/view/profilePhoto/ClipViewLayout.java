@@ -131,9 +131,9 @@ public class ClipViewLayout extends RelativeLayout {
         if (uri == null) {
             return;
         }
-        Log.d("evan", "**********clip_view uri*******  " + uri);
+      //  Log.d("evan", "**********clip_view uri*******  " + uri);
         String path = getRealFilePathFromUri(getContext(), uri);
-        Log.d("evan", "**********clip_view path*******  " + path);
+     //   Log.d("evan", "**********clip_view path*******  " + path);
         if (TextUtils.isEmpty(path)) {
             return;
         }

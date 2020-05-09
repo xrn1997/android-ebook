@@ -116,7 +116,7 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
                // Bitmap bitMap = BitmapFactory.decodeFile(cropImagePath);
             }
         });
-        photoCutDialog.show(getSupportFragmentManager(), "dialog");
+        photoCutDialog.show(getSupportFragmentManager(), "photoDialog");
     }
 
     @Subscribe(thread = EventThread.MAIN_THREAD,

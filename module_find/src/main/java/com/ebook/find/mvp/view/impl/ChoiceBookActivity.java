@@ -54,7 +54,7 @@ public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> imple
 
     @Override
     protected void initData() {
-        searchBookAdapter = new ChoiceBookAdapter();
+        searchBookAdapter = new ChoiceBookAdapter(getContext());
     }
 
     @Override

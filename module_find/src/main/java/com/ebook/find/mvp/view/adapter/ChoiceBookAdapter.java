@@ -1,6 +1,7 @@
 
 package com.ebook.find.mvp.view.adapter;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,9 +13,14 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 
+import com.ebook.basebook.base.activity.BaseActivity;
+import com.ebook.basebook.mvp.model.impl.GxwztvBookModelImpl;
+import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.basebook.view.refreshview.RefreshRecyclerViewAdapter;
+import com.ebook.db.entity.BookShelf;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.find.R;
+import com.trello.rxlifecycle3.android.ActivityEvent;
 
 
 import java.text.DecimalFormat;
@@ -22,10 +28,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import androidx.recyclerview.widget.RecyclerView;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
 public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
     private List<SearchBook> searchBooks;
-
+    private Context context;
     public interface OnItemClickListener {
         void clickAddShelf(View clickView, int position, SearchBook searchBook);
 
@@ -34,9 +42,10 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
 
     private OnItemClickListener itemClickListener;
 
-    public ChoiceBookAdapter() {
+    public ChoiceBookAdapter(Context context) {
         super(true);
         searchBooks = new ArrayList<>();
+        this.context=context;
     }
 
     @Override
@@ -47,6 +56,30 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
     @Override
     public void onBindViewholder(final RecyclerView.ViewHolder holder, final int position) {
         final int realposition = position;
+        BookShelf bookShelf = new BookShelf();
+        bookShelf.setNoteUrl(searchBooks.get(realposition).getNoteUrl());
+        GxwztvBookModelImpl.getInstance().getBookInfo(bookShelf)
+                .subscribeOn(Schedulers.io())
+                .compose(((BaseActivity)context).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new SimpleObserver<BookShelf>() {
+                    @Override
+                    public void onNext(BookShelf bookShelf) {
+                        if(!((BaseActivity) context).isFinishing()&&context!=null&&!((BaseActivity) context).isDestroyed()){
+                            Glide.with(((Viewholder) holder).ivCover.getContext())
+                                    .load(bookShelf.getBookInfo().getCoverUrl())
+                                    .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                                    .fitCenter()
+                                    .dontAnimate()
+                                    .placeholder(R.drawable.img_cover_default)
+                                    .into(((Viewholder) holder).ivCover);
+                        }
+                    }
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+                });
         Glide.with(((Viewholder) holder).ivCover.getContext())
                 .load(searchBooks.get(realposition).getCoverUrl())
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)

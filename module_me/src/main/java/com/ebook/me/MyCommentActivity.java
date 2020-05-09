@@ -1,19 +1,24 @@
 package com.ebook.me;
 
+
+import com.alibaba.android.arouter.facade.annotation.Route;
 import com.ebook.api.entity.Comment;
 import com.ebook.common.adapter.BaseBindAdapter;
+import com.ebook.common.event.KeyCode;
 import com.ebook.common.mvvm.BaseMvvmRefreshActivity;
 import com.ebook.common.util.ObservableListUtil;
 import com.ebook.me.adapter.CommentListAdapter;
 import com.ebook.me.databinding.ActivityCommentBinding;
 import com.ebook.me.mvvm.factory.MeViewModelFactory;
 import com.ebook.me.mvvm.viewmodel.CommentViewModel;
+import com.ebook.me.view.DeleteDialog;
 import com.refresh.lib.DaisyRefreshLayout;
 
 
 import androidx.lifecycle.ViewModelProvider;
 
-public class CommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBinding, CommentViewModel> {
+@Route(path= KeyCode.Me.Comment_PATH)
+public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBinding, CommentViewModel> {
     private CommentListAdapter mCommentListAdapter;
     @Override
     public int onBindLayout() {
@@ -54,7 +59,7 @@ public class CommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBind
 
     @Override
     public void initData() {
-
+        mViewModel.refreshData();
     }
 
     @Override
@@ -64,12 +69,20 @@ public class CommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBind
             @Override
             public void onItemClick(Comment comment, int position) {
                 //TODO 处理打开评论事件
+
             }
         });
         mCommentListAdapter.setOnItemLongClickListener(new BaseBindAdapter.OnItemLongClickListener<Comment>() {
             @Override
             public boolean onItemLongClick(Comment comment, int postion) {
-                //TODO 处理删除事件
+                DeleteDialog deleteDialog = DeleteDialog.newInstance();
+                deleteDialog.setOnClickLisener(new DeleteDialog.OnDeleteClickLisener() {
+                    @Override
+                    public void onItemClick() {
+                        mViewModel.deleteComent(comment.getId());
+                    }
+                });
+                deleteDialog.show(getSupportFragmentManager(),"deleteDialog");
                 return true;
             }
         });
@@ -77,6 +90,6 @@ public class CommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBind
 
     @Override
     public DaisyRefreshLayout getRefreshLayout() {
-        return null;
+        return mBinding.refviewCommentList;
     }
 }

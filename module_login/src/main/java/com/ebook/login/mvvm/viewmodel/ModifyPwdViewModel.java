@@ -75,7 +75,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
 
             @Override
             public void onNext(RespDTO<Integer> loginDTORespDTO) {
-                Log.d(TAG, "修改密码onNext: start");
+              //  Log.d(TAG, "修改密码onNext: start");
                 if (loginDTORespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     ToastUtil.showToast("修改成功");
                     SPUtils.getInstance().clear();
@@ -85,7 +85,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
                     ARouter.getInstance().build(KeyCode.Login.Login_PATH)
                             .with(bundle)
                             .navigation();
-                    Log.d(TAG, "修改密码onNext: finsh");
+                //    Log.d(TAG, "修改密码onNext: finsh");
                 } else {
                     Log.v(TAG, "修改密码error:" + loginDTORespDTO.error);
                 }
@@ -97,7 +97,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
 
             @Override
             public void onComplete() {
-                Log.d(TAG, "修改密码onComplete: start");
+             //   Log.d(TAG, "修改密码onComplete: start");
                 getmVoidSingleLiveEvent().call();
                 postFinishActivityEvent();
             }

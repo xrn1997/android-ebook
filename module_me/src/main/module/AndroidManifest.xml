@@ -23,7 +23,7 @@
             android:label="设置"
             android:theme="@style/AppTheme.BackBar" />
         <activity
-            android:name=".CommentActivity"
+            android:name=".MyCommentActivity"
             android:label="我的评论"
             android:theme="@style/AppTheme.BackBar" />
         <activity

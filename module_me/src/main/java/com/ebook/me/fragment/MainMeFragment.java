@@ -3,7 +3,6 @@ package com.ebook.me.fragment;
 import android.content.Intent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Space;
 import android.widget.TextView;
 
 import com.alibaba.android.arouter.launcher.ARouter;
@@ -16,8 +15,7 @@ import com.ebook.common.event.RxBusTag;
 import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
 import com.ebook.common.mvvm.BaseFragment;
 import com.ebook.common.view.SettingBarView;
-import com.ebook.me.CommentActivity;
-import com.ebook.me.ModifyInformationActivity;
+import com.ebook.me.MyCommentActivity;
 import com.ebook.me.R;
 import com.ebook.common.view.profilePhoto.CircleImageView;
 import com.hwangjr.rxbus.annotation.Subscribe;
@@ -59,7 +57,8 @@ public class MainMeFragment extends BaseFragment {
         mSetComment.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
             @Override
             public void onClick() {
-                startActivity(new Intent(mActivity, CommentActivity.class));
+                ARouter.getInstance().build(KeyCode.Me.Comment_PATH)
+                        .navigation(getActivity(), new LoginNavigationCallbackImpl());
             }
         });
         mSetInform.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {

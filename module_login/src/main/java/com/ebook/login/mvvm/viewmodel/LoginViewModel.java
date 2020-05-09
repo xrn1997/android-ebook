@@ -45,7 +45,7 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
     public void login(String username, String password) {
         if (TextUtils.isEmpty(username)) {//用户名为空
             ToastUtil.showToast("用户名不能为空");
-            Log.d(TAG, "login: " + username);
+          //  Log.d(TAG, "login: " + username);
             return;
         }
         if (username.length() < 11) { // 手机号码不足11位
@@ -60,12 +60,12 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
         mModel.login(username, password).subscribe(new Observer<RespDTO<LoginDTO>>() {
             @Override
             public void onSubscribe(Disposable d) {
-                postShowInitLoadViewEvent(true);
+              //  postShowInitLoadViewEvent(true);
             }
 
             @Override
             public void onNext(RespDTO<LoginDTO> loginDTORespDTO) {
-                Log.d(TAG, "onNext: start");
+             //   Log.d(TAG, "onNext: start");
                 if (loginDTORespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     Log.v(TAG, "tolen:" + loginDTORespDTO.data.getToken());
                     RetrofitManager.getInstance().TOKEN = "Bearer " + loginDTORespDTO.data.getToken();
@@ -75,7 +75,7 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
                     RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME,new Object());//通知其更新UI
                 } else if (loginDTORespDTO.code == ExceptionHandler.SYSTEM_ERROR.UNAUTHORIZED) {
                     SPUtils.getInstance().clear();
-                    Log.d(TAG, "登录失效 is login 状态：" + SPUtils.getInstance().getString(KeyCode.Login.SP_IS_LOGIN));
+                 //   Log.d(TAG, "登录失效 is login 状态：" + SPUtils.getInstance().getString(KeyCode.Login.SP_IS_LOGIN));
                     Log.v(TAG, "error:" + loginDTORespDTO.error);
                 } else {
                     Log.v(TAG, "error:" + loginDTORespDTO.error);
@@ -84,12 +84,12 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
 
             @Override
             public void onError(Throwable e) {
-                postShowInitLoadViewEvent(false);
+             //   postShowInitLoadViewEvent(false);
             }
 
             @Override
             public void onComplete() {
-                postShowInitLoadViewEvent(false);
+             //   postShowInitLoadViewEvent(false);
             }
         });
     }
@@ -107,7 +107,7 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
             toAimActivity();
             postFinishActivityEvent();
             ToastUtil.showToast("登录成功");
-            Log.d(TAG, "onNext: finish");
+           // Log.d(TAG, "onNext: finish");
         }
     }
 

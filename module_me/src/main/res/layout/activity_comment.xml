@@ -11,7 +11,7 @@
 
     <com.refresh.lib.DaisyRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/refview_book_list"
+        android:id="@+id/refview_comment_list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:enableLoadMore="@{viewModel.enableLoadMore}"
@@ -23,6 +23,7 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/view_my_comment_list"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            app:linearLayoutManager="@{viewModel.orientation}"/>
     </com.refresh.lib.DaisyRefreshLayout>
 </layout>

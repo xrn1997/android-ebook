@@ -38,5 +38,6 @@ public interface KeyCode {
         String BASE_PATH = "/me/";
         String Setting_PATH=BASE_PATH+"setting";
         String Modify_PATH=BASE_PATH+"modify";
+        String Comment_PATH=BASE_PATH+"comment";
     }
 }

@@ -39,6 +39,7 @@ public class LibraryBookListAdapter extends BaseBindAdapter<LibraryKindBookList,
         searchBooks=new ObservableArrayList<>();
         searchBooks.addAll(item.getBooks());
         libraryBookAdapter=new LibraryBookAdapter(context,searchBooks);
+
         searchBooks.addOnListChangedCallback(ObservableListUtil.getListChangedCallback(libraryBookAdapter));
         if(item.getKindUrl()!=null){
             binding.tvMore.setVisibility(VISIBLE);
