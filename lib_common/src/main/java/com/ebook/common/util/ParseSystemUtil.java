@@ -1,4 +1,4 @@
-package com.ebook.basebook.utils;
+package com.ebook.common.util;
 
 public class ParseSystemUtil {
     /**将二进制转换成16进制

@@ -1,4 +1,3 @@
-//Copyright (c) 2017. 章钦豪. All rights reserved.
 package com.ebook.book.service;
 
 import android.app.NotificationChannel;
