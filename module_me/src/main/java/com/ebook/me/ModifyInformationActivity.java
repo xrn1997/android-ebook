@@ -2,8 +2,10 @@ package com.ebook.me;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.util.Log;
 
 import com.alibaba.android.arouter.launcher.ARouter;
+import com.blankj.utilcode.util.SPUtils;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.ebook.api.config.API;
@@ -16,6 +18,9 @@ import com.ebook.common.view.profilePhoto.PhotoCutDialog;
 import com.ebook.me.mvvm.factory.MeViewModelFactory;
 import com.ebook.me.mvvm.viewmodel.ModifyViewModel;
 import com.hwangjr.rxbus.RxBus;
+import com.hwangjr.rxbus.annotation.Subscribe;
+import com.hwangjr.rxbus.annotation.Tag;
+import com.hwangjr.rxbus.thread.EventThread;
 
 import androidx.databinding.ViewDataBinding;
 import androidx.lifecycle.ViewModelProvider;
@@ -87,7 +92,14 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
 
     @Override
     public void initData() {
-
+        String url= SPUtils.getInstance().getString(KeyCode.Login.SP_IMAGE);
+            Glide.with(this)
+                    .load(API.URL_HOST_USER+"user/image/"+url)
+                    .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                    .fitCenter()
+                    .dontAnimate()
+                    .placeholder(getResources().getDrawable(R.drawable.image_default))
+                    .into(imageView);
     }
 
     /**
@@ -99,19 +111,25 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
             @Override
             public void onScreenPhotoClick(Uri uri) {
                 String cropImagePath = getRealFilePathFromUri(getApplicationContext(), uri);
-                String url = mViewModel.modifyProfiePhoto(cropImagePath);
+                mViewModel.modifyProfiePhoto(cropImagePath);
                // Bitmap bitMap = BitmapFactory.decodeFile(cropImagePath);
-                Glide.with(ModifyInformationActivity.this)
-                        .load(API.URL_HOST_USER+"user/image/"+url)
-                        .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-                        .fitCenter()
-                        .dontAnimate()
-                        .placeholder(getResources().getDrawable(R.drawable.image_default))
-                        .into(imageView);
-                RxBus.get().post(RxBusTag.MODIFY_PROFIE_PICTURE, url);
             }
         });
         photoCutDialog.show(getSupportFragmentManager(), "dialog");
     }
 
+    @Subscribe(thread = EventThread.MAIN_THREAD,
+            tags = {
+                    @Tag(RxBusTag.MODIFY_PROFIE_PICTURE)
+            }
+    )
+    public void setProfiePicture(String path) {
+        Glide.with(ModifyInformationActivity.this)
+                .load(API.URL_HOST_USER+"user/image/"+path)
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .fitCenter()
+                .dontAnimate()
+                .placeholder(getResources().getDrawable(R.drawable.image_default))
+                .into(imageView);
+    }
 }

@@ -9,9 +9,12 @@ public interface KeyCode {
     interface Login {
         //存储是否登录
         String SP_IS_LOGIN = "sp_is_login";
-        //存储用户名，密码
+        //存储用户名，密码，昵称，头像
         String SP_USERNAME = "sp_username";
         String SP_PASSWORD = "sp_password";
+        String SP_IMAGE="sp_image";
+        String SP_NICKNAME="sp_nickname";
+
         String PATH = "path";
         String BASE_PATH = "/base/path/";
         //登录

@@ -9,13 +9,16 @@ import com.alibaba.android.arouter.launcher.ARouter;
 import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.RetrofitManager;
 import com.ebook.api.dto.RespDTO;
+import com.ebook.api.entity.User;
 import com.ebook.api.http.ExceptionHandler;
 import com.ebook.api.entity.LoginDTO;
 import com.ebook.common.event.KeyCode;
+import com.ebook.common.event.RxBusTag;
 import com.ebook.common.event.SingleLiveEvent;
 import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.login.mvvm.model.LoginModel;
+import com.hwangjr.rxbus.RxBus;
 
 import androidx.annotation.NonNull;
 import androidx.databinding.ObservableField;
@@ -66,7 +69,10 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
                 if (loginDTORespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     Log.v(TAG, "tolen:" + loginDTORespDTO.data.getToken());
                     RetrofitManager.getInstance().TOKEN = "Bearer " + loginDTORespDTO.data.getToken();
-                    loginOnNext(username, password);//非自动登录
+                    User user=loginDTORespDTO.data.getUser();
+                    user.setPassword(password);//返回的是加密过的密码，不能使用，需要记住本地输入的密码。
+                    loginOnNext(user);//非自动登录
+                    RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME,new Object());//通知其更新UI
                 } else if (loginDTORespDTO.code == ExceptionHandler.SYSTEM_ERROR.UNAUTHORIZED) {
                     SPUtils.getInstance().clear();
                     Log.d(TAG, "登录失效 is login 状态：" + SPUtils.getInstance().getString(KeyCode.Login.SP_IS_LOGIN));
@@ -86,12 +92,15 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
         });
     }
 
-    private void loginOnNext(String username, String password) {
+    private void loginOnNext(User user) {
         //不是自动登录则调用以下语句
-        if (!SPUtils.getInstance().getBoolean(KeyCode.Login.SP_IS_LOGIN)) {
-            SPUtils.getInstance().put(KeyCode.Login.SP_IS_LOGIN, true);
-            SPUtils.getInstance().put(KeyCode.Login.SP_USERNAME, username);
-            SPUtils.getInstance().put(KeyCode.Login.SP_PASSWORD, password);
+        SPUtils spUtils = SPUtils.getInstance();
+        if (!spUtils.getBoolean(KeyCode.Login.SP_IS_LOGIN)) {
+            spUtils.put(KeyCode.Login.SP_IS_LOGIN, true);
+            spUtils.put(KeyCode.Login.SP_USERNAME, user.getUsername());
+            spUtils.put(KeyCode.Login.SP_PASSWORD, user.getPassword());
+            spUtils.put(KeyCode.Login.SP_NICKNAME,user.getNickname());
+            spUtils.put(KeyCode.Login.SP_IMAGE,user.getImage());
             postShowTransLoadingViewEvent(false);
             toAimActivity();
             postFinishActivityEvent();

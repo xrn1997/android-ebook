@@ -26,4 +26,6 @@ public interface RxBusTag {
      String START_DOWNLOAD_SERVICE="rxbus_start_download_service";
 
      String MODIFY_PROFIE_PICTURE="rxbus_modify_profie_picture";
+
+     String SET_PROFIE_PICTURE_AND_NICKNAME="rxbus_set_profie_picture_and_nickname";
 }
