@@ -18,6 +18,5 @@ public interface RequestCode {
 
     interface Me {
         //4000开始
-        int NEWS_TYPE_ADD =  4000;
     }
 }

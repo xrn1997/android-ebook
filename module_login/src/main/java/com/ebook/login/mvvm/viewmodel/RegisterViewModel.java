@@ -6,7 +6,7 @@ import android.util.Log;
 
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.ExceptionHandler;
-import com.ebook.api.user.LoginDTO;
+import com.ebook.api.entity.LoginDTO;
 import com.ebook.common.event.SingleLiveEvent;
 import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.ToastUtil;

@@ -25,8 +25,7 @@ public interface KeyCode {
     }
 
     interface Book {
-        String NEWS_TYPE = "newstype";
-        String NEWS_ID = "newsid";
+
     }
 
     interface Find {

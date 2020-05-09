@@ -84,7 +84,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
         searchEngine = new ArrayList<>();
 
         Map gxwztvMap = new HashMap();
-        gxwztvMap.put(TAG_KEY, API.Resource_URL);
+        gxwztvMap.put(TAG_KEY, "https://www.ztv.la");
         gxwztvMap.put(HASMORE_KEY, true);
         gxwztvMap.put(HASLOAD_KEY, false);
         gxwztvMap.put(DURREQUESTTIME, 1);

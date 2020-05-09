@@ -33,7 +33,6 @@
         <activity
             android:name=".mvp.view.impl.SearchActivity"
             android:configChanges="locale|keyboardHidden|orientation|screenSize"
-
             android:theme="@style/CAppTransparentTheme"
             android:windowSoftInputMode="stateHidden|adjustPan" />
     </application>
