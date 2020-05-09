@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
 
+import com.alibaba.android.arouter.facade.annotation.Route;
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.blankj.utilcode.util.SPUtils;
 import com.bumptech.glide.Glide;
@@ -26,7 +27,7 @@ import androidx.databinding.ViewDataBinding;
 import androidx.lifecycle.ViewModelProvider;
 
 import static com.ebook.common.util.FileUtil.getRealFilePathFromUri;
-
+@Route(path= KeyCode.Me.Modify_PATH)
 public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding, ModifyViewModel> {
     private SettingBarView mSetModifyPwd;
     private SettingBarView mSetModifyImage;

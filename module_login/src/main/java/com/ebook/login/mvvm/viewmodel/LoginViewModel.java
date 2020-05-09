@@ -60,7 +60,7 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
         mModel.login(username, password).subscribe(new Observer<RespDTO<LoginDTO>>() {
             @Override
             public void onSubscribe(Disposable d) {
-
+                postShowInitLoadViewEvent(true);
             }
 
             @Override
@@ -84,10 +84,12 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
 
             @Override
             public void onError(Throwable e) {
+                postShowInitLoadViewEvent(false);
             }
 
             @Override
             public void onComplete() {
+                postShowInitLoadViewEvent(false);
             }
         });
     }

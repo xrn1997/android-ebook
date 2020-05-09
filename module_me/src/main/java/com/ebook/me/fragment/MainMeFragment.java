@@ -65,7 +65,8 @@ public class MainMeFragment extends BaseFragment {
         mSetInform.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
             @Override
             public void onClick() {
-                startActivity(new Intent(mActivity, ModifyInformationActivity.class));
+                ARouter.getInstance().build(KeyCode.Me.Modify_PATH)
+                        .navigation(getActivity(), new LoginNavigationCallbackImpl());
             }
         });
         mButton.setOnClickListener(new View.OnClickListener() {

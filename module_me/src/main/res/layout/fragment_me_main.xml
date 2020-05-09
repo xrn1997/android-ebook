@@ -48,6 +48,7 @@
             android:layout_marginTop="8dp"
             android:text="@string/xiaoming"
             android:visibility="gone"
+            android:textColor="@color/color_black"
             android:textSize="18sp"/>
     </RelativeLayout>
 </androidx.cardview.widget.CardView>

@@ -29,7 +29,8 @@ public class ModifyModel extends BaseModel {
      *修改昵称
      */
     @SuppressWarnings("unchecked")
-    public Observable<RespDTO<Integer>> modifyNickname(String username, String nickname) {
+    public Observable<RespDTO<Integer>> modifyNickname(String nickname) {
+        String username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME);
         return userService.modifyNickname(RetrofitManager.getInstance().TOKEN, username, nickname)
                 .compose(RxAdapter.schedulersTransformer())
                 .compose(RxAdapter.exceptionTransformer());

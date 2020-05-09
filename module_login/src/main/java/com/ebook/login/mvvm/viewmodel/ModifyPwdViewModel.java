@@ -46,6 +46,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
             ToastUtil.showToast("请输入正确的验证码");
             return;
         }
+        postFinishActivityEvent();
         toFgtPwdActivity();
     }
 

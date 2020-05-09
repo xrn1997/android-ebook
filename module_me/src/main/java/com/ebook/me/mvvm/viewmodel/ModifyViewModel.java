@@ -22,29 +22,71 @@ import io.reactivex.disposables.Disposable;
 
 public class ModifyViewModel extends BaseViewModel<ModifyModel> {
     private static String TAG = ModifyViewModel.class.getSimpleName();
-    public String url;
-    public ObservableField<String> username = new ObservableField<>();
+
+    public ObservableField<String> nickname = new ObservableField<>();
+
     public ModifyViewModel(@NonNull Application application, ModifyModel model) {
         super(application, model);
     }
 
-    public void modifyProfiePhoto(String path){
+    /**
+     * 修改昵称
+     */
+    public void modifyNickname() {
+
+        mModel.modifyNickname(nickname.get()).subscribe(new Observer<RespDTO<Integer>>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+
+            }
+
+            @Override
+            public void onNext(RespDTO<Integer> integerRespDTO) {
+                if (integerRespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
+                    ToastUtil.showToast("修改成功");
+                    SPUtils.getInstance().put(KeyCode.Login.SP_NICKNAME,nickname.get());
+                    RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME,new Object());
+                    postFinishActivityEvent();
+                } else {
+                    Log.e(TAG, "error: " + integerRespDTO.error);
+                }
+            }
+
+            @Override
+            public void onError(Throwable e) {
+
+            }
+
+            @Override
+            public void onComplete() {
+
+            }
+        });
+    }
+
+    /**
+     * 修改头像
+     *
+     * @param path 图片路径
+     */
+    public void modifyProfiePhoto(String path) {
 
         mModel.modifyProfiePhoto(path).subscribe(new Observer<RespDTO<String>>() {
             @Override
             public void onSubscribe(Disposable d) {
 
             }
+
             @Override
             public void onNext(RespDTO<String> stringRespDTO) {
                 if (stringRespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     ToastUtil.showToast("头像修改成功");
-                    url=stringRespDTO.data;
-                    SPUtils.getInstance().put(KeyCode.Login.SP_IMAGE,url);
-                    Log.e(TAG, "url: "+url );
-                    RxBus.get().post(RxBusTag.MODIFY_PROFIE_PICTURE,url);
-                }else{
-                    Log.e(TAG, "error: "+stringRespDTO.error);
+                    String url = stringRespDTO.data;
+                    SPUtils.getInstance().put(KeyCode.Login.SP_IMAGE, url);
+                    Log.e(TAG, "url: " + url);
+                    RxBus.get().post(RxBusTag.MODIFY_PROFIE_PICTURE, url);
+                } else {
+                    Log.e(TAG, "error: " + stringRespDTO.error);
                 }
             }
 
