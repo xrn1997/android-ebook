@@ -4,7 +4,6 @@ import android.app.Application;
 
 import com.ebook.book.mvvm.model.BookListModel;
 import com.ebook.common.mvvm.viewmodel.BaseRefreshViewModel;
-import com.ebook.common.util.ToastUtil;
 import com.ebook.db.entity.BookShelf;
 
 import java.util.List;
@@ -33,9 +32,6 @@ public class BookListViewModel extends BaseRefreshViewModel<BookShelf, BookListM
                 if (value != null && value.size() > 0) {
                     mList.clear();
                     mList.addAll(value);
-                } else {
-                //    ToastUtil.showToast("没有数据");
-                   // postShowNoDataViewEvent(true);
                 }
                 postStopRefreshEvent();
             }

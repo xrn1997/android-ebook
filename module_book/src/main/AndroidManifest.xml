@@ -30,11 +30,5 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <service android:name="com.ebook.book.service.DownloadService" />
-        <activity
-            android:name="com.ebook.book.NewsDetailActivity"
-
-            android:label="新闻详情"
-            android:theme="@style/AppTheme.BackBar">
-        </activity>
     </application>
 </manifest>

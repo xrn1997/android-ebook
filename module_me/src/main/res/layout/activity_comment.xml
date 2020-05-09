@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout>
+
     <data>
+
         <variable
             name="viewModel"
-            type="com.ebook.me.mvvm.viewmodel.NewsTypeListViewModel"/>
+            type="com.ebook.me.mvvm.viewmodel.CommentViewModel" />
     </data>
 
-    <com.refresh.lib.DaisyRefreshLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
+
+    <com.refresh.lib.DaisyRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/refview_news_type"
+        android:id="@+id/refview_book_list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:onRefreshCommand="@{viewModel.onRefreshCommand}"
-        app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
-        app:onAutoRefreshCommand="@{viewModel.onAutoRefreshCommand}"
-        app:enableRefresh="@{viewModel.enableRefresh}"
         app:enableLoadMore="@{viewModel.enableLoadMore}"
-        >
+        app:enableRefresh="@{viewModel.enableRefresh}"
+        app:onAutoRefreshCommand="@{viewModel.onAutoRefreshCommand}"
+        app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
+        app:onRefreshCommand="@{viewModel.onRefreshCommand}">
+
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recview"
+            android:id="@+id/view_my_comment_list"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:linearLayoutManager="@{viewModel.orientation}"
-            />
+            android:layout_height="wrap_content" />
     </com.refresh.lib.DaisyRefreshLayout>
 </layout>

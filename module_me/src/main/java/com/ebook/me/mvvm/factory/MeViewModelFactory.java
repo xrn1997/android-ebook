@@ -2,6 +2,7 @@ package com.ebook.me.mvvm.factory;
 
 import android.annotation.SuppressLint;
 import android.app.Application;
+
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.annotation.NonNull;
@@ -9,14 +10,8 @@ import androidx.annotation.VisibleForTesting;
 
 import com.ebook.me.mvvm.model.CommentModel;
 import com.ebook.me.mvvm.model.ModifyModel;
-import com.ebook.me.mvvm.model.NewsDetailAddModel;
 import com.ebook.me.mvvm.viewmodel.CommentViewModel;
 import com.ebook.me.mvvm.viewmodel.ModifyViewModel;
-import com.ebook.me.mvvm.viewmodel.NewsDetailAddViewModel;
-import com.ebook.me.mvvm.model.NewsTypeAddModel;
-import com.ebook.me.mvvm.model.NewsTypeListModel;
-import com.ebook.me.mvvm.viewmodel.NewsTypeAddViewModel;
-import com.ebook.me.mvvm.viewmodel.NewsTypeListViewModel;
 
 
 public class MeViewModelFactory extends ViewModelProvider.NewInstanceFactory {
@@ -34,9 +29,11 @@ public class MeViewModelFactory extends ViewModelProvider.NewInstanceFactory {
         }
         return INSTANCE;
     }
+
     private MeViewModelFactory(Application application) {
         this.mApplication = application;
     }
+
     @VisibleForTesting
     public static void destroyInstance() {
         INSTANCE = null;
@@ -46,15 +43,9 @@ public class MeViewModelFactory extends ViewModelProvider.NewInstanceFactory {
     @Override
     @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-        if (modelClass.isAssignableFrom(NewsTypeAddViewModel.class)) {
-            return (T) new NewsTypeAddViewModel(mApplication, new NewsTypeAddModel(mApplication));
-        }else if (modelClass.isAssignableFrom(NewsTypeListViewModel.class)) {
-            return (T) new NewsTypeListViewModel(mApplication, new NewsTypeListModel(mApplication));
-        }else if (modelClass.isAssignableFrom(NewsDetailAddViewModel.class)) {
-            return (T) new NewsDetailAddViewModel(mApplication, new NewsDetailAddModel(mApplication));
-        }else if (modelClass.isAssignableFrom(CommentViewModel.class)) {
+        if (modelClass.isAssignableFrom(CommentViewModel.class)) {
             return (T) new CommentViewModel(mApplication, new CommentModel(mApplication));
-        }else if (modelClass.isAssignableFrom(ModifyViewModel.class)) {
+        } else if (modelClass.isAssignableFrom(ModifyViewModel.class)) {
             return (T) new ModifyViewModel(mApplication, new ModifyModel(mApplication));
         }
         throw new IllegalArgumentException("Unknown ViewModel class: " + modelClass.getName());

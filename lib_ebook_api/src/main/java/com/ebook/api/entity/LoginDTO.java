@@ -1,6 +1,6 @@
-package com.ebook.api.user;
+package com.ebook.api.entity;
 
-import com.ebook.api.user.entity.User;
+import com.ebook.api.entity.User;
 
 import androidx.annotation.NonNull;
 

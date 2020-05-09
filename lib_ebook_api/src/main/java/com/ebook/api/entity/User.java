@@ -1,4 +1,4 @@
-package com.ebook.api.user.entity;
+package com.ebook.api.entity;
 
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -65,6 +65,22 @@ public class User  implements Parcelable {
 
 	public void setPassword(String password) {
 		this.password = password;
+	}
+
+	public String getImage() {
+		return image;
+	}
+
+	public void setImage(String image) {
+		this.image = image;
+	}
+
+	public String getNickname() {
+		return nickname;
+	}
+
+	public void setNickname(String nickname) {
+		this.nickname = nickname;
 	}
 
 	@Override

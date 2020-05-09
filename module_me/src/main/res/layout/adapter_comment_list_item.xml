@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <variable
+            name="comment"
+            type="com.ebook.api.entity.Comment"/>
+    </data>
+<LinearLayout
+    android:id="@+id/layout_comment_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+    <RelativeLayout
+        android:id="@+id/layout_comment_list"
+        android:layout_width="match_parent"
+        android:layout_marginTop="10dp"
+        android:layout_height="40dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp">
+        <com.ebook.common.view.profilePhoto.CircleImageView
+            android:id="@+id/view_profile_photo"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/bg_shape"
+            android:padding="1dp"
+            android:layout_centerVertical="true"
+            app:placeHolder="@{@drawable/image_default}"
+            app:imageUrl="@{comment.user.image}"/>
+        <TextView
+            android:id="@+id/txt_me_news_type_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@+id/view_profile_photo"
+            android:layout_marginStart="10dp"
+            android:layout_centerVertical="true"
+            android:textColor="@color/color_black"
+            android:text="@{String.valueOf(comment.user.nickname)}" />
+    </RelativeLayout>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="52dp"
+        android:text="@{String.valueOf(comment.comment)}"
+        android:textColor="@color/color_black"
+        android:textSize="20sp"/>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:layout_marginStart="52dp"
+        android:text="@{@string/comment+comment.bookname+@string/shu_ming_hao+comment.chapterName}"
+        android:layout_marginBottom="10dp"
+        android:textSize="12sp"/>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="32dp"
+        android:background="#ededed" />
+</LinearLayout>
+</layout>

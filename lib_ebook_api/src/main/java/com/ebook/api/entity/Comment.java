@@ -1,9 +1,7 @@
-package com.ebook.api.comment.entity;
+package com.ebook.api.entity;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-
-import com.ebook.api.user.entity.User;
 
 public class Comment implements Parcelable {
     private Long id;

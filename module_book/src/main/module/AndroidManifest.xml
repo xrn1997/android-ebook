@@ -36,31 +36,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name="com.ebook.book.NewsDetailActivity"
-            android:label="新闻详情"
-            android:theme="@style/AppTheme.BackBar">
-        </activity>
         <service android:name=".service.DownloadService" />
-        <activity
-            android:name="com.ebook.basebook.mvp.view.impl.BookDetailActivity"
-
-            tools:ignore="LockedOrientationActivity"
-            android:theme="@style/CAppTransparentTheme" />
-        <activity
-            android:name="com.ebook.basebook.mvp.view.impl.ReadBookActivity"
-            android:launchMode="singleTask"
-
-            tools:ignore="LockedOrientationActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name="com.ebook.basebook.mvp.view.impl.ImportBookActivity"
-
-            tools:ignore="LockedOrientationActivity"
-            android:theme="@style/CAppTransparentTheme" />
     </application>
 </manifest>

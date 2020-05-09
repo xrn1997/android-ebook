@@ -10,13 +10,7 @@ import android.view.ViewGroup;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Description: <BaseAdapter><br>
- * Author:      gxl<br>
- * Date:        2018/1/15<br>
- * Version:     V1.0.0<br>
- * Update:     <br>
- */
+
 public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
     protected Context mContext;
     protected List<E> mList;

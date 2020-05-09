@@ -10,7 +10,7 @@ import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.RetrofitManager;
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.ExceptionHandler;
-import com.ebook.api.user.LoginDTO;
+import com.ebook.api.entity.LoginDTO;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.SingleLiveEvent;
 import com.ebook.common.mvvm.viewmodel.BaseViewModel;
@@ -78,14 +78,10 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
 
             @Override
             public void onError(Throwable e) {
-                getmVoidSingleLiveEvent().call();
             }
 
             @Override
             public void onComplete() {
-                // Log.d(TAG, "onComplete: start");
-                getmVoidSingleLiveEvent().call();
-                //Log.d(TAG, "onComplete: end");
             }
         });
     }
@@ -115,11 +111,5 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
         }
     }
 
-    public SingleLiveEvent<Void> getmVoidSingleLiveEvent() {
-        // Log.d(TAG, "getmVoidSingleLiveEvent: start");
-        mVoidSingleLiveEvent = createLiveData(mVoidSingleLiveEvent);
-        // Log.d(TAG, "getmVoidSingleLiveEvent: end");
-        return mVoidSingleLiveEvent;
-    }
 
 }

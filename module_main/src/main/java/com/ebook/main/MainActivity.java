@@ -1,7 +1,6 @@
 package com.ebook.main;
 
 
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 
@@ -10,7 +9,6 @@ import com.ebook.common.mvvm.BaseActivity;
 import com.ebook.common.provider.IBookProvider;
 import com.ebook.common.provider.IFindProvider;
 import com.ebook.common.provider.IMeProvider;
-import com.ebook.common.provider.INewsProvider;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.main.entity.MainChannel;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -23,8 +21,6 @@ import androidx.fragment.app.FragmentTransaction;
 public class MainActivity extends BaseActivity {
     @Autowired(name = "/book/main")
     IBookProvider mBookProvider;
-//    @Autowired(name = "/news/main")
-//    INewsProvider mNewsProvider;
 
     @Autowired(name = "/find/main")
     IFindProvider mFindProvider;
@@ -33,7 +29,6 @@ public class MainActivity extends BaseActivity {
     IMeProvider mMeProvider;
 
     private Fragment mBookFragment;
-    //private Fragment mNewsFragment;
     private Fragment mFindFragment;
     private Fragment mMeFragment;
     private Fragment mCurrFragment;

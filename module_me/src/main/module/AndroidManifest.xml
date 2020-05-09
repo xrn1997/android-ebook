@@ -19,18 +19,20 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.ebook.me.NewsTypeAddActivity"
-            android:label="新闻类型设置"
-            android:theme="@style/AppTheme.BlackBackBar"
-            />
-        <activity
-            android:name="com.ebook.me.NewsTypeListActivity"
-            android:label="新闻类型列表"
-            android:theme="@style/AppTheme.BackBar"/>
-        <activity
-            android:name="com.ebook.me.NewsDetailAddActivity"
-            android:label="新闻添加"
+            android:name="com.ebook.me.SettingActivity"
+            android:label="设置"
             android:theme="@style/AppTheme.BackBar" />
+        <activity
+            android:name=".CommentActivity"
+            android:label="我的评论"
+            android:theme="@style/AppTheme.BackBar" />
+        <activity
+            android:name=".ModifyInformationActivity"
+            android:label="编辑资料"
+            android:theme="@style/AppTheme.BackBar" />
+        <activity android:name=".ModifyNicknameActivity"
+            android:label="修改昵称"
+            android:theme="@style/AppTheme.BackBar"/>
     </application>
 
 </manifest>

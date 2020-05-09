@@ -4,6 +4,7 @@ package com.ebook.basebook.mvp.presenter.impl;
 import android.content.Intent;
 import android.widget.Toast;
 
+import com.ebook.api.config.API;
 import com.ebook.basebook.mvp.model.OnGetChapterListListener;
 import com.ebook.common.BaseApplication;
 import com.ebook.common.event.RxBusTag;

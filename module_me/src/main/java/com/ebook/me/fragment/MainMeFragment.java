@@ -1,21 +1,20 @@
 package com.ebook.me.fragment;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.view.View;
 import android.widget.Button;
 
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.ebook.api.config.API;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
 import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
 import com.ebook.common.mvvm.BaseFragment;
 import com.ebook.common.view.SettingBarView;
 import com.ebook.me.CommentActivity;
-import com.ebook.me.EditInfromActivity;
-import com.ebook.me.NewsDetailAddActivity;
-import com.ebook.me.NewsTypeListActivity;
+import com.ebook.me.ModifyInformationActivity;
 import com.ebook.me.R;
 import com.ebook.common.view.profilePhoto.CircleImageView;
 import com.hwangjr.rxbus.annotation.Subscribe;
@@ -25,8 +24,6 @@ import com.hwangjr.rxbus.thread.EventThread;
 
 public class MainMeFragment extends BaseFragment {
 
-    private SettingBarView mSetNewsType;
-    private SettingBarView mSetNewsDetail;
     private SettingBarView mSetting;
     private Button mButton;
     private SettingBarView mSetComment;
@@ -45,8 +42,6 @@ public class MainMeFragment extends BaseFragment {
 
     @Override
     public void initView(View view) {
-        mSetNewsType = view.findViewById(R.id.view_setting_news_type);
-        mSetNewsDetail = view.findViewById(R.id.view_setting_news_detail);
         mSetComment = view.findViewById(R.id.view_my_comment);
         mSetInform = view.findViewById(R.id.view_my_inform);
         mButton = view.findViewById(R.id.btn_login);
@@ -65,19 +60,7 @@ public class MainMeFragment extends BaseFragment {
         mSetInform.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
             @Override
             public void onClick() {
-                startActivity(new Intent(mActivity, EditInfromActivity.class));
-            }
-        });
-        mSetNewsType.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
-            @Override
-            public void onClick() {
-                startActivity(new Intent(mActivity, NewsTypeListActivity.class));
-            }
-        });
-        mSetNewsDetail.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
-            @Override
-            public void onClick() {
-                startActivity(new Intent(mActivity, NewsDetailAddActivity.class));
+                startActivity(new Intent(mActivity, ModifyInformationActivity.class));
             }
         });
         mButton.setOnClickListener(new View.OnClickListener() {
@@ -114,9 +97,13 @@ public class MainMeFragment extends BaseFragment {
             @Tag(RxBusTag.MODIFY_PROFIE_PICTURE)
             }
     )
-    public void setProfiePicture(Bitmap bitmap) {
+    public void setProfiePicture(String path) {
                 Glide.with(mActivity)
-                        .load(bitmap)
+                        .load(API.URL_HOST_USER+"user/image/"+path)
+                        .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                        .fitCenter()
+                        .dontAnimate()
+                        .placeholder(getResources().getDrawable(R.drawable.image_default))
                         .into(mCircleImageView);
     }
 }

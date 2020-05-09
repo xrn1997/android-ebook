@@ -1,12 +1,12 @@
 package com.ebook.me;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.ebook.api.config.API;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
 import com.ebook.common.mvvm.BaseMvvmActivity;
@@ -17,14 +17,12 @@ import com.ebook.me.mvvm.factory.MeViewModelFactory;
 import com.ebook.me.mvvm.viewmodel.ModifyViewModel;
 import com.hwangjr.rxbus.RxBus;
 
-import java.io.ByteArrayOutputStream;
-
 import androidx.databinding.ViewDataBinding;
 import androidx.lifecycle.ViewModelProvider;
 
 import static com.ebook.common.util.FileUtil.getRealFilePathFromUri;
 
-public class EditInfromActivity extends BaseMvvmActivity<ViewDataBinding, ModifyViewModel> {
+public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding, ModifyViewModel> {
     private SettingBarView mSetModifyPwd;
     private SettingBarView mSetModifyImage;
     private SettingBarView mSetModifyNickname;
@@ -32,7 +30,7 @@ public class EditInfromActivity extends BaseMvvmActivity<ViewDataBinding, Modify
 
     @Override
     public int onBindLayout() {
-        return R.layout.activity_edit_inform;
+        return R.layout.activity_modify_information;
     }
 
     @Override
@@ -82,7 +80,7 @@ public class EditInfromActivity extends BaseMvvmActivity<ViewDataBinding, Modify
         mSetModifyNickname.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
             @Override
             public void onClick() {
-                startActivity(new Intent(EditInfromActivity.this, ModifyNicknameActivity.class));
+                startActivity(new Intent(ModifyInformationActivity.this, ModifyNicknameActivity.class));
             }
         });
     }
@@ -95,21 +93,25 @@ public class EditInfromActivity extends BaseMvvmActivity<ViewDataBinding, Modify
     /**
      * 上传头像
      */
-    private void uploadHeadImage() {
+    public void uploadHeadImage() {
         PhotoCutDialog photoCutDialog = PhotoCutDialog.newInstance();
         photoCutDialog.setOnClickLisener(new PhotoCutDialog.OnPhotoClickLisener() {
             @Override
             public void onScreenPhotoClick(Uri uri) {
                 String cropImagePath = getRealFilePathFromUri(getApplicationContext(), uri);
-                Bitmap bitMap = BitmapFactory.decodeFile(cropImagePath);
-                Glide.with(EditInfromActivity.this)
-                        .load(bitMap)
+                String url = mViewModel.modifyProfiePhoto(cropImagePath);
+               // Bitmap bitMap = BitmapFactory.decodeFile(cropImagePath);
+                Glide.with(ModifyInformationActivity.this)
+                        .load(API.URL_HOST_USER+"user/image/"+url)
+                        .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                        .fitCenter()
+                        .dontAnimate()
+                        .placeholder(getResources().getDrawable(R.drawable.image_default))
                         .into(imageView);
-                RxBus.get().post(RxBusTag.MODIFY_PROFIE_PICTURE,bitMap);
-                //此处后面可以将bitMap转为二进制上传后台网络
-                //......
+                RxBus.get().post(RxBusTag.MODIFY_PROFIE_PICTURE, url);
             }
         });
         photoCutDialog.show(getSupportFragmentManager(), "dialog");
     }
+
 }

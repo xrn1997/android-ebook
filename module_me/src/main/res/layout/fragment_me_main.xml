@@ -83,36 +83,6 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginStart="32dp"
-        android:background="#ededed"
-        android:visibility="gone"/>
-    <com.ebook.common.view.SettingBarView
-        android:id="@+id/view_setting_news_type"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:set_left_icon="@drawable/me_icon_company"
-        android:visibility="gone"
-        app:set_left_icon_visable="true"
-        app:set_title="设置新闻类型" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="32dp"
-        android:background="#ededed"
-        android:visibility="gone"/>
-
-    <com.ebook.common.view.SettingBarView
-        android:id="@+id/view_setting_news_detail"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:set_left_icon="@drawable/me_icon_organization"
-        app:set_left_icon_visable="true"
-        app:set_title="添加新闻" />
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="32dp"
         android:background="#ededed" />
 
     <com.ebook.common.view.SettingBarView

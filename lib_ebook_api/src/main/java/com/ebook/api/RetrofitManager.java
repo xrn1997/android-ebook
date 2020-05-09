@@ -60,21 +60,12 @@ public class RetrofitManager {
         return retrofitManager;
     }
 
-    public CommonService getCommonService() {
+    public UserService getCommonService() {
 
-        return mRetrofit.create(CommonService.class);
+        return mRetrofit.create(UserService.class);
     }
     public CommentService getCommentService(){
         return mRetrofit.create(CommentService.class);
-    }
-    public NewsTypeService getNewsTypeService() {
-
-        return mRetrofit.create(NewsTypeService.class);
-    }
-
-    public NewsDetailService getNewsDetailService() {
-
-        return mRetrofit.create(NewsDetailService.class);
     }
 
     public void addToken(final String token) {

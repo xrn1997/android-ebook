@@ -5,6 +5,6 @@
     <string name="add_local_book">添加本地图书</string>
     <string name="library">书库</string>
     <string name="my_book_shelf">我的书架</string>
-    <string name="read_to">读至\u3000</string>
+    <string name="read_to">读至：</string>
     <string name="cover">封面</string>
 </resources>
