@@ -30,7 +30,7 @@
         android:theme="@style/AppTheme"
         android:name="debug.BookApplication"
         tools:targetApi="n">
-        <activity android:name="com.ebook.book.MainActivity">
+        <activity android:name="com.ebook.book.debug.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

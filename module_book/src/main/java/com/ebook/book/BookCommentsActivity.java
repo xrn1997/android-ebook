@@ -18,8 +18,6 @@ import com.ebook.common.util.SoftInputUtil;
 import com.ebook.common.view.DeleteDialog;
 import com.refresh.lib.DaisyRefreshLayout;
 
-import java.security.Key;
-
 import androidx.annotation.Nullable;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
@@ -49,6 +47,7 @@ public class BookCommentsActivity extends BaseMvvmRefreshActivity<ActivityBookCo
         mViewModel.getmVoidSingleLiveEvent().observe(this, new Observer<Void>() {
             @Override
             public void onChanged(@Nullable Void aVoid) {
+                mViewModel.comments.set("");
                 SoftInputUtil.hideSoftInput(BookCommentsActivity.this, editText);
             }
         });
@@ -79,8 +78,8 @@ public class BookCommentsActivity extends BaseMvvmRefreshActivity<ActivityBookCo
         mBookCommentsAdapter.setOnItemLongClickListener(new BaseBindAdapter.OnItemLongClickListener<Comment>() {
             @Override
             public boolean onItemLongClick(Comment comment, int postion) {
-                String username= SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME);
-                if(comment.getUser().getUsername().equals(username)){
+                String username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME);
+                if (comment.getUser().getUsername().equals(username)) {
                     DeleteDialog deleteDialog = DeleteDialog.newInstance();
                     deleteDialog.setOnClickLisener(new DeleteDialog.OnDeleteClickLisener() {
                         @Override
@@ -88,7 +87,7 @@ public class BookCommentsActivity extends BaseMvvmRefreshActivity<ActivityBookCo
                             mViewModel.deleteComent(comment.getId());
                         }
                     });
-                    deleteDialog.show(getSupportFragmentManager(),"deleteDialog");
+                    deleteDialog.show(getSupportFragmentManager(), "deleteDialog");
                 }
                 return true;
             }

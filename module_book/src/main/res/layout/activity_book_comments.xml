@@ -8,7 +8,7 @@
             type="com.ebook.book.mvvm.viewmodel.BookCommentsViewModel" />
     </data>
 
-        <LinearLayout
+        <FrameLayout
             android:clickable="true"
             android:focusableInTouchMode="true"
             android:layout_width="match_parent"
@@ -19,8 +19,7 @@
             <com.refresh.lib.DaisyRefreshLayout xmlns:app="http://schemas.android.com/apk/res-auto"
                 android:id="@+id/refview_book_comments_list"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="13"
+                android:layout_height="wrap_content"
                 app:enableLoadMore="@{viewModel.enableLoadMore}"
                 app:enableRefresh="@{viewModel.enableRefresh}"
                 app:onAutoRefreshCommand="@{viewModel.onAutoRefreshCommand}"
@@ -35,17 +34,16 @@
             </com.refresh.lib.DaisyRefreshLayout>
 
             <LinearLayout
-
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-
+                android:layout_gravity="bottom"
+                android:layout_height="50dp"
+                android:layout_marginBottom="5dp"
                 android:orientation="horizontal">
 
                 <EditText
                     android:id="@+id/text_input"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:layout_marginStart="2dp"
                     android:layout_marginEnd="2dp"
                     android:layout_weight="2"
@@ -67,5 +65,5 @@
                     android:onClick="@{()->viewModel.addComment()}"
                     android:textColor="@color/color_white" />
             </LinearLayout>
-        </LinearLayout>
+        </FrameLayout>
 </layout>

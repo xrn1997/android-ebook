@@ -1,7 +1,8 @@
-package com.ebook.book;
+package debug;
 
 import android.view.KeyEvent;
 
+import com.ebook.book.R;
 import com.ebook.book.fragment.MainBookFragment;
 import com.ebook.common.mvvm.BaseActivity;
 import com.ebook.common.util.ToastUtil;
