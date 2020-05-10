@@ -24,10 +24,15 @@ import com.ebook.common.mvvm.BaseMvvmRefreshFragment;
 import com.ebook.common.util.ObservableListUtil;
 import com.ebook.basebook.view.popupwindow.DownloadListPop;
 import com.ebook.db.entity.BookShelf;
+import com.ebook.db.entity.DownloadChapterList;
+import com.hwangjr.rxbus.RxBus;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
 import com.hwangjr.rxbus.thread.EventThread;
 import com.refresh.lib.DaisyRefreshLayout;
+
+import java.util.Timer;
+import java.util.TimerTask;
 
 import androidx.lifecycle.ViewModelProvider;
 
@@ -163,14 +168,23 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
         //autoLoadData();
     }
 
-    @Subscribe(thread = EventThread.MAIN_THREAD,
+    @Subscribe(thread = EventThread.NEW_THREAD,
             tags = {
                     @Tag(RxBusTag.START_DOWNLOAD_SERVICE)
             }
     )
-    public void startDownloadService(Object o) {
+    public void startDownloadService(DownloadChapterList result) {
         Log.e(TAG, "startDownloadService: 开启下载服务" );
             mActivity.startService(new Intent(mActivity, DownloadService.class));
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                // 逻辑处理
+                RxBus.get().post(RxBusTag.ADD_DOWNLOAD_TASK, result);
+            }
+        };
+        Timer timer = new Timer();
+        timer.schedule(task, 500); // 延迟0.5秒，执行一次task
     }
 
 }

@@ -6,6 +6,7 @@ import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.graphics.Paint;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -20,13 +21,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.alibaba.android.arouter.launcher.ARouter;
 import com.ebook.basebook.R;
 import com.ebook.basebook.base.activity.BaseActivity;
 import com.ebook.basebook.mvp.view.IBookReadView;
 import com.ebook.basebook.view.BookContentView;
 import com.ebook.basebook.view.ChapterListView;
 import com.ebook.basebook.view.ContentSwitchView;
+import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
+import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
 import com.ebook.common.util.DisplayUtil;
 import com.ebook.basebook.view.modialog.MoProgressHUD;
 import com.ebook.basebook.view.mprogressbar.MHorProgressBar;
@@ -36,6 +40,7 @@ import com.ebook.basebook.view.popupwindow.FontPop;
 import com.ebook.basebook.view.popupwindow.MoreSettingPop;
 import com.ebook.basebook.view.popupwindow.ReadBookMenuMorePop;
 import com.ebook.basebook.view.popupwindow.WindowLightPop;
+import com.ebook.db.entity.ChapterList;
 import com.ebook.db.event.DBCode;
 import com.hwangjr.rxbus.RxBus;
 
@@ -244,6 +249,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
                         mPresenter.addToShelf(new ReadBookPresenterImpl.OnAddListner() {
                             @Override
                             public void addSuccess() {
+
                                 List<DownloadChapter> result = new ArrayList<DownloadChapter>();
                                 for (int i = start; i <= end; i++) {
                                     DownloadChapter item = new DownloadChapter();
@@ -256,13 +262,26 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
                                     item.setCoverUrl(mPresenter.getBookShelf().getBookInfo().getCoverUrl());
                                     result.add(item);
                                 }
-                                RxBus.get().post(RxBusTag.START_DOWNLOAD_SERVICE,new Object());
-                                RxBus.get().post(RxBusTag.ADD_DOWNLOAD_TASK, new DownloadChapterList(result));
+                                RxBus.get().post(RxBusTag.START_DOWNLOAD_SERVICE, new DownloadChapterList(result));
                             }
                         });
 
                     }
                 });
+            }
+        });
+        readBookMenuMorePop.setOnClickComment(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                readBookMenuMorePop.dismiss();
+                ChapterList path = mPresenter.getBookShelf().getBookInfo().getChapterlist().get(mPresenter.getBookShelf().getDurChapter());
+                Bundle bundle = new Bundle();
+                bundle.putString("chapterUrl",path.getDurChapterUrl());
+                bundle.putString("chapterName",path.getDurChapterName());
+                bundle.putString("bookName",mPresenter.getBookShelf().getBookInfo().getName());
+                ARouter.getInstance().build(KeyCode.Book.Comment_PATH)
+                        .with(bundle)
+                        .navigation(ReadBookActivity.this, new LoginNavigationCallbackImpl());
             }
         });
 
@@ -317,7 +336,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
         ivReturn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-               // finish();
+                // finish();
                 onBackPressed();
             }
         });

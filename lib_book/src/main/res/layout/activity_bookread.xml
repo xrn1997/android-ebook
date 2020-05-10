@@ -76,7 +76,8 @@
                         android:background="@drawable/bg_ib_pre"
                         android:clickable="true"
                         android:layout_gravity="center_vertical"
-                        android:visibility="invisible"/>
+                        android:visibility="invisible"
+                        android:focusable="true" />
                 </LinearLayout>
             </com.ebook.basebook.view.ImmerseView.layout.ImmerseFrameLayout>
 

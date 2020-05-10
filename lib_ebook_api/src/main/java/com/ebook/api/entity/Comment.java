@@ -8,8 +8,9 @@ public class Comment implements Parcelable {
     private User user;
     private String chapterUrl; //对应BookInfo noteUrl;
     private String chapterName;//当前章节名称
-    private String bookname;
+    private String bookName;
     private String comment;
+    private String addtime;
 
     public Comment() {
     }
@@ -22,8 +23,9 @@ public class Comment implements Parcelable {
         }
         chapterUrl = in.readString();
         chapterName = in.readString();
-        bookname = in.readString();
+        bookName = in.readString();
         comment = in.readString();
+        addtime=in.readString();
         user = in.readParcelable(Thread.currentThread().getContextClassLoader());
     }
 
@@ -38,6 +40,14 @@ public class Comment implements Parcelable {
             return new Comment[size];
         }
     };
+
+    public String getAddtime() {
+        return addtime;
+    }
+
+    public void setAddtime(String addtime) {
+        this.addtime = addtime;
+    }
 
     public Long getId() {
         return id;
@@ -71,12 +81,12 @@ public class Comment implements Parcelable {
         this.chapterName = chapterName;
     }
 
-    public String getBookname() {
-        return bookname;
+    public String getBookName() {
+        return bookName;
     }
 
-    public void setBookname(String bookname) {
-        this.bookname = bookname;
+    public void setBookName(String bookname) {
+        this.bookName = bookname;
     }
 
     public String getComment() {
@@ -103,7 +113,8 @@ public class Comment implements Parcelable {
         }
         dest.writeString(chapterUrl);
         dest.writeString(chapterName);
-        dest.writeString(bookname);
+        dest.writeString(bookName);
+        dest.writeString(addtime);
         dest.writeParcelable(user, 0);
         dest.writeString(comment);
     }

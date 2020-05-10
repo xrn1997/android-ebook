@@ -1,17 +1,21 @@
 package com.ebook.me;
 
 
+import android.os.Bundle;
+
 import com.alibaba.android.arouter.facade.annotation.Route;
+import com.alibaba.android.arouter.launcher.ARouter;
 import com.ebook.api.entity.Comment;
 import com.ebook.common.adapter.BaseBindAdapter;
 import com.ebook.common.event.KeyCode;
+import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
 import com.ebook.common.mvvm.BaseMvvmRefreshActivity;
 import com.ebook.common.util.ObservableListUtil;
 import com.ebook.me.adapter.CommentListAdapter;
 import com.ebook.me.databinding.ActivityCommentBinding;
 import com.ebook.me.mvvm.factory.MeViewModelFactory;
 import com.ebook.me.mvvm.viewmodel.CommentViewModel;
-import com.ebook.me.view.DeleteDialog;
+import com.ebook.common.view.DeleteDialog;
 import com.refresh.lib.DaisyRefreshLayout;
 
 
@@ -68,8 +72,13 @@ public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBi
         mCommentListAdapter.setItemClickListener(new BaseBindAdapter.OnItemClickListener<Comment>() {
             @Override
             public void onItemClick(Comment comment, int position) {
-                //TODO 处理打开评论事件
-
+                Bundle bundle = new Bundle();
+                bundle.putString("chapterUrl",comment.getChapterUrl());
+                bundle.putString("chapterName",comment.getChapterName());
+                bundle.putString("bookName",comment.getBookName());
+                ARouter.getInstance().build(KeyCode.Book.Comment_PATH)
+                        .with(bundle)
+                        .navigation(MyCommentActivity.this, new LoginNavigationCallbackImpl());
             }
         });
         mCommentListAdapter.setOnItemLongClickListener(new BaseBindAdapter.OnItemLongClickListener<Comment>() {

@@ -11,16 +11,17 @@ import android.widget.PopupWindow;
 import com.ebook.basebook.R;
 
 
-public class ReadBookMenuMorePop extends PopupWindow{
+public class ReadBookMenuMorePop extends PopupWindow {
     private Context mContext;
     private View view;
 
     private LinearLayout llDownload;
+    private LinearLayout llComment;
 
-    public ReadBookMenuMorePop(Context context){
-        super(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+    public ReadBookMenuMorePop(Context context) {
+        super(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         this.mContext = context;
-        view = LayoutInflater.from(mContext).inflate(R.layout.view_pop_menumore,null);
+        view = LayoutInflater.from(mContext).inflate(R.layout.view_pop_menumore, null);
         this.setContentView(view);
 
         initView();
@@ -33,9 +34,14 @@ public class ReadBookMenuMorePop extends PopupWindow{
 
     private void initView() {
         llDownload = (LinearLayout) view.findViewById(R.id.ll_download);
+        llComment = (LinearLayout) view.findViewById(R.id.ll_comment);
     }
 
-    public void setOnClickDownload(View.OnClickListener clickDownload){
+    public void setOnClickDownload(View.OnClickListener clickDownload) {
         llDownload.setOnClickListener(clickDownload);
+    }
+
+    public void setOnClickComment(View.OnClickListener clickComment) {
+        llComment.setOnClickListener(clickComment);
     }
 }

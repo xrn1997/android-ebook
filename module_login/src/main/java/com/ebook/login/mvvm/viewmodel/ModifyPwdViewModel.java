@@ -10,11 +10,13 @@ import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.ExceptionHandler;
 import com.ebook.common.event.KeyCode;
+import com.ebook.common.event.RxBusTag;
 import com.ebook.common.event.SingleLiveEvent;
 import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.login.ModifyPwdActivity;
 import com.ebook.login.mvvm.model.ModifyPwdModel;
+import com.hwangjr.rxbus.RxBus;
 
 import androidx.annotation.NonNull;
 import androidx.databinding.ObservableField;
@@ -53,6 +55,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
     private void toFgtPwdActivity() {
         Bundle bundle = new Bundle();
         bundle.putString("username", username.get());
+        Log.e(TAG, "toFgtPwdActivity: username:"+username.get() );
         postStartActivityEvent(ModifyPwdActivity.class, bundle);
     }
 
@@ -79,6 +82,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
                 if (loginDTORespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     ToastUtil.showToast("修改成功");
                     SPUtils.getInstance().clear();
+                    RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME);
                     Bundle bundle = new Bundle();
                     bundle.putString("username", username.get());
                     bundle.putString("password",password_1.get());

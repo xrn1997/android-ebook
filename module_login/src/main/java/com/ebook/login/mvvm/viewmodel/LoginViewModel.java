@@ -20,6 +20,8 @@ import com.ebook.common.util.ToastUtil;
 import com.ebook.login.mvvm.model.LoginModel;
 import com.hwangjr.rxbus.RxBus;
 
+import java.security.Key;
+
 import androidx.annotation.NonNull;
 import androidx.databinding.ObservableField;
 import io.reactivex.Observer;
@@ -74,6 +76,7 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
                     loginOnNext(user);//非自动登录
                     RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME,new Object());//通知其更新UI
                 } else if (loginDTORespDTO.code == ExceptionHandler.SYSTEM_ERROR.UNAUTHORIZED) {
+                    RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME,new Object());
                     SPUtils.getInstance().clear();
                  //   Log.d(TAG, "登录失效 is login 状态：" + SPUtils.getInstance().getString(KeyCode.Login.SP_IS_LOGIN));
                     Log.v(TAG, "error:" + loginDTORespDTO.error);
@@ -102,6 +105,7 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
             spUtils.put(KeyCode.Login.SP_USERNAME, user.getUsername());
             spUtils.put(KeyCode.Login.SP_PASSWORD, user.getPassword());
             spUtils.put(KeyCode.Login.SP_NICKNAME,user.getNickname());
+            spUtils.put(KeyCode.Login.SP_USER_ID,user.getId());
             spUtils.put(KeyCode.Login.SP_IMAGE,user.getImage());
             postShowTransLoadingViewEvent(false);
             toAimActivity();

@@ -329,7 +329,9 @@ public class DownloadService extends Service {
 
                     @Override
                     public void onNext(Object value) {
-                        pauseDownload();
+                        isStartDownload = false;
+                        notifyManager.cancelAll();
+                        stopService(new Intent(getApplication(),DownloadService.class));
                     }
 
                     @Override

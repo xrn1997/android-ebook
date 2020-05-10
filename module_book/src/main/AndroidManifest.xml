@@ -30,5 +30,9 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <service android:name="com.ebook.book.service.DownloadService" />
+        <activity
+            android:name=".BookCommentsActivity"
+            android:label="本章评论"
+            android:theme="@style/AppTheme.BackBar" />
     </application>
 </manifest>

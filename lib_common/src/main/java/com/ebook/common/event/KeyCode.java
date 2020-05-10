@@ -9,14 +9,15 @@ public interface KeyCode {
     interface Login {
         //存储是否登录
         String SP_IS_LOGIN = "sp_is_login";
-        //存储用户名，密码，昵称，头像
+        //存储用户名，密码，昵称，头像，id
         String SP_USERNAME = "sp_username";
         String SP_PASSWORD = "sp_password";
         String SP_IMAGE="sp_image";
         String SP_NICKNAME="sp_nickname";
+        String SP_USER_ID="sp_user_id";
 
         String PATH = "path";
-        String BASE_PATH = "/base/path/";
+        String BASE_PATH = "/baseLogin/";
         //登录
         String Login_PATH = BASE_PATH + "login";
         //注册
@@ -28,14 +29,15 @@ public interface KeyCode {
     }
 
     interface Book {
-
+        String BASE_PATH="/baseBook/";
+        String Comment_PATH=BASE_PATH+"comment";
     }
 
     interface Find {
     }
 
     interface Me {
-        String BASE_PATH = "/me/";
+        String BASE_PATH = "/baseMe/";
         String Setting_PATH=BASE_PATH+"setting";
         String Modify_PATH=BASE_PATH+"modify";
         String Comment_PATH=BASE_PATH+"comment";

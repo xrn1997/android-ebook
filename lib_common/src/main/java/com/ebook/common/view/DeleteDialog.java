@@ -1,15 +1,12 @@
-package com.ebook.me.view;
+package com.ebook.common.view;
 
-import android.app.Activity;
-import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import com.ebook.me.R;
+import com.ebook.common.R;
 
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 

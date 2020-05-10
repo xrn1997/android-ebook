@@ -23,15 +23,7 @@ public class CommentModel extends BaseModel {
         commentService = RetrofitManager.getInstance().getCommentService();
     }
 
-    /**
-     * 添加评论
-     */
-    @SuppressWarnings("unchecked")
-    public Observable<RespDTO<Comment>> addComment(Comment comment) {
-        return commentService.addComment(RetrofitManager.getInstance().TOKEN, comment)
-                .compose(RxAdapter.schedulersTransformer())
-                .compose(RxAdapter.exceptionTransformer());
-    }
+
 
     /**
      * 删除评论
@@ -54,14 +46,6 @@ public class CommentModel extends BaseModel {
                 .compose(RxAdapter.exceptionTransformer());
     }
 
-    /**
-     * 获得章节评论
-     */
-    @SuppressWarnings("unchecked")
-    public Observable<RespDTO<List<Comment>>> getChapterComments(String chapterUrl) {
-        return commentService.getChapterComments(RetrofitManager.getInstance().TOKEN, chapterUrl)
-                .compose(RxAdapter.schedulersTransformer())
-                .compose(RxAdapter.exceptionTransformer());
-    }
+
 
 }

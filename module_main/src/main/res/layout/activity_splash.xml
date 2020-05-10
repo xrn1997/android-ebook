@@ -31,7 +31,7 @@
         android:minWidth="0dp"
         android:minHeight="0dp"
         android:textColor="#ffffff"
-        android:textSize="12sp"
+        android:textSize="11sp"
         tools:ignore="SmallSp" />
 
 </FrameLayout>

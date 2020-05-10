@@ -8,7 +8,6 @@
             type="com.ebook.me.mvvm.viewmodel.CommentViewModel" />
     </data>
 
-
     <com.refresh.lib.DaisyRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:id="@+id/refview_comment_list"
@@ -24,6 +23,6 @@
             android:id="@+id/view_my_comment_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:linearLayoutManager="@{viewModel.orientation}"/>
+            app:linearLayoutManager="@{viewModel.orientation}" />
     </com.refresh.lib.DaisyRefreshLayout>
 </layout>

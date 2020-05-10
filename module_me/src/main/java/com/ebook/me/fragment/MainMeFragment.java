@@ -71,9 +71,6 @@ public class MainMeFragment extends BaseFragment {
         mButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                ARouter.getInstance().build(KeyCode.Login.Test_PATH)
-//                        .withString("msg", "ARouter传递过来的需要登录的参数msg")
-//                        .navigation(getActivity(), new LoginNavigationCallbackImpl());
                 ARouter.getInstance().build(KeyCode.Login.Login_PATH)
                         .navigation();
             }
