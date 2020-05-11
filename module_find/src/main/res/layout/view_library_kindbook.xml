@@ -23,10 +23,11 @@
 
             <TextView
                 android:id="@+id/tv_kindname"
-                android:layout_width="70dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:paddingTop="5dp"
+                android:singleLine="true"
                 android:paddingBottom="5dp"
                 android:text="@{libraryKindBookList.kindName}"
                 android:textColor="@color/tv_btn_normal_black"
