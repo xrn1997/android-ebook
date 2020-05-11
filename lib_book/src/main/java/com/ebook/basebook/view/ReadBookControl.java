@@ -70,6 +70,21 @@ public class ReadBookControl {
             temp5.put("textSize", 22);
             temp5.put("textExtra", DisplayUtil.dip2px(13));
             textKind.add(temp5);
+
+            Map<String,Integer> temp6 = new HashMap<>();
+            temp6.put("textSize", 24);
+            temp6.put("textExtra", DisplayUtil.dip2px(15));
+            textKind.add(temp6);
+
+            Map<String,Integer> temp7 = new HashMap<>();
+            temp7.put("textSize", 26);
+            temp7.put("textExtra", DisplayUtil.dip2px(17));
+            textKind.add(temp7);
+
+            Map<String,Integer> temp8 = new HashMap<>();
+            temp8.put("textSize", 30);
+            temp8.put("textExtra", DisplayUtil.dip2px(21));
+            textKind.add(temp8);
         }
         if(null == textDrawable){
             textDrawable = new ArrayList<>();
