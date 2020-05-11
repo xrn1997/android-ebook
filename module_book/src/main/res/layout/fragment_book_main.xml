@@ -63,19 +63,6 @@
                     android:paddingBottom="10dp"
                     android:scaleType="fitCenter"
                     android:src="@drawable/selector_icon_donwload_main" />
-
-                <ImageButton
-                    android:id="@+id/ib_settings"
-                    android:layout_width="44dp"
-                    android:layout_height="40dp"
-                    android:layout_gravity="center_vertical"
-                    android:layout_marginEnd="5dp"
-                    android:background="@drawable/bg_ib_pre"
-                    android:contentDescription="@string/setting"
-                    android:paddingTop="9dp"
-                    android:paddingBottom="9dp"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/selector_icon_setting_main" />
             </LinearLayout>
 
             <com.refresh.lib.DaisyRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"

@@ -38,7 +38,6 @@ import androidx.lifecycle.ViewModelProvider;
 
 public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBinding, BookListViewModel> {
     private BookListAdapter mBookListAdatper;
-    private ImageButton ibSettings;
     private ImageButton ibAdd;
     private ImageButton ibDownload;
     private DownloadListPop downloadListPop;
@@ -75,7 +74,6 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
     @Override
     public void initView(View view) {
         downloadListPop = new DownloadListPop(mActivity);
-        ibSettings = view.findViewById(R.id.ib_settings);
         ibAdd = (ImageButton) view.findViewById(R.id.ib_add);
         ibDownload = (ImageButton)view. findViewById(R.id.ib_download);
         mBookListAdatper = new BookListAdapter(mActivity,mViewModel.getList());
@@ -92,12 +90,6 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
     @Override
     public void initListener() {
         super.initListener();
-        ibSettings.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-            }
-        });
         ibDownload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
