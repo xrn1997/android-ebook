@@ -20,6 +20,7 @@ public class BookCommentsModel extends BaseModel {
         super(application);
         commentService = RetrofitManager.getInstance().getCommentService();
     }
+
     /**
      * 添加评论
      */
@@ -29,6 +30,7 @@ public class BookCommentsModel extends BaseModel {
                 .compose(RxAdapter.schedulersTransformer())
                 .compose(RxAdapter.exceptionTransformer());
     }
+
     /**
      * 获得章节评论
      */
@@ -38,6 +40,7 @@ public class BookCommentsModel extends BaseModel {
                 .compose(RxAdapter.schedulersTransformer())
                 .compose(RxAdapter.exceptionTransformer());
     }
+
     /**
      * 删除评论
      */

@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android">
+
     <data>
+
         <variable
             name="viewModel"
             type="com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel" />
     </data>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -22,6 +25,7 @@
             android:text="@={viewModel.username}"
             android:maxLength="11"
             android:textColorHint="#000000" />
+
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -43,6 +47,7 @@
                 android:maxLength="6"
                 android:textColorHint="@color/color_black"
                 android:textSize="17sp" />
+
             <Button
                 android:id="@+id/btn_verifycode"
                 android:layout_width="wrap_content"
@@ -55,6 +60,7 @@
                 android:text="@string/get_verify_code"
                 android:textColor="@color/color_white" />
         </FrameLayout>
+
         <Button
             android:id="@+id/id_btn_login"
             android:layout_width="match_parent"
@@ -66,7 +72,7 @@
             android:onClick="@{() -> viewModel.verify()}"
             android:text="@string/next"
             android:textStyle="bold"
-            android:textColor="@color/color_white"/>
+            android:textColor="@color/color_white" />
 
     </LinearLayout>
 </layout>

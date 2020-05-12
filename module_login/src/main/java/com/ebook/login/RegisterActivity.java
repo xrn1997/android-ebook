@@ -30,7 +30,8 @@ public class RegisterActivity extends BaseMvvmActivity<ActivityRegisterBinding, 
     }
 
     @Override
-    public void initViewObservable() { }
+    public void initViewObservable() {
+    }
 
     @Override
     public int onBindVariableId() {

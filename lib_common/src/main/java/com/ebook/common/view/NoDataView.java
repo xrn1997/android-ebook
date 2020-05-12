@@ -1,6 +1,7 @@
 package com.ebook.common.view;
 
 import android.content.Context;
+
 import androidx.annotation.ColorRes;
 import androidx.annotation.DrawableRes;
 
@@ -19,20 +20,20 @@ public class NoDataView extends RelativeLayout {
 
     public NoDataView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        inflate(context, R.layout.view_no_data,this);
+        inflate(context, R.layout.view_no_data, this);
         mRlNoDataRoot = findViewById(R.id.rl_no_data_root);
         mImgNoDataView = findViewById(R.id.img_no_data);
     }
 
-    public void setNoDataBackground(@ColorRes int  colorResId){
+    public void setNoDataBackground(@ColorRes int colorResId) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            mRlNoDataRoot.setBackgroundColor(getResources().getColor(colorResId,getContext().getTheme()));
+            mRlNoDataRoot.setBackgroundColor(getResources().getColor(colorResId, getContext().getTheme()));
         } else {
             mRlNoDataRoot.setBackgroundColor(getResources().getColor(colorResId));
         }
     }
 
-    public void setNoDataView(@DrawableRes int imgResId){
+    public void setNoDataView(@DrawableRes int imgResId) {
         mImgNoDataView.setImageResource(imgResId);
     }
 }

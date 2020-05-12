@@ -6,9 +6,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 public class ViewAdapter {
     @BindingAdapter({"linearLayoutManager"})
-    public static void setLinearLayoutManager(RecyclerView recyclerView,boolean b) {
+    public static void setLinearLayoutManager(RecyclerView recyclerView, boolean b) {
         LinearLayoutManager layoutManager = new LinearLayoutManager(recyclerView.getContext());
-        layoutManager.setOrientation(b?LinearLayoutManager.HORIZONTAL:LinearLayoutManager.VERTICAL);
+        layoutManager.setOrientation(b ? LinearLayoutManager.HORIZONTAL : LinearLayoutManager.VERTICAL);
         recyclerView.setLayoutManager(layoutManager);
     }
 }

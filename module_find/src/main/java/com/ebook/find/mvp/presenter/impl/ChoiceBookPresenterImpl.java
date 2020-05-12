@@ -92,7 +92,7 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
     private void searchBook(final long searchTime) {
         WebBookModelImpl.getInstance().getKindBook(url, page)
                 .subscribeOn(Schedulers.io())
-                .compose(((BaseActivity)mView.getContext()).<List<SearchBook>>bindUntilEvent(ActivityEvent.DESTROY))
+                .compose(((BaseActivity) mView.getContext()).<List<SearchBook>>bindUntilEvent(ActivityEvent.DESTROY))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<List<SearchBook>>() {
                     @Override
@@ -108,10 +108,10 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
                             }
                             if (page == 1) {
                                 mView.refreshSearchBook(value);
-                                mView.refreshFinish(value.size()<=0?true:false);
+                                mView.refreshFinish(value.size() <= 0 ? true : false);
                             } else {
                                 mView.loadMoreSearchBook(value);
-                                mView.loadMoreFinish(value.size()<=0?true:false);
+                                mView.loadMoreFinish(value.size() <= 0 ? true : false);
                             }
                             page++;
                         }
@@ -137,7 +137,7 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
         WebBookModelImpl.getInstance().getBookInfo(bookShelfResult)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .compose(((BaseActivity)mView.getContext()).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
+                .compose(((BaseActivity) mView.getContext()).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
                 .subscribe(new SimpleObserver<BookShelf>() {
                     @Override
                     public void onNext(BookShelf value) {
@@ -166,7 +166,7 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
         return title;
     }
 
-    private void saveBookToShelf(final BookShelf bookShelf){
+    private void saveBookToShelf(final BookShelf bookShelf) {
         Observable.create(new ObservableOnSubscribe<BookShelf>() {
             @Override
             public void subscribe(ObservableEmitter<BookShelf> e) throws Exception {
@@ -179,7 +179,7 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
             }
         }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .compose(((BaseActivity)mView.getContext()).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
+                .compose(((BaseActivity) mView.getContext()).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
                 .subscribe(new SimpleObserver<BookShelf>() {
                     @Override
                     public void onNext(BookShelf value) {
@@ -229,9 +229,9 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
             }
     )
     public void hadRemoveBook(BookShelf bookShelf) {
-        if(bookShelfs!=null){
-            for(int i=0;i<bookShelfs.size();i++){
-                if(bookShelfs.get(i).getNoteUrl().equals(bookShelf.getNoteUrl())){
+        if (bookShelfs != null) {
+            for (int i = 0; i < bookShelfs.size(); i++) {
+                if (bookShelfs.get(i).getNoteUrl().equals(bookShelf.getNoteUrl())) {
                     bookShelfs.remove(i);
                     break;
                 }

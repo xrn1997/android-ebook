@@ -1,5 +1,7 @@
 <resources>
-    <style name="AppTheme_NoTitleBar" parent="AppTheme"/>
+
+    <style name="AppTheme_NoTitleBar" parent="AppTheme" />
+
     <style name="AppTheme_FullScreen" parent="AppTheme_NoTitleBar">
         <item name="android:windowFullscreen">true</item>
     </style>

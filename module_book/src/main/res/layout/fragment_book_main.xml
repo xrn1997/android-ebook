@@ -38,6 +38,7 @@
                     android:layout_width="0dp"
                     android:layout_height="0dp"
                     android:layout_weight="1" />
+
                 <ImageButton
                     android:id="@+id/ib_add"
                     android:layout_width="40dp"

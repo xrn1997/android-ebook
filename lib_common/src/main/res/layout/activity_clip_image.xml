@@ -30,8 +30,7 @@
         app:clipBorderWidth="2dp"
         app:clipType="rectangle"
         app:mHorizontalPadding="30dp"
-        android:visibility="gone"
-        />
+        android:visibility="gone" />
 
     <RelativeLayout
         android:id="@+id/bottom"

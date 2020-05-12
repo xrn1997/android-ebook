@@ -1,9 +1,11 @@
 package com.ebook.common.view;
 
 import android.content.Context;
+
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
@@ -235,8 +237,8 @@ public class HorizontalCenterRecycleView extends RecyclerView {
     }
 
     public void moveToPosition(int position) {
-        if(position < 0 || position > adapter.getItemCount() - 1){
-            throw new IllegalArgumentException("Your position should be from 0 to "+(adapter.getItemCount()-1));
+        if (position < 0 || position > adapter.getItemCount() - 1) {
+            throw new IllegalArgumentException("Your position should be from 0 to " + (adapter.getItemCount() - 1));
         }
         oldMoveX = 0;
         isMoveFinished = false;
@@ -279,9 +281,9 @@ public class HorizontalCenterRecycleView extends RecyclerView {
 
     private void calculateSelectedPos() {
         int itemWidth = wrapAdapter.getItemWidth();
-        if (deltaX > 0&&itemWidth>0) {
+        if (deltaX > 0 && itemWidth > 0) {
             selectPos = (deltaX) / itemWidth + initPos;
-        } else if(itemWidth>0){
+        } else if (itemWidth > 0) {
             selectPos = initPos + (deltaX) / itemWidth;
         }
     }
@@ -329,7 +331,7 @@ public class HorizontalCenterRecycleView extends RecyclerView {
             if (params != null) {
                 params.width = width;
                 itemWidth = width;
-                params.height=width;
+                params.height = width;
                 itemView.setLayoutParams(params);
             }
             return holder;

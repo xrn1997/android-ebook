@@ -64,7 +64,8 @@ public class RetrofitManager {
 
         return mRetrofit.create(UserService.class);
     }
-    public CommentService getCommentService(){
+
+    public CommentService getCommentService() {
         return mRetrofit.create(CommentService.class);
     }
 

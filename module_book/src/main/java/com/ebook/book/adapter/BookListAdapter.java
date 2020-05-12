@@ -38,7 +38,7 @@ public class BookListAdapter extends BaseBindAdapter<BookShelf, AdapterBookListI
                 }
             }
         });
-        binding.viewBookDetail.setOnLongClickListener(new View.OnLongClickListener(){
+        binding.viewBookDetail.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
                 if (mOnItemLongClickListener != null) {
@@ -49,9 +49,9 @@ public class BookListAdapter extends BaseBindAdapter<BookShelf, AdapterBookListI
         });
     }
 
-    @BindingAdapter(value = {"imageUrl", "placeHolder"},requireAll = false)
+    @BindingAdapter(value = {"imageUrl", "placeHolder"}, requireAll = false)
     public static void loadImage(ImageView imageView, String url, Drawable holderDrawable) {
-       // Log.d("glide_cover", "loadImage url: "+url);
+        // Log.d("glide_cover", "loadImage url: "+url);
         Glide.with(imageView.getContext())
                 .load(url)
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)

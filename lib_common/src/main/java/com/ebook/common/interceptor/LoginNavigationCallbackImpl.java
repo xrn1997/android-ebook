@@ -9,7 +9,7 @@ import com.blankj.utilcode.util.LogUtils;
 import com.ebook.common.event.KeyCode;
 
 
-public class LoginNavigationCallbackImpl  implements NavigationCallback {
+public class LoginNavigationCallbackImpl implements NavigationCallback {
     @Override //找到了
     public void onFound(Postcard postcard) {
 

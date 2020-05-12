@@ -13,7 +13,7 @@ public abstract class TagAdapter<T> {
     private OnDataChangedListener mOnDataChangedListener;
     protected HashSet<Integer> mCheckedPosList = new HashSet<Integer>();
 
-    public TagAdapter(){
+    public TagAdapter() {
 
     }
 
@@ -48,9 +48,9 @@ public abstract class TagAdapter<T> {
         notifyDataChanged();
     }
 
-    public synchronized void replaceAll(List<T> newDatas){
+    public synchronized void replaceAll(List<T> newDatas) {
         mTagDatas.clear();
-        if(newDatas != null)
+        if (newDatas != null)
             mTagDatas.addAll(newDatas);
         notifyDataChanged();
     }

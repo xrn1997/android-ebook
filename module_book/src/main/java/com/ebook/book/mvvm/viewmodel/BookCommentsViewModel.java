@@ -32,6 +32,7 @@ public class BookCommentsViewModel extends BaseRefreshViewModel<Comment, BookCom
     public ObservableField<String> comments = new ObservableField<>();
     public Comment comment = new Comment();
     private SingleLiveEvent<Void> mVoidSingleLiveEvent;
+
     public BookCommentsViewModel(@NonNull Application application, BookCommentsModel model) {
         super(application, model);
     }
@@ -115,11 +116,12 @@ public class BookCommentsViewModel extends BaseRefreshViewModel<Comment, BookCom
 
                 }
             });
-        }else{
+        } else {
             ToastUtil.showToast("不能为空哦！");
         }
 
     }
+
     public void deleteComent(Long id) {
         mModel.deleteComment(id).subscribe(new Observer<RespDTO<Integer>>() {
             @Override
@@ -149,6 +151,7 @@ public class BookCommentsViewModel extends BaseRefreshViewModel<Comment, BookCom
         });
 
     }
+
     public SingleLiveEvent<Void> getmVoidSingleLiveEvent() {
         return mVoidSingleLiveEvent = createLiveData(mVoidSingleLiveEvent);
     }

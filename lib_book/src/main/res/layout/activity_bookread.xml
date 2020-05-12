@@ -44,6 +44,7 @@
                     android:layout_height="48dp"
                     android:background="#ffffff"
                     android:orientation="horizontal">
+
                     <ImageButton
                         android:id="@+id/iv_return"
                         android:layout_width="48dp"
@@ -54,6 +55,7 @@
                         android:layout_gravity="center_vertical"
                         android:focusable="true"
                         android:contentDescription="@string/iv_return" />
+
                     <me.grantland.widget.AutofitTextView
                         android:id="@+id/atv_title"
                         android:layout_width="0dp"
@@ -65,7 +67,8 @@
                         android:textSize="16sp"
                         app:minTextSize="14sp"
                         android:textColor="#343434"
-                        android:gravity="center|left"/>
+                        android:gravity="center|left" />
+
                     <ImageView
                         android:id="@+id/iv_more"
                         android:layout_width="48dp"
@@ -106,6 +109,7 @@
                 android:layout_height="wrap_content"
                 android:background="#ffffff"
                 android:orientation="vertical">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -114,6 +118,7 @@
                     android:layout_marginRight="20dp"
                     android:layout_marginTop="5dp"
                     android:layout_marginBottom="5dp">
+
                     <TextView
                         android:id="@+id/tv_pre"
                         android:layout_width="wrap_content"
@@ -126,6 +131,7 @@
                         android:background="@drawable/bg_ib_pre"
                         android:enabled="false"
                         android:focusable="true" />
+
                     <com.ebook.basebook.view.mprogressbar.MHorProgressBar
                         android:id="@+id/hpb_read_progress"
                         android:layout_width="0dp"
@@ -139,6 +145,7 @@
                         app:cursordrawable="@drawable/shape_progress_cursor_read"
                         app:cursordrawable_width="13dp"
                         app:cursordrawable_height="13dp" />
+
                     <TextView
                         android:id="@+id/tv_next"
                         android:layout_width="wrap_content"
@@ -152,10 +159,12 @@
                         android:enabled="false"
                         android:focusable="true" />
                 </LinearLayout>
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="58dp"
                     android:orientation="horizontal">
+
                     <LinearLayout
                         android:id="@+id/ll_catalog"
                         android:layout_width="0dp"
@@ -166,12 +175,14 @@
                         android:clickable="true"
                         android:background="@drawable/bg_ib_pre"
                         android:focusable="true">
+
                         <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="0dp"
                             android:layout_weight="1"
                             android:padding="3dp"
-                            android:src="@drawable/selector_icon_catalog"/>
+                            android:src="@drawable/selector_icon_catalog" />
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -179,8 +190,9 @@
                             android:layout_gravity="center_horizontal"
                             android:textSize="12sp"
                             android:textColor="#767676"
-                            android:layout_marginTop="3dp"/>
+                            android:layout_marginTop="3dp" />
                     </LinearLayout>
+
                     <LinearLayout
                         android:id="@+id/ll_light"
                         android:layout_width="0dp"
@@ -191,12 +203,14 @@
                         android:clickable="true"
                         android:background="@drawable/bg_ib_pre"
                         android:focusable="true">
+
                         <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="0dp"
                             android:layout_weight="1"
                             android:padding="3dp"
-                            android:src="@drawable/selector_icon_light"/>
+                            android:src="@drawable/selector_icon_light" />
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -204,8 +218,9 @@
                             android:layout_gravity="center_horizontal"
                             android:textSize="12sp"
                             android:textColor="#767676"
-                            android:layout_marginTop="3dp"/>
+                            android:layout_marginTop="3dp" />
                     </LinearLayout>
+
                     <LinearLayout
                         android:id="@+id/ll_font"
                         android:layout_width="0dp"
@@ -216,12 +231,14 @@
                         android:clickable="true"
                         android:background="@drawable/bg_ib_pre"
                         android:focusable="true">
+
                         <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="0dp"
                             android:layout_weight="1"
                             android:padding="3dp"
-                            android:src="@drawable/selector_icon_font"/>
+                            android:src="@drawable/selector_icon_font" />
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -229,8 +246,9 @@
                             android:layout_gravity="center_horizontal"
                             android:textSize="12sp"
                             android:textColor="#767676"
-                            android:layout_marginTop="3dp"/>
+                            android:layout_marginTop="3dp" />
                     </LinearLayout>
+
                     <LinearLayout
                         android:id="@+id/ll_setting"
                         android:layout_width="0dp"
@@ -241,12 +259,14 @@
                         android:clickable="true"
                         android:background="@drawable/bg_ib_pre"
                         android:focusable="true">
+
                         <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="0dp"
                             android:layout_weight="1"
                             android:padding="3dp"
-                            android:src="@drawable/selector_icon_setting"/>
+                            android:src="@drawable/selector_icon_setting" />
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -254,7 +274,7 @@
                             android:layout_gravity="center_horizontal"
                             android:textSize="12sp"
                             android:textColor="#767676"
-                            android:layout_marginTop="3dp"/>
+                            android:layout_marginTop="3dp" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
@@ -264,5 +284,5 @@
     <com.ebook.basebook.view.ChapterListView
         android:id="@+id/clp_chapterlist"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent" />
 </FrameLayout>

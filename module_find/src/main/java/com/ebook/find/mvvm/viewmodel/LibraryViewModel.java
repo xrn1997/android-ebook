@@ -28,13 +28,14 @@ public class LibraryViewModel extends BaseRefreshViewModel<Library, LibraryModel
     private ACache mCache = ACache.get(BaseApplication.getInstance());
     public static final String TAG = LibraryViewModel.class.getSimpleName();
     public final static String LIBRARY_CACHE_KEY = "cache_library";
+
     public LibraryViewModel(@NonNull Application application, LibraryModel model) {
         super(application, model);
     }
 
     @Override
     public void refreshData() {
-     //   Log.d(TAG, "refreshData: start");
+        //   Log.d(TAG, "refreshData: start");
         if (isFirst) {
             isFirst = false;
             mModel.getLibraryData(mCache)
@@ -43,7 +44,7 @@ public class LibraryViewModel extends BaseRefreshViewModel<Library, LibraryModel
                         public void onNext(Library value) {
                             libraryKindBookLists.clear();
                             libraryKindBookLists.addAll(value.getKindBooks());
-                     //       Log.d(TAG, "refreshdata onNext: " + value.toString());
+                            //       Log.d(TAG, "refreshdata onNext: " + value.toString());
                             getLibraryNewData();
                         }
 
@@ -68,18 +69,18 @@ public class LibraryViewModel extends BaseRefreshViewModel<Library, LibraryModel
     }
 
     private void getLibraryNewData() {
-     //   Log.d(TAG, "getLibraryNewData: start");
+        //   Log.d(TAG, "getLibraryNewData: start");
         GxwztvBookModelImpl.getInstance().getLibraryData(mCache)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<Library>() {
                     @Override
                     public void onNext(final Library value) {
-                   //     Log.d(TAG, "refreshdata onNext: " + value.getKindBooks().get(0).getKindName());
+                        //     Log.d(TAG, "refreshdata onNext: " + value.getKindBooks().get(0).getKindName());
                         libraryKindBookLists.clear();
                         libraryKindBookLists.addAll(value.getKindBooks());
                         postStopRefreshEvent();
-                     //   Log.d(TAG, "refreshdata onNext: finish");
+                        //   Log.d(TAG, "refreshdata onNext: finish");
                     }
 
                     @Override

@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.os.Environment;
 import android.provider.MediaStore;
+
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.core.content.FileProvider;
@@ -32,7 +33,6 @@ import me.nereo.multi_image_selector.MultiImageSelector;
  * <ul><li>1. 拍照、拍视频、选择图片完成的回调都在onActivityResult中回调的</l1>
  * <li>2.选择图片获取：List<String> path = data.getStringArrayListExtra(MultiImageSelectorActivity.EXTRA_RESULT)</li>
  * </ul>
-
  */
 public class MultiMediaUtil {
     public static final int SELECT_IMAGE = 1001;

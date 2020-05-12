@@ -18,7 +18,7 @@ public class GreenDaoManager {
     private DaoSession mDaoSession;
 
     private GreenDaoManager() {
-        mHelper = new DaoMaster.DevOpenHelper(mContext, "ebook.db",null);
+        mHelper = new DaoMaster.DevOpenHelper(mContext, "ebook.db", null);
         db = mHelper.getWritableDatabase();
         // 注意：该数据库连接属于 DaoMaster，所以多个 Session 指的是相同的数据库连接。
         mDaoMaster = new DaoMaster(db);
@@ -39,6 +39,7 @@ public class GreenDaoManager {
         }
         return greenDaoManager;
     }
+
     public DaoSession getmDaoSession() {
         return mDaoSession;
     }

@@ -25,9 +25,11 @@ import static com.blankj.utilcode.util.ActivityUtils.startActivity;
 public class LibraryBookListAdapter extends BaseBindAdapter<LibraryKindBookList, ViewLibraryKindbookBinding> {
     private LibraryBookAdapter libraryBookAdapter;
     private ObservableArrayList<SearchBook> searchBooks;
+
     public LibraryBookListAdapter(Context context, ObservableArrayList<LibraryKindBookList> items) {
         super(context, items);
     }
+
     @Override
     protected int getLayoutItemId(int viewType) {
         return R.layout.view_library_kindbook;
@@ -36,20 +38,20 @@ public class LibraryBookListAdapter extends BaseBindAdapter<LibraryKindBookList,
     @Override
     protected void onBindItem(ViewLibraryKindbookBinding binding, LibraryKindBookList item, int position) {
         binding.setLibraryKindBookList(item);
-        searchBooks=new ObservableArrayList<>();
+        searchBooks = new ObservableArrayList<>();
         searchBooks.addAll(item.getBooks());
-        libraryBookAdapter=new LibraryBookAdapter(context,searchBooks);
+        libraryBookAdapter = new LibraryBookAdapter(context, searchBooks);
 
         searchBooks.addOnListChangedCallback(ObservableListUtil.getListChangedCallback(libraryBookAdapter));
-        if(item.getKindUrl()!=null){
+        if (item.getKindUrl() != null) {
             binding.tvMore.setVisibility(VISIBLE);
             binding.tvMore.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    ChoiceBookActivity.startChoiceBookActivity(context,item.getKindName(),item.getKindUrl());
+                    ChoiceBookActivity.startChoiceBookActivity(context, item.getKindName(), item.getKindUrl());
                 }
             });
-        }else{
+        } else {
             binding.tvMore.setVisibility(GONE);
             binding.tvMore.setOnClickListener(null);
         }

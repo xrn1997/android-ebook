@@ -81,7 +81,7 @@
                 android:layout_marginEnd="100dp"
                 android:text="@string/tel_register"
                 android:textColor="#ffffff"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/id_tv_fgt_pwd"
@@ -89,7 +89,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/fgt_pwd"
                 android:textColor="#ffffff"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
         </LinearLayout>
     </RelativeLayout>
 </layout>

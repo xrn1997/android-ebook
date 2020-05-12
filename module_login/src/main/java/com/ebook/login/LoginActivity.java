@@ -24,7 +24,7 @@ public class LoginActivity extends BaseMvvmActivity<ActivityLoginBinding, LoginV
     @Autowired
     public String path;
 
-    private  Bundle mBundle;//储存被拦截的信息
+    private Bundle mBundle;//储存被拦截的信息
 
     @Override
     public int onBindLayout() {
@@ -99,10 +99,10 @@ public class LoginActivity extends BaseMvvmActivity<ActivityLoginBinding, LoginV
             mViewModel.username.set(username);
             mViewModel.password.set(password);
         }
-        if ((!TextUtils.isEmpty(path))&&mBundle==null) {
+        if ((!TextUtils.isEmpty(path)) && mBundle == null) {
             mViewModel.path = path;
             if (bundle != null && !bundle.isEmpty()) {
-                mBundle=bundle;
+                mBundle = bundle;
                 mViewModel.bundle = mBundle;
             }
         }

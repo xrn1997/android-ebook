@@ -75,8 +75,8 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
     public void initView(View view) {
         downloadListPop = new DownloadListPop(mActivity);
         ibAdd = (ImageButton) view.findViewById(R.id.ib_add);
-        ibDownload = (ImageButton)view. findViewById(R.id.ib_download);
-        mBookListAdatper = new BookListAdapter(mActivity,mViewModel.getList());
+        ibDownload = (ImageButton) view.findViewById(R.id.ib_download);
+        mBookListAdatper = new BookListAdapter(mActivity, mViewModel.getList());
         mViewModel.getList().addOnListChangedCallback(ObservableListUtil.getListChangedCallback(mBookListAdatper));
         mBinding.recview.setAdapter(mBookListAdatper);
     }
@@ -147,16 +147,15 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
     }
 
 
-
     @Subscribe(thread = EventThread.MAIN_THREAD,
             tags = {
-            @Tag(RxBusTag.HAD_ADD_BOOK),
-            @Tag(RxBusTag.HAD_REMOVE_BOOK),
-            @Tag(RxBusTag.UPDATE_BOOK_PROGRESS)
-    }
+                    @Tag(RxBusTag.HAD_ADD_BOOK),
+                    @Tag(RxBusTag.HAD_REMOVE_BOOK),
+                    @Tag(RxBusTag.UPDATE_BOOK_PROGRESS)
+            }
     )
     public void hadAddOrRemoveBook(BookShelf bookShelf) {
-       mViewModel.refreshData();
+        mViewModel.refreshData();
         //autoLoadData();
     }
 
@@ -166,8 +165,8 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
             }
     )
     public void startDownloadService(DownloadChapterList result) {
-        Log.e(TAG, "startDownloadService: 开启下载服务" );
-            mActivity.startService(new Intent(mActivity, DownloadService.class));
+        Log.e(TAG, "startDownloadService: 开启下载服务");
+        mActivity.startService(new Intent(mActivity, DownloadService.class));
         TimerTask task = new TimerTask() {
             @Override
             public void run() {

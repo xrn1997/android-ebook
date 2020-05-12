@@ -13,7 +13,7 @@ import com.ebook.basebook.view.ReadBookControl;
 import com.kyleduo.switchbutton.SwitchButton;
 
 
-public class MoreSettingPop extends PopupWindow{
+public class MoreSettingPop extends PopupWindow {
     private Context mContext;
     private View view;
 
@@ -22,11 +22,11 @@ public class MoreSettingPop extends PopupWindow{
 
     private ReadBookControl readBookControl;
 
-    public MoreSettingPop(Context context){
+    public MoreSettingPop(Context context) {
         super(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         mContext = context;
 
-        view = LayoutInflater.from(mContext).inflate(R.layout.view_pop_moresetting,null);
+        view = LayoutInflater.from(mContext).inflate(R.layout.view_pop_moresetting, null);
         this.setContentView(view);
         initData();
         bindView();
@@ -57,10 +57,10 @@ public class MoreSettingPop extends PopupWindow{
         sbKey = (SwitchButton) view.findViewById(R.id.sb_key);
         sbClick = (SwitchButton) view.findViewById(R.id.sb_click);
 
-        if(readBookControl.getCanKeyTurn())
+        if (readBookControl.getCanKeyTurn())
             sbKey.setCheckedImmediatelyNoEvent(true);
         else sbKey.setCheckedImmediatelyNoEvent(false);
-        if(readBookControl.getCanClickTurn())
+        if (readBookControl.getCanClickTurn())
             sbClick.setCheckedImmediatelyNoEvent(true);
         else sbClick.setCheckedImmediatelyNoEvent(false);
     }

@@ -5,10 +5,11 @@ import com.ebook.basebook.base.IView;
 
 import java.io.File;
 
-public interface IImportBookView extends IView{
+public interface IImportBookView extends IView {
 
     /**
      * 新增书籍
+     *
      * @param newFile
      */
     void addNewBook(File newFile);

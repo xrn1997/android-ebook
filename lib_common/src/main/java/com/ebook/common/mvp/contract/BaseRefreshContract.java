@@ -21,17 +21,18 @@ public interface BaseRefreshContract {
     interface View extends BaseView {
         /**
          * 是否启用下拉刷新
+         *
          * @param b
          */
         void enableRefresh(boolean b);
 
         /**
-         *是否启用上拉加载更多
+         * 是否启用上拉加载更多
          */
         void enableLoadMore(boolean b);
 
         /**
-         *刷新回调
+         * 刷新回调
          */
         void onRefreshEvent();
 

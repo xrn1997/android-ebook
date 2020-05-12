@@ -70,6 +70,7 @@ public class MoProgressView extends LinearLayout {
         tvClose.setText(btnText);
         tvClose.setOnClickListener(listener);
     }
+
     //////////////////////两个不同等级的按钮//////////////////////
     public void showTwoButton(String msg, String b_f, OnClickListener c_f, String b_s, OnClickListener c_s) {
         removeAllViews();
@@ -85,7 +86,7 @@ public class MoProgressView extends LinearLayout {
     }
 
     ////////////////////离线章节选择////////////////////////////
-    public void showDownloadList(int startIndex, int endIndex, final int all, final MoProgressHUD.OnClickDownload clickDownload, OnClickListener cancel){
+    public void showDownloadList(int startIndex, int endIndex, final int all, final MoProgressHUD.OnClickDownload clickDownload, OnClickListener cancel) {
         removeAllViews();
         LayoutInflater.from(getContext()).inflate(R.layout.moprogress_dialog_downloadchoice, this, true);
         final EditText edtStart = (EditText) findViewById(R.id.edt_start);
@@ -93,8 +94,8 @@ public class MoProgressView extends LinearLayout {
         TextView tvCancel = (TextView) findViewById(R.id.tv_cancel);
         tvCancel.setOnClickListener(cancel);
         TextView tvDownload = (TextView) findViewById(R.id.tv_download);
-        edtStart.setText(String.valueOf(startIndex+1));
-        edtEnd.setText(String.valueOf(endIndex+1));
+        edtStart.setText(String.valueOf(startIndex + 1));
+        edtEnd.setText(String.valueOf(endIndex + 1));
         edtStart.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -108,18 +109,18 @@ public class MoProgressView extends LinearLayout {
 
             @Override
             public void afterTextChanged(Editable s) {
-                if(edtStart.getText().length()>0){
-                    try{
+                if (edtStart.getText().length() > 0) {
+                    try {
                         int temp = Integer.parseInt(edtStart.getText().toString().trim());
-                        if(temp>all){
+                        if (temp > all) {
                             edtStart.setText(String.valueOf(all));
                             edtStart.setSelection(edtStart.getText().length());
-                            Toast.makeText(context,"超过总章节",Toast.LENGTH_SHORT).show();
-                        }else if(temp<=0){
+                            Toast.makeText(context, "超过总章节", Toast.LENGTH_SHORT).show();
+                        } else if (temp <= 0) {
                             edtStart.setText(String.valueOf(1));
                             edtStart.setSelection(edtStart.getText().length());
                         }
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
@@ -138,18 +139,18 @@ public class MoProgressView extends LinearLayout {
 
             @Override
             public void afterTextChanged(Editable s) {
-                if(edtEnd.getText().length()>0){
-                    try{
+                if (edtEnd.getText().length() > 0) {
+                    try {
                         int temp = Integer.parseInt(edtEnd.getText().toString().trim());
-                        if(temp>all){
+                        if (temp > all) {
                             edtEnd.setText(String.valueOf(all));
                             edtEnd.setSelection(edtEnd.getText().length());
-                            Toast.makeText(context,"超过总章节",Toast.LENGTH_SHORT).show();
-                        }else if(temp<=0){
+                            Toast.makeText(context, "超过总章节", Toast.LENGTH_SHORT).show();
+                        } else if (temp <= 0) {
                             edtEnd.setText(String.valueOf(1));
                             edtEnd.setSelection(edtEnd.getText().length());
                         }
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
@@ -158,16 +159,16 @@ public class MoProgressView extends LinearLayout {
         tvDownload.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(edtStart.getText().length()>0 && edtEnd.getText().length()>0){
-                    if(Integer.parseInt(edtStart.getText().toString())>Integer.parseInt(edtEnd.getText().toString())){
-                        Toast.makeText(context,"输入错误",Toast.LENGTH_SHORT).show();
-                    }else{
-                        if(clickDownload!=null){
-                            clickDownload.download(Integer.parseInt(edtStart.getText().toString())-1,Integer.parseInt(edtEnd.getText().toString())-1);
+                if (edtStart.getText().length() > 0 && edtEnd.getText().length() > 0) {
+                    if (Integer.parseInt(edtStart.getText().toString()) > Integer.parseInt(edtEnd.getText().toString())) {
+                        Toast.makeText(context, "输入错误", Toast.LENGTH_SHORT).show();
+                    } else {
+                        if (clickDownload != null) {
+                            clickDownload.download(Integer.parseInt(edtStart.getText().toString()) - 1, Integer.parseInt(edtEnd.getText().toString()) - 1);
                         }
                     }
-                }else{
-                    Toast.makeText(context,"请输入要离线的章节",Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, "请输入要离线的章节", Toast.LENGTH_SHORT).show();
                 }
             }
         });

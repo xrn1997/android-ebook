@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.ebook.me">
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -14,8 +15,8 @@
         tools:targetApi="n">
         <activity android:name="debug.MainActivity">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
@@ -30,9 +31,10 @@
             android:name=".ModifyInformationActivity"
             android:label="编辑资料"
             android:theme="@style/AppTheme.BackBar" />
-        <activity android:name=".ModifyNicknameActivity"
+        <activity
+            android:name=".ModifyNicknameActivity"
             android:label="修改昵称"
-            android:theme="@style/AppTheme.BackBar"/>
+            android:theme="@style/AppTheme.BackBar" />
     </application>
 
 </manifest>

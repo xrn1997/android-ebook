@@ -13,9 +13,11 @@ import com.ebook.login.mvvm.factory.LoginViewModelFactory;
 import com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel;
 
 import androidx.lifecycle.ViewModelProvider;
-@Route(path= KeyCode.Login.Modify_PATH)
+
+@Route(path = KeyCode.Login.Modify_PATH)
 public class VerifyUserActivity extends BaseMvvmActivity<ActivityVerifyUserBinding, ModifyPwdViewModel> {
     private Button mVerifyCodeButton;//获取验证码按钮
+
     @Override
     public Class<ModifyPwdViewModel> onBindViewModel() {
         return ModifyPwdViewModel.class;
@@ -36,6 +38,7 @@ public class VerifyUserActivity extends BaseMvvmActivity<ActivityVerifyUserBindi
             }
         });
     }
+
     @SuppressLint("DefaultLocale")
     private void getVerifyCode() {
         // 生成六位随机数字的验证码
@@ -48,6 +51,7 @@ public class VerifyUserActivity extends BaseMvvmActivity<ActivityVerifyUserBindi
         AlertDialog alert = builder.create();
         alert.show();
     }
+
     @Override
     public void initView() {
         super.initView();

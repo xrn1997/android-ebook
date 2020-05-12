@@ -68,7 +68,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
 
     private void init() {
         readBookControl = ReadBookControl.getInstance();
-        scrollX= DisplayUtil.dip2px(30f);
+        scrollX = DisplayUtil.dip2px(30f);
         durPageView = new BookContentView(getContext());
         durPageView.setReadBookControl(readBookControl);
 
@@ -118,11 +118,11 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
 
                         //处理分辨率过大，移动冗余值,当横向滑动值超过冗余值则开始滑动
                         int durX = (int) (event.getX() - startX);
-                        if(durX>durWidth){
+                        if (durX > durWidth) {
                             durX = durX - durWidth;
-                        }else if(durX<-durWidth){
+                        } else if (durX < -durWidth) {
                             durX = durX + durWidth;
-                        }else{
+                        } else {
                             durX = 0;
                         }
 
@@ -151,7 +151,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
                     if (event.getX() - startX > durWidth) {
                         if (state == PREANDNEXT || state == ONLYPRE) {
                             //注意冗余值
-                            if (event.getX() - startX + durWidth> scrollX) {
+                            if (event.getX() - startX + durWidth > scrollX) {
                                 //向前翻页成功
                                 initMoveSuccessAnim(viewContents.get(0), 0);
                             } else {
@@ -373,7 +373,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             if (pageAll > 0 && durPageIndex >= 0 && durPageIndex < pageAll - 1)
                 viewContents.get(temp).loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex) : "", durChapterIndex, chapterAll, durPageIndex + 1);
             else
-                viewContents.get(temp).loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex + 1) : "", durChapterIndex + 1, chapterAll,  DBCode.BookContentView.DURPAGEINDEXBEGIN);
+                viewContents.get(temp).loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex + 1) : "", durChapterIndex + 1, chapterAll, DBCode.BookContentView.DURPAGEINDEXBEGIN);
         } else if (state == ONLYPRE || state == NONE) {
             BookContentView next = new BookContentView(getContext());
             next.setReadBookControl(readBookControl);
@@ -395,14 +395,14 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             if (pageAll > 0 && durPageIndex >= 0 && durPageIndex > 0)
                 pre.loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex) : "", durChapterIndex, chapterAll, durPageIndex - 1);
             else
-                pre.loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex - 1) : "", durChapterIndex - 1, chapterAll,  DBCode.BookContentView.DURPAGEINDEXEND);
+                pre.loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex - 1) : "", durChapterIndex - 1, chapterAll, DBCode.BookContentView.DURPAGEINDEXEND);
             viewContents.add(0, pre);
             this.addView(pre);
         } else if (state == ONLYPRE || state == PREANDNEXT) {
             if (pageAll > 0 && durPageIndex >= 0 && durPageIndex > 0)
                 viewContents.get(0).loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex) : "", durChapterIndex, chapterAll, durPageIndex - 1);
             else
-                viewContents.get(0).loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex - 1) : "", durChapterIndex - 1, chapterAll,  DBCode.BookContentView.DURPAGEINDEXEND);
+                viewContents.get(0).loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex - 1) : "", durChapterIndex - 1, chapterAll, DBCode.BookContentView.DURPAGEINDEXEND);
         }
     }
 

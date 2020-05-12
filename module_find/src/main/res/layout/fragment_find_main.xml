@@ -16,10 +16,12 @@
         android:layout_height="wrap_content"
         android:background="@color/bg_library"
         android:orientation="vertical">
+
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:background="#ffffff">
+
             <TextView
                 android:id="@+id/tv_title"
                 android:layout_height="wrap_content"
@@ -30,6 +32,7 @@
                 android:textColor="#343434"
                 android:textSize="16sp" />
         </RelativeLayout>
+
         <com.refresh.lib.DaisyRefreshLayout
             android:id="@+id/refview_library"
             android:layout_width="match_parent"

@@ -17,9 +17,9 @@ import androidx.annotation.NonNull;
  */
 
 @Entity
-public class BookShelf implements Parcelable,Cloneable{
+public class BookShelf implements Parcelable, Cloneable {
     @Transient
-    public static final long REFRESH_TIME = 5*60*1000;   //更新时间间隔 至少
+    public static final long REFRESH_TIME = 5 * 60 * 1000;   //更新时间间隔 至少
     @Transient
     public static final String LOCAL_TAG = "loc_book";
 
@@ -28,7 +28,7 @@ public class BookShelf implements Parcelable,Cloneable{
 
     private int durChapter;   //当前章节 （包括番外）
 
-    private int durChapterPage =  DBCode.BookContentView.DURPAGEINDEXBEGIN;
+    private int durChapterPage = DBCode.BookContentView.DURPAGEINDEXBEGIN;
 
     private long finalDate;  //最后阅读时间
 
@@ -49,7 +49,7 @@ public class BookShelf implements Parcelable,Cloneable{
 
     @Generated(hash = 1195003589)
     public BookShelf(String noteUrl, int durChapter, int durChapterPage,
-            long finalDate, String tag) {
+                     long finalDate, String tag) {
         this.noteUrl = noteUrl;
         this.durChapter = durChapter;
         this.durChapterPage = durChapterPage;

@@ -24,7 +24,6 @@ public class CommentModel extends BaseModel {
     }
 
 
-
     /**
      * 删除评论
      */
@@ -45,7 +44,6 @@ public class CommentModel extends BaseModel {
                 .compose(RxAdapter.schedulersTransformer())
                 .compose(RxAdapter.exceptionTransformer());
     }
-
 
 
 }

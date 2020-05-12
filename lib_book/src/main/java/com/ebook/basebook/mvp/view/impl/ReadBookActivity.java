@@ -276,9 +276,9 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
                 readBookMenuMorePop.dismiss();
                 ChapterList path = mPresenter.getBookShelf().getBookInfo().getChapterlist().get(mPresenter.getBookShelf().getDurChapter());
                 Bundle bundle = new Bundle();
-                bundle.putString("chapterUrl",path.getDurChapterUrl());
-                bundle.putString("chapterName",path.getDurChapterName());
-                bundle.putString("bookName",mPresenter.getBookShelf().getBookInfo().getName());
+                bundle.putString("chapterUrl", path.getDurChapterUrl());
+                bundle.putString("chapterName", path.getDurChapterName());
+                bundle.putString("bookName", mPresenter.getBookShelf().getBookInfo().getName());
                 ARouter.getInstance().build(KeyCode.Book.Comment_PATH)
                         .with(bundle)
                         .navigation(ReadBookActivity.this, new LoginNavigationCallbackImpl());

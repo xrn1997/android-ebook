@@ -21,9 +21,10 @@ public class RegisterModel extends BaseModel {
         super(application);
         mUserService = RetrofitManager.getInstance().getCommonService();
     }
+
     @SuppressWarnings("unchecked")
     public Observable<RespDTO<LoginDTO>> register(String username, String password) {
-        Observable<RespDTO<LoginDTO>> result= mUserService.register(new User(username,password));
+        Observable<RespDTO<LoginDTO>> result = mUserService.register(new User(username, password));
         return result
                 .compose(RxAdapter.schedulersTransformer())
                 .compose(RxAdapter.exceptionTransformer());

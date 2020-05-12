@@ -36,6 +36,7 @@ public class RxAdapter {
             throw new IllegalArgumentException("context not the LifecycleProvider type");
         }
     }
+
     /**
      * 线程调度器
      */
@@ -48,6 +49,7 @@ public class RxAdapter {
             }
         };
     }
+
     public static SingleTransformer singleExceptionTransformer() {
 
         return new SingleTransformer() {
@@ -59,6 +61,7 @@ public class RxAdapter {
             }
         };
     }
+
     /**
      * 线程调度器
      */
@@ -71,6 +74,7 @@ public class RxAdapter {
             }
         };
     }
+
     /**
      * 处理意外
      */
@@ -79,7 +83,7 @@ public class RxAdapter {
         return new ObservableTransformer() {
             @Override
             public ObservableSource apply(Observable observable) {
-                return  observable
+                return observable
                         .map(new HandleFuc())  //这里可以取出BaseResponse中的Result
                         .onErrorResumeNext(new HttpResponseFunc());
             }
@@ -90,21 +94,21 @@ public class RxAdapter {
         @Override
         public Observable<T> apply(Throwable t) {
             ResponseThrowable exception = ExceptionHandler.handleException(t);
-            if(exception.code ==  ExceptionHandler.SYSTEM_ERROR.TIMEOUT_ERROR ){
-                Toast.makeText(RetrofitManager.mContext,"连接超时！",Toast.LENGTH_SHORT).show();
+            if (exception.code == ExceptionHandler.SYSTEM_ERROR.TIMEOUT_ERROR) {
+                Toast.makeText(RetrofitManager.mContext, "连接超时！", Toast.LENGTH_SHORT).show();
             }
             return Observable.error(exception);
         }
     }
 
-    private static class HandleFuc implements Function<Object,Object> {
+    private static class HandleFuc implements Function<Object, Object> {
 
         @Override
         public Object apply(Object o) throws Exception {
-            if(o instanceof RespDTO){
+            if (o instanceof RespDTO) {
                 RespDTO respDTO = (RespDTO) o;
-                if(respDTO.code != ExceptionHandler.APP_ERROR.SUCC){
-                    Toast.makeText(RetrofitManager.mContext,respDTO.error,Toast.LENGTH_SHORT).show();
+                if (respDTO.code != ExceptionHandler.APP_ERROR.SUCC) {
+                    Toast.makeText(RetrofitManager.mContext, respDTO.error, Toast.LENGTH_SHORT).show();
                 }
             }
             return o;

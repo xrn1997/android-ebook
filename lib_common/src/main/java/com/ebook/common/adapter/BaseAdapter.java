@@ -23,6 +23,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         mContext = context;
         mList = new ArrayList<>();
     }
+
     /**
      * 创建并且返回ViewHolder
      */
@@ -59,6 +60,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         }
         onBindData(holder, e, position);
     }
+
     /**
      * 返回数据数量
      */
@@ -66,6 +68,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     public int getItemCount() {
         return mList.size();
     }
+
     /**
      * 添加所有数据
      */
@@ -75,6 +78,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
             notifyDataSetChanged();
         }
     }
+
     /**
      * 更新数据
      */
@@ -85,6 +89,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         }
         notifyDataSetChanged();
     }
+
     /**
      * 根据位置删除数据
      */
@@ -92,6 +97,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         mList.remove(positon);
         notifyDataSetChanged();
     }
+
     /**
      * 根据对象删除数据
      */
@@ -99,6 +105,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         mList.remove(e);
         notifyDataSetChanged();
     }
+
     /**
      * 根据对象添加数据
      */
@@ -106,12 +113,14 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         mList.add(e);
         notifyDataSetChanged();
     }
+
     /**
      * 根据对象添加数据（加在最后）
      */
     public void addLast(E e) {
         add(e);
     }
+
     /**
      * 根据对象添加数据（加在第一个）
      */
@@ -119,6 +128,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         mList.add(0, e);
         notifyDataSetChanged();
     }
+
     /**
      * 删除所有数据
      */
@@ -126,13 +136,18 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         mList.clear();
         notifyDataSetChanged();
     }
+
     /**
      * 获取数据列表
      */
     public List<E> getDataList() {
         return mList;
     }
-    public List<E> getListData() { return mList; }
+
+    public List<E> getListData() {
+        return mList;
+    }
+
     /**
      * item监听
      */
@@ -146,6 +161,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     public void setOnItemLongClickListener(OnItemLongClickListener<E> onItemLongClickListener) {
         mOnItemLongClickListener = onItemLongClickListener;
     }
+
     /**
      * 根据位置获得item类型
      */
@@ -157,9 +173,11 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     public interface OnItemClickListener<E> {
         void onItemClick(E e, int position);
     }
+
     public interface OnItemLongClickListener<E> {
         boolean onItemLongClick(E e, int postion);
     }
+
     protected abstract int onBindLayout();
 
     protected abstract VH onCreateHolder(View view);

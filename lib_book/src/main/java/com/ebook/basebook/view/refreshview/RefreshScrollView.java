@@ -10,7 +10,7 @@ import android.widget.ScrollView;
 
 import androidx.annotation.NonNull;
 
-public class RefreshScrollView extends ScrollView{
+public class RefreshScrollView extends ScrollView {
     private RefreshProgressBar rpb;
     private float durTouchY = -1000000;
     private BaseRefreshListener baseRefreshListener;
@@ -18,11 +18,11 @@ public class RefreshScrollView extends ScrollView{
     private OnTouchListener touchListener;
 
     public RefreshScrollView(Context context) {
-        this(context,null);
+        this(context, null);
     }
 
     public RefreshScrollView(Context context, AttributeSet attrs) {
-        this(context, attrs,0);
+        this(context, attrs, 0);
     }
 
     public RefreshScrollView(Context context, AttributeSet attrs, int defStyleAttr) {
@@ -53,7 +53,7 @@ public class RefreshScrollView extends ScrollView{
                             durTouchY = event.getY();
                         float dY = event.getY() - durTouchY;  //>0下拉
                         durTouchY = event.getY();
-                        if (baseRefreshListener != null && !isRefreshing && rpb.getSecondDurProgress() == rpb.getSecondFinalProgress() && getScrollY()<=0) {
+                        if (baseRefreshListener != null && !isRefreshing && rpb.getSecondDurProgress() == rpb.getSecondFinalProgress() && getScrollY() <= 0) {
                             if (rpb.getVisibility() != View.VISIBLE) {
                                 rpb.setVisibility(View.VISIBLE);
                             }
@@ -86,15 +86,15 @@ public class RefreshScrollView extends ScrollView{
         this.baseRefreshListener = baseRefreshListener;
     }
 
-    public void startRefresh(){
-        if(baseRefreshListener!=null){
+    public void startRefresh() {
+        if (baseRefreshListener != null) {
             isRefreshing = true;
             rpb.setIsAutoLoading(true);
             baseRefreshListener.startRefresh();
         }
     }
 
-    public void finishRefresh(){
+    public void finishRefresh() {
         isRefreshing = false;
         rpb.setDurProgress(0);
         rpb.setIsAutoLoading(false);

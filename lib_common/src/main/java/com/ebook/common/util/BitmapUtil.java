@@ -46,7 +46,7 @@ import java.net.URLConnection;
 public class BitmapUtil {
     /**
      * 截取竖scrollview的屏幕
-     *
+     * <p>
      * 因为部分手机屏幕分辨率大,导致生成的bitmap会出现OOM异常,所以将view的bitmap设置为720p
      *
      * @param scrollView
@@ -67,7 +67,7 @@ public class BitmapUtil {
 
     /**
      * 将View生成bitmap
-     *
+     * <p>
      * 因为部分手机屏幕分辨率大,导致生成的bitmap会出现OOM异常,所以将view的bitmap设置为720p
      *
      * @param view 要生成bitmap的View
@@ -360,7 +360,7 @@ public class BitmapUtil {
     /**
      * 将图片按照某个角度进行旋转
      *
-     * @param bm 需要旋转的图片
+     * @param bm     需要旋转的图片
      * @param degree 旋转角度
      * @return 旋转后的图片
      */
@@ -400,6 +400,7 @@ public class BitmapUtil {
 
     /**
      * 获取图片原始的宽、高
+     *
      * @param url
      * @return
      */
@@ -461,6 +462,7 @@ public class BitmapUtil {
         }
         return new int[]{coverWidth, coverHeight};
     }
+
     public static int getBitmapSize(Bitmap bitmap) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {    //API 19
             return bitmap.getAllocationByteCount();

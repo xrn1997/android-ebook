@@ -12,9 +12,9 @@ public interface KeyCode {
         //存储用户名，密码，昵称，头像，id
         String SP_USERNAME = "sp_username";
         String SP_PASSWORD = "sp_password";
-        String SP_IMAGE="sp_image";
-        String SP_NICKNAME="sp_nickname";
-        String SP_USER_ID="sp_user_id";
+        String SP_IMAGE = "sp_image";
+        String SP_NICKNAME = "sp_nickname";
+        String SP_USER_ID = "sp_user_id";
 
         String PATH = "path";
         String BASE_PATH = "/baseLogin/";
@@ -25,12 +25,12 @@ public interface KeyCode {
         //拦截登录测试
         String Test_PATH = BASE_PATH + "test";
         //修改密码
-        String Modify_PATH=BASE_PATH+"modify";
+        String Modify_PATH = BASE_PATH + "modify";
     }
 
     interface Book {
-        String BASE_PATH="/baseBook/";
-        String Comment_PATH=BASE_PATH+"comment";
+        String BASE_PATH = "/baseBook/";
+        String Comment_PATH = BASE_PATH + "comment";
     }
 
     interface Find {
@@ -38,8 +38,8 @@ public interface KeyCode {
 
     interface Me {
         String BASE_PATH = "/baseMe/";
-        String Setting_PATH=BASE_PATH+"setting";
-        String Modify_PATH=BASE_PATH+"modify";
-        String Comment_PATH=BASE_PATH+"comment";
+        String Setting_PATH = BASE_PATH + "setting";
+        String Modify_PATH = BASE_PATH + "modify";
+        String Comment_PATH = BASE_PATH + "comment";
     }
 }

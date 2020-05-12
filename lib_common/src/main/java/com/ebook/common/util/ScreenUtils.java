@@ -3,7 +3,9 @@ package com.ebook.common.util;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
+
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.WindowManager;
@@ -13,11 +15,11 @@ public class ScreenUtils {
 
     /**
      * 获得屏幕宽度
+     *
      * @param context
      * @return
      */
-    public static int getScreenWidth(Context context)
-    {
+    public static int getScreenWidth(Context context) {
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         DisplayMetrics outMetrics = new DisplayMetrics();
         wm.getDefaultDisplay().getMetrics(outMetrics);
@@ -26,6 +28,7 @@ public class ScreenUtils {
 
     /**
      * 获得屏幕高度
+     *
      * @param context
      * @return
      */
@@ -39,6 +42,7 @@ public class ScreenUtils {
 
     /**
      * 获得状态栏高度
+     *
      * @param context
      * @return
      */
@@ -59,7 +63,7 @@ public class ScreenUtils {
     /**
      * 获取当前屏幕截图，包含状态栏
      */
-    public static Bitmap snapShotWithStatusBar(AppCompatActivity activity){
+    public static Bitmap snapShotWithStatusBar(AppCompatActivity activity) {
         View view = activity.getWindow().getDecorView();
         view.setDrawingCacheEnabled(true);
         view.buildDrawingCache();
@@ -74,9 +78,8 @@ public class ScreenUtils {
 
     /**
      * 获取当前屏幕截图，不包含状态栏
-     *
      */
-    public static Bitmap snapShotWithoutStatusBar(AppCompatActivity activity){
+    public static Bitmap snapShotWithoutStatusBar(AppCompatActivity activity) {
         View view = activity.getWindow().getDecorView();
         view.setDrawingCacheEnabled(true);
         view.buildDrawingCache();

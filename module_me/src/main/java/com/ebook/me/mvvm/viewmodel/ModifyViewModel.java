@@ -44,8 +44,8 @@ public class ModifyViewModel extends BaseViewModel<ModifyModel> {
             public void onNext(RespDTO<Integer> integerRespDTO) {
                 if (integerRespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     ToastUtil.showToast("修改成功");
-                    SPUtils.getInstance().put(KeyCode.Login.SP_NICKNAME,nickname.get());
-                    RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME,new Object());
+                    SPUtils.getInstance().put(KeyCode.Login.SP_NICKNAME, nickname.get());
+                    RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME, new Object());
                     postFinishActivityEvent();
                 } else {
                     Log.e(TAG, "error: " + integerRespDTO.error);

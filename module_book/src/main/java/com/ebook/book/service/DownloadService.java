@@ -46,7 +46,6 @@ import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
 
-
 public class DownloadService extends Service {
     private NotificationManager notifyManager;
     private int notifiId = 19931118;
@@ -70,9 +69,9 @@ public class DownloadService extends Service {
         if (!isInit) {
             isInit = true;
             notifyManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 NotificationChannel notificationChannel =
-                        new NotificationChannel("40", "App Service",NotificationManager.IMPORTANCE_HIGH);
+                        new NotificationChannel("40", "App Service", NotificationManager.IMPORTANCE_HIGH);
                 notifyManager.createNotificationChannel(notificationChannel);
             }
             RxBus.get().register(this);
@@ -331,7 +330,7 @@ public class DownloadService extends Service {
                     public void onNext(Object value) {
                         isStartDownload = false;
                         notifyManager.cancelAll();
-                        stopService(new Intent(getApplication(),DownloadService.class));
+                        stopService(new Intent(getApplication(), DownloadService.class));
                     }
 
                     @Override
@@ -395,7 +394,7 @@ public class DownloadService extends Service {
         Intent mainIntent = new Intent(this, MainBookFragment.class);
         PendingIntent mainPendingIntent = PendingIntent.getActivity(this, 0, mainIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         //创建 Notification.Builder 对象
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this,"40")
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "40")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 //点击通知后自动清除
                 .setAutoCancel(true)
@@ -413,7 +412,7 @@ public class DownloadService extends Service {
             @Override
             public void run() {
                 Toast.makeText(getApplicationContext(), "全部离线章节下载完成", Toast.LENGTH_SHORT).show();
-                stopService(new Intent(getApplication(),DownloadService.class));
+                stopService(new Intent(getApplication(), DownloadService.class));
             }
         });
     }

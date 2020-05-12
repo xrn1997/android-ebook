@@ -20,8 +20,8 @@ public class FileUtil {
     /**
      * 判断是否是图片文件
      */
-    public static boolean isImageFile(String url){
-        if(TextUtils.isEmpty(url)){
+    public static boolean isImageFile(String url) {
+        if (TextUtils.isEmpty(url)) {
             return false;
         }
         String reg = ".+(\\.jpeg|\\.jpg|\\.gif|\\.bmp|\\.png).*";
@@ -29,11 +29,12 @@ public class FileUtil {
         Matcher matcher = pattern.matcher(url.toLowerCase());
         return matcher.find();
     }
+
     /**
      * 判断是否是视频文件
      */
-    public static boolean isVideoFile(String url){
-        if(TextUtils.isEmpty(url)){
+    public static boolean isVideoFile(String url) {
+        if (TextUtils.isEmpty(url)) {
             return false;
         }
         String reg = ".+(\\.avi|\\.wmv|\\.mpeg|\\.mp4|\\.mov|\\.mkv|\\.flv|\\.f4v|\\.m4v|\\.rmvb|\\.rm|\\.rmvb|\\.3gp|\\.dat|\\.ts|\\.mts|\\.vob).*";
@@ -41,8 +42,9 @@ public class FileUtil {
         Matcher matcher = pattern.matcher(url.toLowerCase());
         return matcher.find();
     }
-    public static boolean isUrl(String url){
-        if(TextUtils.isEmpty(url)){
+
+    public static boolean isUrl(String url) {
+        if (TextUtils.isEmpty(url)) {
             return false;
         }
         String reg = "(https?|ftp|file)://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]";
@@ -81,6 +83,7 @@ public class FileUtil {
         }
         return null;
     }
+
     /**
      * 根据Uri返回文件绝对路径
      * 兼容了file:///开头的 和 content://开头的情况
@@ -91,8 +94,7 @@ public class FileUtil {
         String data = null;
         if (scheme == null) {
             data = uri.getPath();
-        }
-        else if (ContentResolver.SCHEME_FILE.equalsIgnoreCase(scheme)) {
+        } else if (ContentResolver.SCHEME_FILE.equalsIgnoreCase(scheme)) {
             data = uri.getPath();
         } else if (ContentResolver.SCHEME_CONTENT.equalsIgnoreCase(scheme)) {
             Cursor cursor = context.getContentResolver().query(uri, new String[]{MediaStore.Images.ImageColumns.DATA}, null, null, null);
@@ -122,9 +124,11 @@ public class FileUtil {
         }
         return dirPath;
     }
+
     /**
      * 删除单个文件
-     * @param   filePath    被删除文件的文件名
+     *
+     * @param filePath 被删除文件的文件名
      * @return 文件删除成功返回true，否则返回false
      */
     public static boolean deleteFile(String filePath) {
@@ -134,10 +138,12 @@ public class FileUtil {
         }
         return false;
     }
+
     /**
      * 删除文件夹以及目录下的文件
-     * @param   filePath 被删除目录的文件路径
-     * @return  目录删除成功返回true，否则返回false
+     *
+     * @param filePath 被删除目录的文件路径
+     * @return 目录删除成功返回true，否则返回false
      */
     public static boolean deleteDirectory(String filePath) {
         boolean flag = false;

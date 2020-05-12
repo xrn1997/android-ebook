@@ -39,11 +39,11 @@ public class RefreshProgressBar extends View {
     }
 
     public void setIsAutoLoading(Boolean loading) {
-        if(loading && getVisibility() != View.VISIBLE){
+        if (loading && getVisibility() != View.VISIBLE) {
             setVisibility(View.VISIBLE);
         }
         isAutoLoading = loading;
-        if(!isAutoLoading){
+        if (!isAutoLoading) {
             secondDurProgress = 0;
             secondFinalProgress = 0;
         }
@@ -85,6 +85,7 @@ public class RefreshProgressBar extends View {
     }
 
     int a = 1;
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -93,7 +94,7 @@ public class RefreshProgressBar extends View {
         Rect bgRect = new Rect(0, 0, getMeasuredWidth(), getMeasuredHeight());
         canvas.drawRect(bgRect, paint);
 
-        if (secondDurProgress > 0 && secondMaxProgress>0) {
+        if (secondDurProgress > 0 && secondMaxProgress > 0) {
             int secondDur = secondDurProgress;
             if (secondDur < 0) {
                 secondDur = 0;
@@ -107,7 +108,7 @@ public class RefreshProgressBar extends View {
             canvas.drawRect(secondRect, paint);
         }
 
-        if (durProgress > 0 && maxProgress>0) {
+        if (durProgress > 0 && maxProgress > 0) {
             paint.setColor(fontColor);
             RectF fontRectF = new RectF(0, 0, getMeasuredWidth() * 1.0f * (durProgress * 1.0f / maxProgress), getMeasuredHeight());
             canvas.drawRect(fontRectF, paint);
@@ -126,7 +127,7 @@ public class RefreshProgressBar extends View {
                 secondDurProgress = secondMaxProgress;
             secondFinalProgress = secondDurProgress;
             invalidate();
-        }else{
+        } else {
             if (secondDurProgress != secondFinalProgress) {
                 if (secondDurProgress > secondFinalProgress) {
                     secondDurProgress -= speed;
@@ -141,7 +142,7 @@ public class RefreshProgressBar extends View {
                 }
                 this.invalidate();
             }
-            if(secondDurProgress==0 && durProgress==0 && secondFinalProgress==0 && getVisibility()==View.VISIBLE){
+            if (secondDurProgress == 0 && durProgress == 0 && secondFinalProgress == 0 && getVisibility() == View.VISIBLE) {
                 setVisibility(View.INVISIBLE);
             }
         }

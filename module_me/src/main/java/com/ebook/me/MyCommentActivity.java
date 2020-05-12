@@ -21,9 +21,10 @@ import com.refresh.lib.DaisyRefreshLayout;
 
 import androidx.lifecycle.ViewModelProvider;
 
-@Route(path= KeyCode.Me.Comment_PATH)
+@Route(path = KeyCode.Me.Comment_PATH)
 public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBinding, CommentViewModel> {
     private CommentListAdapter mCommentListAdapter;
+
     @Override
     public int onBindLayout() {
         return R.layout.activity_comment;
@@ -36,7 +37,7 @@ public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBi
 
     @Override
     public ViewModelProvider.Factory onBindViewModelFactory() {
-        return  MeViewModelFactory.getInstance(getApplication());
+        return MeViewModelFactory.getInstance(getApplication());
     }
 
     @Override
@@ -51,7 +52,7 @@ public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBi
 
     @Override
     public void initView() {
-        mCommentListAdapter=new CommentListAdapter(this,mViewModel.getList());
+        mCommentListAdapter = new CommentListAdapter(this, mViewModel.getList());
         mViewModel.getList().addOnListChangedCallback(ObservableListUtil.getListChangedCallback(mCommentListAdapter));
         mBinding.viewMyCommentList.setAdapter(mCommentListAdapter);
     }
@@ -73,9 +74,9 @@ public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBi
             @Override
             public void onItemClick(Comment comment, int position) {
                 Bundle bundle = new Bundle();
-                bundle.putString("chapterUrl",comment.getChapterUrl());
-                bundle.putString("chapterName",comment.getChapterName());
-                bundle.putString("bookName",comment.getBookName());
+                bundle.putString("chapterUrl", comment.getChapterUrl());
+                bundle.putString("chapterName", comment.getChapterName());
+                bundle.putString("bookName", comment.getBookName());
                 ARouter.getInstance().build(KeyCode.Book.Comment_PATH)
                         .with(bundle)
                         .navigation(MyCommentActivity.this, new LoginNavigationCallbackImpl());
@@ -91,7 +92,7 @@ public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBi
                         mViewModel.deleteComent(comment.getId());
                     }
                 });
-                deleteDialog.show(getSupportFragmentManager(),"deleteDialog");
+                deleteDialog.show(getSupportFragmentManager(), "deleteDialog");
                 return true;
             }
         });

@@ -10,13 +10,15 @@
         android:layout_height="1dp"
         android:layout_marginStart="32dp"
         android:background="#ededed" />
+
     <com.ebook.common.view.SettingBarView
         android:id="@+id/view_modify_profile_photo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:set_right_icon="@drawable/ic_angle_brackets"
         app:set_right_icon_visable="true"
-        app:set_title="修改头像" >
+        app:set_title="修改头像">
+
         <com.ebook.common.view.profilePhoto.CircleImageView
             android:id="@+id/view_profile_photo"
             android:layout_width="40dp"
@@ -29,11 +31,13 @@
             android:src="@drawable/image_default"
             android:contentDescription="@string/head_portrait" />
     </com.ebook.common.view.SettingBarView>
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginStart="32dp"
         android:background="#ededed" />
+
     <com.ebook.common.view.SettingBarView
         android:id="@+id/view_modify_nickname"
         android:layout_width="match_parent"
@@ -41,11 +45,13 @@
         app:set_right_icon="@drawable/ic_angle_brackets"
         app:set_right_icon_visable="true"
         app:set_title="修改昵称" />
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginStart="32dp"
         android:background="#ededed" />
+
     <com.ebook.common.view.SettingBarView
         android:id="@+id/view_modify_pwd"
         android:layout_width="match_parent"

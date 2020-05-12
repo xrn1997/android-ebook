@@ -5,58 +5,64 @@
     android:layout_height="match_parent"
     android:background="#f5f5f5"
     android:orientation="vertical">
-<androidx.cardview.widget.CardView
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginStart="10dp"
-    android:layout_marginEnd="10dp"
-    android:layout_marginTop="10dp"
-    android:layout_marginBottom="10dp"
-    app:cardElevation="0dp"
-    app:cardCornerRadius="10dp">
-    <RelativeLayout
-        android:id="@+id/view_user_layout"
+
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
-        android:layout_height="200dp">
-        <com.ebook.common.view.profilePhoto.CircleImageView
-            android:id="@+id/view_user_image"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_centerInParent="true"
-            android:background="@drawable/bg_shape"
-            android:padding="1dp"
-            android:contentDescription="@string/head_portrait"
-            android:src="@drawable/image_default" />
-        <Button
-            android:id="@+id/btn_login"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        app:cardElevation="0dp"
+        app:cardCornerRadius="10dp">
+
+        <RelativeLayout
+            android:id="@+id/view_user_layout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/view_user_image"
-            android:layout_marginStart="30dp"
-            android:layout_marginEnd="30dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/btn_selector"
-            android:textColor="@color/color_white"
-            android:text="点击登录"
-            />
-        <TextView
-            android:id="@+id/view_user_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/view_user_image"
-            android:layout_centerHorizontal="true"
-            android:layout_marginTop="8dp"
-            android:text="@string/xiaoming"
-            android:visibility="gone"
-            android:textColor="@color/color_black"
-            android:textSize="18sp"/>
-    </RelativeLayout>
-</androidx.cardview.widget.CardView>
+            android:layout_height="200dp">
+
+            <com.ebook.common.view.profilePhoto.CircleImageView
+                android:id="@+id/view_user_image"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_centerInParent="true"
+                android:background="@drawable/bg_shape"
+                android:padding="1dp"
+                android:contentDescription="@string/head_portrait"
+                android:src="@drawable/image_default" />
+
+            <Button
+                android:id="@+id/btn_login"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/view_user_image"
+                android:layout_marginStart="30dp"
+                android:layout_marginEnd="30dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/btn_selector"
+                android:textColor="@color/color_white"
+                android:text="点击登录" />
+
+            <TextView
+                android:id="@+id/view_user_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/view_user_image"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="8dp"
+                android:text="@string/xiaoming"
+                android:visibility="gone"
+                android:textColor="@color/color_black"
+                android:textSize="18sp" />
+        </RelativeLayout>
+    </androidx.cardview.widget.CardView>
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginStart="32dp"
         android:background="#ededed" />
+
     <com.ebook.common.view.SettingBarView
         android:id="@+id/view_my_comment"
         android:layout_width="match_parent"
@@ -66,11 +72,13 @@
         app:set_right_icon="@drawable/ic_angle_brackets"
         app:set_right_icon_visable="true"
         app:set_title="我的评论" />
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginStart="32dp"
         android:background="#ededed" />
+
     <com.ebook.common.view.SettingBarView
         android:id="@+id/view_my_inform"
         android:layout_width="match_parent"
@@ -80,6 +88,7 @@
         app:set_right_icon="@drawable/ic_angle_brackets"
         app:set_right_icon_visable="true"
         app:set_title="编辑资料" />
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"

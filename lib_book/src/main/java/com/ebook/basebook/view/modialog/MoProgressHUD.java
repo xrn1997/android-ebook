@@ -40,13 +40,15 @@ public class MoProgressHUD {
         inAnim = getInAnimation();
         outAnim = getOutAnimation();
     }
-    private void initFromTopRight(){
-        inAnim = AnimationUtils.loadAnimation(context,R.anim.moprogress_in_top_right);
+
+    private void initFromTopRight() {
+        inAnim = AnimationUtils.loadAnimation(context, R.anim.moprogress_in_top_right);
         outAnim = AnimationUtils.loadAnimation(context, R.anim.moprogress_out_top_right);
     }
-    private void initFromBottomRight(){
-        inAnim = AnimationUtils.loadAnimation(context,R.anim.moprogress_in_bottom_right);
-        outAnim = AnimationUtils.loadAnimation(context,R.anim.moprogress_out_bottom_right);
+
+    private void initFromBottomRight() {
+        inAnim = AnimationUtils.loadAnimation(context, R.anim.moprogress_in_bottom_right);
+        outAnim = AnimationUtils.loadAnimation(context, R.anim.moprogress_out_bottom_right);
     }
 
     private void initFromBottomAnimation() {
@@ -56,33 +58,33 @@ public class MoProgressHUD {
 
     private void initCenter() {
         mSharedView.setGravity(Gravity.CENTER);
-        if(mSharedView != null){
+        if (mSharedView != null) {
             FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) mSharedView.getLayoutParams();
-            if(layoutParams!=null){
+            if (layoutParams != null) {
                 layoutParams.setMargins(0, 0, 0, 0);
                 mSharedView.setLayoutParams(layoutParams);
             }
-            mSharedView.setPadding(0,0,0,0);
+            mSharedView.setPadding(0, 0, 0, 0);
         }
     }
 
     private void initBottom() {
         mSharedView.setGravity(Gravity.BOTTOM);
-        if(mSharedView != null){
+        if (mSharedView != null) {
             FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) mSharedView.getLayoutParams();
-            if(layoutParams!=null){
+            if (layoutParams != null) {
                 layoutParams.setMargins(0, 0, 0, 0);
                 mSharedView.setLayoutParams(layoutParams);
             }
-            mSharedView.setPadding(0,0,0,0);
+            mSharedView.setPadding(0, 0, 0, 0);
         }
     }
 
     private void initMarRightTop() {
         mSharedView.setGravity(Gravity.RIGHT | Gravity.TOP);
-        if(mSharedView != null){
+        if (mSharedView != null) {
             FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) mSharedView.getLayoutParams();
-            if(layoutParams!=null){
+            if (layoutParams != null) {
                 layoutParams.setMargins(0, 0, 0, 0);
                 mSharedView.setLayoutParams(layoutParams);
             }
@@ -239,11 +241,13 @@ public class MoProgressHUD {
         }
         mSharedView.getChildAt(0).startAnimation(inAnim);
     }
+
     ////////////////////离线章节选择////////////////////////////
-    public interface OnClickDownload{
+    public interface OnClickDownload {
         public void download(int start, int end);
     }
-    public void showDownloadList(int startIndex, int endIndex,int all, OnClickDownload clickDownload){
+
+    public void showDownloadList(int startIndex, int endIndex, int all, OnClickDownload clickDownload) {
         initCenter();
         initAnimation();
         canBack = true;

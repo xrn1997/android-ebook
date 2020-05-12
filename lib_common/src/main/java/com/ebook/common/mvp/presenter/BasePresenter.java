@@ -19,10 +19,12 @@ public abstract class BasePresenter<M extends BaseModel, V> {
         mView = view;
         mModel = model;
     }
+
     public void detach() {
         detachView();
         detachModel();
     }
+
     public void detachView() {
         mView = null;
     }

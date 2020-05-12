@@ -114,6 +114,7 @@ public class WindowLightPop extends PopupWindow {
         params.screenBrightness = value * 1.0f / 255f;
         ((Activity) mContext).getWindow().setAttributes(params);
     }
+
     public void setScreenBrightness() {
         WindowManager.LayoutParams params = ((Activity) mContext).getWindow().getAttributes();
         params.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
@@ -163,8 +164,8 @@ public class WindowLightPop extends PopupWindow {
         scbFollowSys.setChecked(isFollowSys);
     }
 
-    public void initLight(){
-        if(!isFollowSys){
+    public void initLight() {
+        if (!isFollowSys) {
             setScreenBrightness(light);
         }
     }

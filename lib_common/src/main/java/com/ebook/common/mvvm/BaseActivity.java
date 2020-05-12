@@ -3,9 +3,11 @@ package com.ebook.common.mvvm;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+
 import androidx.annotation.LayoutRes;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
+
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -83,15 +85,18 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
             initToolbar(view);
         }
     }
+
     @Override
     public void setContentView(@LayoutRes int layoutResID) {
         if (mViewStubContent != null) {
             initContentView(layoutResID);
         }
     }
-    public void initContentView(){
+
+    public void initContentView() {
         initContentView(onBindLayout());
     }
+
     private void initContentView(@LayoutRes int layoutResID) {
         View view = LayoutInflater.from(this).inflate(layoutResID, mViewStubContent, false);
         mViewStubContent.setId(android.R.id.content);

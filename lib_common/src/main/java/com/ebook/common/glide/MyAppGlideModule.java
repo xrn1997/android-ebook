@@ -7,4 +7,5 @@ import com.bumptech.glide.module.AppGlideModule;
  * 帮助我们生成 GlideApp 对象
  */
 @GlideModule
-public final class MyAppGlideModule extends AppGlideModule {}
+public final class MyAppGlideModule extends AppGlideModule {
+}

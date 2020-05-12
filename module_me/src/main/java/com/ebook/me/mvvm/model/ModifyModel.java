@@ -26,7 +26,7 @@ public class ModifyModel extends BaseModel {
     }
 
     /**
-     *修改昵称
+     * 修改昵称
      */
     @SuppressWarnings("unchecked")
     public Observable<RespDTO<Integer>> modifyNickname(String nickname) {
@@ -38,15 +38,16 @@ public class ModifyModel extends BaseModel {
 
     /**
      * 修改头像
+     *
      * @param path 头像路径
      * @return 返回服务器头像名称
      */
     @SuppressWarnings("unchecked")
-    public Observable<RespDTO<String>> modifyProfiePhoto(String path){
+    public Observable<RespDTO<String>> modifyProfiePhoto(String path) {
         String username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME);
         File file = new File(path);
         MultipartBody.Part body = MultipartBody.Part.createFormData("file", file.getName(), RequestBody.create(MediaType.parse("application/octet-stream"), file));
-        return userService.modifyProfiePhoto(RetrofitManager.getInstance().TOKEN,username,body)
+        return userService.modifyProfiePhoto(RetrofitManager.getInstance().TOKEN, username, body)
                 .compose(RxAdapter.schedulersTransformer())
                 .compose(RxAdapter.exceptionTransformer());
     }

@@ -35,7 +35,7 @@ public class ChoiceBookViewModel extends BaseRefreshViewModel<BookShelf, Library
                     mList.addAll(value);
                 } else {
                     ToastUtil.showToast("没有数据");
-                   // postShowNoDataViewEvent(true);
+                    // postShowNoDataViewEvent(true);
                 }
                 postStopRefreshEvent();
             }

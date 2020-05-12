@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 public abstract class BaseFragment<T extends IPresenter> extends RxFragment implements IView {
     protected View view;
     protected Bundle savedInstanceState;
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {

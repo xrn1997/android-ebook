@@ -250,15 +250,15 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
             @Override
             public void onClick(View v) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    if(getStart_share_ele()){
+                    if (getStart_share_ele()) {
                         finishAfterTransition();
-                    }else{
+                    } else {
                         finish();
-                        overridePendingTransition(0,android.R.anim.fade_out);
+                        overridePendingTransition(0, android.R.anim.fade_out);
                     }
                 } else {
                     finish();
-                    overridePendingTransition(0,android.R.anim.fade_out);
+                    overridePendingTransition(0, android.R.anim.fade_out);
                 }
             }
         });
@@ -280,15 +280,15 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
                 startActivityByAnim(intent, android.R.anim.fade_in, android.R.anim.fade_out);
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    if(getStart_share_ele()){
+                    if (getStart_share_ele()) {
                         finishAfterTransition();
-                    }else{
+                    } else {
                         finish();
-                        overridePendingTransition(0,android.R.anim.fade_out);
+                        overridePendingTransition(0, android.R.anim.fade_out);
                     }
                 } else {
                     finish();
-                    overridePendingTransition(0,android.R.anim.fade_out);
+                    overridePendingTransition(0, android.R.anim.fade_out);
                 }
             }
         });

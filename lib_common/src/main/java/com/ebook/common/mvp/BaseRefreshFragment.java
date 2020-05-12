@@ -16,7 +16,7 @@ import com.refresh.lib.DaisyRefreshLayout;
  * Version:     V1.0.0<br>
  * Update:     <br>
  */
-public abstract class BaseRefreshFragment<M extends BaseModel,V extends BaseRefreshView<T>,P extends BaseRefreshPresenter<M,V,T>,T> extends BaseMvpFragment<M,V,P> implements BaseRefreshView<T> {
+public abstract class BaseRefreshFragment<M extends BaseModel, V extends BaseRefreshView<T>, P extends BaseRefreshPresenter<M, V, T>, T> extends BaseMvpFragment<M, V, P> implements BaseRefreshView<T> {
     protected DaisyRefreshLayout mRefreshLayout;
 
     @Override
@@ -46,7 +46,9 @@ public abstract class BaseRefreshFragment<M extends BaseModel,V extends BaseRefr
             }
         });
     }
+
     protected abstract int onBindRreshLayout();
+
     @Override
     public void enableRefresh(boolean b) {
         mRefreshLayout.setEnableRefresh(b);
@@ -69,9 +71,9 @@ public abstract class BaseRefreshFragment<M extends BaseModel,V extends BaseRefr
 
     @Override
     public void autoLoadData() {
-        KLog.v("MYTAG","autoLoadData start...");
-        if(mRefreshLayout != null){
-            KLog.v("MYTAG","autoLoadData1 start...");
+        KLog.v("MYTAG", "autoLoadData start...");
+        if (mRefreshLayout != null) {
+            KLog.v("MYTAG", "autoLoadData1 start...");
             mRefreshLayout.autoRefresh();
         }
     }

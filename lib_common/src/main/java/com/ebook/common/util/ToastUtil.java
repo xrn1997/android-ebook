@@ -5,8 +5,8 @@ import android.widget.Toast;
 import com.ebook.common.BaseApplication;
 
 /**
-* Toast工具类
-*/
+ * Toast工具类
+ */
 public class ToastUtil {
 
     public static void showToast(String message) {

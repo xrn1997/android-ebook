@@ -28,15 +28,15 @@
             android:label="注册" />
         <activity
             android:name=".TestInterruptActivity"
-            android:label="拦截测试"/>
+            android:label="拦截测试" />
         <activity
             android:name=".VerifyUserActivity"
             android:theme="@style/AppTheme.BackBar"
-            android:label="验证用户"/>
+            android:label="验证用户" />
         <activity
             android:name=".ModifyPwdActivity"
             android:theme="@style/AppTheme.BackBar"
-            android:label="修改密码"/>
+            android:label="修改密码" />
     </application>
 
 </manifest>

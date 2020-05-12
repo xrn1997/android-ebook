@@ -23,30 +23,32 @@ public class RegisterViewModel extends BaseViewModel<RegisterModel> {
     public ObservableField<String> username = new ObservableField<>();
     public ObservableField<String> password_1 = new ObservableField<>();
     public ObservableField<String> password_2 = new ObservableField<>();
+
     public RegisterViewModel(@NonNull Application application, RegisterModel model) {
         super(application, model);
     }
-    public void register(){
+
+    public void register() {
 
         if (TextUtils.isEmpty(username.get())) {//用户名为空
             ToastUtil.showToast("用户名不能为空");
             return;
         }
-        if ( TextUtils.getTrimmedLength(username.get()) < 11) { // 手机号码不足11位
+        if (TextUtils.getTrimmedLength(username.get()) < 11) { // 手机号码不足11位
             ToastUtil.showToast("请输入正确的手机号");
             return;
         }
-        if(TextUtils.isEmpty(password_1.get())||TextUtils.isEmpty((password_2.get()))){
+        if (TextUtils.isEmpty(password_1.get()) || TextUtils.isEmpty((password_2.get()))) {
             ToastUtil.showToast("密码未填写完整");
             return;
         }
-        if (!TextUtils.equals(password_1.get(),password_2.get())) {//两次密码不一致
+        if (!TextUtils.equals(password_1.get(), password_2.get())) {//两次密码不一致
             ToastUtil.showToast("两次密码不一致");
             return;
         }
         //Log.d(TAG, password_1.get());
         //Log.d(TAG, password_2.get());
-        mModel.register(username.get(),password_1.get()).subscribe(new Observer<RespDTO<LoginDTO>>() {
+        mModel.register(username.get(), password_1.get()).subscribe(new Observer<RespDTO<LoginDTO>>() {
             @Override
             public void onSubscribe(Disposable d) {
 
@@ -73,6 +75,7 @@ public class RegisterViewModel extends BaseViewModel<RegisterModel> {
             }
         });
     }
+
     private SingleLiveEvent<Void> getmVoidSingleLiveEvent() {
         return mVoidSingleLiveEvent = createLiveData(mVoidSingleLiveEvent);
     }

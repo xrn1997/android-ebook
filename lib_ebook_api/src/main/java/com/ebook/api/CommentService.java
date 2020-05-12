@@ -29,7 +29,7 @@ public interface CommentService {
     //获得用户评论
     @GET(API.URL_HOST_COMMENT + "comments/query/name/{username}")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    Observable<RespDTO<List<Comment>>> getUserComments(@Header("Authorization") String tolen, @Path("username")String username);
+    Observable<RespDTO<List<Comment>>> getUserComments(@Header("Authorization") String tolen, @Path("username") String username);
 
     //获得章节评论
     @GET(API.URL_HOST_COMMENT + "comments/query/chapter")

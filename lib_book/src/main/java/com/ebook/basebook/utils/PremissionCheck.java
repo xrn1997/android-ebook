@@ -10,7 +10,7 @@ import android.os.Build;
 import androidx.core.content.PermissionChecker;
 
 public class PremissionCheck {
-    public static Boolean checkPremission(Context context,String permission){
+    public static Boolean checkPremission(Context context, String permission) {
         boolean result = false;
         if (getTargetSdkVersion(context) >= Build.VERSION_CODES.M && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             result = context.checkSelfPermission(permission)
@@ -33,6 +33,7 @@ public class PremissionCheck {
         }
         return version;
     }
+
     public static void requestPermissionSetting(Context from) {
         try {
             Intent localIntent = new Intent();

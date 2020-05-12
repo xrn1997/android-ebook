@@ -1,7 +1,6 @@
 package com.ebook.basebook.base.impl;
 
 
-
 import com.ebook.basebook.base.IPresenter;
 import com.ebook.basebook.base.IView;
 

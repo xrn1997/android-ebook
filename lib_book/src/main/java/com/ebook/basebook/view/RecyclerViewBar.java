@@ -223,14 +223,14 @@ public class RecyclerViewBar extends LinearLayout {
     private ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
         @Override
         public void onGlobalLayout() {
-            if(getHeight()>0){
+            if (getHeight() > 0) {
                 if (height == 0) {
                     height = getHeight();
                 } else {
-                    int diff = height -  getHeight();
+                    int diff = height - getHeight();
                     if (diff != 0) {
                         LayoutParams l = (LayoutParams) ivSlider.getLayoutParams();
-                        l.topMargin = (int) ((l.topMargin*1.0f/(height-sliderHeight))*(getHeight()-sliderHeight));
+                        l.topMargin = (int) ((l.topMargin * 1.0f / (height - sliderHeight)) * (getHeight() - sliderHeight));
                         ivSlider.setLayoutParams(l);
                         height = getHeight();
                     }

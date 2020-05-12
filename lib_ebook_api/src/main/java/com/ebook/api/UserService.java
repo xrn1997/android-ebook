@@ -36,9 +36,10 @@ public interface UserService {
     @POST("user/modify/nickname")
     @Headers("Content-Type:application/json;charset=UTF-8")
     Observable<RespDTO<Integer>> modifyNickname(@Header("Authorization") String tolen, @Query("username") String username, @Query("nickname") String nickname);
-//
+
+    //
     //修改头像
     @Multipart
     @POST("user/modify/image/u{username}")
-    Observable<RespDTO<String>> modifyProfiePhoto(@Header("Authorization") String tolen,@Path("username")String username,@Part MultipartBody.Part file);
+    Observable<RespDTO<String>> modifyProfiePhoto(@Header("Authorization") String tolen, @Path("username") String username, @Part MultipartBody.Part file);
 }

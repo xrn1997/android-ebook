@@ -158,10 +158,10 @@ public class SearchBookAdapter extends RefreshRecyclerViewAdapter {
     }
 
     public void addAll(List<SearchBook> newDatas) {
-        if(newDatas!=null && newDatas.size()>0){
+        if (newDatas != null && newDatas.size() > 0) {
             int oldCount = getItemcount();
             searchBooks.addAll(newDatas);
-            notifyItemRangeInserted(oldCount,newDatas.size());
+            notifyItemRangeInserted(oldCount, newDatas.size());
         }
     }
 

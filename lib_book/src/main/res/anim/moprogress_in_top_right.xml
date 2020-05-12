@@ -9,9 +9,9 @@
         android:fromYScale="20%"
         android:toYScale="100%"
         android:pivotX="100%"
-        android:pivotY="0%"/>
+        android:pivotY="0%" />
 
     <alpha
         android:fromAlpha="0"
-        android:toAlpha="1"/>
+        android:toAlpha="1" />
 </set>

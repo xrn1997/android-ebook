@@ -1,6 +1,7 @@
 package com.ebook.common.mvvm.viewmodel;
 
 import android.app.Application;
+
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
@@ -19,8 +20,8 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 
 
-public class BaseViewModel<M extends BaseModel> extends AndroidViewModel implements IBaseViewModel,Consumer<Disposable> {
-    private static String TAG =BaseViewModel.class.getSimpleName();
+public class BaseViewModel<M extends BaseModel> extends AndroidViewModel implements IBaseViewModel, Consumer<Disposable> {
+    private static String TAG = BaseViewModel.class.getSimpleName();
     protected M mModel;
     private UIChangeLiveData mUIChangeLiveData;
 
@@ -28,6 +29,7 @@ public class BaseViewModel<M extends BaseModel> extends AndroidViewModel impleme
         super(application);
         this.mModel = model;
     }
+
     public UIChangeLiveData getUC() {
         if (mUIChangeLiveData == null) {
             mUIChangeLiveData = new UIChangeLiveData();
@@ -72,12 +74,14 @@ public class BaseViewModel<M extends BaseModel> extends AndroidViewModel impleme
             return onBackPressedEvent = createLiveData(onBackPressedEvent);
         }
     }
-    protected <T>SingleLiveEvent<T> createLiveData(SingleLiveEvent<T> liveData) {
+
+    protected <T> SingleLiveEvent<T> createLiveData(SingleLiveEvent<T> liveData) {
         if (liveData == null) {
             liveData = new SingleLiveEvent<>();
         }
         return liveData;
     }
+
     public static final class ParameterField {
         public static String CLASS = "CLASS";
         public static String CANONICAL_NAME = "CANONICAL_NAME";
@@ -107,6 +111,7 @@ public class BaseViewModel<M extends BaseModel> extends AndroidViewModel impleme
             mUIChangeLiveData.showNetWorkErrViewEvent.postValue(show);
         }
     }
+
     public void postStartActivityEvent(Class<?> clz, Bundle bundle) {
         Map<String, Object> params = new HashMap<>();
         params.put(ParameterField.CLASS, clz);
@@ -118,9 +123,9 @@ public class BaseViewModel<M extends BaseModel> extends AndroidViewModel impleme
 
 
     public void postFinishActivityEvent() {
-      //  Log.d(TAG, "postFinishActivityEvent: start");
+        //  Log.d(TAG, "postFinishActivityEvent: start");
         mUIChangeLiveData.finishActivityEvent.call();
-       // Log.d(TAG, "postFinishActivityEvent: end");
+        // Log.d(TAG, "postFinishActivityEvent: end");
     }
 
 
@@ -158,7 +163,7 @@ public class BaseViewModel<M extends BaseModel> extends AndroidViewModel impleme
 
     @Override
     public void accept(Disposable disposable) throws Exception {
-        if(mModel != null){
+        if (mModel != null) {
             mModel.addSubscribe(disposable);
         }
     }

@@ -17,7 +17,7 @@ public class DownloadChapterList implements Parcelable {
     }
 
     protected DownloadChapterList(Parcel in) {
-        if(data == null)
+        if (data == null)
             data = new ArrayList<>();
         in.readTypedList(data, DownloadChapter.CREATOR);
     }

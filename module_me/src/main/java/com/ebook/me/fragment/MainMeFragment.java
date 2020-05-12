@@ -31,6 +31,7 @@ public class MainMeFragment extends BaseFragment {
     private SettingBarView mSetInform;
     private CircleImageView mCircleImageView;
     private TextView mTextView;
+
     public static MainMeFragment newInstance() {
         return new MainMeFragment();
     }
@@ -48,7 +49,7 @@ public class MainMeFragment extends BaseFragment {
         mButton = view.findViewById(R.id.btn_login);
         mSetting = view.findViewById(R.id.view_setting);
         mCircleImageView = view.findViewById(R.id.view_user_image);
-        mTextView=view.findViewById(R.id.view_user_name);
+        mTextView = view.findViewById(R.id.view_user_name);
 
     }
 
@@ -86,7 +87,7 @@ public class MainMeFragment extends BaseFragment {
 
     @Override
     public void initData() {
-      updateView(new Object());
+        updateView(new Object());
     }
 
     @Override
@@ -96,17 +97,17 @@ public class MainMeFragment extends BaseFragment {
 
     @Subscribe(thread = EventThread.MAIN_THREAD,
             tags = {
-            @Tag(RxBusTag.MODIFY_PROFIE_PICTURE)
+                    @Tag(RxBusTag.MODIFY_PROFIE_PICTURE)
             }
     )
     public void setProfiePicture(String path) {
-                Glide.with(mActivity)
-                        .load(API.URL_HOST_USER+"user/image/"+path)
-                        .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-                        .fitCenter()
-                        .dontAnimate()
-                        .placeholder(getResources().getDrawable(R.drawable.image_default))
-                        .into(mCircleImageView);
+        Glide.with(mActivity)
+                .load(API.URL_HOST_USER + "user/image/" + path)
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .fitCenter()
+                .dontAnimate()
+                .placeholder(getResources().getDrawable(R.drawable.image_default))
+                .into(mCircleImageView);
     }
 
     @Subscribe(thread = EventThread.MAIN_THREAD,
@@ -114,13 +115,13 @@ public class MainMeFragment extends BaseFragment {
                     @Tag(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME)
             }
     )
-    public void updateView(Object o){
-        if (!SPUtils.getInstance().getBoolean(KeyCode.Login.SP_IS_LOGIN)){
+    public void updateView(Object o) {
+        if (!SPUtils.getInstance().getBoolean(KeyCode.Login.SP_IS_LOGIN)) {
             //未登录，显示按钮
             mTextView.setVisibility(View.GONE);
             mButton.setVisibility(View.VISIBLE);
             mCircleImageView.setImageDrawable(getResources().getDrawable(R.drawable.image_default));
-        }else{
+        } else {
             //已登录，显示昵称
             mTextView.setVisibility(View.VISIBLE);
             mButton.setVisibility(View.GONE);

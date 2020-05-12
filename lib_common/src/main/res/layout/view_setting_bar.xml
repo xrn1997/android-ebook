@@ -6,15 +6,15 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:paddingLeft="5dp"
     android:paddingRight="10dp"
-    android:background="#FFFFFF"
-    >
+    android:background="#FFFFFF">
+
     <ImageView
         android:id="@+id/img_left_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_centerVertical="true"
-        />
+        android:layout_centerVertical="true" />
+
     <TextView
         android:id="@+id/txt_set_title"
         android:layout_width="wrap_content"
@@ -23,8 +23,8 @@
         android:textColor="#333333"
         android:layout_toRightOf="@+id/img_left_icon"
         android:layout_centerVertical="true"
-        android:layout_marginLeft="10dp"
-        />
+        android:layout_marginLeft="10dp" />
+
     <EditText
         android:id="@+id/txt_set_content"
         android:layout_width="match_parent"
@@ -39,14 +39,13 @@
         android:enabled="false"
         android:background="@null"
         android:singleLine="true"
-        android:ellipsize="end"
-        />
+        android:ellipsize="end" />
+
     <ImageView
         android:id="@+id/img_right_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:srcCompat="@drawable/usecar_list_icon_into"
         android:layout_alignParentRight="true"
-        android:layout_centerVertical="true"
-        />
+        android:layout_centerVertical="true" />
 </RelativeLayout>

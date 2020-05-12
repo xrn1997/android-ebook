@@ -39,11 +39,12 @@ public class BookCommentsAdpater extends BaseBindAdapter<Comment, AdpaterBookCom
             }
         });
     }
-    @BindingAdapter(value = {"imageUrl", "placeHolder"},requireAll = false)
+
+    @BindingAdapter(value = {"imageUrl", "placeHolder"}, requireAll = false)
     public static void loadImage(CircleImageView imageView, String url, Drawable holderDrawable) {
         // Log.d("glide_cover", "loadImage url: "+url);
         Glide.with(imageView.getContext())
-                .load(API.URL_HOST_USER+"user/image/"+url)
+                .load(API.URL_HOST_USER + "user/image/" + url)
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                 .fitCenter()
                 .dontAnimate()

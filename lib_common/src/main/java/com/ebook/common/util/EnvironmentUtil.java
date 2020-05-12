@@ -48,7 +48,7 @@ import java.util.Locale;
  * </ul>
  */
 
-public class EnvironmentUtil{
+public class EnvironmentUtil {
     private static final String TAG = "EnvironmentUtil";
 
     /**
@@ -138,7 +138,6 @@ public class EnvironmentUtil{
      * 获取系统语言
      *
      * @param context
-     * @return
      * @param context
      * @return
      */
@@ -258,8 +257,7 @@ public class EnvironmentUtil{
         /**
          * 获取外部目录缓存路径
          *
-         * @param context
-         *            context
+         * @param context context
          * @return 外部存储换成路径
          */
         public static File getExternalCacheDir(Context context) {
@@ -284,8 +282,7 @@ public class EnvironmentUtil{
         /**
          * 获取缓存路径
          *
-         * @param context
-         *            context
+         * @param context context
          * @return 存储路径
          */
         public static String getCachePath(Context context) {

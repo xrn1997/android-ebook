@@ -1,8 +1,9 @@
 package com.ebook.common.util;
 
 /**
-*  动态获取资源
-*/
+ * 动态获取资源
+ */
+
 import android.content.Context;
 
 public class ResIdUtil {

@@ -9,10 +9,12 @@ import io.reactivex.disposables.Disposable;
 public abstract class BaseModel implements IBaseModel {
     protected Application mApplication;
     private CompositeDisposable mCompositeDisposable;
+
     public BaseModel(Application application) {
         mApplication = application;
         mCompositeDisposable = new CompositeDisposable();
     }
+
     public void addSubscribe(Disposable disposable) {
         if (mCompositeDisposable == null) {
             mCompositeDisposable = new CompositeDisposable();

@@ -27,7 +27,8 @@ import androidx.databinding.ViewDataBinding;
 import androidx.lifecycle.ViewModelProvider;
 
 import static com.ebook.common.util.FileUtil.getRealFilePathFromUri;
-@Route(path= KeyCode.Me.Modify_PATH)
+
+@Route(path = KeyCode.Me.Modify_PATH)
 public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding, ModifyViewModel> {
     private SettingBarView mSetModifyPwd;
     private SettingBarView mSetModifyImage;
@@ -93,14 +94,14 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
 
     @Override
     public void initData() {
-        String url= SPUtils.getInstance().getString(KeyCode.Login.SP_IMAGE);
-            Glide.with(this)
-                    .load(API.URL_HOST_USER+"user/image/"+url)
-                    .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-                    .fitCenter()
-                    .dontAnimate()
-                    .placeholder(getResources().getDrawable(R.drawable.image_default))
-                    .into(imageView);
+        String url = SPUtils.getInstance().getString(KeyCode.Login.SP_IMAGE);
+        Glide.with(this)
+                .load(API.URL_HOST_USER + "user/image/" + url)
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .fitCenter()
+                .dontAnimate()
+                .placeholder(getResources().getDrawable(R.drawable.image_default))
+                .into(imageView);
     }
 
     /**
@@ -113,7 +114,7 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
             public void onScreenPhotoClick(Uri uri) {
                 String cropImagePath = getRealFilePathFromUri(getApplicationContext(), uri);
                 mViewModel.modifyProfiePhoto(cropImagePath);
-               // Bitmap bitMap = BitmapFactory.decodeFile(cropImagePath);
+                // Bitmap bitMap = BitmapFactory.decodeFile(cropImagePath);
             }
         });
         photoCutDialog.show(getSupportFragmentManager(), "photoDialog");
@@ -126,7 +127,7 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
     )
     public void setProfiePicture(String path) {
         Glide.with(ModifyInformationActivity.this)
-                .load(API.URL_HOST_USER+"user/image/"+path)
+                .load(API.URL_HOST_USER + "user/image/" + path)
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                 .fitCenter()
                 .dontAnimate()

@@ -40,10 +40,10 @@ android {
 dependencies {
     api fileTree(dir: 'libs', include: ['*.jar'])
     api rootProject.ext.support["appcompat"]
-    
+
     api rootProject.ext.dependencies["greenrobot:greendao"]
-    api  rootProject.ext.dependencies["greenrobot:greendao-generator"]
-    api  rootProject.ext.dependencies["greenrobot:greendao-gradle-plugin"]
+    api rootProject.ext.dependencies["greenrobot:greendao-generator"]
+    api rootProject.ext.dependencies["greenrobot:greendao-gradle-plugin"]
 
     testImplementation rootProject.ext.support["junit"]
     androidTestImplementation rootProject.ext.support["ext:junit"]

@@ -27,9 +27,11 @@ public class FindViewModelFactory extends ViewModelProvider.NewInstanceFactory {
         }
         return INSTANCE;
     }
+
     private FindViewModelFactory(Application application) {
         this.mApplication = application;
     }
+
     @VisibleForTesting
     public static void destroyInstance() {
         INSTANCE = null;

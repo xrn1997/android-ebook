@@ -8,21 +8,21 @@ import android.content.res.Resources;
 public class NavigationBarUtils {
     private static int navi_height = -1;   //默认值
 
-    private static int getNavigationBarHeight(){
-        try{
+    private static int getNavigationBarHeight() {
+        try {
             navi_height = Resources.getSystem().getDimensionPixelSize(
                     Resources.getSystem().getIdentifier("navigation_bar_height", "dimen", "android"));
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             navi_height = 0;
         }
         return navi_height;
     }
 
-    public static int getNavigationBar_height(){
-        if(-1 == navi_height){
-            synchronized (NavigationBarUtils.class){
-                if(-1 == navi_height){
+    public static int getNavigationBar_height() {
+        if (-1 == navi_height) {
+            synchronized (NavigationBarUtils.class) {
+                if (-1 == navi_height) {
                     navi_height = getNavigationBarHeight();
                 }
             }

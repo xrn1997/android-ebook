@@ -4,6 +4,7 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -19,6 +20,7 @@
             android:layout_height="30dp"
             android:transitionName="to_search"
             android:layout_marginLeft="10dp">
+
             <EditText
                 android:id="@+id/edt_content"
                 android:layout_width="match_parent"
@@ -34,7 +36,7 @@
                 android:imeOptions="actionSearch"
                 android:textColor="#767676"
                 android:cursorVisible="false"
-                android:textCursorDrawable="@drawable/shape_text_cursor"/>
+                android:textCursorDrawable="@drawable/shape_text_cursor" />
 
             <ImageView
                 android:layout_width="15dp"
@@ -43,6 +45,7 @@
                 android:layout_marginLeft="8dp"
                 android:src="@drawable/icon_search_nor" />
         </FrameLayout>
+
         <TextView
             android:id="@+id/tv_tosearch"
             android:layout_width="wrap_content"
@@ -54,11 +57,13 @@
             android:textColor="@drawable/selector_tv_black"
             android:gravity="center"
             android:clickable="true"
-            android:background="@drawable/bg_ib_pre"/>
+            android:background="@drawable/bg_ib_pre" />
     </LinearLayout>
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
+
         <com.ebook.basebook.view.refreshview.RefreshRecyclerView
             android:id="@+id/rfRv_search_books"
             android:layout_width="match_parent"
@@ -69,7 +74,8 @@
             app:second_color="#c1c1c1"
             app:second_max_progress="80dp"
             app:speed="2dp"
-            android:visibility="invisible"/>
+            android:visibility="invisible" />
+
         <LinearLayout
             android:id="@+id/ll_search_history"
             android:layout_width="match_parent"
@@ -77,11 +83,13 @@
             android:orientation="vertical"
             android:visibility="invisible"
             android:background="#ffffff">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:layout_marginTop="15dp">
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -91,11 +99,12 @@
                     android:layout_gravity="center_vertical"
                     android:layout_marginLeft="18dp"
                     android:layout_marginTop="5dp"
-                    android:layout_marginBottom="5dp"/>
+                    android:layout_marginBottom="5dp" />
+
                 <View
                     android:layout_width="0dp"
                     android:layout_height="0dp"
-                    android:layout_weight="1"/>
+                    android:layout_weight="1" />
 
                 <TextView
                     android:id="@+id/tv_search_history_clean"
@@ -113,6 +122,7 @@
                     android:textColor="@drawable/selector_tv_black"
                     android:textSize="16sp" />
             </LinearLayout>
+
             <com.ebook.basebook.view.flowlayout.TagFlowLayout
                 android:id="@+id/tfl_search_history"
                 android:layout_width="match_parent"
@@ -120,13 +130,13 @@
                 android:layout_marginTop="10dp"
                 android:layout_marginLeft="3dp"
                 android:layout_marginRight="3dp"
-                android:clickable="false">
-            </com.ebook.basebook.view.flowlayout.TagFlowLayout>
+                android:clickable="false"></com.ebook.basebook.view.flowlayout.TagFlowLayout>
         </LinearLayout>
+
         <View
             android:layout_width="match_parent"
             android:layout_height="20dp"
             android:background="@drawable/bg_shadow"
-            android:layout_gravity="top"/>
+            android:layout_gravity="top" />
     </FrameLayout>
 </com.ebook.basebook.view.ImmerseView.layout.ImmerseLinearLayout>

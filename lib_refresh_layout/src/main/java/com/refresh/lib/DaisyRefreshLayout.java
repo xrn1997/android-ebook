@@ -6,7 +6,7 @@ import android.util.AttributeSet;
 /**
  * Description: <小菊花样式的刷新控件><br>
  */
-public class DaisyRefreshLayout extends BaseRefreshLayout{
+public class DaisyRefreshLayout extends BaseRefreshLayout {
     private DaisyHeaderView mDaisyHeaderView;
     private DaisyFooterView mDaisyFooterView;
 
@@ -62,11 +62,13 @@ public class DaisyRefreshLayout extends BaseRefreshLayout{
             mDaisyHeaderView.onRefresh();
         }
     }
+
     @Override
-    public void setRefreshing(boolean refreshing){
+    public void setRefreshing(boolean refreshing) {
         mDaisyHeaderView.setRefreshing(refreshing);
         super.setRefreshing(refreshing);
     }
+
     public void setLoadMore(boolean loadMore) {
         mDaisyFooterView.setLoadMore(loadMore);
         super.setLoadMore(loadMore);

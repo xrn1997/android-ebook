@@ -18,9 +18,10 @@ public class SearchHistoryAdapter extends TagAdapter<SearchHistory> {
         super(new ArrayList<SearchHistory>());
     }
 
-    public interface OnItemClickListener{
+    public interface OnItemClickListener {
         void itemClick(SearchHistory searchHistory);
     }
+
     private SearchHistoryAdapter.OnItemClickListener onItemClickListener;
 
     public OnItemClickListener getListener() {
@@ -39,7 +40,7 @@ public class SearchHistoryAdapter extends TagAdapter<SearchHistory> {
         tv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(null != onItemClickListener){
+                if (null != onItemClickListener) {
                     onItemClickListener.itemClick(searchHistory);
                 }
             }
@@ -47,11 +48,11 @@ public class SearchHistoryAdapter extends TagAdapter<SearchHistory> {
         return tv;
     }
 
-    public SearchHistory getItemData(int position){
+    public SearchHistory getItemData(int position) {
         return mTagDatas.get(position);
     }
 
-    public int getDataSize(){
+    public int getDataSize() {
         return mTagDatas.size();
     }
 }

@@ -4,16 +4,16 @@
     <item
         android:id="@+id/navigation_trip"
         android:icon="@drawable/ic_bottom_bookshelf"
-        android:title="@string/title_bookshelf"/>
+        android:title="@string/title_bookshelf" />
 
     <item
         android:id="@+id/navigation_discover"
         android:icon="@drawable/ic_bottom_library"
-        android:title="@string/title_library"/>
+        android:title="@string/title_library" />
 
     <item
         android:id="@+id/navigation_me"
         android:icon="@drawable/ic_bottom_me"
-        android:title="@string/title_me"/>
+        android:title="@string/title_me" />
 
 </menu>

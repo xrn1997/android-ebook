@@ -49,7 +49,7 @@ public class SplashActivity extends BaseMvvmActivity<ViewDataBinding, LoginViewM
     public void initData() {
         String username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME);
         String password = SPUtils.getInstance().getString(KeyCode.Login.SP_PASSWORD);
-      //  Log.d(TAG, "SplashActivity initData: username: " + username + ",password: " + password);
+        //  Log.d(TAG, "SplashActivity initData: username: " + username + ",password: " + password);
         if ((!TextUtils.isEmpty(username)) && (!TextUtils.isEmpty(password))) {
             mViewModel.login(username, password);//启动应用后自动登录
         }

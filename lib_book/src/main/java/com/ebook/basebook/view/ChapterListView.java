@@ -24,7 +24,7 @@ import androidx.annotation.StyleRes;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-public class ChapterListView extends FrameLayout{
+public class ChapterListView extends FrameLayout {
     private TextView tvName;
     private TextView tvListCount;
     private RecyclerView rvList;
@@ -39,11 +39,11 @@ public class ChapterListView extends FrameLayout{
     private Animation animOut;
 
     public ChapterListView(@NonNull Context context) {
-        this(context,null);
+        this(context, null);
     }
 
     public ChapterListView(@NonNull Context context, @Nullable AttributeSet attrs) {
-        this(context, attrs,0);
+        this(context, attrs, 0);
     }
 
     public ChapterListView(@NonNull Context context, @Nullable AttributeSet attrs, @AttrRes int defStyleAttr) {
@@ -59,13 +59,13 @@ public class ChapterListView extends FrameLayout{
 
     private void init() {
         setVisibility(INVISIBLE);
-        LayoutInflater.from(getContext()).inflate(R.layout.view_chapterlist,this,true);
+        LayoutInflater.from(getContext()).inflate(R.layout.view_chapterlist, this, true);
         initData();
         initView();
     }
 
     private void initData() {
-        animIn = AnimationUtils.loadAnimation(getContext(),R.anim.anim_pop_chapterlist_in);
+        animIn = AnimationUtils.loadAnimation(getContext(), R.anim.anim_pop_chapterlist_in);
         animIn.setAnimationListener(new Animation.AnimationListener() {
             @Override
             public void onAnimationStart(Animation animation) {
@@ -87,7 +87,7 @@ public class ChapterListView extends FrameLayout{
 
             }
         });
-        animOut = AnimationUtils.loadAnimation(getContext(),R.anim.anim_pop_chapterlist_out);
+        animOut = AnimationUtils.loadAnimation(getContext(), R.anim.anim_pop_chapterlist_out);
         animOut.setAnimationListener(new Animation.AnimationListener() {
             @Override
             public void onAnimationStart(Animation animation) {
@@ -109,8 +109,8 @@ public class ChapterListView extends FrameLayout{
 
     public void show(int durChapter) {
         chapterListAdapter.setIndex(durChapter);
-        ((LinearLayoutManager) rvList.getLayoutManager()).scrollToPositionWithOffset(durChapter,0);
-        if(getVisibility()!=VISIBLE){
+        ((LinearLayoutManager) rvList.getLayoutManager()).scrollToPositionWithOffset(durChapter, 0);
+        if (getVisibility() != VISIBLE) {
             setVisibility(VISIBLE);
             animOut.cancel();
             animIn.cancel();
@@ -119,9 +119,10 @@ public class ChapterListView extends FrameLayout{
         }
     }
 
-    public interface OnItemClickListener{
+    public interface OnItemClickListener {
         public void itemClick(int index);
     }
+
     private OnItemClickListener itemClickListener;
     private BookShelf bookShelf;
 
@@ -138,13 +139,13 @@ public class ChapterListView extends FrameLayout{
 
     public void setData(BookShelf bookShelf, OnItemClickListener clickListener) {
         this.itemClickListener = clickListener;
-        this.bookShelf= bookShelf;
+        this.bookShelf = bookShelf;
         tvName.setText(bookShelf.getBookInfo().getName());
-        tvListCount.setText("共"+bookShelf.getBookInfo().getChapterlist().size()+"章");
+        tvListCount.setText("共" + bookShelf.getBookInfo().getChapterlist().size() + "章");
         chapterListAdapter = new ChapterListAdapter(bookShelf, new OnItemClickListener() {
             @Override
             public void itemClick(int index) {
-                if(itemClickListener!=null){
+                if (itemClickListener != null) {
                     itemClickListener.itemClick(index);
                     rvbSlider.scrollToPositionWithOffset(index);
                 }
@@ -154,10 +155,10 @@ public class ChapterListView extends FrameLayout{
         rvbSlider.setRecyclerView(rvList);
     }
 
-    public Boolean dimissChapterList(){
-        if(getVisibility()!=VISIBLE){
+    public Boolean dimissChapterList() {
+        if (getVisibility() != VISIBLE) {
             return false;
-        }else{
+        } else {
             animOut.cancel();
             animIn.cancel();
             llContent.startAnimation(animOut);

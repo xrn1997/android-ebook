@@ -23,7 +23,7 @@ public class BookListModel extends BaseModel {
         super(application);
     }
 
-    public Observable<List<BookShelf>> getBookShelfList(){
+    public Observable<List<BookShelf>> getBookShelfList() {
         return Observable.create(new ObservableOnSubscribe<List<BookShelf>>() {
             @Override
             public void subscribe(ObservableEmitter<List<BookShelf>> e) throws Exception {

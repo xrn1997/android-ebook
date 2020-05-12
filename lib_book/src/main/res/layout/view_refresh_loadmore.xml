@@ -4,6 +4,7 @@
     android:layout_height="wrap_content"
     android:clickable="true"
     android:id="@+id/ll_loadmore">
+
     <TextView
         android:id="@+id/tv_loadmore"
         android:layout_width="match_parent"
@@ -13,5 +14,5 @@
         android:padding="10dp"
         android:layout_gravity="center"
         android:textSize="14sp"
-        android:textColor="#A0ABAE"/>
+        android:textColor="#A0ABAE" />
 </FrameLayout>

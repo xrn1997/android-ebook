@@ -35,10 +35,10 @@ public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> imple
     private RefreshRecyclerView rfRvSearchBooks;
     private ChoiceBookAdapter searchBookAdapter;
 
-    public static void startChoiceBookActivity(Context context,String title,String url){
-        Intent intent = new Intent(context,ChoiceBookActivity.class);
-        intent.putExtra("url",url);
-        intent.putExtra("title",title);
+    public static void startChoiceBookActivity(Context context, String title, String url) {
+        Intent intent = new Intent(context, ChoiceBookActivity.class);
+        intent.putExtra("url", url);
+        intent.putExtra("title", title);
         context.startActivity(intent);
     }
 
@@ -85,7 +85,7 @@ public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> imple
         ivReturn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-               // finish();
+                // finish();
                 onBackPressed();
             }
         });

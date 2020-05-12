@@ -19,6 +19,7 @@ import com.ebook.db.entity.LibraryKindBookList;
 import com.ebook.db.entity.LibraryNewBook;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.db.entity.WebChapter;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -316,7 +317,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements IGxwztvBookMo
                     StringBuilder content = new StringBuilder();
                     for (int i = 0; i < contentEs.size(); i++) {
                         String temp = contentEs.get(i).text().trim();
-                        temp = temp.replaceAll(" ", "").replaceAll(" ", "").replaceAll("\\s*","");
+                        temp = temp.replaceAll(" ", "").replaceAll(" ", "").replaceAll("\\s*", "");
                         if (temp.length() > 0) {
                             content.append("\u3000\u3000" + temp);
                             if (i < contentEs.size() - 1) {

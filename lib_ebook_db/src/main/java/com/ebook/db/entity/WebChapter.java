@@ -5,7 +5,7 @@ public class WebChapter<T> {
 
     private Boolean next;
 
-    public WebChapter(T data, Boolean next){
+    public WebChapter(T data, Boolean next) {
         this.data = data;
         this.next = next;
     }

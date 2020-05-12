@@ -11,22 +11,26 @@ import com.ebook.common.R;
 
 public class LoadingTransView extends RelativeLayout {
     private final AnimationDrawable mAnimationDrawable;
+
     public LoadingTransView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        inflate(context, R.layout.view_trans_loading,this);
+        inflate(context, R.layout.view_trans_loading, this);
         ImageView imgLoading = findViewById(R.id.img_trans_loading);
         mAnimationDrawable = (AnimationDrawable) imgLoading.getDrawable();
     }
-    public void startLoading(){
+
+    public void startLoading() {
         mAnimationDrawable.start();
     }
-    public void stopLoading(){
+
+    public void stopLoading() {
         mAnimationDrawable.stop();
     }
-    public void loading(boolean b){
-        if(b){
+
+    public void loading(boolean b) {
+        if (b) {
             startLoading();
-        }else{
+        } else {
             stopLoading();
         }
     }

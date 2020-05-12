@@ -51,19 +51,21 @@ public class StatusBarUtils {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     private static Boolean isNotchScreen = null;
+
     /**
      * 判断是否是刘海屏
      */
-    public static boolean isNotchScreen(Context context){
-        if(null == isNotchScreen){
-            synchronized (StatusBarUtils.class){
-                if(null == isNotchScreen){
+    public static boolean isNotchScreen(Context context) {
+        if (null == isNotchScreen) {
+            synchronized (StatusBarUtils.class) {
+                if (null == isNotchScreen) {
                     isNotchScreen = hasNotchScreen(context);
                 }
             }
         }
         return isNotchScreen;
     }
+
     /**
      * 判断是否是刘海屏
      *
@@ -86,14 +88,14 @@ public class StatusBarUtils {
      * @return
      */
     private static DisplayCutout isAndroidP(Context context) {
-        try{
-            View decorView = ((Activity)context).getWindow().getDecorView();
+        try {
+            View decorView = ((Activity) context).getWindow().getDecorView();
             if (decorView != null && android.os.Build.VERSION.SDK_INT >= 28) {
                 WindowInsets windowInsets = decorView.getRootWindowInsets();
                 if (windowInsets != null)
                     return windowInsets.getDisplayCutout();
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
@@ -193,10 +195,10 @@ public class StatusBarUtils {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             //将状态栏标记为浅色，字体就会变成黑色
             activity.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-        } else if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             //无法修改状态栏字体，icon颜色，认为开发者既然需要黑色的，可能主色是浅色，所以为了让状态栏能看清，所以给设置一个深色背景
 //            activity.getWindow().setStatusBarColor(0xff999999);
-        } else{
+        } else {
             //5.0以下不支持
         }
     }

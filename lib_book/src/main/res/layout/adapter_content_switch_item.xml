@@ -30,7 +30,7 @@
             android:lines="1"
             android:textColor="#ffffff"
             android:textSize="14sp"
-            android:alpha="0.7"/>
+            android:alpha="0.7" />
 
         <FrameLayout
             android:layout_width="match_parent"

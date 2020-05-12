@@ -17,7 +17,7 @@ public interface IGxwztvBookModel extends IStationBookModel {
     /**
      * 获取主页信息
      */
-    Observable<Library>getLibraryData(ACache aCache);
+    Observable<Library> getLibraryData(ACache aCache);
 
     /**
      * 解析主页数据

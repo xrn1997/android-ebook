@@ -46,7 +46,7 @@ public class LibraryBookAdapter extends BaseBindAdapter<SearchBook, AdapterLibra
                 .subscribe(new SimpleObserver<BookShelf>() {
                     @Override
                     public void onNext(BookShelf bookShelf) {
-                        loadImage(binding.ivCover,bookShelf.getBookInfo().getCoverUrl(),context.getDrawable(R.drawable.img_cover_default));
+                        loadImage(binding.ivCover, bookShelf.getBookInfo().getCoverUrl(), context.getDrawable(R.drawable.img_cover_default));
                     }
 
                     @Override
@@ -63,9 +63,10 @@ public class LibraryBookAdapter extends BaseBindAdapter<SearchBook, AdapterLibra
             }
         });
     }
-    @BindingAdapter(value = {"imageUrl", "placeHolder"},requireAll = false)
+
+    @BindingAdapter(value = {"imageUrl", "placeHolder"}, requireAll = false)
     public static void loadImage(ImageView imageView, String url, Drawable holderDrawable) {
-       // Log.d("glide_cover", "loadImage url: "+url);
+        // Log.d("glide_cover", "loadImage url: "+url);
         Glide.with(imageView.getContext())
                 .load(url)
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)

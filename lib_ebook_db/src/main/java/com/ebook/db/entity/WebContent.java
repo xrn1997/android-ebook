@@ -4,7 +4,7 @@ public class WebContent {
     private String url;
     private String content;
 
-    public WebContent(String url, String content){
+    public WebContent(String url, String content) {
         this.url = url;
         this.content = content;
     }

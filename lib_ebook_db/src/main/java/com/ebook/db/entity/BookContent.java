@@ -17,7 +17,7 @@ import java.util.List;
  * 书本缓存内容
  */
 @Entity
-public class BookContent implements Parcelable{
+public class BookContent implements Parcelable {
     @Id
     private String durChapterUrl; //对应BookInfo noteUrl;
 
@@ -50,7 +50,7 @@ public class BookContent implements Parcelable{
 
     @Generated(hash = 1780852126)
     public BookContent(String durChapterUrl, int durChapterIndex,
-            String durCapterContent, String tag) {
+                       String durCapterContent, String tag) {
         this.durChapterUrl = durChapterUrl;
         this.durChapterIndex = durChapterIndex;
         this.durCapterContent = durCapterContent;

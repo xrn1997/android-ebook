@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#ffffff"
     android:clickable="true"
     android:gravity="center">
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="获取数据失败！"
         android:textColor="#767676"
-        android:textSize="18sp"/>
+        android:textSize="18sp" />
+
     <TextView
         android:id="@+id/tv_refresh_again"
         android:layout_width="wrap_content"
@@ -26,5 +29,5 @@
         android:gravity="center"
         android:textSize="16sp"
         android:lines="1"
-        android:textColor="@drawable/selector_tv_addshelf_text"/>
+        android:textColor="@drawable/selector_tv_addshelf_text" />
 </LinearLayout>

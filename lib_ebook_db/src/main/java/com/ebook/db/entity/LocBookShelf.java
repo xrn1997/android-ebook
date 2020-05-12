@@ -4,7 +4,7 @@ public class LocBookShelf {
     private Boolean isNew;
     private BookShelf bookShelf;
 
-    public LocBookShelf(Boolean isNew, BookShelf bookShelf){
+    public LocBookShelf(Boolean isNew, BookShelf bookShelf) {
         this.isNew = isNew;
         this.bookShelf = bookShelf;
     }

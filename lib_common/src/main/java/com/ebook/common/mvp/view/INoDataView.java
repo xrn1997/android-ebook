@@ -8,6 +8,7 @@ import androidx.annotation.DrawableRes;
 public interface INoDataView {
     //显示无数据View
     void showNoDataView();
+
     //隐藏无数据View
     void hideNoDataView();
 

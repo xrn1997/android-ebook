@@ -3,10 +3,14 @@ package com.ebook.common.mvvm;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProvider.Factory;
+
 import android.content.Intent;
+
 import androidx.databinding.DataBindingUtil;
 import androidx.databinding.ViewDataBinding;
+
 import android.os.Bundle;
+
 import androidx.annotation.Nullable;
 
 import com.ebook.common.mvvm.viewmodel.BaseViewModel;
@@ -15,7 +19,7 @@ import com.ebook.common.util.log.KLog;
 import java.util.Map;
 
 
-public abstract class BaseMvvmActivity<V extends ViewDataBinding,VM extends BaseViewModel> extends BaseActivity {
+public abstract class BaseMvvmActivity<V extends ViewDataBinding, VM extends BaseViewModel> extends BaseActivity {
     protected V mBinding;//MVVM中的V，负责视图显示
     protected VM mViewModel;//MVVM中的VM，负责处理视图的操作功能，与M进行数据交互。
 
@@ -27,43 +31,49 @@ public abstract class BaseMvvmActivity<V extends ViewDataBinding,VM extends Base
     }
 
     public abstract Class<VM> onBindViewModel();
+
     public abstract Factory onBindViewModelFactory();
+
     public abstract void initViewObservable();
+
     public abstract int onBindVariableId();
-    public VM createViewModel(){
-        return new ViewModelProvider(this,onBindViewModelFactory()).get(onBindViewModel());
+
+    public VM createViewModel() {
+        return new ViewModelProvider(this, onBindViewModelFactory()).get(onBindViewModel());
     }
+
     private void initViewDataBinding() {
         mBinding = DataBindingUtil.setContentView(this, onBindLayout());
         int viewModelId = onBindVariableId();
         mViewModel = createViewModel();
-        if(mBinding != null){
+        if (mBinding != null) {
             mBinding.setVariable(viewModelId, mViewModel);
         }
         getLifecycle().addObserver(mViewModel);
     }
+
     @SuppressWarnings("unchecked")
     protected void initBaseViewObservable() {
         mViewModel.getUC().getShowInitLoadViewEvent().observe(this, new Observer<Boolean>() {
             @Override
             public void onChanged(@Nullable Boolean show) {
-                 showInitLoadView(show);
+                showInitLoadView(show);
             }
         });
-        mViewModel.getUC().getShowTransLoadingViewEvent().observe(this,  new Observer<Boolean>() {
+        mViewModel.getUC().getShowTransLoadingViewEvent().observe(this, new Observer<Boolean>() {
             @Override
             public void onChanged(@Nullable Boolean show) {
-                KLog.v("MYTAG","view postShowTransLoadingViewEvent start...");
+                KLog.v("MYTAG", "view postShowTransLoadingViewEvent start...");
                 showTransLoadingView(show);
             }
         });
-        mViewModel.getUC().getShowNoDataViewEvent().observe(this,  new Observer<Boolean>() {
+        mViewModel.getUC().getShowNoDataViewEvent().observe(this, new Observer<Boolean>() {
             @Override
             public void onChanged(@Nullable Boolean show) {
                 showNoDataView(show);
             }
         });
-        mViewModel.getUC().getShowNetWorkErrViewEvent().observe(this,  new Observer<Boolean>() {
+        mViewModel.getUC().getShowNetWorkErrViewEvent().observe(this, new Observer<Boolean>() {
             @Override
             public void onChanged(@Nullable Boolean show) {
                 showNetWorkErrView(show);
@@ -102,10 +112,11 @@ public abstract class BaseMvvmActivity<V extends ViewDataBinding,VM extends Base
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if(mBinding != null){
+        if (mBinding != null) {
             mBinding.unbind();
         }
     }
+
     @Override
     public void initView() {
 

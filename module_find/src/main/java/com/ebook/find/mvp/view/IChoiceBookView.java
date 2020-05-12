@@ -7,7 +7,7 @@ import com.ebook.find.mvp.view.adapter.ChoiceBookAdapter;
 
 import java.util.List;
 
-public interface IChoiceBookView extends IView{
+public interface IChoiceBookView extends IView {
 
     void refreshSearchBook(List<SearchBook> books);
 

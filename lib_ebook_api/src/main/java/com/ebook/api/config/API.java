@@ -9,6 +9,6 @@ public class API {
 //    public static final String URL_HOST_USER = "http://192.168.0.102:5000/userapi/";
 //    public static final String URL_HOST_COMMENT="http://192.168.0.102:5000/commentapi/";
 //腾讯云服务器
-        public static final String URL_HOST_USER = "http://175.24.63.162:5000/userapi/";
-    public static final String URL_HOST_COMMENT="http://175.24.63.162:5000/commentapi/";
+    public static final String URL_HOST_USER = "http://175.24.63.162:5000/userapi/";
+    public static final String URL_HOST_COMMENT = "http://175.24.63.162:5000/commentapi/";
 }

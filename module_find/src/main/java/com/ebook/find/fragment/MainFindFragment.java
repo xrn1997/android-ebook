@@ -27,11 +27,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 
-public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBinding,LibraryViewModel> {
+public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBinding, LibraryViewModel> {
     private FrameLayout flSearch;
     private BookTypeShowAdapter mBookTypeShowAdapter;
     private LibraryBookListAdapter mLibraryKindBookAdapter;
     public static final String TAG = MainFindFragment.class.getSimpleName();
+
     public static MainFindFragment newInstance() {
         return new MainFindFragment();
     }
@@ -70,8 +71,8 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
     @Override
     public void initView(View view) {
         flSearch = (FrameLayout) view.findViewById(R.id.fl_search);
-        mBookTypeShowAdapter=new BookTypeShowAdapter(mActivity,mViewModel.getBookTypeList());
-        mLibraryKindBookAdapter=new LibraryBookListAdapter(mActivity,mViewModel.getLibraryKindBookLists());
+        mBookTypeShowAdapter = new BookTypeShowAdapter(mActivity, mViewModel.getBookTypeList());
+        mLibraryKindBookAdapter = new LibraryBookListAdapter(mActivity, mViewModel.getLibraryKindBookLists());
         mViewModel.getLibraryKindBookLists().addOnListChangedCallback(ObservableListUtil.getListChangedCallback(mLibraryKindBookAdapter));
         MyRecycleviewManager myRecycleviewManager = new MyRecycleviewManager(mActivity);
         myRecycleviewManager.setScrollEnabled(false);
@@ -80,6 +81,7 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
         mBinding.lkbvKindbooklist.setAdapter(mLibraryKindBookAdapter);
         mBinding.kindLl.setAdapter(mBookTypeShowAdapter);
     }
+
     //自定义的manager，用于禁用滚动条
     public static class MyRecycleviewManager extends LinearLayoutManager {
 
@@ -99,6 +101,7 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
         }
 
     }
+
     ////////////////////////////////
     @Override
     public void initListener() {
@@ -106,7 +109,7 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
         mBookTypeShowAdapter.setItemClickListener(new BaseBindAdapter.OnItemClickListener<BookType>() {
             @Override
             public void onItemClick(BookType bookType, int position) {
-                ChoiceBookActivity.startChoiceBookActivity(getActivity(), bookType.getBookType(),bookType.getUrl());
+                ChoiceBookActivity.startChoiceBookActivity(getActivity(), bookType.getBookType(), bookType.getUrl());
             }
         });
         flSearch.setOnClickListener(new View.OnClickListener() {

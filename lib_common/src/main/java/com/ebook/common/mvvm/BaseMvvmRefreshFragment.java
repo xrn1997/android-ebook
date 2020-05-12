@@ -3,6 +3,7 @@ package com.ebook.common.mvvm;
 import androidx.lifecycle.Observer;
 import androidx.databinding.ViewDataBinding;
 import androidx.annotation.Nullable;
+
 import android.view.View;
 
 import com.ebook.common.mvvm.viewmodel.BaseRefreshViewModel;
@@ -13,10 +14,11 @@ import com.refresh.lib.DaisyRefreshLayout;
 /**
  * Description: <下拉刷新、上拉加载更多的Fragment><br>
  */
-public abstract class BaseMvvmRefreshFragment< V extends ViewDataBinding, VM extends BaseRefreshViewModel> extends BaseMvvmFragment<V, VM> {
+public abstract class BaseMvvmRefreshFragment<V extends ViewDataBinding, VM extends BaseRefreshViewModel> extends BaseMvvmFragment<V, VM> {
     protected DaisyRefreshLayout mRefreshLayout;
     protected BaseAdapter.OnItemClickListener mItemClickListener;
     protected BaseAdapter.OnItemLongClickListener mOnItemLongClickListener;
+
     @Override
     public void initCommonView(View view) {
         super.initCommonView(view);
@@ -28,6 +30,7 @@ public abstract class BaseMvvmRefreshFragment< V extends ViewDataBinding, VM ext
         super.initBaseViewObservable();
         initBaseViewRefreshObservable();
     }
+
     @SuppressWarnings("unchecked")
     private void initBaseViewRefreshObservable() {
 
@@ -72,6 +75,7 @@ public abstract class BaseMvvmRefreshFragment< V extends ViewDataBinding, VM ext
             mRefreshLayout.autoRefresh();
         }
     }
+
     public void setItemClickListener(BaseAdapter.OnItemClickListener itemClickListener) {
         mItemClickListener = itemClickListener;
     }

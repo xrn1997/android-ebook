@@ -113,8 +113,8 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
         }).map(new Function<BookShelf, BookShelf>() {
             @Override
             public BookShelf apply(BookShelf bookShelf) throws Exception {
-                for(int i=0;i<bookShelfs.size();i++){
-                    if(bookShelfs.get(i).getNoteUrl().equals(bookShelf.getNoteUrl())){
+                for (int i = 0; i < bookShelfs.size(); i++) {
+                    if (bookShelfs.get(i).getNoteUrl().equals(bookShelf.getNoteUrl())) {
                         inBookShelf = true;
                         bookShelf.setDurChapter(bookShelfs.get(i).getDurChapter());
                         bookShelf.setDurChapterPage(bookShelfs.get(i).getDurChapterPage());
@@ -124,7 +124,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                 return bookShelf;
             }
         }).subscribeOn(Schedulers.io())
-                .compose(((BaseActivity)mView.getContext()).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
+                .compose(((BaseActivity) mView.getContext()).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<BookShelf>() {
                     @Override
@@ -167,7 +167,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                 }
             }).subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
-                    .compose(((BaseActivity)mView.getContext()).<Boolean>bindUntilEvent(ActivityEvent.DESTROY))
+                    .compose(((BaseActivity) mView.getContext()).<Boolean>bindUntilEvent(ActivityEvent.DESTROY))
                     .subscribe(new SimpleObserver<Boolean>() {
                         @Override
                         public void onNext(Boolean value) {
@@ -196,8 +196,8 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                     GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().deleteByKey(mBookShelf.getNoteUrl());
                     GreenDaoManager.getInstance().getmDaoSession().getBookInfoDao().deleteByKey(mBookShelf.getBookInfo().getNoteUrl());
                     List<String> keys = new ArrayList<String>();
-                    if(mBookShelf.getBookInfo().getChapterlist().size()>0){
-                        for(int i=0;i<mBookShelf.getBookInfo().getChapterlist().size();i++){
+                    if (mBookShelf.getBookInfo().getChapterlist().size() > 0) {
+                        for (int i = 0; i < mBookShelf.getBookInfo().getChapterlist().size(); i++) {
                             keys.add(mBookShelf.getBookInfo().getChapterlist().get(i).getDurChapterUrl());
                         }
                     }
@@ -208,7 +208,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                 }
             }).subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
-                    .compose(((BaseActivity)mView.getContext()).<Boolean>bindUntilEvent(ActivityEvent.DESTROY))
+                    .compose(((BaseActivity) mView.getContext()).<Boolean>bindUntilEvent(ActivityEvent.DESTROY))
                     .subscribe(new SimpleObserver<Boolean>() {
                         @Override
                         public void onNext(Boolean value) {
@@ -260,9 +260,9 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
             }
     )
     public void hadRemoveBook(BookShelf value) {
-        if(bookShelfs!=null){
-            for(int i=0;i<bookShelfs.size();i++){
-                if(bookShelfs.get(i).getNoteUrl().equals(value.getNoteUrl())){
+        if (bookShelfs != null) {
+            for (int i = 0; i < bookShelfs.size(); i++) {
+                if (bookShelfs.get(i).getNoteUrl().equals(value.getNoteUrl())) {
                     bookShelfs.remove(i);
                     break;
                 }

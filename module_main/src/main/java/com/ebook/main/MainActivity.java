@@ -101,6 +101,7 @@ public class MainActivity extends BaseActivity {
             transaction.hide(from).show(to).commit();
         }
     }
+
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
@@ -109,6 +110,7 @@ public class MainActivity extends BaseActivity {
         }
         return super.onKeyDown(keyCode, event);
     }
+
     private long exitTime = 0;
 
     public void exit() {

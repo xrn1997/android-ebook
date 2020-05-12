@@ -1,10 +1,12 @@
 package com.ebook.common.mvp;
 
 import android.os.Bundle;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.appcompat.widget.Toolbar;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -110,9 +112,9 @@ public abstract class BaseFragment extends Fragment implements BaseView {
 
     private void lazyLoad() {
         //这里进行双重标记判断,必须确保onCreateView加载完毕且页面可见,才加载数据
-        KLog.v("MYTAG","lazyLoad start...");
-        KLog.v("MYTAG","isViewCreated:"+isViewCreated);
-        KLog.v("MYTAG","isViewVisable"+isViewVisable);
+        KLog.v("MYTAG", "lazyLoad start...");
+        KLog.v("MYTAG", "isViewCreated:" + isViewCreated);
+        KLog.v("MYTAG", "isViewVisable" + isViewVisable);
         if (isViewCreated && isViewVisable) {
             initData();
             //数据加载完毕,恢复标记,防止重复加载
@@ -120,6 +122,7 @@ public abstract class BaseFragment extends Fragment implements BaseView {
             isViewVisable = false;
         }
     }
+
     //默认不启用懒加载
     public boolean enableLazyData() {
         return false;
@@ -201,9 +204,11 @@ public abstract class BaseFragment extends Fragment implements BaseView {
     public void showNoDataView() {
         showNoDataView(true);
     }
+
     public void showNoDataView(int resid) {
-        showNoDataView(true,resid);
+        showNoDataView(true, resid);
     }
+
     public void hideNoDataView() {
         showNoDataView(false);
     }
@@ -252,12 +257,14 @@ public abstract class BaseFragment extends Fragment implements BaseView {
         }
         mNoDataView.setVisibility(show ? View.VISIBLE : View.GONE);
     }
-    private void showNoDataView(boolean show,int resid) {
+
+    private void showNoDataView(boolean show, int resid) {
         showNoDataView(show);
-        if(show){
+        if (show) {
             mNoDataView.setNoDataView(resid);
         }
     }
+
     private void showTransLoadingView(boolean show) {
         if (mLoadingTransView == null) {
             View view = mViewStubTransLoading.inflate();

@@ -25,7 +25,7 @@ public class Comment implements Parcelable {
         chapterName = in.readString();
         bookName = in.readString();
         comment = in.readString();
-        addtime=in.readString();
+        addtime = in.readString();
         user = in.readParcelable(Thread.currentThread().getContextClassLoader());
     }
 

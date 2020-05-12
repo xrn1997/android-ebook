@@ -15,6 +15,7 @@ import com.hwangjr.rxbus.RxBus;
 @Route(path = KeyCode.Me.Setting_PATH)
 public class SettingActivity extends BaseActivity {
     private Button mExitButtn;
+
     @Override
     public int onBindLayout() {
         return R.layout.activity_setting;
@@ -29,7 +30,7 @@ public class SettingActivity extends BaseActivity {
                 SPUtils.getInstance().clear();
                 RetrofitManager.getInstance().TOKEN = "";
                 ToastUtil.showToast("退出登录成功");
-                RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME,new Object());//更新UI
+                RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME, new Object());//更新UI
                 finish();
             }
         });
@@ -37,7 +38,7 @@ public class SettingActivity extends BaseActivity {
 
     @Override
     public void initView() {
-        mExitButtn= (Button) findViewById(R.id.btn_exit);
+        mExitButtn = (Button) findViewById(R.id.btn_exit);
     }
 
     @Override

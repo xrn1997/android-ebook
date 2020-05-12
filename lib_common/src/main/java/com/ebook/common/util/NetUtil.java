@@ -3,6 +3,7 @@ package com.ebook.common.util;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+
 import androidx.annotation.NonNull;
 
 import com.ebook.common.BaseApplication;
@@ -66,6 +67,7 @@ public class NetUtil {
         }
         return false;
     }
+
     public static NetType isNetWorkState(Context context) {
         ConnectivityManager manager =
                 (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -89,5 +91,8 @@ public class NetUtil {
         }
         return NO_NET;
     }
-    public enum NetType{WIFI,NET_4G,NO_NET};
+
+    public enum NetType {WIFI, NET_4G, NO_NET}
+
+    ;
 }

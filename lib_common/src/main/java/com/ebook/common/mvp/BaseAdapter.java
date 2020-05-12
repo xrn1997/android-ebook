@@ -1,8 +1,10 @@
 package com.ebook.common.mvp;
 
 import android.content.Context;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,7 +39,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     protected abstract VH onCreateHolder(View view);
 
     //绑定数据
-    protected abstract void onBindData(VH holder, E e,int positon);
+    protected abstract void onBindData(VH holder, E e, int positon);
 
     @Override
     public void onBindViewHolder(@NonNull VH holder, final int position) {
@@ -46,7 +48,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    mItemClickListener.onItemClick(e,position);
+                    mItemClickListener.onItemClick(e, position);
                 }
             });
         }
@@ -54,11 +56,11 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
             holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {
-                    return mOnItemLongClickListener.onItemLongClick(e,position);
+                    return mOnItemLongClickListener.onItemLongClick(e, position);
                 }
             });
         }
-        onBindData(holder, e,position);
+        onBindData(holder, e, position);
     }
 
     @Override
@@ -72,32 +74,39 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
             notifyDataSetChanged();
         }
     }
-    public void refresh(List<E> list){
+
+    public void refresh(List<E> list) {
         mList.clear();
         if (list != null && list.size() > 0) {
             mList.addAll(list);
         }
         notifyDataSetChanged();
     }
+
     public void remove(int positon) {
         mList.remove(positon);
         notifyDataSetChanged();
     }
+
     public void remove(E e) {
         mList.remove(e);
         notifyDataSetChanged();
     }
+
     public void add(E e) {
         mList.add(e);
         notifyDataSetChanged();
     }
+
     public void addLast(E e) {
         add(e);
     }
+
     public void addFirst(E e) {
-        mList.add(0,e);
+        mList.add(0, e);
         notifyDataSetChanged();
     }
+
     public void clear() {
         mList.clear();
         notifyDataSetChanged();
@@ -118,6 +127,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     public interface OnItemClickListener<E> {
         void onItemClick(E e, int position);
     }
+
     public interface OnItemLongClickListener<E> {
         boolean onItemLongClick(E e, int postion);
     }
@@ -127,7 +137,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         return super.getItemViewType(position);
     }
 
-    public List<E> getListData(){
+    public List<E> getListData() {
         return mList;
     }
 }

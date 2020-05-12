@@ -58,13 +58,13 @@ public class BookInfo implements Parcelable, Cloneable {
         author = in.readString();
         introduce = in.readString();
         origin = in.readString();
-        status=in.readString();
+        status = in.readString();
     }
 
     @Generated(hash = 882977097)
     public BookInfo(String name, String tag, String noteUrl, String chapterUrl,
-            long finalRefreshData, String coverUrl, String author, String introduce,
-            String origin, String status) {
+                    long finalRefreshData, String coverUrl, String author, String introduce,
+                    String origin, String status) {
         this.name = name;
         this.tag = tag;
         this.noteUrl = noteUrl;
@@ -80,8 +80,6 @@ public class BookInfo implements Parcelable, Cloneable {
     @Generated(hash = 1952025412)
     public BookInfo() {
     }
-
-
 
 
     @Transient
@@ -225,7 +223,7 @@ public class BookInfo implements Parcelable, Cloneable {
         bookInfo.author = author;
         bookInfo.introduce = introduce;
         bookInfo.origin = origin;
-        bookInfo.status=status;
+        bookInfo.status = status;
         if (chapterlist != null) {
             List<ChapterList> newList = new ArrayList<>();
             for (ChapterList chapterList : chapterlist) {

@@ -3,13 +3,16 @@ package com.ebook.common.view;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+
 import androidx.annotation.Nullable;
 
 import com.ebook.common.R;
 import com.ebook.common.util.DisplayUtil;
 import com.ebook.common.util.MultiMediaUtil;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
+
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,6 +20,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 
 import java.util.List;
+
 import me.nereo.multi_image_selector.MultiImageSelectorActivity;
 
 
@@ -83,7 +87,7 @@ public class PhotoSelectDialog extends BottomSheetDialogFragment implements View
             case MultiMediaUtil.SELECT_IMAGE:
                 if (resultCode == Activity.RESULT_OK) {
                     List<String> path = data.getStringArrayListExtra(MultiImageSelectorActivity.EXTRA_RESULT);
-                    if(mOnClickLisener != null){
+                    if (mOnClickLisener != null) {
                         mOnClickLisener.onSelectPhotoClick(path);
                     }
                     dismiss();

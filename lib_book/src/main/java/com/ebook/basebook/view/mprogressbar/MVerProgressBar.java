@@ -243,14 +243,14 @@ public class MVerProgressBar extends View {
                 if (null == fontShader) {
                     updateFontShader(rectFFont);
                 }
-                Bitmap bitmap = Bitmap.createBitmap(getMeasuredWidth(),getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+                Bitmap bitmap = Bitmap.createBitmap(getMeasuredWidth(), getMeasuredHeight(), Bitmap.Config.ARGB_8888);
                 Canvas canvas1 = new Canvas(bitmap);
                 Paint paint1 = new Paint();
                 paint1.setShader(fontShader);
                 canvas1.drawRect(rectFFont, paint1);
                 paint1.setShader(null);
 
-                durCanvas.drawBitmap(bitmap,0,0,fontPaint);
+                durCanvas.drawBitmap(bitmap, 0, 0, fontPaint);
             }
         }
         fontPaint.setXfermode(null);
@@ -685,7 +685,7 @@ public class MVerProgressBar extends View {
         return cursorDrawableHeight;
     }
 
-    public int getRealProgressWidth(){
+    public int getRealProgressWidth() {
         return (int) rectFBg.height();
     }
 }

@@ -34,8 +34,8 @@ public class CommentListAdapter extends BaseBindAdapter<Comment, AdapterCommentL
         binding.layoutCommentItem.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mItemClickListener!=null){
-                    mItemClickListener.onItemClick(item,position);
+                if (mItemClickListener != null) {
+                    mItemClickListener.onItemClick(item, position);
                 }
             }
         });
@@ -49,11 +49,12 @@ public class CommentListAdapter extends BaseBindAdapter<Comment, AdapterCommentL
             }
         });
     }
-    @BindingAdapter(value = {"imageUrl", "placeHolder"},requireAll = false)
+
+    @BindingAdapter(value = {"imageUrl", "placeHolder"}, requireAll = false)
     public static void loadImage(CircleImageView imageView, String url, Drawable holderDrawable) {
         // Log.d("glide_cover", "loadImage url: "+url);
         Glide.with(imageView.getContext())
-                .load(API.URL_HOST_USER+"user/image/"+url)
+                .load(API.URL_HOST_USER + "user/image/" + url)
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                 .fitCenter()
                 .dontAnimate()

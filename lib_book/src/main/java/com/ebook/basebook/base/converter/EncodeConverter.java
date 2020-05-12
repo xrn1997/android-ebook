@@ -15,24 +15,25 @@ public class EncodeConverter extends Converter.Factory {
 
     private String encode = "utf-8";
 
-    private EncodeConverter(){
+    private EncodeConverter() {
 
     }
-    private EncodeConverter(String encode){
+
+    private EncodeConverter(String encode) {
         this.encode = encode;
     }
 
-    public static EncodeConverter create(){
+    public static EncodeConverter create() {
         return new EncodeConverter();
     }
 
-    public static EncodeConverter create(String en){
+    public static EncodeConverter create(String en) {
         return new EncodeConverter(en);
     }
 
     @Override
     public Converter<ResponseBody, String> responseBodyConverter(Type type, Annotation[] annotations,
-                                                            Retrofit retrofit) {
+                                                                 Retrofit retrofit) {
         return new Converter<ResponseBody, String>() {
             @Override
             public String convert(ResponseBody value) throws IOException {

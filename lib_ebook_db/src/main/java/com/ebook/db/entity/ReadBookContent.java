@@ -6,8 +6,8 @@ public class ReadBookContent {
     private List<BookContent> bookContentList;
     private int pageIndex;
 
-    public ReadBookContent(List<BookContent> bookContentList, int pageIndex){
-        this.bookContentList =  bookContentList;
+    public ReadBookContent(List<BookContent> bookContentList, int pageIndex) {
+        this.bookContentList = bookContentList;
         this.pageIndex = pageIndex;
     }
 

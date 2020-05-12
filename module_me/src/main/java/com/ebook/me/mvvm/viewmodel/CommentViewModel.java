@@ -21,6 +21,7 @@ import io.reactivex.disposables.Disposable;
 
 public class CommentViewModel extends BaseRefreshViewModel<Comment, CommentModel> {
     private static String TAG = ModifyViewModel.class.getSimpleName();
+
     public CommentViewModel(@NonNull Application application, CommentModel model) {
         super(application, model);
     }

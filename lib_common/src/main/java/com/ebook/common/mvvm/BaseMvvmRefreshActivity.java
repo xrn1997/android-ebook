@@ -22,6 +22,7 @@ public abstract class BaseMvvmRefreshActivity<V extends ViewDataBinding, VM exte
         super.initBaseViewObservable();
         initBaseViewRefreshObservable();
     }
+
     @SuppressWarnings("unchecked")
     private void initBaseViewRefreshObservable() {
         mViewModel.getUCRefresh().getAutoRefresLiveEvent().observe(this, new Observer() {

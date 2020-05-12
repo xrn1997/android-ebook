@@ -61,7 +61,7 @@
             android:onClick="@{() -> viewModel.register()}"
             android:text="@string/register"
             android:textStyle="bold"
-            android:textColor="@color/color_white"/>
+            android:textColor="@color/color_white" />
 
 
     </LinearLayout>

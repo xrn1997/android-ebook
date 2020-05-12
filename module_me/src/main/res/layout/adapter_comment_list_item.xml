@@ -3,7 +3,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-        <import type="com.ebook.common.util.DateUtil"/>
+
+        <import type="com.ebook.common.util.DateUtil" />
+
         <variable
             name="comment"
             type="com.ebook.api.entity.Comment" />

@@ -50,6 +50,7 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
     private Animation animOut;
 
     private MoProgressHUD moProgressHUD;
+
     @Override
     protected IImportBookPresenter initInjector() {
         return new ImportBookPresenterImpl();
@@ -130,7 +131,7 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
         ivReturn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-            //    finish();
+                //    finish();
                 onBackPressed();
             }
         });
@@ -155,7 +156,7 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
     @Override
     public void finish() {
         if (!isExiting) {
-            if(moProgressHUD.isShow()){
+            if (moProgressHUD.isShow()) {
                 moProgressHUD.dismiss();
             }
             isExiting = true;
@@ -179,7 +180,7 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
     @Override
     public void addSuccess() {
         moProgressHUD.dismiss();
-        Toast.makeText(this,"添加书籍成功",Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "添加书籍成功", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -190,13 +191,13 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
     @SuppressLint("NewApi")
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if(requestCode == 0x11){
+        if (requestCode == 0x11) {
             if (grantResults != null && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED && PremissionCheck.checkPremission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                 mPresenter.searchLocationBook();
                 tvScan.setVisibility(View.INVISIBLE);
                 rlLoading.start();
-            }else{
-                if (!this.shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)){
+            } else {
+                if (!this.shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                     moProgressHUD.showTwoButton("去系统设置打开SD卡读写权限？", "取消", new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -209,7 +210,7 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
                             PremissionCheck.requestPermissionSetting(ImportBookActivity.this);
                         }
                     });
-                }else{
+                } else {
                     Toast.makeText(this, "未获取SD卡读取权限", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -219,8 +220,8 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        Boolean a = moProgressHUD.onKeyDown(keyCode,event);
-        if(a)
+        Boolean a = moProgressHUD.onKeyDown(keyCode, event);
+        if (a)
             return a;
         return super.onKeyDown(keyCode, event);
     }

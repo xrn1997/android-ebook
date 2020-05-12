@@ -6,6 +6,7 @@ package com.refresh.lib.contract;
 public interface PullContract {
     /**
      * 手指上滑下滑的回调
+     *
      * @param enable
      */
     void onPullEnable(boolean enable);
@@ -15,4 +16,4 @@ public interface PullContract {
      */
     void onRefresh();
 
-  }
+}

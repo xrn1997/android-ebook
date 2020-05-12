@@ -58,5 +58,4 @@ public class BookListViewModel extends BaseRefreshViewModel<BookShelf, BookListM
     }
 
 
-
 }

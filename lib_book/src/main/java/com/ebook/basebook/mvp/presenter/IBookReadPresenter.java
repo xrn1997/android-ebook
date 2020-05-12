@@ -8,7 +8,7 @@ import com.ebook.basebook.mvp.presenter.impl.ReadBookPresenterImpl;
 import com.ebook.basebook.view.BookContentView;
 import com.ebook.db.entity.BookShelf;
 
-public interface IBookReadPresenter extends IPresenter{
+public interface IBookReadPresenter extends IPresenter {
 
     int getOpen_from();
 

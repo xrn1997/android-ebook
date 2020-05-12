@@ -26,7 +26,7 @@ public class MainActivity extends BaseActivity {
             mMeFragment = mMeProvider.getMainMeFragment();
         }
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        if(!mMeFragment.isAdded()) {
+        if (!mMeFragment.isAdded()) {
             transaction.add(R.id.frame_content, mMeFragment, "ME").commit();
         } else {
             transaction.show(mMeFragment).commit();

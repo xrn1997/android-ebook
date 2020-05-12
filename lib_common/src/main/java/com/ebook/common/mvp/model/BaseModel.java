@@ -10,9 +10,11 @@ import com.trello.rxlifecycle3.LifecycleProvider;
 public class BaseModel {
     private Context mContext;
     private LifecycleProvider lifecycle;
+
     public BaseModel(Context context) {
         mContext = context;
     }
+
     public void injectLifecycle(LifecycleProvider lifecycle) {
         this.lifecycle = lifecycle;
     }
@@ -25,5 +27,6 @@ public class BaseModel {
         return mContext;
     }
 
-    public void destory(){}
+    public void destory() {
+    }
 }

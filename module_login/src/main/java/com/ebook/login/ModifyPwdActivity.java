@@ -10,7 +10,7 @@ import com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel;
 
 import androidx.lifecycle.ViewModelProvider;
 
-public class ModifyPwdActivity extends BaseMvvmActivity<ActivityModifyPwdBinding, ModifyPwdViewModel>  {
+public class ModifyPwdActivity extends BaseMvvmActivity<ActivityModifyPwdBinding, ModifyPwdViewModel> {
     @Override
     public Class<ModifyPwdViewModel> onBindViewModel() {
         return ModifyPwdViewModel.class;
@@ -29,9 +29,9 @@ public class ModifyPwdActivity extends BaseMvvmActivity<ActivityModifyPwdBinding
     @Override
     public void initData() {
         super.initData();
-        Bundle bundle=this.getIntent().getExtras();
-        if(bundle!=null){
-            String username=(String)bundle.get("username");
+        Bundle bundle = this.getIntent().getExtras();
+        if (bundle != null) {
+            String username = (String) bundle.get("username");
             mViewModel.username.set(username);
         }
     }

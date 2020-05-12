@@ -11,14 +11,17 @@ public abstract class BaseRefreshLayout extends SuperSwipeRefreshLayout {
     protected OnRefreshListener mOnRefreshListener;//下拉刷新监听器
     protected OnLoadMoreListener mOnLoadMoreListener;//上拉加载更多监听器
     protected OnAutoLoadListener mOnAutoLoadListener;//自动加载的回调
-    public interface OnRefreshListener{
+
+    public interface OnRefreshListener {
         void onRefresh();
     }
-    public interface OnLoadMoreListener{
+
+    public interface OnLoadMoreListener {
         void onLoadMore();
     }
+
     //调用autoLoad的回调
-    public interface OnAutoLoadListener{
+    public interface OnAutoLoadListener {
         void onAutoLoad();
     }
 
@@ -33,11 +36,14 @@ public abstract class BaseRefreshLayout extends SuperSwipeRefreshLayout {
     public void setOnAutoLoadListener(OnAutoLoadListener onAutoLoadListener) {
         mOnAutoLoadListener = onAutoLoadListener;
     }
+
     public BaseRefreshLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
+
     /**
      * 是否启用下拉刷新
+     *
      * @param enableRefresh
      */
     public void setEnableRefresh(boolean enableRefresh) {
@@ -46,6 +52,7 @@ public abstract class BaseRefreshLayout extends SuperSwipeRefreshLayout {
 
     /**
      * 是否启用加载更多
+     *
      * @param enableLoadMore
      */
     public void setEnableLoadMore(boolean enableLoadMore) {
@@ -55,21 +62,22 @@ public abstract class BaseRefreshLayout extends SuperSwipeRefreshLayout {
     /**
      * 自动刷新
      */
-    public void autoRefresh(){
+    public void autoRefresh() {
         postDelayed(new Runnable() {
             @Override
             public void run() {
                 showRefresh();
                 setRefreshing(true);
-                if(mOnAutoLoadListener != null){
+                if (mOnAutoLoadListener != null) {
                     mOnAutoLoadListener.onAutoLoad();
                 }
             }
-        },1000 * 1);
+        }, 1000 * 1);
     }
 
     /**
      * 如果禁用了加载更多则就直接返回了
+     *
      * @param ev
      * @param action
      * @return
@@ -79,11 +87,12 @@ public abstract class BaseRefreshLayout extends SuperSwipeRefreshLayout {
         if (!isEnableLoadMore) {
             return false;
         }
-        return super.handlerPushTouchEvent(ev,action);
+        return super.handlerPushTouchEvent(ev, action);
     }
 
     /**
      * 如果禁用了就直接返回了
+     *
      * @param ev
      * @param action
      * @return
@@ -93,7 +102,8 @@ public abstract class BaseRefreshLayout extends SuperSwipeRefreshLayout {
         if (!isEnableRefresh) {
             return false;
         }
-        return super.handlerPullTouchEvent(ev,action);
+        return super.handlerPullTouchEvent(ev, action);
     }
+
     public abstract void showRefresh();
 }

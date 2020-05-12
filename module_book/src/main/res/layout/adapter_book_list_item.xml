@@ -30,6 +30,7 @@
                 android:layout_height="100dp"
                 app:cardCornerRadius="10dp"
                 app:cardElevation="0dp">
+
                 <ImageView
                     android:id="@+id/iv_cover"
                     android:layout_width="match_parent"

@@ -8,9 +8,9 @@ import androidx.annotation.NonNull;
 
 import static android.content.ContentValues.TAG;
 
-public class RespDTO<T> implements Serializable{
+public class RespDTO<T> implements Serializable {
 
-    public int code ;
+    public int code;
     public String error = "";
     public T data;
 

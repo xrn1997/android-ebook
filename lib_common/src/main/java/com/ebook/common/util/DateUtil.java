@@ -14,8 +14,9 @@ import java.util.Date;
 public class DateUtil {
 
     public enum FormatType {
-        yyyy, yyyyMM, yyyyMMdd, yyyyMMddHHmm, yyyyMMddHHmmss, MMdd, HHmm,MM,dd,MMddHHmm;
+        yyyy, yyyyMM, yyyyMMdd, yyyyMMddHHmm, yyyyMMddHHmmss, MMdd, HHmm, MM, dd, MMddHHmm;
     }
+
     /**
      * 格式化时间字符串
      */
@@ -32,13 +33,15 @@ public class DateUtil {
         Date date = parseTime(time);
         return formatDate(date, type);
     }
-    public static String formatDate(String time, FormatType fromtype,FormatType totype) {
+
+    public static String formatDate(String time, FormatType fromtype, FormatType totype) {
         if (TextUtils.isEmpty(time)) {
             return "";
         }
-        Date date = parseTime(time,fromtype);
+        Date date = parseTime(time, fromtype);
         return formatDate(date, totype);
     }
+
     public static String formatDate(Date time, FormatType type) {
         if (time == null) {
             return "";
@@ -86,6 +89,7 @@ public class DateUtil {
         }
         return sdf;
     }
+
     /**
      * 将时间字符串转化为date
      */
@@ -113,6 +117,7 @@ public class DateUtil {
         }
         return date;
     }
+
     /**
      * 将字符串转换成date
      */
@@ -310,24 +315,27 @@ public class DateUtil {
 
     /**
      * 获取给定时间以后几天的时间戳
+     *
      * @param date
      * @param day
      * @return
      */
-    public static String getLaterTimeByDay(String date,int day){
+    public static String getLaterTimeByDay(String date, int day) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(parseTime(date, FormatType.yyyyMMdd));
         calendar.set(Calendar.HOUR, calendar.get(Calendar.HOUR) + day * 24);
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         return sdf.format(calendar.getTime());
     }
+
     /**
      * 获取当前时间的位置：一天24小时以半小时为单位划分为48个单元格
+     *
      * @return
      */
     public static int getCurrTimePosition() {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(new Date());
-        return (int)Math.ceil((double)(calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)) / 30);
+        return (int) Math.ceil((double) (calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)) / 30);
     }
 }

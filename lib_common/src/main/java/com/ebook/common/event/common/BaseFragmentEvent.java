@@ -1,4 +1,5 @@
 package com.ebook.common.event.common;
+
 import com.ebook.common.event.BaseEvent;
 
 /**

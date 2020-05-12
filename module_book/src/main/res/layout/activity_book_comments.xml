@@ -8,62 +8,62 @@
             type="com.ebook.book.mvvm.viewmodel.BookCommentsViewModel" />
     </data>
 
-        <FrameLayout
-            android:clickable="true"
-            android:focusableInTouchMode="true"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:focusable="true">
+    <FrameLayout
+        android:clickable="true"
+        android:focusableInTouchMode="true"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:focusable="true">
 
-            <com.refresh.lib.DaisyRefreshLayout xmlns:app="http://schemas.android.com/apk/res-auto"
-                android:id="@+id/refview_book_comments_list"
+        <com.refresh.lib.DaisyRefreshLayout xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/refview_book_comments_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:enableLoadMore="@{viewModel.enableLoadMore}"
+            app:enableRefresh="@{viewModel.enableRefresh}"
+            app:onAutoRefreshCommand="@{viewModel.onAutoRefreshCommand}"
+            app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
+            app:onRefreshCommand="@{viewModel.onRefreshCommand}">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/view_book_comments"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:enableLoadMore="@{viewModel.enableLoadMore}"
-                app:enableRefresh="@{viewModel.enableRefresh}"
-                app:onAutoRefreshCommand="@{viewModel.onAutoRefreshCommand}"
-                app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
-                app:onRefreshCommand="@{viewModel.onRefreshCommand}">
+                app:linearLayoutManager="@{viewModel.orientation}" />
+        </com.refresh.lib.DaisyRefreshLayout>
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/view_book_comments"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:linearLayoutManager="@{viewModel.orientation}" />
-            </com.refresh.lib.DaisyRefreshLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_gravity="bottom"
+            android:layout_height="50dp"
+            android:layout_marginBottom="5dp"
+            android:orientation="horizontal">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_gravity="bottom"
-                android:layout_height="50dp"
-                android:layout_marginBottom="5dp"
-                android:orientation="horizontal">
+            <EditText
+                android:id="@+id/text_input"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="2"
+                android:background="@drawable/editext_selector"
+                android:hint="说点什么吧！"
+                android:text="@={viewModel.comments}"
+                android:inputType="textMultiLine"
+                android:minLines="3"
+                android:textSize="15sp" />
 
-                <EditText
-                    android:id="@+id/text_input"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_marginStart="2dp"
-                    android:layout_marginEnd="2dp"
-                    android:layout_weight="2"
-                    android:background="@drawable/editext_selector"
-                    android:hint="说点什么吧！"
-                    android:text="@={viewModel.comments}"
-                    android:inputType="textMultiLine"
-                    android:minLines="3"
-                    android:textSize="15sp" />
-
-                <Button
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_marginStart="2dp"
-                    android:layout_marginEnd="2dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/btn_selector"
-                    android:text="发送"
-                    android:onClick="@{()->viewModel.addComment()}"
-                    android:textColor="@color/color_white" />
-            </LinearLayout>
-        </FrameLayout>
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1"
+                android:background="@drawable/btn_selector"
+                android:text="发送"
+                android:onClick="@{()->viewModel.addComment()}"
+                android:textColor="@color/color_white" />
+        </LinearLayout>
+    </FrameLayout>
 </layout>

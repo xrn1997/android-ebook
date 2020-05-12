@@ -6,6 +6,7 @@
     android:orientation="vertical"
     android:id="@+id/fl_bg"
     android:clickable="true">
+
     <com.ebook.basebook.view.ImmerseView.layout.ImmerseLinearLayout
         android:id="@+id/ll_content"
         android:layout_width="260dp"
@@ -14,6 +15,7 @@
         android:background="#ffffff"
         android:paddingTop="15dp"
         android:visibility="invisible">
+
         <TextView
             android:id="@+id/tv_name"
             android:layout_width="match_parent"
@@ -23,7 +25,8 @@
             android:layout_marginLeft="15dp"
             android:layout_marginRight="15dp"
             android:textSize="16sp"
-            android:textColor="#343434"/>
+            android:textColor="#343434" />
+
         <TextView
             android:id="@+id/tv_listcount"
             android:layout_width="match_parent"
@@ -35,23 +38,26 @@
             android:textSize="13sp"
             android:textColor="#767676"
             android:layout_marginTop="5dp"
-            android:layout_marginBottom="5dp"/>
+            android:layout_marginBottom="5dp" />
+
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1">
+
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rv_list"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scrollbars="none"/>
+                android:scrollbars="none" />
+
             <com.ebook.basebook.view.RecyclerViewBar
                 android:id="@+id/rvb_slider"
                 android:layout_width="35dp"
                 android:layout_height="match_parent"
                 android:layout_gravity="right"
                 app:slider_paddingLeft="7dp"
-                app:slider_height="32dp"/>
+                app:slider_height="32dp" />
         </FrameLayout>
     </com.ebook.basebook.view.ImmerseView.layout.ImmerseLinearLayout>
 </FrameLayout>

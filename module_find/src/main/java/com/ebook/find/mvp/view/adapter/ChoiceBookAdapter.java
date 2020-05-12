@@ -34,6 +34,7 @@ import io.reactivex.schedulers.Schedulers;
 public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
     private List<SearchBook> searchBooks;
     private Context context;
+
     public interface OnItemClickListener {
         void clickAddShelf(View clickView, int position, SearchBook searchBook);
 
@@ -45,7 +46,7 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
     public ChoiceBookAdapter(Context context) {
         super(true);
         searchBooks = new ArrayList<>();
-        this.context=context;
+        this.context = context;
     }
 
     @Override
@@ -60,12 +61,12 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
         bookShelf.setNoteUrl(searchBooks.get(realposition).getNoteUrl());
         GxwztvBookModelImpl.getInstance().getBookInfo(bookShelf)
                 .subscribeOn(Schedulers.io())
-                .compose(((BaseActivity)context).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
+                .compose(((BaseActivity) context).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<BookShelf>() {
                     @Override
                     public void onNext(BookShelf bookShelf) {
-                        if(!((BaseActivity) context).isFinishing()&&context!=null&&!((BaseActivity) context).isDestroyed()){
+                        if (!((BaseActivity) context).isFinishing() && context != null && !((BaseActivity) context).isDestroyed()) {
                             Glide.with(((Viewholder) holder).ivCover.getContext())
                                     .load(bookShelf.getBookInfo().getCoverUrl())
                                     .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
@@ -75,6 +76,7 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
                                     .into(((Viewholder) holder).ivCover);
                         }
                     }
+
                     @Override
                     public void onError(Throwable e) {
 

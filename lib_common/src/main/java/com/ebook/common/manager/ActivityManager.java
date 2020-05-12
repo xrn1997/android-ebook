@@ -1,6 +1,7 @@
 package com.ebook.common.manager;
 
 import android.content.Context;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.Stack;
@@ -134,6 +135,7 @@ public class ActivityManager {
 
     /**
      * 是否已经打开指定的activity
+     *
      * @param cls
      * @return
      */
@@ -169,7 +171,7 @@ public class ActivityManager {
         }
     }
 
-    public boolean isActivityStackEmpty(){
+    public boolean isActivityStackEmpty() {
         return activityStack.empty();
     }
 }

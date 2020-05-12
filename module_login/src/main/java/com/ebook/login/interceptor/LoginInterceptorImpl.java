@@ -20,7 +20,7 @@ public class LoginInterceptorImpl implements IInterceptor {
         String path = postcard.getPath();
         LogUtils.e(path);
         boolean isLogin = SPUtils.getInstance().getBoolean(KeyCode.Login.SP_IS_LOGIN, false);
-        LogUtils.e("isLogin:"+isLogin);
+        LogUtils.e("isLogin:" + isLogin);
         if (isLogin) { // 如果已经登录不拦截
             callback.onContinue(postcard);
         } else {  // 如果没有登录

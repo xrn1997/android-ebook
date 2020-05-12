@@ -3,7 +3,7 @@ package com.ebook.db.entity;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-public class SearchBook implements Parcelable{
+public class SearchBook implements Parcelable {
 
     private String noteUrl;
 
@@ -29,7 +29,7 @@ public class SearchBook implements Parcelable{
 
     private String desc;
 
-    public SearchBook(){
+    public SearchBook() {
 
     }
 
@@ -57,7 +57,7 @@ public class SearchBook implements Parcelable{
         dest.writeLong(words);
         dest.writeString(state);
         dest.writeString(lastChapter);
-        dest.writeByte((byte)(isAdd?1:0));
+        dest.writeByte((byte) (isAdd ? 1 : 0));
         dest.writeString(tag);
         dest.writeString(kind);
         dest.writeString(origin);
@@ -138,7 +138,7 @@ public class SearchBook implements Parcelable{
     }
 
     public String getLastChapter() {
-        return lastChapter==null?"":lastChapter;
+        return lastChapter == null ? "" : lastChapter;
     }
 
     public void setLastChapter(String lastChapter) {

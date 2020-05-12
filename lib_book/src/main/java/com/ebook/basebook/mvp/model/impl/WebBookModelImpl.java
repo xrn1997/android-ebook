@@ -28,10 +28,9 @@ public class WebBookModelImpl implements IWebBookModel {
      */
     @Override
     public Observable<BookShelf> getBookInfo(BookShelf bookShelf) {
-        if(bookShelf.getTag().equals(GxwztvBookModelImpl.TAG)){
+        if (bookShelf.getTag().equals(GxwztvBookModelImpl.TAG)) {
             return GxwztvBookModelImpl.getInstance().getBookInfo(bookShelf);
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -44,11 +43,10 @@ public class WebBookModelImpl implements IWebBookModel {
      */
     @Override
     public void getChapterList(final BookShelf bookShelf, OnGetChapterListListener getChapterListListener) {
-        if(bookShelf.getTag().equals(GxwztvBookModelImpl.TAG)){
+        if (bookShelf.getTag().equals(GxwztvBookModelImpl.TAG)) {
             GxwztvBookModelImpl.getInstance().getChapterList(bookShelf, getChapterListListener);
-        }
-        else{
-            if(getChapterListListener!=null)
+        } else {
+            if (getChapterListListener != null)
                 getChapterListListener.success(bookShelf);
         }
     }
@@ -60,10 +58,9 @@ public class WebBookModelImpl implements IWebBookModel {
      */
     @Override
     public Observable<BookContent> getBookContent(String durChapterUrl, int durChapterIndex, String tag) {
-        if(tag.equals(GxwztvBookModelImpl.TAG)){
+        if (tag.equals(GxwztvBookModelImpl.TAG)) {
             return GxwztvBookModelImpl.getInstance().getBookContent(durChapterUrl, durChapterIndex);
-        }
-        else
+        } else
             return Observable.create(new ObservableOnSubscribe<BookContent>() {
                 @Override
                 public void subscribe(ObservableEmitter<BookContent> e) throws Exception {
@@ -77,11 +74,10 @@ public class WebBookModelImpl implements IWebBookModel {
      * 其他站点集合搜索
      */
     @Override
-    public Observable<List<SearchBook>> searchOtherBook(String content,int page,String tag){
-        if(tag.equals(GxwztvBookModelImpl.TAG)){
+    public Observable<List<SearchBook>> searchOtherBook(String content, int page, String tag) {
+        if (tag.equals(GxwztvBookModelImpl.TAG)) {
             return GxwztvBookModelImpl.getInstance().searchBook(content, page);
-        }
-        else{
+        } else {
             return Observable.create(new ObservableOnSubscribe<List<SearchBook>>() {
                 @Override
                 public void subscribe(ObservableEmitter<List<SearchBook>> e) throws Exception {
@@ -91,11 +87,12 @@ public class WebBookModelImpl implements IWebBookModel {
             });
         }
     }
+
     /**
      * 获取分类书籍
      */
     @Override
-    public Observable<List<SearchBook>> getKindBook(String url,int page) {
-        return GxwztvBookModelImpl.getInstance().getKindBook(url,page);
+    public Observable<List<SearchBook>> getKindBook(String url, int page) {
+        return GxwztvBookModelImpl.getInstance().getKindBook(url, page);
     }
 }

@@ -2,9 +2,11 @@ package com.ebook.common.view;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.InverseBindingAdapter;
 import androidx.databinding.InverseBindingListener;
+
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -31,6 +33,7 @@ public class SettingBarView extends RelativeLayout {
     private OnClickRightImgListener mOnClickRightImgListener;
     private boolean isEdit = false;//是否需要编辑
     private OnViewChangeListener mOnViewChangeListener;
+
     public interface OnClickSettingBarViewListener {
         void onClick();
     }
@@ -101,8 +104,8 @@ public class SettingBarView extends RelativeLayout {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                Log.v("MYTAG","onTextChanged start....");
-                if(mOnViewChangeListener != null){
+                Log.v("MYTAG", "onTextChanged start....");
+                if (mOnViewChangeListener != null) {
                     mOnViewChangeListener.onChange();
                 }
             }
@@ -119,21 +122,24 @@ public class SettingBarView extends RelativeLayout {
             txtSetContent.setText(value);
         }
     }
+
     public String getContent() {
         if (txtSetContent != null) {
             return txtSetContent.getText().toString();
         }
         return null;
     }
+
     @BindingAdapter(value = "content", requireAll = false)
-    public static void setContent(SettingBarView view,String value) {
-        if(!TextUtils.isEmpty(view.getContent()) && view.getContent().equals(value)){
+    public static void setContent(SettingBarView view, String value) {
+        if (!TextUtils.isEmpty(view.getContent()) && view.getContent().equals(value)) {
             return;
         }
         if (view.txtSetContent != null && !TextUtils.isEmpty(value)) {
             view.txtSetContent.setText(value);
         }
     }
+
     @InverseBindingAdapter(attribute = "content", event = "contentAttrChanged")
     public static String getContent(SettingBarView view) {
         return view.getContent();
@@ -157,18 +163,20 @@ public class SettingBarView extends RelativeLayout {
             });
         }
     }
+
     @BindingAdapter(value = {"onClickSettingBarView"}, requireAll = false)
-    public static void onClickSettingBarView(SettingBarView view, final BindingCommand bindingCommand){
-        view.layoutSettingBar.setOnClickListener(new View.OnClickListener(){
+    public static void onClickSettingBarView(SettingBarView view, final BindingCommand bindingCommand) {
+        view.layoutSettingBar.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                if(bindingCommand != null){
+                if (bindingCommand != null) {
                     bindingCommand.execute();
                 }
             }
         });
     }
+
     private interface OnViewChangeListener {
         void onChange();
     }

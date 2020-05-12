@@ -2,8 +2,10 @@ package com.ebook.basebook.view.refreshview;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -74,7 +76,7 @@ public class RefreshRecyclerView extends FrameLayout {
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
                 if (((RefreshRecyclerViewAdapter) recyclerView.getAdapter()).canLoadMore() && ((RefreshRecyclerViewAdapter) recyclerView.getAdapter()).getItemCount() - 1 == ((LinearLayoutManager) recyclerView.getLayoutManager()).findLastVisibleItemPosition()) {
-                    if(!((RefreshRecyclerViewAdapter) recyclerView.getAdapter()).getLoadMoreError()){
+                    if (!((RefreshRecyclerViewAdapter) recyclerView.getAdapter()).getLoadMoreError()) {
                         if (null != loadMoreListener) {
                             ((RefreshRecyclerViewAdapter) recyclerView.getAdapter()).setIsRequesting(2, false);
                             loadMoreListener.startLoadmore();
