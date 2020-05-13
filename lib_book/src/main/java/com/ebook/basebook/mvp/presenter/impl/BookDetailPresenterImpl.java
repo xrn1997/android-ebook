@@ -2,6 +2,7 @@
 package com.ebook.basebook.mvp.presenter.impl;
 
 import android.content.Intent;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.ebook.api.config.API;
@@ -212,6 +213,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                     .subscribe(new SimpleObserver<Boolean>() {
                         @Override
                         public void onNext(Boolean value) {
+                            Log.d("移出书架", "onNext: "+value);
                             if (value) {
                                 RxBus.get().post(RxBusTag.HAD_REMOVE_BOOK, mBookShelf);
                             } else {

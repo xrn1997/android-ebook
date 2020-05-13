@@ -29,8 +29,8 @@ public class BookListViewModel extends BaseRefreshViewModel<BookShelf, BookListM
 
             @Override
             public void onNext(List<BookShelf> value) {
+                mList.clear();
                 if (value != null && value.size() > 0) {
-                    mList.clear();
                     mList.addAll(value);
                 }
                 postStopRefreshEvent();

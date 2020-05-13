@@ -138,7 +138,7 @@ public class ImportBookModelImpl extends MBaseModelImpl implements IImportBookMo
                     contentBuilder.append(temp);
                 }
                 if (contentBuilder.toString().length() > 0) {
-                    if (contentBuilder.toString().replaceAll("　", "").trim().length() > 0) {
+                    if (contentBuilder.toString().replaceAll(" ", "").replaceAll("\\s*", "").trim().length() > 0) {
                         saveDurChapterContent(md5, chapterPageIndex, title, contentBuilder.toString());
                         chapterPageIndex++;
                     }
@@ -146,14 +146,15 @@ public class ImportBookModelImpl extends MBaseModelImpl implements IImportBookMo
                 }
                 title = line.trim().substring(line.trim().indexOf("第"));
             } else {
-                if (line.trim().length() == 0) {
+                String temp=line.trim().replaceAll(" ", "").replaceAll(" ", "").replaceAll("\\s*", "");
+                if (temp.length() == 0) {
                     if (contentBuilder.length() > 0) {
                         contentBuilder.append("\r\n\u3000\u3000");
                     } else {
                         contentBuilder.append("\r\u3000\u3000");
                     }
                 } else {
-                    contentBuilder.append(line);
+                    contentBuilder.append(temp);
                     if (title == null) {
                         title = line.trim();
                     }

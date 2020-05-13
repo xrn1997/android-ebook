@@ -49,8 +49,8 @@ public class BookCommentsViewModel extends BaseRefreshViewModel<Comment, BookCom
             public void onNext(RespDTO<List<Comment>> listRespDTO) {
                 if (listRespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     List<Comment> comments = listRespDTO.data;
+                    mList.clear();
                     if (comments != null && comments.size() > 0) {
-                        mList.clear();
                         mList.addAll(comments);
                     }
                 } else {
