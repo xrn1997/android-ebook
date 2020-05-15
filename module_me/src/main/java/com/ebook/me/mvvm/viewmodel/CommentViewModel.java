@@ -1,6 +1,7 @@
 package com.ebook.me.mvvm.viewmodel;
 
 import android.app.Application;
+import android.os.Build;
 import android.util.Log;
 
 import com.ebook.api.dto.RespDTO;
@@ -10,12 +11,14 @@ import com.ebook.api.http.ExceptionHandler;
 import com.ebook.common.event.SingleLiveEvent;
 import com.ebook.common.mvvm.viewmodel.BaseRefreshViewModel;
 
+import com.ebook.common.util.DateUtil;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.me.mvvm.model.CommentModel;
 
 import java.util.List;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 
@@ -34,10 +37,12 @@ public class CommentViewModel extends BaseRefreshViewModel<Comment, CommentModel
 
             }
 
+            @RequiresApi(api = Build.VERSION_CODES.N)
             @Override
             public void onNext(RespDTO<List<Comment>> listRespDTO) {
                 if (listRespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     List<Comment> comments = listRespDTO.data;
+                    comments.sort((x,y)-> DateUtil.parseTime(y.getAddtime(),DateUtil.FormatType.yyyyMMddHHmm).compareTo(DateUtil.parseTime(x.getAddtime(),DateUtil.FormatType.yyyyMMddHHmm)));
                     mList.clear();
                     if (comments != null && comments.size() > 0) {
                         mList.addAll(comments);
