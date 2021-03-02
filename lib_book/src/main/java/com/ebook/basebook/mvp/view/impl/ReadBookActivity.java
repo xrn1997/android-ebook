@@ -8,6 +8,7 @@ import android.graphics.Paint;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -50,6 +51,7 @@ import com.ebook.db.entity.DownloadChapterList;
 import com.ebook.basebook.mvp.presenter.IBookReadPresenter;
 import com.ebook.basebook.mvp.presenter.impl.ReadBookPresenterImpl;
 import com.ebook.basebook.utils.PremissionCheck;
+import com.permissionx.guolindev.PermissionX;
 
 
 import java.util.ArrayList;
@@ -97,11 +99,27 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
     @Override
     protected IBookReadPresenter initInjector() {
         return new ReadBookPresenterImpl();
+
     }
 
     @Override
     protected void onCreateActivity() {
         setContentView(R.layout.activity_bookread);
+        PermissionX
+                .init(this)
+                .permissions(Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.READ_EXTERNAL_STORAGE)
+                .onExplainRequestReason((scope, deniedList) -> {
+                    scope.showRequestReasonDialog(deniedList, "即将重新申请的权限是程序必须依赖的权限(请选择始终)", "我已明白", "取消");
+                })
+                .onForwardToSettings((scope, deniedList) -> {
+                    scope.showForwardToSettingsDialog(deniedList, "您需要去应用程序设置当中手动开启权限", "我已明白", "取消");
+                })
+                .request((allGranted, grantedList, deniedList) -> {
+                    if (!allGranted) {
+                        //Toast.makeText(this, "所有申请的权限都已通过", Toast.LENGTH_SHORT).show();
+                        onBackPressed();
+                    }
+                });
     }
 
     @Override
@@ -539,44 +557,46 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
         ivMenuMore.setVisibility(View.VISIBLE);
     }
 
-    private Boolean showCheckPremission = false;
+   // private Boolean showCheckPremission = false;
 
-    @SuppressLint("NewApi")
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == 0x11) {
-            if (grantResults != null && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED && PremissionCheck.checkPremission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                mPresenter.openBookFromOther(ReadBookActivity.this);
-            } else {
-                if (!this.shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                    showCheckPremission = true;
-                    moProgressHUD.showTwoButton("去系统设置打开SD卡读写权限？", "取消", new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            finish();
-                        }
-                    }, "设置", new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            PremissionCheck.requestPermissionSetting(ReadBookActivity.this);
-                        }
-                    });
-                } else {
-                    Toast.makeText(this, "未获取SD卡读取权限", Toast.LENGTH_SHORT).show();
-                }
-            }
-        }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
+//    @SuppressLint("NewApi")
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+//        if (requestCode == 0x11) {
+//            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED && PremissionCheck.checkPremission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+//                mPresenter.openBookFromOther(ReadBookActivity.this);
+//            } else {
+//                if (!this.shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+//                    showCheckPremission = true;
+//                    moProgressHUD.showTwoButton("去系统设置打开SD卡读写权限？", "取消", new View.OnClickListener() {
+//                        @Override
+//                        public void onClick(View v) {
+//                            finish();
+//                        }
+//                    }, "设置", new View.OnClickListener() {
+//                        @Override
+//                        public void onClick(View v) {
+//                            PremissionCheck.requestPermissionSetting(ReadBookActivity.this);
+//                        }
+//                    });
+//                } else {
+//                    Toast.makeText(this, "未获取SD卡读取权限", Toast.LENGTH_SHORT).show();
+//                }
+//            }
+//        }
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+//    }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (showCheckPremission && mPresenter.getOpen_from() == ReadBookPresenterImpl.OPEN_FROM_OTHER && !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !PremissionCheck.checkPremission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE))) {
-            showCheckPremission = true;
+//        if (showCheckPremission && mPresenter.getOpen_from() == ReadBookPresenterImpl.OPEN_FROM_OTHER && !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !PremissionCheck.checkPremission(this,
+//                Manifest.permission.WRITE_EXTERNAL_STORAGE))) {
+//            showCheckPremission = true;
+        if(mPresenter.getOpen_from() == ReadBookPresenterImpl.OPEN_FROM_OTHER){
             mPresenter.openBookFromOther(this);
         }
+//        }
     }
 
 //    @Override

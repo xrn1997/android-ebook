@@ -26,8 +26,8 @@ android {
             buildConfigField "boolean", 'IS_DEBUG', 'false'
         }
     }
-    dataBinding {
-        enabled true
+    buildFeatures{
+        dataBinding=true;
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -42,9 +42,9 @@ dependencies {
     api project(':lib_ebook_api')
     api project(":lib_ebook_db")
     api rootProject.ext.support["legacy-support-v4"]
-    api rootProject.ext.support["appcompat"]
-    api rootProject.ext.support["constraintlayout"]
-    api rootProject.ext.support["material"]
+    api 'androidx.appcompat:appcompat:1.2.0'
+    api 'androidx.constraintlayout:constraintlayout:2.0.2'
+    api 'com.google.android.material:material:1.2.1'
 
     api rootProject.ext.dependencies["alibaba:arouter-api"]
     annotationProcessor rootProject.ext.dependencies["alibaba:arouter-compiler"]
@@ -69,16 +69,16 @@ dependencies {
     api rootProject.ext.dependencies["lifecycle:lifecycle-extensions"]
     annotationProcessor rootProject.ext.dependencies["lifecycle:lifecycle-common-java8"]
 
-    api rootProject.ext.dependencies["dagger"]
-    annotationProcessor rootProject.ext.dependencies["dagger:dagger-compiler"]
+    api 'com.google.dagger:dagger:2.29.1'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.29.1'
 
     api rootProject.ext.dependencies["stetho"]
 
     api rootProject.ext.dependencies["lovetuzitong:MultiImageSelector"]
 
-    testImplementation rootProject.ext.support["junit"]
-    androidTestImplementation rootProject.ext.support["ext:junit"]
-    androidTestImplementation rootProject.ext.support["espresso-core"]
+    testImplementation 'junit:junit:4.13.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 
     api rootProject.ext.dependencies["blankj:utilcode"]
 
@@ -91,8 +91,8 @@ dependencies {
     //删除粒子效果
     api 'tyrantgit:explosionfield:1.0.1'
     //View简易动画
-    api 'com.daimajia.easing:library:2.1@aar'
-    api 'com.daimajia.androidanimations:library:2.3@aar'
+    api 'com.daimajia.easing:library:2.4@aar'
+    api 'com.daimajia.androidanimations:library:2.4@aar'
     //CircleImageView
     api 'de.hdodenhof:circleimageview:3.1.0'
     //SwitchButton
@@ -102,6 +102,6 @@ dependencies {
     api('com.hwangjr.rxbus:rxbus:2.0.1') {
         exclude group: 'com.jakewharton.timber', module: 'timber'
     }
-    api 'com.squareup.retrofit2:converter-scalars:2.8.1'
+    api 'com.squareup.retrofit2:converter-scalars:2.9.0'
     api 'com.googlecode.juniversalchardet:juniversalchardet:1.0.3'
 }

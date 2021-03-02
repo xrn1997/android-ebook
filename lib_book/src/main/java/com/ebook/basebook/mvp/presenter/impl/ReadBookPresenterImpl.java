@@ -36,7 +36,10 @@ import com.ebook.db.entity.LocBookShelf;
 import com.ebook.db.entity.ReadBookContent;
 import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
 import com.ebook.basebook.utils.PremissionCheck;
+import com.permissionx.guolindev.PermissionX;
 import com.trello.rxlifecycle3.android.ActivityEvent;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -77,14 +80,14 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
             BitIntentDataManager.getInstance().cleanData(key);
             checkInShelf();
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !PremissionCheck.checkPremission(activity,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                //申请权限
-                activity.requestPermissions(
-                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0x11);
-            } else {
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !PremissionCheck.checkPremission(activity,
+//                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+//                //申请权限
+//                activity.requestPermissions(
+//                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0x11);
+//            } else {
                 openBookFromOther(activity);
-            }
+   //         }
         }
     }
 
@@ -98,13 +101,13 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
                 .subscribeOn(Schedulers.io())
                 .subscribe(new SimpleObserver<String>() {
                     @Override
-                    public void onNext(String value) {
+                    public void onNext(@NotNull String value) {
                         ImportBookModelImpl.getInstance().importBook(new File(value))
                                 .observeOn(AndroidSchedulers.mainThread())
                                 .subscribeOn(Schedulers.io())
                                 .subscribe(new SimpleObserver<LocBookShelf>() {
                                     @Override
-                                    public void onNext(LocBookShelf value) {
+                                    public void onNext(@NotNull LocBookShelf value) {
                                         if (value.getNew())
                                             RxBus.get().post(RxBusTag.HAD_ADD_BOOK, value);
                                         bookShelf = value.getBookShelf();

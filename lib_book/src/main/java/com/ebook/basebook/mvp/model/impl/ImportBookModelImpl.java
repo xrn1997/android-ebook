@@ -12,6 +12,7 @@ import com.ebook.db.entity.ChapterList;
 import com.ebook.db.entity.ChapterListDao;
 import com.ebook.db.entity.LocBookShelf;
 
+import org.jetbrains.annotations.NotNull;
 import org.mozilla.universalchardet.UniversalDetector;
 
 import java.io.BufferedReader;
@@ -39,7 +40,7 @@ public class ImportBookModelImpl extends MBaseModelImpl implements IImportBookMo
     public Observable<LocBookShelf> importBook(final File book) {
         return Observable.create(new ObservableOnSubscribe<LocBookShelf>() {
             @Override
-            public void subscribe(ObservableEmitter<LocBookShelf> e) throws Exception {
+            public void subscribe(@NotNull ObservableEmitter<LocBookShelf> e) throws Exception {
                 MessageDigest md = MessageDigest.getInstance("MD5");
                 FileInputStream in = new FileInputStream(book);
                 byte[] buffer = new byte[2048];

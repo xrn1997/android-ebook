@@ -42,4 +42,5 @@ dependencies {
     testImplementation rootProject.ext.support["junit"]
     androidTestImplementation rootProject.ext.support["ext:junit"]
     androidTestImplementation rootProject.ext.support["espresso-core"]
+    api rootProject.ext.dependencies["permissionx.guolindev:permissionx"]
 }

@@ -33,6 +33,5 @@
         android:theme="@style/AppTheme"
         android:name="com.ebook.MyApplication"
         android:usesCleartextTraffic="true"
-        tools:targetApi="n"></application>
-
+        tools:targetApi="n" />
 </manifest>
