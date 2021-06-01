@@ -52,27 +52,17 @@ public class RxAdapter {
 
     public static SingleTransformer singleExceptionTransformer() {
 
-        return new SingleTransformer() {
-            @Override
-            public SingleSource apply(Single observable) {
-                return observable
-                        .map(new HandleFuc())  //这里可以取出BaseResponse中的Result
-                        .onErrorResumeNext(new HttpResponseFunc());
-            }
-        };
+        return observable -> observable
+                .map(new HandleFuc())  //这里可以取出BaseResponse中的Result
+                .onErrorResumeNext(new HttpResponseFunc());
     }
 
     /**
      * 线程调度器
      */
     public static ObservableTransformer schedulersTransformer() {
-        return new ObservableTransformer() {
-            @Override
-            public ObservableSource apply(Observable upstream) {
-                return upstream.subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread());
-            }
-        };
+        return upstream -> upstream.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread());
     }
 
     /**
@@ -80,14 +70,9 @@ public class RxAdapter {
      */
     public static ObservableTransformer exceptionTransformer() {
 
-        return new ObservableTransformer() {
-            @Override
-            public ObservableSource apply(Observable observable) {
-                return observable
-                        .map(new HandleFuc())  //这里可以取出BaseResponse中的Result
-                        .onErrorResumeNext(new HttpResponseFunc());
-            }
-        };
+        return observable -> observable
+                .map(new HandleFuc())  //这里可以取出BaseResponse中的Result
+                .onErrorResumeNext(new HttpResponseFunc());
     }
 
     private static class HttpResponseFunc<T> implements Function<Throwable, Observable<T>> {

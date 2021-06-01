@@ -593,9 +593,9 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
 //        if (showCheckPremission && mPresenter.getOpen_from() == ReadBookPresenterImpl.OPEN_FROM_OTHER && !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !PremissionCheck.checkPremission(this,
 //                Manifest.permission.WRITE_EXTERNAL_STORAGE))) {
 //            showCheckPremission = true;
-        if(mPresenter.getOpen_from() == ReadBookPresenterImpl.OPEN_FROM_OTHER){
+/*        if(mPresenter.getOpen_from() == ReadBookPresenterImpl.OPEN_FROM_OTHER){
             mPresenter.openBookFromOther(this);
-        }
+        }*/
 //        }
     }
 

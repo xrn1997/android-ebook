@@ -124,7 +124,7 @@ public class BookCommentsViewModel extends BaseRefreshViewModel<Comment, BookCom
 
     }
 
-    public void deleteComent(Long id) {
+    public void deleteComment(Long id) {
         mModel.deleteComment(id).subscribe(new Observer<RespDTO<Integer>>() {
             @Override
             public void onSubscribe(Disposable d) {

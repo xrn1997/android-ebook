@@ -86,7 +86,7 @@ public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBi
             @Override
             public boolean onItemLongClick(Comment comment, int postion) {
                 DeleteDialog deleteDialog = DeleteDialog.newInstance();
-                deleteDialog.setOnClickLisener(new DeleteDialog.OnDeleteClickLisener() {
+                deleteDialog.setOnClickListener(new DeleteDialog.OnDeleteClickListener() {
                     @Override
                     public void onItemClick() {
                         mViewModel.deleteComent(comment.getId());

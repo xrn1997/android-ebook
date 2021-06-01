@@ -54,7 +54,7 @@ public class ImportBookModelImpl extends MBaseModelImpl implements IImportBookMo
                 String md5 = new BigInteger(1, md.digest()).toString(16);
                 BookShelf bookShelf = null;
                 List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().where(BookShelfDao.Properties.NoteUrl.eq(md5)).build().list();
-                Boolean isNew = true;
+                boolean isNew = true;
                 if (temp != null && temp.size() > 0) {
                     isNew = false;
                     bookShelf = temp.get(0);

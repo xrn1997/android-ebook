@@ -81,10 +81,10 @@ public class BookCommentsActivity extends BaseMvvmRefreshActivity<ActivityBookCo
                 String username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME);
                 if (comment.getUser().getUsername().equals(username)) {
                     DeleteDialog deleteDialog = DeleteDialog.newInstance();
-                    deleteDialog.setOnClickLisener(new DeleteDialog.OnDeleteClickLisener() {
+                    deleteDialog.setOnClickListener(new DeleteDialog.OnDeleteClickListener() {
                         @Override
                         public void onItemClick() {
-                            mViewModel.deleteComent(comment.getId());
+                            mViewModel.deleteComment(comment.getId());
                         }
                     });
                     deleteDialog.show(getSupportFragmentManager(), "deleteDialog");

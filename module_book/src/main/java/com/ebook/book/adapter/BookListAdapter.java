@@ -30,22 +30,16 @@ public class BookListAdapter extends BaseBindAdapter<BookShelf, AdapterBookListI
     @Override
     protected void onBindItem(AdapterBookListItemBinding binding, BookShelf item, int position) {
         binding.setBookshelf(item);
-        binding.viewBookDetail.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (mItemClickListener != null) {
-                    mItemClickListener.onItemClick(item, position);
-                }
+        binding.viewBookDetail.setOnClickListener(view -> {
+            if (mItemClickListener != null) {
+                mItemClickListener.onItemClick(item, position);
             }
         });
-        binding.viewBookDetail.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                if (mOnItemLongClickListener != null) {
-                    mOnItemLongClickListener.onItemLongClick(item, position);
-                }
-                return true;
+        binding.viewBookDetail.setOnLongClickListener(v -> {
+            if (mOnItemLongClickListener != null) {
+                mOnItemLongClickListener.onItemLongClick(item, position);
             }
+            return true;
         });
     }
 

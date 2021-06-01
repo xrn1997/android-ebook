@@ -21,8 +21,8 @@ import com.ebook.login.mvvm.viewmodel.LoginViewModel;
 
 public class SplashActivity extends BaseMvvmActivity<ViewDataBinding, LoginViewModel> {
     private Button mBtnSkip;
-    private Handler mHandler = new Handler();
-    private Runnable mRunnableToMain = new Runnable() {
+    private final Handler mHandler = new Handler();
+    private final Runnable mRunnableToMain = new Runnable() {
         @Override
         public void run() {
             startMainActivity();

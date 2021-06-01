@@ -72,7 +72,7 @@ ext {
 
             "lovetuzitong:MultiImageSelector"    : "com.github.lovetuzitong:MultiImageSelector:1.2",
             // 安卓工具类 https://github.com/Blankj/AndroidUtilCode
-            "blankj:utilcode"                    : "com.blankj:utilcodex:1.27.4",
+            "blankj:utilcode"                    : "com.blankj:utilcodex:1.30.6",
             //权限 Permissionx
             "permissionx.guolindev:permissionx": 'com.permissionx.guolindev:permissionx:1.4.0'
     ]

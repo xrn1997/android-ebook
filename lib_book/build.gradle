@@ -39,7 +39,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     api project(':lib_common')
     api rootProject.ext.support["appcompat"]
-    testImplementation rootProject.ext.support["junit"]
+    testImplementation 'junit:junit:4.13.2'
     androidTestImplementation rootProject.ext.support["ext:junit"]
     androidTestImplementation rootProject.ext.support["espresso-core"]
     api rootProject.ext.dependencies["permissionx.guolindev:permissionx"]

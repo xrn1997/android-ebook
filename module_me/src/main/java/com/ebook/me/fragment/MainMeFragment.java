@@ -1,6 +1,5 @@
 package com.ebook.me.fragment;
 
-import android.content.Intent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -15,7 +14,6 @@ import com.ebook.common.event.RxBusTag;
 import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
 import com.ebook.common.mvvm.BaseFragment;
 import com.ebook.common.view.SettingBarView;
-import com.ebook.me.MyCommentActivity;
 import com.ebook.me.R;
 import com.ebook.common.view.profilePhoto.CircleImageView;
 import com.hwangjr.rxbus.annotation.Subscribe;
@@ -100,7 +98,7 @@ public class MainMeFragment extends BaseFragment {
                     @Tag(RxBusTag.MODIFY_PROFIE_PICTURE)
             }
     )
-    public void setProfiePicture(String path) {
+    public void setProfilePicture(String path) {
         Glide.with(mActivity)
                 .load(API.URL_HOST_USER + "user/image/" + path)
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
@@ -125,7 +123,7 @@ public class MainMeFragment extends BaseFragment {
             //已登录，显示昵称
             mTextView.setVisibility(View.VISIBLE);
             mButton.setVisibility(View.GONE);
-            setProfiePicture(SPUtils.getInstance().getString(KeyCode.Login.SP_IMAGE));
+            setProfilePicture(SPUtils.getInstance().getString(KeyCode.Login.SP_IMAGE));
             mTextView.setText(SPUtils.getInstance().getString(KeyCode.Login.SP_NICKNAME));
         }
     }

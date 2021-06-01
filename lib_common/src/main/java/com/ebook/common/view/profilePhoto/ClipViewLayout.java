@@ -39,9 +39,9 @@ public class ClipViewLayout extends RelativeLayout {
     //裁剪框垂直方向间距，计算得出
     private float mVerticalPadding;
     //图片缩放、移动操作矩阵
-    private Matrix matrix = new Matrix();
+    private final Matrix matrix = new Matrix();
     //图片原来已经缩放、移动过的操作矩阵
-    private Matrix savedMatrix = new Matrix();
+    private final Matrix savedMatrix = new Matrix();
     //动作标志：无
     private static final int NONE = 0;
     //动作标志：拖动
@@ -117,7 +117,7 @@ public class ClipViewLayout extends RelativeLayout {
         observer.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             public void onGlobalLayout() {
                 initSrcPic(uri);
-                imageView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+                imageView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
             }
         });
     }

@@ -74,8 +74,8 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
     @Override
     public void initView(View view) {
         downloadListPop = new DownloadListPop(mActivity);
-        ibAdd = (ImageButton) view.findViewById(R.id.ib_add);
-        ibDownload = (ImageButton) view.findViewById(R.id.ib_download);
+        ibAdd = view.findViewById(R.id.ib_add);
+        ibDownload = view.findViewById(R.id.ib_download);
         mBookListAdatper = new BookListAdapter(mActivity, mViewModel.getList());
         mViewModel.getList().addOnListChangedCallback(ObservableListUtil.getListChangedCallback(mBookListAdatper));
         mBinding.recview.setAdapter(mBookListAdatper);

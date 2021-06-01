@@ -16,17 +16,17 @@ import androidx.annotation.Nullable;
 public class DeleteDialog extends BottomSheetDialogFragment implements View.OnClickListener {
 
     public static final String TAG = DeleteDialog.class.getSimpleName();
-    private OnDeleteClickLisener mOnClickLisener;
+    private OnDeleteClickListener mOnClickListener;
 
-    public void setOnClickLisener(OnDeleteClickLisener onDeleteClickLisener) {
-        mOnClickLisener = onDeleteClickLisener;
+    public void setOnClickListener(OnDeleteClickListener onDeleteClickListener) {
+        mOnClickListener = onDeleteClickListener;
     }
 
     public static DeleteDialog newInstance() {
         return new DeleteDialog();
     }
 
-    public interface OnDeleteClickLisener {
+    public interface OnDeleteClickListener {
         void onItemClick();
 
     }
@@ -53,8 +53,8 @@ public class DeleteDialog extends BottomSheetDialogFragment implements View.OnCl
     public void onClick(View v) {
         int i = v.getId();
         if (i == R.id.btn_delete) {
-            if (mOnClickLisener != null) {
-                mOnClickLisener.onItemClick();
+            if (mOnClickListener != null) {
+                mOnClickListener.onItemClick();
             }
             dismiss();
         } else if (i == R.id.btn_cancel) {

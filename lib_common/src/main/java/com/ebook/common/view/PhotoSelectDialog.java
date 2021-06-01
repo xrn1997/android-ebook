@@ -27,19 +27,19 @@ import me.nereo.multi_image_selector.MultiImageSelectorActivity;
 public class PhotoSelectDialog extends BottomSheetDialogFragment implements View.OnClickListener {
 
     public static final String TAG = PhotoSelectDialog.class.getSimpleName();
-    private OnPhotoClickLisener mOnClickLisener;
+    private OnPhotoClickListener mOnClickListener;
     private String mPhotoPath;
 
-    public void setOnClickLisener(OnPhotoClickLisener onPhotoClickLisener) {
-        mOnClickLisener = onPhotoClickLisener;
+    public void setOnClickListener(OnPhotoClickListener onPhotoClickLisener) {
+        mOnClickListener = onPhotoClickLisener;
     }
 
     public static PhotoSelectDialog newInstance() {
         return new PhotoSelectDialog();
     }
 
-    public interface OnPhotoClickLisener {
-        void onTakePhototClick(String path);
+    public interface OnPhotoClickListener {
+        void onTakePhotoClick(String path);
 
         void onSelectPhotoClick(List<String> list);
     }
@@ -56,11 +56,11 @@ public class PhotoSelectDialog extends BottomSheetDialogFragment implements View
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_photo_select, container, false);
         Button btnSelectPhoto = (Button) view.findViewById(R.id.btn_select_photo);
-        Button btnTakephoto = (Button) view.findViewById(R.id.btn_take_photo);
+        Button btnTakePhoto = (Button) view.findViewById(R.id.btn_take_photo);
         Button btnCancel = (Button) view.findViewById(R.id.btn_cancel);
 
         btnSelectPhoto.setOnClickListener(this);
-        btnTakephoto.setOnClickListener(this);
+        btnTakePhoto.setOnClickListener(this);
         btnCancel.setOnClickListener(this);
         return view;
     }
@@ -87,16 +87,16 @@ public class PhotoSelectDialog extends BottomSheetDialogFragment implements View
             case MultiMediaUtil.SELECT_IMAGE:
                 if (resultCode == Activity.RESULT_OK) {
                     List<String> path = data.getStringArrayListExtra(MultiImageSelectorActivity.EXTRA_RESULT);
-                    if (mOnClickLisener != null) {
-                        mOnClickLisener.onSelectPhotoClick(path);
+                    if (mOnClickListener != null) {
+                        mOnClickListener.onSelectPhotoClick(path);
                     }
                     dismiss();
                 }
                 break;
             case MultiMediaUtil.TAKE_PHONE:
                 Log.v(TAG, "img path:" + mPhotoPath);
-                if (mOnClickLisener != null) {
-                    mOnClickLisener.onTakePhototClick(mPhotoPath);
+                if (mOnClickListener != null) {
+                    mOnClickListener.onTakePhotoClick(mPhotoPath);
                 }
                 dismiss();
                 break;
