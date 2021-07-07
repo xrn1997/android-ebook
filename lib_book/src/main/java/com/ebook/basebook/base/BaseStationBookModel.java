@@ -1,6 +1,7 @@
 
-package com.ebook.basebook.mvp.model;
+package com.ebook.basebook.base;
 
+import com.ebook.basebook.mvp.model.OnGetChapterListListener;
 import com.ebook.db.entity.BookContent;
 import com.ebook.db.entity.BookShelf;
 import com.ebook.db.entity.SearchBook;
@@ -10,7 +11,7 @@ import java.util.List;
 
 import io.reactivex.Observable;
 
-public interface IStationBookModel {
+public interface BaseStationBookModel {
 
     /**
      * 搜索书籍

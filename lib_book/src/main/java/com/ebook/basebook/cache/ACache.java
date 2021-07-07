@@ -7,7 +7,7 @@ import android.content.SharedPreferences;
  * 本地缓存   因本缓存只缓存书库主页 所以使用SP有条件可以替换成别的
  */
 public class ACache {
-    private SharedPreferences preference;
+    private final SharedPreferences preference;
 
     private ACache(Context ctx) {
         preference = ctx.getSharedPreferences("ACache", 0);

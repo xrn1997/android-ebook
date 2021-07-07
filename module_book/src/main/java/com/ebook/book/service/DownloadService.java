@@ -48,7 +48,7 @@ import io.reactivex.schedulers.Schedulers;
 
 public class DownloadService extends Service {
     private NotificationManager notifyManager;
-    private int notifiId = 19931118;
+    private final int notifiId = 19931118;
     private Boolean isStartDownload = false;
     private Boolean isInit = false;
 

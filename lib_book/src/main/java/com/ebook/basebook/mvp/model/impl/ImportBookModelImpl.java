@@ -2,7 +2,7 @@
 package com.ebook.basebook.mvp.model.impl;
 
 
-import com.ebook.basebook.mvp.model.IImportBookModel;
+import com.ebook.basebook.mvp.model.ImportBookModel;
 import com.ebook.basebook.base.impl.MBaseModelImpl;
 import com.ebook.db.GreenDaoManager;
 import com.ebook.db.entity.BookInfoDao;
@@ -30,7 +30,7 @@ import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 
-public class ImportBookModelImpl extends MBaseModelImpl implements IImportBookModel {
+public class ImportBookModelImpl extends MBaseModelImpl implements ImportBookModel {
 
     public static ImportBookModelImpl getInstance() {
         return new ImportBookModelImpl();

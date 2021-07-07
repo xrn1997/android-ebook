@@ -8,6 +8,7 @@ import retrofit2.http.Query;
 import retrofit2.http.Url;
 
 public interface IGxwztvApi {
+    String URL = "https://www.ztv.la";
 
     @GET
     @Headers({"Accept:text/html,application/xhtml+xml,application/xml",

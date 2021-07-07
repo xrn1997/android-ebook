@@ -4,17 +4,17 @@ if (isLoginModule.toBoolean()) {
     apply plugin: 'com.android.library'
 }
 android {
-    compileSdkVersion rootProject.ext.android.compileSdkVersion
-    buildToolsVersion rootProject.ext.android.buildToolsVersion
+    compileSdkVersion 30
+    buildToolsVersion '30.0.3'
     defaultConfig {
         //如果是独立模块，则使用当前组件的包名
         if (isLoginModule.toBoolean()) {
             applicationId "com.ebook.login"
         }
-        minSdkVersion rootProject.ext.android.minSdkVersion
-        targetSdkVersion rootProject.ext.android.targetSdkVersion
-        versionCode rootProject.ext.android.versionCode
-        versionName rootProject.ext.android.versionName
+        minSdkVersion 23
+        targetSdkVersion 30
+        versionCode 1
+        versionName '1.0'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         javaCompileOptions {
             annotationProcessorOptions {
@@ -49,18 +49,19 @@ android {
         dataBinding=true;
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 }
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_common')
 
-    annotationProcessor rootProject.ext.dependencies["alibaba:arouter-compiler"]
-    annotationProcessor rootProject.ext.dependencies["dagger:dagger-compiler"]
+    annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
+    //Dagger
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.33'
 
-    testImplementation rootProject.ext.support["junit"]
-    androidTestImplementation rootProject.ext.support["ext:junit"]
-    androidTestImplementation rootProject.ext.support["espresso-core"]
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }

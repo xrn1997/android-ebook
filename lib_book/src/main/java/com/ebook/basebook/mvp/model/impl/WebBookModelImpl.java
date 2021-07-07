@@ -1,7 +1,9 @@
 package com.ebook.basebook.mvp.model.impl;
 
 
-import com.ebook.basebook.mvp.model.IWebBookModel;
+import com.ebook.api.config.IGxwztvApi;
+import com.ebook.basebook.mvp.model.StationBookModel;
+import com.ebook.basebook.mvp.model.WebBookModel;
 import com.ebook.basebook.mvp.model.OnGetChapterListListener;
 import com.ebook.db.entity.BookContent;
 import com.ebook.db.entity.BookShelf;
@@ -11,13 +13,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
-import io.reactivex.ObservableOnSubscribe;
 
-public class WebBookModelImpl implements IWebBookModel {
+public class WebBookModelImpl implements WebBookModel {
+    private final StationBookModel stationBookModel;
+
+    public WebBookModelImpl(StationBookModel iStationBookModel) {
+        this.stationBookModel = iStationBookModel;
+    }
 
     public static WebBookModelImpl getInstance() {
-        return new WebBookModelImpl();
+        return new WebBookModelImpl(GxwztvBookModelImpl.getInstance());
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -28,8 +33,8 @@ public class WebBookModelImpl implements IWebBookModel {
      */
     @Override
     public Observable<BookShelf> getBookInfo(BookShelf bookShelf) {
-        if (bookShelf.getTag().equals(GxwztvBookModelImpl.TAG)) {
-            return GxwztvBookModelImpl.getInstance().getBookInfo(bookShelf);
+        if (bookShelf.getTag().equals(IGxwztvApi.URL)) {
+            return stationBookModel.getBookInfo(bookShelf);
         } else {
             return null;
         }
@@ -43,8 +48,8 @@ public class WebBookModelImpl implements IWebBookModel {
      */
     @Override
     public void getChapterList(final BookShelf bookShelf, OnGetChapterListListener getChapterListListener) {
-        if (bookShelf.getTag().equals(GxwztvBookModelImpl.TAG)) {
-            GxwztvBookModelImpl.getInstance().getChapterList(bookShelf, getChapterListListener);
+        if (bookShelf.getTag().equals(IGxwztvApi.URL)) {
+            stationBookModel.getChapterList(bookShelf, getChapterListListener);
         } else {
             if (getChapterListListener != null)
                 getChapterListListener.success(bookShelf);
@@ -58,15 +63,12 @@ public class WebBookModelImpl implements IWebBookModel {
      */
     @Override
     public Observable<BookContent> getBookContent(String durChapterUrl, int durChapterIndex, String tag) {
-        if (tag.equals(GxwztvBookModelImpl.TAG)) {
-            return GxwztvBookModelImpl.getInstance().getBookContent(durChapterUrl, durChapterIndex);
+        if (tag.equals(IGxwztvApi.URL)) {
+            return stationBookModel.getBookContent(durChapterUrl, durChapterIndex);
         } else
-            return Observable.create(new ObservableOnSubscribe<BookContent>() {
-                @Override
-                public void subscribe(ObservableEmitter<BookContent> e) throws Exception {
-                    e.onNext(new BookContent());
-                    e.onComplete();
-                }
+            return Observable.create(e -> {
+                e.onNext(new BookContent());
+                e.onComplete();
             });
     }
 
@@ -75,15 +77,12 @@ public class WebBookModelImpl implements IWebBookModel {
      */
     @Override
     public Observable<List<SearchBook>> searchOtherBook(String content, int page, String tag) {
-        if (tag.equals(GxwztvBookModelImpl.TAG)) {
-            return GxwztvBookModelImpl.getInstance().searchBook(content, page);
+        if (tag.equals(IGxwztvApi.URL)) {
+            return stationBookModel.searchBook(content, page);
         } else {
-            return Observable.create(new ObservableOnSubscribe<List<SearchBook>>() {
-                @Override
-                public void subscribe(ObservableEmitter<List<SearchBook>> e) throws Exception {
-                    e.onNext(new ArrayList<SearchBook>());
-                    e.onComplete();
-                }
+            return Observable.create(e -> {
+                e.onNext(new ArrayList<>());
+                e.onComplete();
             });
         }
     }
@@ -93,6 +92,6 @@ public class WebBookModelImpl implements IWebBookModel {
      */
     @Override
     public Observable<List<SearchBook>> getKindBook(String url, int page) {
-        return GxwztvBookModelImpl.getInstance().getKindBook(url, page);
+        return stationBookModel.getKindBook(url, page);
     }
 }

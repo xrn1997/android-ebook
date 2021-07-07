@@ -1,13 +1,11 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion rootProject.ext.android.compileSdkVersion
-    buildToolsVersion rootProject.ext.android.buildToolsVersion
+    compileSdkVersion 30
+    buildToolsVersion '30.0.3'
     defaultConfig {
-        minSdkVersion rootProject.ext.android.minSdkVersion
-        targetSdkVersion rootProject.ext.android.targetSdkVersion
-        versionCode rootProject.ext.android.versionCode
-        versionName rootProject.ext.android.versionName
+        minSdkVersion 23
+        targetSdkVersion 30
     }
     sourceSets {
         main {
@@ -29,38 +27,38 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 }
 
 dependencies {
     api fileTree(include: ['*.jar'], dir: 'libs')
-    api rootProject.ext.support["appcompat"]
-    api rootProject.ext.support["annotations"]
+    api 'androidx.appcompat:appcompat:1.3.0'
+    api 'org.jetbrains:annotations:15.0'
 
     //network
-    api rootProject.ext.dependencies["retrofit2"]
-    api rootProject.ext.dependencies["retrofit2:adapter-rxjava2"]
-    api rootProject.ext.dependencies["retrofit2:converter-gson"]
+    api 'com.squareup.retrofit2:converter-scalars:2.9.0'
+    api 'com.squareup.retrofit2:adapter-rxjava2:2.9.0'
+    api 'com.squareup.retrofit2:converter-gson:2.9.0'
     api 'com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.2'
 
     //json解析
-    api rootProject.ext.dependencies["gson"]
+    api 'com.google.code.gson:gson:2.8.6'
     //rx管理View的生命周期
-    api(rootProject.ext.dependencies["rxlifecycle3:rxlifecycle"]) {
+    api('com.trello.rxlifecycle3:rxlifecycle:3.1.0') {
         exclude group: 'com.android.support'
     }
-    api(rootProject.ext.dependencies["rxlifecycle3:rxlifecycle-components"]) {
+    api('com.trello.rxlifecycle3:rxlifecycle-components:3.1.0') {
         exclude group: 'com.android.support'
     }
-    api(rootProject.ext.dependencies["rxlifecycle3:rxlifecycle-android"]) {
+    api('com.trello.rxlifecycle3:rxlifecycle-android:3.1.0') {
         exclude group: 'com.android.support'
     }
 
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation rootProject.ext.support["ext:junit"]
-    androidTestImplementation rootProject.ext.support["espresso-core"]
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 
-    api rootProject.ext.dependencies["retrofit2:converter-scalars"]
+    api 'com.squareup.retrofit2:converter-scalars:2.9.0'
 }

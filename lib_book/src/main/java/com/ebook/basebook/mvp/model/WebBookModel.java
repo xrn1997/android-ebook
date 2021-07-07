@@ -8,7 +8,7 @@ import java.util.List;
 
 import io.reactivex.Observable;
 
-public interface IWebBookModel {
+public interface WebBookModel {
     /**
      * 网络请求并解析书籍信息
      */

@@ -7,7 +7,7 @@ import java.io.File;
 
 import io.reactivex.Observable;
 
-public interface IImportBookModel {
+public interface ImportBookModel {
 
     Observable<LocBookShelf> importBook(File book);
 }

@@ -5,19 +5,16 @@ android {
             applicationId "com.ebook.find"
         }
     }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
 }
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_common')
     implementation project(':lib_book')
-    annotationProcessor rootProject.ext.dependencies["alibaba:arouter-compiler"]
-    annotationProcessor rootProject.ext.dependencies["dagger:dagger-compiler"]
+    annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
+    //Dagger
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.33'
 
-    testImplementation rootProject.ext.support["junit"]
-    androidTestImplementation rootProject.ext.support["ext:junit"]
-    androidTestImplementation rootProject.ext.support["espresso-core"]
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }

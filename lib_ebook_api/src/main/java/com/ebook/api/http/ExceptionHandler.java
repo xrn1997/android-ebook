@@ -64,10 +64,6 @@ public class ExceptionHandler {
             ex = new ResponseThrowable(e, SYSTEM_ERROR.SSL_ERROR);
             ex.message = "证书验证失败";
             return ex;
-        } else if (e instanceof ConnectTimeoutException) {
-            ex = new ResponseThrowable(e, SYSTEM_ERROR.TIMEOUT_ERROR);
-            ex.message = "连接超时";
-            return ex;
         } else if (e instanceof java.net.SocketTimeoutException) {
             ex = new ResponseThrowable(e, SYSTEM_ERROR.TIMEOUT_ERROR);
             ex.message = "连接超时";
@@ -84,7 +80,7 @@ public class ExceptionHandler {
 
     }
 
-    public class SYSTEM_ERROR {
+    public static class SYSTEM_ERROR {
         public static final int UNAUTHORIZED = 401;
         public static final int FORBIDDEN = 403;
         public static final int NOT_FOUND = 404;

@@ -152,7 +152,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
             if (mRefreshing) {
                 if (mNotify) {
                     if (usingDefaultHeader) {
-                        ViewCompat.setAlpha(defaultProgressView, 1.0f);
+                        defaultProgressView.setAlpha(1.0f);
                         defaultProgressView.setOnDraw(true);
                         new Thread(defaultProgressView).start();
                     }
@@ -392,8 +392,8 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
         if (!usingDefaultHeader) {
             progress = 1;
         }
-        ViewCompat.setScaleX(mHeadViewContainer, progress);
-        ViewCompat.setScaleY(mHeadViewContainer, progress);
+        mHeadViewContainer.setScaleX(progress);
+        mHeadViewContainer.setScaleY(progress);
     }
 
     private void setRefreshing(boolean refreshing, final boolean notify) {
@@ -552,7 +552,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
                 return !(mTarget.getScrollY() > 0);
             }
         } else {
-            return !ViewCompat.canScrollVertically(mTarget, -1);
+            return !mTarget.canScrollVertically(-1);
         }
     }
 
@@ -632,8 +632,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         ensureTarget();
 
-        final int action = MotionEventCompat.getActionMasked(ev);
-
+        final int action = ev.getActionMasked();
         if (mReturningToStart && action == MotionEvent.ACTION_DOWN) {
             mReturningToStart = false;
         }
@@ -649,7 +648,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
             case MotionEvent.ACTION_DOWN:
                 setTargetOffsetTopAndBottom(
                         mOriginalOffsetTop - mHeadViewContainer.getTop(), true);// 恢复HeaderView的初始位置
-                mActivePointerId = MotionEventCompat.getPointerId(ev, 0);
+                mActivePointerId = ev.getPointerId(0);
                 mIsBeingDragged = false;
                 final float initialMotionY = getMotionEventY(ev, mActivePointerId);
                 if (initialMotionY == -1) {
@@ -682,7 +681,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
                 }
                 break;
 
-            case MotionEventCompat.ACTION_POINTER_UP:
+            case MotionEvent.ACTION_POINTER_UP:
                 onSecondaryPointerUp(ev);
                 break;
 
@@ -697,12 +696,12 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
     }
 
     private float getMotionEventY(MotionEvent ev, int activePointerId) {
-        final int index = MotionEventCompat.findPointerIndex(ev,
+        final int index = ev.findPointerIndex(
                 activePointerId);
         if (index < 0) {
             return -1;
         }
-        return MotionEventCompat.getY(ev, index);
+        return ev.getY(index);
     }
 
     @Override
@@ -712,7 +711,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
-        final int action = MotionEventCompat.getActionMasked(ev);
+        final int action = ev.getActionMasked();
 
         if (mReturningToStart && action == MotionEvent.ACTION_DOWN) {
             mReturningToStart = false;
@@ -733,12 +732,12 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
     protected boolean handlerPullTouchEvent(MotionEvent ev, int action) {
         switch (action) {
             case MotionEvent.ACTION_DOWN:
-                mActivePointerId = MotionEventCompat.getPointerId(ev, 0);
+                mActivePointerId = ev.getPointerId(0);
                 mIsBeingDragged = false;
                 break;
 
             case MotionEvent.ACTION_MOVE: {
-                final int pointerIndex = MotionEventCompat.findPointerIndex(ev,
+                final int pointerIndex = ev.findPointerIndex(
                         mActivePointerId);
                 if (pointerIndex < 0) {
                     Log.e(LOG_TAG,
@@ -798,13 +797,13 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
                 }
                 break;
             }
-            case MotionEventCompat.ACTION_POINTER_DOWN: {
+            case MotionEvent.ACTION_POINTER_DOWN: {
                 final int index = MotionEventCompat.getActionIndex(ev);
                 mActivePointerId = MotionEventCompat.getPointerId(ev, index);
                 break;
             }
 
-            case MotionEventCompat.ACTION_POINTER_UP:
+            case MotionEvent.ACTION_POINTER_UP:
                 onSecondaryPointerUp(ev);
                 break;
 
@@ -817,9 +816,8 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
                     }
                     return false;
                 }
-                final int pointerIndex = MotionEventCompat.findPointerIndex(ev,
-                        mActivePointerId);
-                final float y = MotionEventCompat.getY(ev, pointerIndex);
+                final int pointerIndex = ev.findPointerIndex(mActivePointerId);
+                final float y = ev.getY(pointerIndex);
                 final float overscrollTop = (y - mInitialMotionY) * DRAG_RATE;
                 mIsBeingDragged = false;
                 if (overscrollTop > mTotalDragDistance) {
@@ -867,19 +865,19 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
     protected boolean handlerPushTouchEvent(MotionEvent ev, int action) {
         switch (action) {
             case MotionEvent.ACTION_DOWN:
-                mActivePointerId = MotionEventCompat.getPointerId(ev, 0);
+                mActivePointerId = ev.getPointerId(0);
                 mIsBeingDragged = false;
                 Log.d(LOG_TAG, "debug:onTouchEvent ACTION_DOWN");
                 break;
             case MotionEvent.ACTION_MOVE: {
-                final int pointerIndex = MotionEventCompat.findPointerIndex(ev,
+                final int pointerIndex = ev.findPointerIndex(
                         mActivePointerId);
                 if (pointerIndex < 0) {
                     Log.e(LOG_TAG,
                             "Got ACTION_MOVE event but have an invalid active pointer id.");
                     return false;
                 }
-                final float y = MotionEventCompat.getY(ev, pointerIndex);
+                final float y = ev.getY( pointerIndex);
                 final float overscrollBottom = (mInitialMotionY - y) * DRAG_RATE;
                 if (mIsBeingDragged) {
                     pushDistance = (int) overscrollBottom;
@@ -891,13 +889,13 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
                 }
                 break;
             }
-            case MotionEventCompat.ACTION_POINTER_DOWN: {
-                final int index = MotionEventCompat.getActionIndex(ev);
-                mActivePointerId = MotionEventCompat.getPointerId(ev, index);
+            case MotionEvent.ACTION_POINTER_DOWN: {
+                final int index = ev.getActionIndex();
+                mActivePointerId = ev.getPointerId(index);
                 break;
             }
 
-            case MotionEventCompat.ACTION_POINTER_UP:
+            case MotionEvent.ACTION_POINTER_UP:
                 onSecondaryPointerUp(ev);
                 break;
 
@@ -910,9 +908,8 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
                     }
                     return false;
                 }
-                final int pointerIndex = MotionEventCompat.findPointerIndex(ev,
-                        mActivePointerId);
-                final float y = MotionEventCompat.getY(ev, pointerIndex);
+                final int pointerIndex = ev.findPointerIndex(mActivePointerId);
+                final float y = ev.getY(pointerIndex);
                 final float overscrollBottom = (mInitialMotionY - y) * DRAG_RATE;// 松手是下拉的距离
                 mIsBeingDragged = false;
                 mActivePointerId = INVALID_POINTER;
@@ -1102,7 +1099,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
     private void startScaleDownReturnToStartAnimation(int from,
                                                       AnimationListener listener) {
         mFrom = from;
-        mStartingScale = ViewCompat.getScaleX(mHeadViewContainer);
+        mStartingScale = mHeadViewContainer.getScaleX();
         mScaleDownToStartAnimation = new Animation() {
             @Override
             public void applyTransformation(float interpolatedTime,
@@ -1144,11 +1141,11 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
     }
 
     private void onSecondaryPointerUp(MotionEvent ev) {
-        final int pointerIndex = MotionEventCompat.getActionIndex(ev);
-        final int pointerId = MotionEventCompat.getPointerId(ev, pointerIndex);
+        final int pointerIndex = ev.getActionIndex();
+        final int pointerId = ev.getPointerId(pointerIndex);
         if (pointerId == mActivePointerId) {
             final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
-            mActivePointerId = MotionEventCompat.getPointerId(ev,
+            mActivePointerId = ev.getPointerId(
                     newPointerIndex);
         }
     }

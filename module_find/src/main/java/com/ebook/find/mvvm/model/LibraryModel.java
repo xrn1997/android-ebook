@@ -43,7 +43,7 @@ public class LibraryModel extends BaseModel {
         }).flatMap(new Function<String, ObservableSource<Library>>() {
             @Override
             public ObservableSource<Library> apply(String s) throws Exception {
-                return GxwztvBookModelImpl.getInstance().analyLibraryData(s);
+                return GxwztvBookModelImpl.getInstance().analyzeLibraryData(s);
             }
         })
                 .subscribeOn(Schedulers.io())

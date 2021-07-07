@@ -1,6 +1,7 @@
 
 package com.ebook.basebook.mvp.model;
 
+import com.ebook.basebook.base.BaseStationBookModel;
 import com.ebook.basebook.cache.ACache;
 import com.ebook.db.entity.Library;
 import com.ebook.db.entity.SearchBook;
@@ -10,8 +11,10 @@ import java.util.List;
 
 import io.reactivex.Observable;
 
-public interface IGxwztvBookModel extends IStationBookModel {
-
+public interface StationBookModel extends BaseStationBookModel {
+    /**
+     * 获取分类书籍
+     */
     Observable<List<SearchBook>> getKindBook(String url, int page);
 
     /**
@@ -22,5 +25,5 @@ public interface IGxwztvBookModel extends IStationBookModel {
     /**
      * 解析主页数据
      */
-    Observable<Library> analyLibraryData(String data);
+    Observable<Library> analyzeLibraryData(String data);
 }
