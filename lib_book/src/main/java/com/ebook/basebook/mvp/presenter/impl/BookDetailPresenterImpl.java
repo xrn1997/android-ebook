@@ -5,8 +5,6 @@ import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.ebook.api.config.API;
-import com.ebook.basebook.mvp.model.OnGetChapterListListener;
 import com.ebook.common.BaseApplication;
 import com.ebook.common.event.RxBusTag;
 import com.ebook.basebook.mvp.presenter.IBookDetailPresenter;
@@ -37,7 +35,6 @@ import androidx.annotation.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
@@ -95,7 +92,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
         Observable.create((ObservableOnSubscribe<List<BookShelf>>) e -> {
             List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().list();
             if (temp == null)
-                temp = new ArrayList<BookShelf>();
+                temp = new ArrayList<>();
             e.onNext(temp);
             e.onComplete();
         }).flatMap((Function<List<BookShelf>, ObservableSource<BookShelf>>) bookShelf -> {
@@ -121,22 +118,10 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
         }).subscribeOn(Schedulers.io())
                 .compose(((BaseActivity) mView.getContext()).bindUntilEvent(ActivityEvent.DESTROY))
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<BookShelf>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(@NotNull BookShelf value) {
-                        WebBookModelImpl.getInstance().getChapterList(value, new OnGetChapterListListener() {
-                            @Override
-                            public void success(BookShelf bookShelf) {
-                                mBookShelf = bookShelf;
-                                mView.updateView();
-                            }
-
-                            @Override
-                            public void error() {
-                                mBookShelf = null;
-                                mView.getBookShelfError();
-                            }
-                        });
+                        WebBookModelImpl.getInstance().getChapterList(value);
                     }
 
                     @Override

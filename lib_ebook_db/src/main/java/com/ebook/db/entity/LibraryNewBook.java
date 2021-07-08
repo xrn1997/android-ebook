@@ -4,21 +4,21 @@ public class LibraryNewBook {
     private String name;
     private String url;
     private String tag;
-    private String orgin;
+    private String origin;
 
     public LibraryNewBook(String name, String url, String tag, String orgin) {
         this.name = name;
         this.url = url;
         this.tag = tag;
-        this.orgin = orgin;
+        this.origin = orgin;
     }
 
-    public String getOrgin() {
-        return orgin;
+    public String getOrigin() {
+        return origin;
     }
 
-    public void setOrgin(String orgin) {
-        this.orgin = orgin;
+    public void setOrigin(String origin) {
+        this.origin = origin;
     }
 
     public String getTag() {

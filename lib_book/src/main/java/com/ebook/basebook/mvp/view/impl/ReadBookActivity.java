@@ -58,6 +58,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import androidx.annotation.NonNull;
+
 import me.grantland.widget.AutofitTextView;
 
 public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implements IBookReadView {
@@ -107,7 +108,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
         setContentView(R.layout.activity_bookread);
         PermissionX
                 .init(this)
-                .permissions(Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.READ_EXTERNAL_STORAGE)
+                .permissions(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE)
                 .onExplainRequestReason((scope, deniedList) -> {
                     scope.showRequestReasonDialog(deniedList, "即将重新申请的权限是程序必须依赖的权限(请选择始终)", "我已明白", "取消");
                 })
@@ -401,73 +402,41 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
             }
         });
 
-        tvPre.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                csvBook.setInitData(mPresenter.getBookShelf().getDurChapter() - 1, mPresenter.getBookShelf().getBookInfo().getChapterlist().size(), DBCode.BookContentView.DURPAGEINDEXBEGIN);
-            }
+        tvPre.setOnClickListener(v -> {
+            csvBook.setInitData(
+                    mPresenter.getBookShelf().getDurChapter() - 1,
+                    mPresenter.getBookShelf().getBookInfo().getChapterlist().size(),
+                    DBCode.BookContentView.DURPAGEINDEXBEGIN);
         });
-        tvNext.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                csvBook.setInitData(mPresenter.getBookShelf().getDurChapter() + 1, mPresenter.getBookShelf().getBookInfo().getChapterlist().size(), DBCode.BookContentView.DURPAGEINDEXBEGIN);
-            }
-        });
-
-        llCatalog.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                llMenuTop.startAnimation(menuTopOut);
-                llMenuBottom.startAnimation(menuBottomOut);
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        chapterListView.show(mPresenter.getBookShelf().getDurChapter());
-                    }
-                }, menuTopOut.getDuration());
-            }
+        tvNext.setOnClickListener(v -> {
+            csvBook.setInitData(
+                    mPresenter.getBookShelf().getDurChapter() + 1,
+                    mPresenter.getBookShelf().getBookInfo().getChapterlist().size(),
+                    DBCode.BookContentView.DURPAGEINDEXBEGIN);
         });
 
-        llLight.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                llMenuTop.startAnimation(menuTopOut);
-                llMenuBottom.startAnimation(menuBottomOut);
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        windowLightPop.showAtLocation(flContent, Gravity.BOTTOM, 0, 0);
-                    }
-                }, menuTopOut.getDuration());
-            }
+        llCatalog.setOnClickListener(v -> {
+            llMenuTop.startAnimation(menuTopOut);
+            llMenuBottom.startAnimation(menuBottomOut);
+            new Handler().postDelayed(() -> chapterListView.show(mPresenter.getBookShelf().getDurChapter()), menuTopOut.getDuration());
         });
 
-        llFont.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                llMenuTop.startAnimation(menuTopOut);
-                llMenuBottom.startAnimation(menuBottomOut);
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        fontPop.showAtLocation(flContent, Gravity.BOTTOM, 0, 0);
-                    }
-                }, menuTopOut.getDuration());
-            }
+        llLight.setOnClickListener(v -> {
+            llMenuTop.startAnimation(menuTopOut);
+            llMenuBottom.startAnimation(menuBottomOut);
+            new Handler().postDelayed(() -> windowLightPop.showAtLocation(flContent, Gravity.BOTTOM, 0, 0), menuTopOut.getDuration());
         });
 
-        llSetting.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                llMenuTop.startAnimation(menuTopOut);
-                llMenuBottom.startAnimation(menuBottomOut);
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        moreSettingPop.showAtLocation(flContent, Gravity.BOTTOM, 0, 0);
-                    }
-                }, menuTopOut.getDuration());
-            }
+        llFont.setOnClickListener(v -> {
+            llMenuTop.startAnimation(menuTopOut);
+            llMenuBottom.startAnimation(menuBottomOut);
+            new Handler().postDelayed(() -> fontPop.showAtLocation(flContent, Gravity.BOTTOM, 0, 0), menuTopOut.getDuration());
+        });
+
+        llSetting.setOnClickListener(v -> {
+            llMenuTop.startAnimation(menuTopOut);
+            llMenuBottom.startAnimation(menuBottomOut);
+            new Handler().postDelayed(() -> moreSettingPop.showAtLocation(flContent, Gravity.BOTTOM, 0, 0), menuTopOut.getDuration());
         });
     }
 
@@ -521,7 +490,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
                     }
                 }
             } else {
-                Boolean temp = csvBook.onKeyDown(keyCode, event);
+                boolean temp = csvBook.onKeyDown(keyCode, event);
                 if (temp)
                     return true;
             }
@@ -531,7 +500,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        Boolean temp = csvBook.onKeyUp(keyCode, event);
+        boolean temp = csvBook.onKeyUp(keyCode, event);
         if (temp)
             return true;
         return super.onKeyUp(keyCode, event);
@@ -557,7 +526,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
         ivMenuMore.setVisibility(View.VISIBLE);
     }
 
-   // private Boolean showCheckPremission = false;
+    // private Boolean showCheckPremission = false;
 
 //    @SuppressLint("NewApi")
 //    @Override

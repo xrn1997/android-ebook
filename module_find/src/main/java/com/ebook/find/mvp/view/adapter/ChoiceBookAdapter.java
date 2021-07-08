@@ -14,7 +14,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 
 import com.ebook.basebook.base.activity.BaseActivity;
-import com.ebook.basebook.mvp.model.impl.GxwztvBookModelImpl;
+import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
 import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.basebook.view.refreshview.RefreshRecyclerViewAdapter;
 import com.ebook.db.entity.BookShelf;
@@ -59,7 +59,7 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
         final int realposition = position;
         BookShelf bookShelf = new BookShelf();
         bookShelf.setNoteUrl(searchBooks.get(realposition).getNoteUrl());
-        GxwztvBookModelImpl.getInstance().getBookInfo(bookShelf)
+        WebBookModelImpl.getInstance().getBookInfo(bookShelf)
                 .subscribeOn(Schedulers.io())
                 .compose(((BaseActivity) context).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
                 .observeOn(AndroidSchedulers.mainThread())

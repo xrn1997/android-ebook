@@ -1,97 +1,72 @@
 package com.ebook.basebook.mvp.model.impl;
 
 
-import com.ebook.api.config.IGxwztvApi;
+import com.ebook.basebook.cache.ACache;
 import com.ebook.basebook.mvp.model.StationBookModel;
 import com.ebook.basebook.mvp.model.WebBookModel;
-import com.ebook.basebook.mvp.model.OnGetChapterListListener;
 import com.ebook.db.entity.BookContent;
 import com.ebook.db.entity.BookShelf;
+import com.ebook.db.entity.Library;
 import com.ebook.db.entity.SearchBook;
+import com.ebook.db.entity.WebChapter;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.Observable;
 
 public class WebBookModelImpl implements WebBookModel {
     private final StationBookModel stationBookModel;
+    private volatile static WebBookModel bookModel;
 
     public WebBookModelImpl(StationBookModel iStationBookModel) {
         this.stationBookModel = iStationBookModel;
     }
 
-    public static WebBookModelImpl getInstance() {
-        return new WebBookModelImpl(GxwztvBookModelImpl.getInstance());
+    public static WebBookModel getInstance() {
+        if (bookModel == null) {
+            synchronized (WebBookModelImpl.class) {
+                if (bookModel == null) {
+                    //更换书源只需要修改这一行
+                    bookModel = new WebBookModelImpl(GxwztvBookModelImpl.getInstance());
+                }
+            }
+        }
+        return bookModel;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * 网络请求并解析书籍信息
-     * return BookShelf
-     */
     @Override
     public Observable<BookShelf> getBookInfo(BookShelf bookShelf) {
-        if (bookShelf.getTag().equals(IGxwztvApi.URL)) {
-            return stationBookModel.getBookInfo(bookShelf);
-        } else {
-            return null;
-        }
+        return stationBookModel.getBookInfo(bookShelf);
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * 网络解析图书目录
-     * return BookShelf
-     */
     @Override
-    public void getChapterList(final BookShelf bookShelf, OnGetChapterListListener getChapterListListener) {
-        if (bookShelf.getTag().equals(IGxwztvApi.URL)) {
-            stationBookModel.getChapterList(bookShelf, getChapterListListener);
-        } else {
-            if (getChapterListListener != null)
-                getChapterListListener.success(bookShelf);
-        }
+    public Observable<WebChapter<BookShelf>> getChapterList(final BookShelf bookShelf) {
+        stationBookModel.getChapterList(bookShelf);
+        return null;
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * 章节缓存
-     */
     @Override
-    public Observable<BookContent> getBookContent(String durChapterUrl, int durChapterIndex, String tag) {
-        if (tag.equals(IGxwztvApi.URL)) {
-            return stationBookModel.getBookContent(durChapterUrl, durChapterIndex);
-        } else
-            return Observable.create(e -> {
-                e.onNext(new BookContent());
-                e.onComplete();
-            });
+    public Observable<BookContent> getBookContent(String durChapterUrl, int durChapterIndex) {
+        return stationBookModel.getBookContent(durChapterUrl, durChapterIndex);
     }
 
-    /**
-     * 其他站点集合搜索
-     */
-    @Override
-    public Observable<List<SearchBook>> searchOtherBook(String content, int page, String tag) {
-        if (tag.equals(IGxwztvApi.URL)) {
-            return stationBookModel.searchBook(content, page);
-        } else {
-            return Observable.create(e -> {
-                e.onNext(new ArrayList<>());
-                e.onComplete();
-            });
-        }
-    }
-
-    /**
-     * 获取分类书籍
-     */
     @Override
     public Observable<List<SearchBook>> getKindBook(String url, int page) {
         return stationBookModel.getKindBook(url, page);
+    }
+
+    @Override
+    public Observable<Library> getLibraryData(ACache aCache) {
+        return stationBookModel.getLibraryData(aCache);
+    }
+
+    @Override
+    public Observable<Library> analyzeLibraryData(String data) {
+        return stationBookModel.analyzeLibraryData(data);
+    }
+
+    @Override
+    public Observable<List<SearchBook>> searchBook(String content, int page) {
+        return stationBookModel.searchBook(content, page);
     }
 }

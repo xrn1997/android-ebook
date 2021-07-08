@@ -6,8 +6,6 @@ import com.ebook.basebook.cache.ACache;
 import com.ebook.basebook.base.impl.MBaseModelImpl;
 import com.ebook.basebook.base.manager.ErrorAnalyContentManager;
 import com.ebook.basebook.mvp.model.StationBookModel;
-import com.ebook.basebook.mvp.model.OnGetChapterListListener;
-import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.db.entity.BookContent;
 import com.ebook.db.entity.BookInfo;
 import com.ebook.db.entity.BookShelf;
@@ -20,7 +18,6 @@ import com.ebook.db.entity.LibraryNewBook;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.db.entity.WebChapter;
 
-import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -37,11 +34,18 @@ import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
 public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookModel {
+    private volatile static StationBookModel bookModel;
 
-    public static GxwztvBookModelImpl getInstance() {
-        return new GxwztvBookModelImpl();
+    public static StationBookModel getInstance() {
+        if (bookModel == null) {
+            synchronized (GxwztvBookModelImpl.class) {
+                if (bookModel == null) {
+                    bookModel = new GxwztvBookModelImpl();
+                }
+            }
+        }
+        return bookModel;
     }
-
 
     /**
      * 获取主页信息
@@ -210,26 +214,10 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     @Override
-    public void getChapterList(final BookShelf bookShelf, final OnGetChapterListListener getChapterListListener) {
-        getRetrofitObject(IGxwztvApi.URL).create(IGxwztvApi.class).getChapterList(bookShelf.getBookInfo().getChapterUrl().replace(IGxwztvApi.URL, "")).flatMap((Function<String, ObservableSource<WebChapter<BookShelf>>>) s -> analyzeChapterList(s, bookShelf))
+    public Observable<WebChapter<BookShelf>> getChapterList(final BookShelf bookShelf) {
+       return getRetrofitObject(IGxwztvApi.URL).create(IGxwztvApi.class).getChapterList(bookShelf.getBookInfo().getChapterUrl().replace(IGxwztvApi.URL, "")).flatMap((Function<String, ObservableSource<WebChapter<BookShelf>>>) s -> analyzeChapterList(s, bookShelf))
                 .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<WebChapter<BookShelf>>() {
-                    @Override
-                    public void onNext(@NotNull WebChapter<BookShelf> value) {
-                        if (getChapterListListener != null) {
-                            getChapterListListener.success(value.getData());
-                        }
-                    }
-
-                    @Override
-                    public void onError(@NotNull Throwable e) {
-                        e.printStackTrace();
-                        if (getChapterListListener != null) {
-                            getChapterListListener.error();
-                        }
-                    }
-                });
+                .observeOn(AndroidSchedulers.mainThread());
     }
 
     private Observable<WebChapter<BookShelf>> analyzeChapterList(final String s, final BookShelf bookShelf) {

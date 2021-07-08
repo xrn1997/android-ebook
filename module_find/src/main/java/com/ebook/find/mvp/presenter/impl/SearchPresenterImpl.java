@@ -2,8 +2,6 @@
 package com.ebook.find.mvp.presenter.impl;
 
 
-import com.ebook.api.config.API;
-import com.ebook.basebook.mvp.model.OnGetChapterListListener;
 import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
 import com.ebook.basebook.utils.NetworkUtil;
 import com.ebook.common.event.RxBusTag;
@@ -38,40 +36,37 @@ import io.reactivex.schedulers.Schedulers;
 
 public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implements ISearchPresenter {
     public static final String TAG_KEY = "tag";
-    public static final String HASMORE_KEY = "hasMore";
-    public static final String HASLOAD_KEY = "hasLoad";
-    public static final String DURREQUESTTIME = "durRequestTime";    //当前搜索引擎失败次数  成功一次会重新开始计数
-    public static final String MAXREQUESTTIME = "maxRequestTime";   //最大连续请求失败次数
+    public static final String HAS_MORE_KEY = "hasMore";
+    public static final String HAS_LOAD_KEY = "hasLoad";
+    public static final String DUR_REQUEST_TIME = "durRequestTime";    //当前搜索引擎失败次数  成功一次会重新开始计数
+    public static final String MAX_REQUEST_TIME = "maxRequestTime";   //最大连续请求失败次数
 
     public static final int BOOK = 2;
 
     private Boolean hasSearch = false;   //判断是否搜索过
 
     private int page = 1;
-    private List<Map> searchEngine;
+    private final List<Map<String,Object>> searchEngine;
     private long startThisSearchTime;
     private String durSearchKey;
 
-    private List<BookShelf> bookShelfs = new ArrayList<>();   //用来比对搜索的书籍是否已经添加进书架
+    private final List<BookShelf> bookShelfList = new ArrayList<>();   //用来比对搜索的书籍是否已经添加进书架
 
     private Boolean isInput = false;
 
     public SearchPresenterImpl() {
-        Observable.create(new ObservableOnSubscribe<List<BookShelf>>() {
-            @Override
-            public void subscribe(ObservableEmitter<List<BookShelf>> e) throws Exception {
-                List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().list();
-                if (temp == null)
-                    temp = new ArrayList<BookShelf>();
-                e.onNext(temp);
-                e.onComplete();
-            }
+        Observable.create((ObservableOnSubscribe<List<BookShelf>>) e -> {
+            List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().list();
+            if (temp == null)
+                temp = new ArrayList<>();
+            e.onNext(temp);
+            e.onComplete();
         }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<List<BookShelf>>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(List<BookShelf> value) {
-                        bookShelfs.addAll(value);
+                        bookShelfList.addAll(value);
                     }
 
                     @Override
@@ -83,12 +78,12 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
         //搜索引擎初始化
         searchEngine = new ArrayList<>();
 
-        Map gxwztvMap = new HashMap();
+        Map<String, Object> gxwztvMap = new HashMap<>();
         gxwztvMap.put(TAG_KEY, "https://www.ztv.la");
-        gxwztvMap.put(HASMORE_KEY, true);
-        gxwztvMap.put(HASLOAD_KEY, false);
-        gxwztvMap.put(DURREQUESTTIME, 1);
-        gxwztvMap.put(MAXREQUESTTIME, 3);
+        gxwztvMap.put(HAS_MORE_KEY, true);
+        gxwztvMap.put(HAS_LOAD_KEY, false);
+        gxwztvMap.put(DUR_REQUEST_TIME, 1);
+        gxwztvMap.put(MAX_REQUEST_TIME, 3);
         searchEngine.add(gxwztvMap);
     }
 
@@ -106,28 +101,25 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
     public void insertSearchHistory() {
         final int type = SearchPresenterImpl.BOOK;
         final String content = mView.getEdtContent().getText().toString().trim();
-        Observable.create(new ObservableOnSubscribe<SearchHistory>() {
-            @Override
-            public void subscribe(ObservableEmitter<SearchHistory> e) throws Exception {
-                List<SearchHistory> datas = GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao()
-                        .queryBuilder()
-                        .where(SearchHistoryDao.Properties.Type.eq(type), SearchHistoryDao.Properties.Content.eq(content))
-                        .limit(1)
-                        .build().list();
-                SearchHistory searchHistory = null;
-                if (null != datas && datas.size() > 0) {
-                    searchHistory = datas.get(0);
-                    searchHistory.setDate(System.currentTimeMillis());
-                    GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao().update(searchHistory);
-                } else {
-                    searchHistory = new SearchHistory(type, content, System.currentTimeMillis());
-                    GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao().insert(searchHistory);
-                }
-                e.onNext(searchHistory);
+        Observable.create((ObservableOnSubscribe<SearchHistory>) e -> {
+            List<SearchHistory> datas = GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao()
+                    .queryBuilder()
+                    .where(SearchHistoryDao.Properties.Type.eq(type), SearchHistoryDao.Properties.Content.eq(content))
+                    .limit(1)
+                    .build().list();
+            SearchHistory searchHistory;
+            if (null != datas && datas.size() > 0) {
+                searchHistory = datas.get(0);
+                searchHistory.setDate(System.currentTimeMillis());
+                GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao().update(searchHistory);
+            } else {
+                searchHistory = new SearchHistory(type, content, System.currentTimeMillis());
+                GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao().insert(searchHistory);
             }
+            e.onNext(searchHistory);
         }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<SearchHistory>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(SearchHistory value) {
                         mView.insertSearchHistorySuccess(value);
@@ -142,17 +134,16 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
 
     @Override
     public void cleanSearchHistory() {
-        final int type = SearchPresenterImpl.BOOK;
         final String content = mView.getEdtContent().getText().toString().trim();
-        Observable.create(new ObservableOnSubscribe<Integer>() {
-            @Override
-            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
-                int a = GreenDaoManager.getInstance().getDb().delete(SearchHistoryDao.TABLENAME, SearchHistoryDao.Properties.Type.columnName + "=? and " + SearchHistoryDao.Properties.Content.columnName + " like ?", new String[]{String.valueOf(type), "%" + content + "%"});
-                e.onNext(a);
-            }
+        Observable.create((ObservableOnSubscribe<Integer>) e -> {
+            int a = GreenDaoManager.getInstance().getDb().delete(
+                    SearchHistoryDao.TABLENAME,
+                    SearchHistoryDao.Properties.Type.columnName + "=? and " + SearchHistoryDao.Properties.Content.columnName + " like ?",
+                    new String[]{String.valueOf(SearchPresenterImpl.BOOK), "%" + content + "%"});
+            e.onNext(a);
         }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<Integer>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(Integer value) {
                         if (value > 0) {
@@ -169,22 +160,18 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
 
     @Override
     public void querySearchHistory() {
-        final int type = SearchPresenterImpl.BOOK;
         final String content = mView.getEdtContent().getText().toString().trim();
-        Observable.create(new ObservableOnSubscribe<List<SearchHistory>>() {
-            @Override
-            public void subscribe(ObservableEmitter<List<SearchHistory>> e) throws Exception {
-                List<SearchHistory> datas = GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao()
-                        .queryBuilder()
-                        .where(SearchHistoryDao.Properties.Type.eq(type), SearchHistoryDao.Properties.Content.like("%" + content + "%"))
-                        .orderDesc(SearchHistoryDao.Properties.Date)
-                        .limit(20)
-                        .build().list();
-                e.onNext(datas);
-            }
+        Observable.create((ObservableOnSubscribe<List<SearchHistory>>) e -> {
+            List<SearchHistory> datas = GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao()
+                    .queryBuilder()
+                    .where(SearchHistoryDao.Properties.Type.eq(SearchPresenterImpl.BOOK), SearchHistoryDao.Properties.Content.like("%" + content + "%"))
+                    .orderDesc(SearchHistoryDao.Properties.Date)
+                    .limit(20)
+                    .build().list();
+            e.onNext(datas);
         }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<List<SearchHistory>>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(List<SearchHistory> value) {
                         if (null != value)
@@ -214,9 +201,9 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
             durSearchKey = key;
             this.startThisSearchTime = System.currentTimeMillis();
             for (int i = 0; i < searchEngine.size(); i++) {
-                searchEngine.get(i).put(HASMORE_KEY, true);
-                searchEngine.get(i).put(HASLOAD_KEY, false);
-                searchEngine.get(i).put(DURREQUESTTIME, 1);
+                searchEngine.get(i).put(HAS_MORE_KEY, true);
+                searchEngine.get(i).put(HAS_LOAD_KEY, false);
+                searchEngine.get(i).put(DUR_REQUEST_TIME, 1);
             }
         }
         searchBook(durSearchKey, startThisSearchTime, fromError);
@@ -224,9 +211,9 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
 
     private void searchBook(final String content, final long searchTime, Boolean fromError) {
         if (searchTime == startThisSearchTime) {
-            Boolean canLoad = false;
+            boolean canLoad = false;
             for (Map temp : searchEngine) {
-                if ((Boolean) temp.get(HASMORE_KEY) && (int) temp.get(DURREQUESTTIME) <= (int) temp.get(MAXREQUESTTIME)) {
+                if ((Boolean) temp.get(HAS_MORE_KEY) && (int) temp.get(DUR_REQUEST_TIME) <= (int) temp.get(MAX_REQUEST_TIME)) {
                     canLoad = true;
                     break;
                 }
@@ -234,7 +221,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
             if (canLoad) {
                 int searchEngineIndex = -1;
                 for (int i = 0; i < searchEngine.size(); i++) {
-                    if (!(Boolean) searchEngine.get(i).get(HASLOAD_KEY) && (int) searchEngine.get(i).get(DURREQUESTTIME) <= (int) searchEngine.get(i).get(MAXREQUESTTIME)) {
+                    if (!(Boolean) searchEngine.get(i).get(HAS_LOAD_KEY) && (int) searchEngine.get(i).get(DUR_REQUEST_TIME) <= (int) searchEngine.get(i).get(MAX_REQUEST_TIME)) {
                         searchEngineIndex = i;
                         break;
                     }
@@ -242,7 +229,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
                 if (searchEngineIndex == -1) {
                     this.page++;
                     for (Map item : searchEngine) {
-                        item.put(HASLOAD_KEY, false);
+                        item.put(HAS_LOAD_KEY, false);
                     }
                     if (!fromError) {
                         if (page - 1 == 1) {
@@ -253,52 +240,6 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
                     } else {
                         searchBook(content, searchTime, false);
                     }
-                } else {
-                    final int finalSearchEngineIndex = searchEngineIndex;
-                    WebBookModelImpl.getInstance().searchOtherBook(content, page, (String) searchEngine.get(searchEngineIndex).get(TAG_KEY))
-                            .observeOn(AndroidSchedulers.mainThread())
-                            .subscribeOn(Schedulers.io())
-                            .subscribe(new SimpleObserver<List<SearchBook>>() {
-                                @Override
-                                public void onNext(List<SearchBook> value) {
-                                    if (searchTime == startThisSearchTime) {
-                                        searchEngine.get(finalSearchEngineIndex).put(HASLOAD_KEY, true);
-                                        searchEngine.get(finalSearchEngineIndex).put(DURREQUESTTIME, 1);
-                                        if (value.size() == 0) {
-                                            searchEngine.get(finalSearchEngineIndex).put(HASMORE_KEY, false);
-                                        } else {
-                                            for (SearchBook temp : value) {
-                                                for (BookShelf bookShelf : bookShelfs) {
-                                                    if (temp.getNoteUrl().equals(bookShelf.getNoteUrl())) {
-                                                        temp.setAdd(true);
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        if (page == 1 && finalSearchEngineIndex == 0) {
-                                            mView.refreshSearchBook(value);
-                                        } else {
-                                            if (value != null && value.size() > 0 && !mView.checkIsExist(value.get(0)))
-                                                mView.loadMoreSearchBook(value);
-                                            else {
-                                                searchEngine.get(finalSearchEngineIndex).put(HASMORE_KEY, false);
-                                            }
-                                        }
-                                        searchBook(content, searchTime, false);
-                                    }
-                                }
-
-                                @Override
-                                public void onError(Throwable e) {
-                                    e.printStackTrace();
-                                    if (searchTime == startThisSearchTime) {
-                                        searchEngine.get(finalSearchEngineIndex).put(HASLOAD_KEY, false);
-                                        searchEngine.get(finalSearchEngineIndex).put(DURREQUESTTIME, ((int) searchEngine.get(finalSearchEngineIndex).get(DURREQUESTTIME)) + 1);
-                                        mView.searchBookError(page == 1 && (finalSearchEngineIndex == 0 || (finalSearchEngineIndex > 0 && mView.getSearchBookAdapter().getItemcount() == 0)));
-                                    }
-                                }
-                            });
                 }
             } else {
                 if (page == 1) {
@@ -308,7 +249,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
                 }
                 this.page++;
                 for (Map item : searchEngine) {
-                    item.put(HASLOAD_KEY, false);
+                    item.put(HAS_LOAD_KEY, false);
                 }
             }
         }
@@ -327,20 +268,10 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
         WebBookModelImpl.getInstance().getBookInfo(bookShelfResult)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<BookShelf>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(BookShelf value) {
-                        WebBookModelImpl.getInstance().getChapterList(value, new OnGetChapterListListener() {
-                            @Override
-                            public void success(BookShelf bookShelf) {
-                                saveBookToShelf(bookShelf);
-                            }
-
-                            @Override
-                            public void error() {
-                                mView.addBookShelfFailed(NetworkUtil.ERROR_CODE_OUTTIME);
-                            }
-                        });
+                        WebBookModelImpl.getInstance().getChapterList(value);
                     }
 
                     @Override
@@ -395,11 +326,11 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
             }
     )
     public void hadAddBook(BookShelf bookShelf) {
-        bookShelfs.add(bookShelf);
-        List<SearchBook> datas = mView.getSearchBookAdapter().getSearchBooks();
-        for (int i = 0; i < datas.size(); i++) {
-            if (datas.get(i).getNoteUrl().equals(bookShelf.getNoteUrl())) {
-                datas.get(i).setAdd(true);
+        this.bookShelfList.add(bookShelf);
+        List<SearchBook> searchBookList = mView.getSearchBookAdapter().getSearchBooks();
+        for (int i = 0; i < searchBookList.size(); i++) {
+            if (searchBookList.get(i).getNoteUrl().equals(bookShelf.getNoteUrl())) {
+                searchBookList.get(i).setAdd(true);
                 mView.updateSearchItem(i);
                 break;
             }
@@ -412,18 +343,16 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
             }
     )
     public void hadRemoveBook(BookShelf bookShelf) {
-        if (bookShelfs != null) {
-            for (int i = 0; i < bookShelfs.size(); i++) {
-                if (bookShelfs.get(i).getNoteUrl().equals(bookShelf.getNoteUrl())) {
-                    bookShelfs.remove(i);
-                    break;
-                }
+        for (int i = 0; i < this.bookShelfList.size(); i++) {
+            if (this.bookShelfList.get(i).getNoteUrl().equals(bookShelf.getNoteUrl())) {
+                this.bookShelfList.remove(i);
+                break;
             }
         }
-        List<SearchBook> datas = mView.getSearchBookAdapter().getSearchBooks();
-        for (int i = 0; i < datas.size(); i++) {
-            if (datas.get(i).getNoteUrl().equals(bookShelf.getNoteUrl())) {
-                datas.get(i).setAdd(false);
+        List<SearchBook> searchBookList = mView.getSearchBookAdapter().getSearchBooks();
+        for (int i = 0; i < searchBookList.size(); i++) {
+            if (searchBookList.get(i).getNoteUrl().equals(bookShelf.getNoteUrl())) {
+                searchBookList.get(i).setAdd(false);
                 mView.updateSearchItem(i);
                 break;
             }

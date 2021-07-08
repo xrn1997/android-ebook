@@ -3,7 +3,6 @@ package com.ebook.find.mvp.presenter.impl;
 
 import android.content.Intent;
 
-import com.ebook.basebook.mvp.model.OnGetChapterListListener;
 import com.ebook.common.event.RxBusTag;
 import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.db.GreenDaoManager;
@@ -138,20 +137,10 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .compose(((BaseActivity) mView.getContext()).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
-                .subscribe(new SimpleObserver<BookShelf>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(BookShelf value) {
-                        WebBookModelImpl.getInstance().getChapterList(value, new OnGetChapterListListener() {
-                            @Override
-                            public void success(BookShelf bookShelf) {
-                                saveBookToShelf(bookShelf);
-                            }
-
-                            @Override
-                            public void error() {
-                                mView.addBookShelfFailed(NetworkUtil.ERROR_CODE_OUTTIME);
-                            }
-                        });
+                        WebBookModelImpl.getInstance().getChapterList(value);
                     }
 
                     @Override

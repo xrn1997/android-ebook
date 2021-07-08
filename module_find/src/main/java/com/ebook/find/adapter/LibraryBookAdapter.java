@@ -8,17 +8,13 @@ import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.ebook.basebook.base.activity.BaseActivity;
-import com.ebook.basebook.mvp.model.impl.GxwztvBookModelImpl;
+import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
 import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.common.adapter.BaseBindAdapter;
-import com.ebook.common.mvvm.BaseFragment;
-import com.ebook.common.mvvm.BaseMvvmFragment;
 import com.ebook.db.entity.BookShelf;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.find.R;
 import com.ebook.find.databinding.AdapterLibraryKindbookBinding;
-import com.trello.rxlifecycle3.android.ActivityEvent;
 
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.ObservableArrayList;
@@ -40,10 +36,10 @@ public class LibraryBookAdapter extends BaseBindAdapter<SearchBook, AdapterLibra
         binding.setSearchbook(item);
         BookShelf bookShelf = new BookShelf();
         bookShelf.setNoteUrl(item.getNoteUrl());
-        GxwztvBookModelImpl.getInstance().getBookInfo(bookShelf)
+        WebBookModelImpl.getInstance().getBookInfo(bookShelf)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<BookShelf>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(BookShelf bookShelf) {
                         loadImage(binding.ivCover, bookShelf.getBookInfo().getCoverUrl(), context.getDrawable(R.drawable.img_cover_default));

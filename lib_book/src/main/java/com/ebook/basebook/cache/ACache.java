@@ -21,8 +21,8 @@ public class ACache {
         try {
             SharedPreferences.Editor editor = preference.edit();
             editor.putString(key, value);
-            editor.commit();
-        } catch (Exception e) {
+            editor.apply();
+        } catch (Exception ignored) {
 
         }
     }
@@ -30,7 +30,6 @@ public class ACache {
     /**
      * 读取 String数据
      *
-     * @param key
      * @return String 数据
      */
     public String getAsString(String key) {

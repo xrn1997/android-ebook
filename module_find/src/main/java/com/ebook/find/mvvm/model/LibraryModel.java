@@ -3,7 +3,7 @@ package com.ebook.find.mvvm.model;
 import android.app.Application;
 
 import com.ebook.basebook.cache.ACache;
-import com.ebook.basebook.mvp.model.impl.GxwztvBookModelImpl;
+import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
 import com.ebook.common.mvvm.model.BaseModel;
 import com.ebook.db.GreenDaoManager;
 import com.ebook.db.entity.BookShelf;
@@ -40,43 +40,32 @@ public class LibraryModel extends BaseModel {
                 e.onNext(cache);
                 e.onComplete();
             }
-        }).flatMap(new Function<String, ObservableSource<Library>>() {
-            @Override
-            public ObservableSource<Library> apply(String s) throws Exception {
-                return GxwztvBookModelImpl.getInstance().analyzeLibraryData(s);
-            }
-        })
+        }).flatMap((Function<String, ObservableSource<Library>>) s -> WebBookModelImpl.getInstance().analyzeLibraryData(s))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread());
     }
 
     //获取书架书籍列表信息
     public Observable<List<BookShelf>> getBookShelfList() {
-        return Observable.create(new ObservableOnSubscribe<List<BookShelf>>() {
-            @Override
-            public void subscribe(ObservableEmitter<List<BookShelf>> e) throws Exception {
-                List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().list();
-                if (temp == null)
-                    temp = new ArrayList<BookShelf>();
-                e.onNext(temp);
-                e.onComplete();
-            }
+        return Observable.create((ObservableOnSubscribe<List<BookShelf>>) e -> {
+            List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().list();
+            if (temp == null)
+                temp = new ArrayList<>();
+            e.onNext(temp);
+            e.onComplete();
         }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread());
     }
 
     //将书籍信息存入书架书籍列表
     public Observable<BookShelf> saveBookToShelf(BookShelf bookShelf) {
-        return Observable.create(new ObservableOnSubscribe<BookShelf>() {
-            @Override
-            public void subscribe(ObservableEmitter<BookShelf> e) throws Exception {
-                GreenDaoManager.getInstance().getmDaoSession().getChapterListDao().insertOrReplaceInTx(bookShelf.getBookInfo().getChapterlist());
-                GreenDaoManager.getInstance().getmDaoSession().getBookInfoDao().insertOrReplace(bookShelf.getBookInfo());
-                //网络数据获取成功  存入BookShelf表数据库
-                GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
-                e.onNext(bookShelf);
-                e.onComplete();
-            }
+        return Observable.create((ObservableOnSubscribe<BookShelf>) e -> {
+            GreenDaoManager.getInstance().getmDaoSession().getChapterListDao().insertOrReplaceInTx(bookShelf.getBookInfo().getChapterlist());
+            GreenDaoManager.getInstance().getmDaoSession().getBookInfoDao().insertOrReplace(bookShelf.getBookInfo());
+            //网络数据获取成功  存入BookShelf表数据库
+            GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
+            e.onNext(bookShelf);
+            e.onComplete();
         }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread());
     }

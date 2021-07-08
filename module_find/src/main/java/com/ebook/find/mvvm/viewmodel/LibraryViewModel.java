@@ -1,12 +1,9 @@
 package com.ebook.find.mvvm.viewmodel;
 
 import android.app.Application;
-import android.os.Handler;
-import android.util.Log;
-import android.view.View;
 
 import com.ebook.basebook.cache.ACache;
-import com.ebook.basebook.mvp.model.impl.GxwztvBookModelImpl;
+import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
 import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.common.BaseApplication;
 import com.ebook.common.mvvm.viewmodel.BaseRefreshViewModel;
@@ -22,10 +19,10 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 
 public class LibraryViewModel extends BaseRefreshViewModel<Library, LibraryModel> {
-    private ObservableArrayList<BookType> bookTypes = new ObservableArrayList<>();
-    private ObservableArrayList<LibraryKindBookList> libraryKindBookLists = new ObservableArrayList<>();
+    private final ObservableArrayList<BookType> bookTypes = new ObservableArrayList<>();
+    private final ObservableArrayList<LibraryKindBookList> libraryKindBookLists = new ObservableArrayList<>();
     private Boolean isFirst = true;
-    private ACache mCache = ACache.get(BaseApplication.getInstance());
+    private final ACache mCache = ACache.get(BaseApplication.getInstance());
     public static final String TAG = LibraryViewModel.class.getSimpleName();
     public final static String LIBRARY_CACHE_KEY = "cache_library";
 
@@ -70,10 +67,10 @@ public class LibraryViewModel extends BaseRefreshViewModel<Library, LibraryModel
 
     private void getLibraryNewData() {
         //   Log.d(TAG, "getLibraryNewData: start");
-        GxwztvBookModelImpl.getInstance().getLibraryData(mCache)
+        WebBookModelImpl.getInstance().getLibraryData(mCache)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<Library>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(final Library value) {
                         //     Log.d(TAG, "refreshdata onNext: " + value.getKindBooks().get(0).getKindName());

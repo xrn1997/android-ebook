@@ -1,8 +1,11 @@
 package com.ebook.basebook.mvp.model;
 
+import com.ebook.basebook.cache.ACache;
 import com.ebook.db.entity.BookContent;
 import com.ebook.db.entity.BookShelf;
+import com.ebook.db.entity.Library;
 import com.ebook.db.entity.SearchBook;
+import com.ebook.db.entity.WebChapter;
 
 import java.util.List;
 
@@ -17,12 +20,12 @@ public interface WebBookModel {
     /**
      * 网络解析图书目录
      */
-    void getChapterList(final BookShelf bookShelf, OnGetChapterListListener getChapterListListener);
+    Observable<WebChapter<BookShelf>> getChapterList(final BookShelf bookShelf);
 
     /**
      * 章节缓存
      */
-    Observable<BookContent> getBookContent(final String durChapterUrl, final int durChapterIndex, String tag);
+    Observable<BookContent> getBookContent(final String durChapterUrl, final int durChapterIndex);
 
     /**
      * 获取分类书籍
@@ -30,7 +33,18 @@ public interface WebBookModel {
     Observable<List<SearchBook>> getKindBook(String url, int page);
 
     /**
-     * 其他站点资源整合搜索
+     * 获取主页信息
      */
-    Observable<List<SearchBook>> searchOtherBook(String content, int page, String tag);
+    Observable<Library> getLibraryData(ACache aCache);
+
+    /**
+     * 解析主页数据
+     */
+    Observable<Library> analyzeLibraryData(String data);
+
+    /**
+     * 搜索书籍
+     */
+    Observable<List<SearchBook>> searchBook(String content, int page);
+
 }

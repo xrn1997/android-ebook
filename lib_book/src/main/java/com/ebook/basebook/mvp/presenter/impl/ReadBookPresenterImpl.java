@@ -227,7 +227,7 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
                                     loadContent(bookContentView, bookTag, chapterIndex, tempList.getPageIndex());
                                 } else {
                                     final int finalPageIndex1 = tempList.getPageIndex();
-                                    WebBookModelImpl.getInstance().getBookContent(bookShelf.getBookInfo().getChapterlist().get(chapterIndex).getDurChapterUrl(), chapterIndex, bookShelf.getTag()).map(new Function<BookContent, BookContent>() {
+                                    WebBookModelImpl.getInstance().getBookContent(bookShelf.getBookInfo().getChapterlist().get(chapterIndex).getDurChapterUrl(), chapterIndex).map(new Function<BookContent, BookContent>() {
                                         @Override
                                         public BookContent apply(BookContent bookContent) throws Exception {
                                             if (bookContent.getRight()) {

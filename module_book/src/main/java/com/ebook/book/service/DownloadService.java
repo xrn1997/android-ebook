@@ -205,7 +205,7 @@ public class DownloadService extends Service {
                 @Override
                 public ObservableSource<BookContent> apply(final BookContent bookContent) throws Exception {
                     if (bookContent.getDurChapterUrl() == null || bookContent.getDurChapterUrl().length() <= 0) {
-                        return WebBookModelImpl.getInstance().getBookContent(data.getDurChapterUrl(), data.getDurChapterIndex(), data.getTag()).map(new Function<BookContent, BookContent>() {
+                        return WebBookModelImpl.getInstance().getBookContent(data.getDurChapterUrl(), data.getDurChapterIndex()).map(new Function<BookContent, BookContent>() {
                             @Override
                             public BookContent apply(BookContent bookContent) throws Exception {
                                 GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().delete(data);
