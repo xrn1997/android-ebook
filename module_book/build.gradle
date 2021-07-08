@@ -15,7 +15,7 @@ dependencies {
     api project(':lib_common')
     implementation project(':lib_book')
     annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.33'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.37'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.12.0'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'

@@ -11,7 +11,7 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_book')
     annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.33'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.37'
 
     if (!isLoginModule.toBoolean()) {
         implementation project(path: ':module_login')

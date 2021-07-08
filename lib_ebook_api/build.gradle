@@ -44,7 +44,7 @@ dependencies {
     api 'com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.2'
 
     //json解析
-    api 'com.google.code.gson:gson:2.8.6'
+    api 'com.google.code.gson:gson:2.8.7'
     //rx管理View的生命周期
     api('com.trello.rxlifecycle3:rxlifecycle:3.1.0') {
         exclude group: 'com.android.support'
