@@ -1,5 +1,7 @@
 package com.ebook.db.entity;
 
+import androidx.annotation.NonNull;
+
 public class LibraryNewBook {
     private String name;
     private String url;
@@ -43,5 +45,16 @@ public class LibraryNewBook {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "LibraryNewBook{" +
+                "name='" + name + '\'' +
+                ", url='" + url + '\'' +
+                ", tag='" + tag + '\'' +
+                ", origin='" + origin + '\'' +
+                '}';
     }
 }

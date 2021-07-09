@@ -10,4 +10,4 @@
     android:textColor="#ffffff"
     android:textSize="15sp"
     android:clickable="true"
-    android:focusable="true"></TextView>
+    android:focusable="true" />

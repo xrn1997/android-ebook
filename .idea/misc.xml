@@ -4,6 +4,11 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/Develop/Android/android-ebook/lib_book/src/main/res/layout/activity_bookread.xml" value="0.2953125" />
+        <entry key="..\:/Develop/Android/android-ebook/module_find/src/main/res/layout/adapter_library_hotauthor_item.xml" value="0.2760416666666667" />
+        <entry key="..\:/Develop/Android/android-ebook/module_find/src/main/res/layout/adapter_library_kindbook.xml" value="0.2760416666666667" />
+        <entry key="..\:/Develop/Android/android-ebook/module_find/src/main/res/layout/adpater_book_type_item.xml" value="0.2760416666666667" />
+        <entry key="..\:/Develop/Android/android-ebook/module_find/src/main/res/layout/view_library_hotauthor.xml" value="0.2760416666666667" />
+        <entry key="..\:/Develop/Android/android-ebook/module_find/src/main/res/layout/view_library_kindbook.xml" value="0.2760416666666667" />
       </map>
     </option>
   </component>

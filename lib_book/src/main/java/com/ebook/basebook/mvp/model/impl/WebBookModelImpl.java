@@ -27,7 +27,7 @@ public class WebBookModelImpl implements WebBookModel {
             synchronized (WebBookModelImpl.class) {
                 if (bookModel == null) {
                     //更换书源只需要修改这一行
-                    bookModel = new WebBookModelImpl(GxwztvBookModelImpl.getInstance());
+                    bookModel = new WebBookModelImpl(BiQuGeBookModelImpl.getInstance());
                 }
             }
         }
@@ -41,8 +41,7 @@ public class WebBookModelImpl implements WebBookModel {
 
     @Override
     public Observable<WebChapter<BookShelf>> getChapterList(final BookShelf bookShelf) {
-        stationBookModel.getChapterList(bookShelf);
-        return null;
+      return  stationBookModel.getChapterList(bookShelf);
     }
 
     @Override

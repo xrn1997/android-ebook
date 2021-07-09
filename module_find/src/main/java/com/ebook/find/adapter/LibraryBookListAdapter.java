@@ -45,24 +45,16 @@ public class LibraryBookListAdapter extends BaseBindAdapter<LibraryKindBookList,
         searchBooks.addOnListChangedCallback(ObservableListUtil.getListChangedCallback(libraryBookAdapter));
         if (item.getKindUrl() != null) {
             binding.tvMore.setVisibility(VISIBLE);
-            binding.tvMore.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    ChoiceBookActivity.startChoiceBookActivity(context, item.getKindName(), item.getKindUrl());
-                }
-            });
+            binding.tvMore.setOnClickListener(v -> ChoiceBookActivity.startChoiceBookActivity(context, item.getKindName(), item.getKindUrl()));
         } else {
             binding.tvMore.setVisibility(GONE);
             binding.tvMore.setOnClickListener(null);
         }
-        libraryBookAdapter.setItemClickListener(new BaseBindAdapter.OnItemClickListener<SearchBook>() {
-            @Override
-            public void onItemClick(SearchBook searchBook, int position) {
-                Intent intent = new Intent(context, BookDetailActivity.class);
-                intent.putExtra("from", BookDetailPresenterImpl.FROM_SEARCH);
-                intent.putExtra("data", searchBook);
-                startActivity(intent);
-            }
+        libraryBookAdapter.setItemClickListener((searchBook, position1) -> {
+            Intent intent = new Intent(context, BookDetailActivity.class);
+            intent.putExtra("from", BookDetailPresenterImpl.FROM_SEARCH);
+            intent.putExtra("data", searchBook);
+            startActivity(intent);
         });
         binding.rvBooklist.setAdapter(libraryBookAdapter);
     }

@@ -36,26 +36,9 @@ public class LibraryBookAdapter extends BaseBindAdapter<SearchBook, AdapterLibra
         binding.setSearchbook(item);
         BookShelf bookShelf = new BookShelf();
         bookShelf.setNoteUrl(item.getNoteUrl());
-        WebBookModelImpl.getInstance().getBookInfo(bookShelf)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<>() {
-                    @Override
-                    public void onNext(BookShelf bookShelf) {
-                        loadImage(binding.ivCover, bookShelf.getBookInfo().getCoverUrl(), context.getDrawable(R.drawable.img_cover_default));
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-
-                    }
-                });
-        binding.ibContent.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mItemClickListener != null) {
-                    mItemClickListener.onItemClick(item, position);
-                }
+        binding.ibContent.setOnClickListener(v -> {
+            if (mItemClickListener != null) {
+                mItemClickListener.onItemClick(item, position);
             }
         });
     }

@@ -8,6 +8,7 @@ import com.ebook.common.event.RxBusTag;
 import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.db.GreenDaoManager;
 
+import com.ebook.db.entity.WebChapter;
 import com.ebook.find.mvp.presenter.ISearchPresenter;
 import com.ebook.find.mvp.view.ISearchView;
 import com.hwangjr.rxbus.RxBus;
@@ -271,7 +272,17 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
                 .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(BookShelf value) {
-                        WebBookModelImpl.getInstance().getChapterList(value);
+                        WebBookModelImpl.getInstance().getChapterList(value).subscribe(new SimpleObserver<>() {
+                            @Override
+                            public void onNext(WebChapter<BookShelf> bookShelfWebChapter) {
+                                        saveBookToShelf(bookShelfWebChapter.getData());
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                        mView.addBookShelfFailed(NetworkUtil.ERROR_CODE_OUTTIME);
+                            }
+                        });
                     }
 
                     @Override

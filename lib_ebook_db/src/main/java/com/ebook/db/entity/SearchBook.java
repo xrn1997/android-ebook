@@ -176,4 +176,22 @@ public class SearchBook implements Parcelable {
     public void setDesc(String desc) {
         this.desc = desc;
     }
+
+    @Override
+    public String toString() {
+        return "SearchBook{" +
+                "noteUrl='" + noteUrl + '\'' +
+                ", coverUrl='" + coverUrl + '\'' +
+                ", name='" + name + '\'' +
+                ", author='" + author + '\'' +
+                ", words=" + words +
+                ", state='" + state + '\'' +
+                ", lastChapter='" + lastChapter + '\'' +
+                ", isAdd=" + isAdd +
+                ", tag='" + tag + '\'' +
+                ", kind='" + kind + '\'' +
+                ", origin='" + origin + '\'' +
+                ", desc='" + desc + '\'' +
+                '}';
+    }
 }

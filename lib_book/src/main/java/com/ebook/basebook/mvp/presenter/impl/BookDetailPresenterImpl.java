@@ -11,6 +11,7 @@ import com.ebook.basebook.mvp.presenter.IBookDetailPresenter;
 import com.ebook.basebook.mvp.view.IBookDetailView;
 import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.db.GreenDaoManager;
+import com.ebook.db.entity.WebChapter;
 import com.hwangjr.rxbus.RxBus;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
@@ -121,7 +122,19 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                 .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(@NotNull BookShelf value) {
-                        WebBookModelImpl.getInstance().getChapterList(value);
+                        WebBookModelImpl.getInstance().getChapterList(value).subscribe(new SimpleObserver<>() {
+                            @Override
+                            public void onNext(WebChapter<BookShelf> bookShelfWebChapter) {
+                                mBookShelf=bookShelfWebChapter.getData();
+                                mView.updateView();
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                mBookShelf=null;
+                                mView.getBookShelfError();
+                            }
+                        });
                     }
 
                     @Override
