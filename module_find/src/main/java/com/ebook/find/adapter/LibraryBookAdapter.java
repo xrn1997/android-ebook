@@ -1,13 +1,22 @@
 package com.ebook.find.adapter;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.target.SizeReadyCallback;
+import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.request.transition.Transition;
 import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
 import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.common.adapter.BaseBindAdapter;
@@ -16,8 +25,11 @@ import com.ebook.db.entity.SearchBook;
 import com.ebook.find.R;
 import com.ebook.find.databinding.AdapterLibraryKindbookBinding;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.ObservableArrayList;
+
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 
@@ -49,9 +61,12 @@ public class LibraryBookAdapter extends BaseBindAdapter<SearchBook, AdapterLibra
         Glide.with(imageView.getContext())
                 .load(url)
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-                .fitCenter()
                 .dontAnimate()
-                .placeholder(holderDrawable)
+               .placeholder(holderDrawable)
+                .error(holderDrawable)
+                .fallback(holderDrawable)
+                .fitCenter()
                 .into(imageView);
+
     }
 }

@@ -47,12 +47,9 @@ public class ChapterListAdapter extends RecyclerView.Adapter<ChapterListAdapter.
             position = getItemCount() - 1 - posiTion;
         }
         holder.tvName.setText(bookShelf.getBookInfo().getChapterlist().get(position).getDurChapterName());
-        holder.flContent.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                setIndex(position);
-                itemClickListener.itemClick(position);
-            }
+        holder.flContent.setOnClickListener(v -> {
+            setIndex(position);
+            itemClickListener.itemClick(position);
         });
         if (position == index) {
             holder.flContent.setBackgroundColor(Color.parseColor("#cfcfcf"));

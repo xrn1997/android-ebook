@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import androidx.annotation.NonNull;
+
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
@@ -47,7 +48,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
     private Boolean hasSearch = false;   //判断是否搜索过
 
     private int page = 1;
-    private final List<Map<String,Object>> searchEngine;
+    private final List<Map<String, Object>> searchEngine;
     private long startThisSearchTime;
     private String durSearchKey;
 
@@ -213,7 +214,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
     private void searchBook(final String content, final long searchTime, Boolean fromError) {
         if (searchTime == startThisSearchTime) {
             boolean canLoad = false;
-            for (Map temp : searchEngine) {
+            for (Map<String, Object> temp : searchEngine) {
                 if ((Boolean) temp.get(HAS_MORE_KEY) && (int) temp.get(DUR_REQUEST_TIME) <= (int) temp.get(MAX_REQUEST_TIME)) {
                     canLoad = true;
                     break;
@@ -229,7 +230,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
                 }
                 if (searchEngineIndex == -1) {
                     this.page++;
-                    for (Map item : searchEngine) {
+                    for (Map<String, Object> item : searchEngine) {
                         item.put(HAS_LOAD_KEY, false);
                     }
                     if (!fromError) {
@@ -241,6 +242,52 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
                     } else {
                         searchBook(content, searchTime, false);
                     }
+                } else {
+                    final int finalSearchEngineIndex = searchEngineIndex;
+                    WebBookModelImpl.getInstance().searchBook(content, page)
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribeOn(Schedulers.io())
+                            .subscribe(new SimpleObserver<>() {
+                                @Override
+                                public void onNext(List<SearchBook> value) {
+                                    if (searchTime == startThisSearchTime) {
+                                        searchEngine.get(finalSearchEngineIndex).put(HAS_LOAD_KEY, true);
+                                        searchEngine.get(finalSearchEngineIndex).put(DUR_REQUEST_TIME, 1);
+                                        if (value.size() == 0) {
+                                            searchEngine.get(finalSearchEngineIndex).put(HAS_MORE_KEY, false);
+                                        } else {
+                                            for (SearchBook temp : value) {
+                                                for (BookShelf bookShelf : bookShelfList) {
+                                                    if (temp.getNoteUrl().equals(bookShelf.getNoteUrl())) {
+                                                        temp.setAdd(true);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (page == 1 && finalSearchEngineIndex == 0) {
+                                            mView.refreshSearchBook(value);
+                                        } else {
+                                            if (value.size() > 0 && !mView.checkIsExist(value.get(0)))
+                                                mView.loadMoreSearchBook(value);
+                                            else {
+                                                searchEngine.get(finalSearchEngineIndex).put(HAS_MORE_KEY, false);
+                                            }
+                                        }
+                                        searchBook(content, searchTime, false);
+                                    }
+                                }
+
+                                @Override
+                                public void onError(Throwable e) {
+                                    e.printStackTrace();
+                                    if (searchTime == startThisSearchTime) {
+                                        searchEngine.get(finalSearchEngineIndex).put(HAS_LOAD_KEY, false);
+                                        searchEngine.get(finalSearchEngineIndex).put(DUR_REQUEST_TIME, ((int) searchEngine.get(finalSearchEngineIndex).get(DUR_REQUEST_TIME)) + 1);
+                                        mView.searchBookError(page == 1 && (finalSearchEngineIndex == 0 || (finalSearchEngineIndex > 0 && mView.getSearchBookAdapter().getItemcount() == 0)));
+                                    }
+                                }
+                            });
                 }
             } else {
                 if (page == 1) {
@@ -249,7 +296,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
                     mView.loadMoreFinish(true);
                 }
                 this.page++;
-                for (Map item : searchEngine) {
+                for (Map<String, Object> item : searchEngine) {
                     item.put(HAS_LOAD_KEY, false);
                 }
             }
@@ -275,12 +322,12 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
                         WebBookModelImpl.getInstance().getChapterList(value).subscribe(new SimpleObserver<>() {
                             @Override
                             public void onNext(WebChapter<BookShelf> bookShelfWebChapter) {
-                                        saveBookToShelf(bookShelfWebChapter.getData());
+                                saveBookToShelf(bookShelfWebChapter.getData());
                             }
 
                             @Override
                             public void onError(Throwable e) {
-                                        mView.addBookShelfFailed(NetworkUtil.ERROR_CODE_OUTTIME);
+                                mView.addBookShelfFailed(NetworkUtil.ERROR_CODE_OUTTIME);
                             }
                         });
                     }

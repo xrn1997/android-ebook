@@ -479,7 +479,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
         final int childTop = getPaddingTop() + distance - pushDistance;// 根据偏移量distance更新
         final int childWidth = width - getPaddingLeft() - getPaddingRight();
         final int childHeight = height - getPaddingTop() - getPaddingBottom();
-        Log.d(LOG_TAG, "debug:onLayout childHeight = " + childHeight);
+      //  Log.d(LOG_TAG, "debug:onLayout childHeight = " + childHeight);
         child.layout(childLeft, childTop, childLeft + childWidth, childTop
                 + childHeight);// 更新目标View的位置
         int headViewWidth = mHeadViewContainer.getMeasuredWidth();
@@ -658,8 +658,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
 
             case MotionEvent.ACTION_MOVE:
                 if (mActivePointerId == INVALID_POINTER) {
-                    Log.e(LOG_TAG,
-                            "Got ACTION_MOVE event but don't have an active pointer id.");
+                    Log.e(LOG_TAG, "Got ACTION_MOVE event but don't have an active pointer id.");
                     return false;
                 }
 
@@ -740,8 +739,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
                 final int pointerIndex = ev.findPointerIndex(
                         mActivePointerId);
                 if (pointerIndex < 0) {
-                    Log.e(LOG_TAG,
-                            "Got ACTION_MOVE event but have an invalid active pointer id.");
+                    Log.e(LOG_TAG, "Got ACTION_MOVE event but have an invalid active pointer id.");
                     return false;
                 }
 
@@ -811,8 +809,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
             case MotionEvent.ACTION_CANCEL: {
                 if (mActivePointerId == INVALID_POINTER) {
                     if (action == MotionEvent.ACTION_UP) {
-                        Log.e(LOG_TAG,
-                                "Got ACTION_UP event but don't have an active pointer id.");
+                       Log.e(LOG_TAG, "Got ACTION_UP event but don't have an active pointer id.");
                     }
                     return false;
                 }
@@ -867,14 +864,13 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
             case MotionEvent.ACTION_DOWN:
                 mActivePointerId = ev.getPointerId(0);
                 mIsBeingDragged = false;
-                Log.d(LOG_TAG, "debug:onTouchEvent ACTION_DOWN");
+              //  Log.d(LOG_TAG, "debug:onTouchEvent ACTION_DOWN");
                 break;
             case MotionEvent.ACTION_MOVE: {
                 final int pointerIndex = ev.findPointerIndex(
                         mActivePointerId);
                 if (pointerIndex < 0) {
-                    Log.e(LOG_TAG,
-                            "Got ACTION_MOVE event but have an invalid active pointer id.");
+                    Log.e(LOG_TAG,"Got ACTION_MOVE event but have an invalid active pointer id.");
                     return false;
                 }
                 final float y = ev.getY( pointerIndex);
@@ -903,8 +899,7 @@ public class SuperSwipeRefreshLayout extends ViewGroup {
             case MotionEvent.ACTION_CANCEL: {
                 if (mActivePointerId == INVALID_POINTER) {
                     if (action == MotionEvent.ACTION_UP) {
-                        Log.e(LOG_TAG,
-                                "Got ACTION_UP event but don't have an active pointer id.");
+                        Log.e(LOG_TAG, "Got ACTION_UP event but don't have an active pointer id.");
                     }
                     return false;
                 }

@@ -1,4 +1,4 @@
-package com.ebook.api;
+package com.ebook.api.service;
 
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.entity.LoginDTO;

@@ -49,6 +49,7 @@ import com.ebook.find.mvp.view.adapter.SearchHistoryAdapter;
 import java.util.List;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
+
 import tyrantgit.explosionfield.ExplosionField;
 
 public class SearchActivity extends BaseActivity<ISearchPresenter> implements ISearchView {
@@ -163,11 +164,7 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
             @Override
             public void onClick(View v) {
                 if (!mPresenter.getInput()) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        finishAfterTransition();
-                    } else {
-                        finish();
-                    }
+                    finishAfterTransition();
                 } else {
                     //搜索
                     toSearch();
@@ -248,11 +245,7 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
                 } else {
                     if (layoutParams.bottomMargin != 0) {
                         if (!mPresenter.getHasSearch()) {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                                finishAfterTransition();
-                            } else {
-                                finish();
-                            }
+                            finishAfterTransition();
                         } else {
                             layoutParams.setMargins(0, 0, 0, 0);
                             llSearchHistory.setLayoutParams(layoutParams);
@@ -274,10 +267,7 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
                                                                                                            openKeyBoard();
                                                                                                        }
                                                                                                    }, 100);
-                                                                                                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                                                                                                       getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                                                                                                   } else
-                                                                                                       getWindow().getDecorView().getViewTreeObserver().removeGlobalOnLayoutListener(this);
+                                                                                                   getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
                                                                                                }
                                                                                            });
     }
@@ -293,118 +283,67 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
     }
 
     private void openOrCloseHistory(Boolean open) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            if (null != animHistory5) {
-                animHistory5.cancel();
-            }
-            if (open) {
-                animHistory5 = ViewAnimationUtils.createCircularReveal(
-                        llSearchHistory,
-                        0, 0, 0,
-                        (float) Math.hypot(llSearchHistory.getWidth(), llSearchHistory.getHeight()));
-                animHistory5.setInterpolator(new AccelerateDecelerateInterpolator());
-                animHistory5.setDuration(700);
-                animHistory5.addListener(new Animator.AnimatorListener() {
-                    @Override
-                    public void onAnimationStart(Animator animation) {
-                        llSearchHistory.setVisibility(View.VISIBLE);
-                        edtContent.setCursorVisible(true);
-                        checkTvToSearch();
-                    }
+        if (null != animHistory5) {
+            animHistory5.cancel();
+        }
+        if (open) {
+            animHistory5 = ViewAnimationUtils.createCircularReveal(
+                    llSearchHistory,
+                    0, 0, 0,
+                    (float) Math.hypot(llSearchHistory.getWidth(), llSearchHistory.getHeight()));
+            animHistory5.setInterpolator(new AccelerateDecelerateInterpolator());
+            animHistory5.setDuration(700);
+            animHistory5.addListener(new Animator.AnimatorListener() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                    llSearchHistory.setVisibility(View.VISIBLE);
+                    edtContent.setCursorVisible(true);
+                    checkTvToSearch();
+                }
 
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        if (rfRvSearchBooks.getVisibility() != View.VISIBLE)
-                            rfRvSearchBooks.setVisibility(View.VISIBLE);
-                    }
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    if (rfRvSearchBooks.getVisibility() != View.VISIBLE)
+                        rfRvSearchBooks.setVisibility(View.VISIBLE);
+                }
 
-                    @Override
-                    public void onAnimationCancel(Animator animation) {
-                    }
+                @Override
+                public void onAnimationCancel(Animator animation) {
+                }
 
-                    @Override
-                    public void onAnimationRepeat(Animator animation) {
-                    }
-                });
-                animHistory5.start();
-            } else {
-                animHistory5 = ViewAnimationUtils.createCircularReveal(
-                        llSearchHistory,
-                        0, 0, (float) Math.hypot(llSearchHistory.getHeight(), llSearchHistory.getHeight()),
-                        0);
-                animHistory5.setInterpolator(new AccelerateDecelerateInterpolator());
-                animHistory5.setDuration(300);
-                animHistory5.addListener(new Animator.AnimatorListener() {
-                    @Override
-                    public void onAnimationStart(Animator animation) {
-                    }
-
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        llSearchHistory.setVisibility(View.GONE);
-                        edtContent.setCursorVisible(false);
-                        checkTvToSearch();
-                    }
-
-                    @Override
-                    public void onAnimationCancel(Animator animation) {
-                    }
-
-                    @Override
-                    public void onAnimationRepeat(Animator animation) {
-                    }
-                });
-                animHistory5.start();
-            }
+                @Override
+                public void onAnimationRepeat(Animator animation) {
+                }
+            });
+            animHistory5.start();
         } else {
-            if (null != animHistory) {
-                animHistory.cancel();
-            }
-            if (open) {
-                animHistory = AnimationUtils.loadAnimation(this, android.R.anim.fade_in);
-                animHistory.setInterpolator(new AccelerateDecelerateInterpolator());
-                animHistory.setDuration(700);
-                animHistory.setAnimationListener(new Animation.AnimationListener() {
-                    @Override
-                    public void onAnimationStart(Animation animation) {
-                        llSearchHistory.setVisibility(View.VISIBLE);
-                        edtContent.setCursorVisible(true);
-                        checkTvToSearch();
-                    }
+            animHistory5 = ViewAnimationUtils.createCircularReveal(
+                    llSearchHistory,
+                    0, 0, (float) Math.hypot(llSearchHistory.getHeight(), llSearchHistory.getHeight()),
+                    0);
+            animHistory5.setInterpolator(new AccelerateDecelerateInterpolator());
+            animHistory5.setDuration(300);
+            animHistory5.addListener(new Animator.AnimatorListener() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                }
 
-                    @Override
-                    public void onAnimationEnd(Animation animation) {
-                        if (rfRvSearchBooks.getVisibility() != View.VISIBLE)
-                            rfRvSearchBooks.setVisibility(View.VISIBLE);
-                    }
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    llSearchHistory.setVisibility(View.GONE);
+                    edtContent.setCursorVisible(false);
+                    checkTvToSearch();
+                }
 
-                    @Override
-                    public void onAnimationRepeat(Animation animation) {
-                    }
-                });
-                llSearchHistory.startAnimation(animHistory);
-            } else {
-                animHistory = AnimationUtils.loadAnimation(this, android.R.anim.fade_out);
-                animHistory.setInterpolator(new AccelerateDecelerateInterpolator());
-                animHistory.setDuration(300);
-                animHistory.setAnimationListener(new Animation.AnimationListener() {
-                    @Override
-                    public void onAnimationStart(Animation animation) {
-                    }
+                @Override
+                public void onAnimationCancel(Animator animation) {
+                }
 
-                    @Override
-                    public void onAnimationEnd(Animation animation) {
-                        llSearchHistory.setVisibility(View.GONE);
-                        edtContent.setCursorVisible(false);
-                        checkTvToSearch();
-                    }
-
-                    @Override
-                    public void onAnimationRepeat(Animation animation) {
-                    }
-                });
-                llSearchHistory.startAnimation(animHistory);
-            }
+                @Override
+                public void onAnimationRepeat(Animator animation) {
+                }
+            });
+            animHistory5.start();
         }
     }
 

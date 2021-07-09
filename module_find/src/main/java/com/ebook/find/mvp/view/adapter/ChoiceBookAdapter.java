@@ -2,6 +2,7 @@
 package com.ebook.find.mvp.view.adapter;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -56,41 +57,18 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
 
     @Override
     public void onBindViewholder(final RecyclerView.ViewHolder holder, final int position) {
-        final int realposition = position;
         BookShelf bookShelf = new BookShelf();
-        bookShelf.setNoteUrl(searchBooks.get(realposition).getNoteUrl());
-        WebBookModelImpl.getInstance().getBookInfo(bookShelf)
-                .subscribeOn(Schedulers.io())
-                .compose(((BaseActivity) context).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<BookShelf>() {
-                    @Override
-                    public void onNext(BookShelf bookShelf) {
-                        if (!((BaseActivity) context).isFinishing() && context != null && !((BaseActivity) context).isDestroyed()) {
-                            Glide.with(((Viewholder) holder).ivCover.getContext())
-                                    .load(bookShelf.getBookInfo().getCoverUrl())
-                                    .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-                                    .fitCenter()
-                                    .dontAnimate()
-                                    .placeholder(R.drawable.img_cover_default)
-                                    .into(((Viewholder) holder).ivCover);
-                        }
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-
-                    }
-                });
+       // Log.d("解析结果", searchBooks.get(position).getCoverUrl());
+        bookShelf.setNoteUrl(searchBooks.get(position).getNoteUrl());
         Glide.with(((Viewholder) holder).ivCover.getContext())
-                .load(searchBooks.get(realposition).getCoverUrl())
+                .load(searchBooks.get(position).getCoverUrl())
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                 .fitCenter()
                 .dontAnimate()
                 .placeholder(R.drawable.img_cover_default)
                 .into(((Viewholder) holder).ivCover);
-        ((Viewholder) holder).tvName.setText(searchBooks.get(realposition).getName());
-        ((Viewholder) holder).tvAuthor.setText(searchBooks.get(realposition).getAuthor());
+        ((Viewholder) holder).tvName.setText(searchBooks.get(position).getName());
+        ((Viewholder) holder).tvAuthor.setText(searchBooks.get(position).getAuthor());
         String state = searchBooks.get(position).getState();
         if (state == null || state.length() == 0) {
             ((Viewholder) holder).tvState.setVisibility(View.GONE);
@@ -98,11 +76,11 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
             ((Viewholder) holder).tvState.setVisibility(View.VISIBLE);
             ((Viewholder) holder).tvState.setText(state);
         }
-        long words = searchBooks.get(realposition).getWords();
+        long words = searchBooks.get(position).getWords();
         if (words <= 0) {
             ((Viewholder) holder).tvWords.setVisibility(View.GONE);
         } else {
-            String wordsS = Long.toString(words) + "字";
+            String wordsS = words + "字";
             if (words > 10000) {
                 DecimalFormat df = new DecimalFormat("#.#");
                 wordsS = df.format(words * 1.0f / 10000f) + "万字";
@@ -110,26 +88,26 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
             ((Viewholder) holder).tvWords.setVisibility(View.VISIBLE);
             ((Viewholder) holder).tvWords.setText(wordsS);
         }
-        String kind = searchBooks.get(realposition).getKind();
+        String kind = searchBooks.get(position).getKind();
         if (kind == null || kind.length() <= 0) {
             ((Viewholder) holder).tvKind.setVisibility(View.GONE);
         } else {
             ((Viewholder) holder).tvKind.setVisibility(View.VISIBLE);
             ((Viewholder) holder).tvKind.setText(kind);
         }
-        if (searchBooks.get(realposition).getLastChapter() != null && searchBooks.get(realposition).getLastChapter().length() > 0)
-            ((Viewholder) holder).tvLastest.setText(searchBooks.get(realposition).getLastChapter());
-        else if (searchBooks.get(realposition).getDesc() != null && searchBooks.get(realposition).getDesc().length() > 0) {
-            ((Viewholder) holder).tvLastest.setText(searchBooks.get(realposition).getDesc());
+        if (searchBooks.get(position).getLastChapter() != null && searchBooks.get(position).getLastChapter().length() > 0)
+            ((Viewholder) holder).tvLastest.setText(searchBooks.get(position).getLastChapter());
+        else if (searchBooks.get(position).getDesc() != null && searchBooks.get(position).getDesc().length() > 0) {
+            ((Viewholder) holder).tvLastest.setText(searchBooks.get(position).getDesc());
         } else
             ((Viewholder) holder).tvLastest.setText("");
-        if (searchBooks.get(realposition).getOrigin() != null && searchBooks.get(realposition).getOrigin().length() > 0) {
+        if (searchBooks.get(position).getOrigin() != null && searchBooks.get(position).getOrigin().length() > 0) {
             ((Viewholder) holder).tvOrigin.setVisibility(View.VISIBLE);
-            ((Viewholder) holder).tvOrigin.setText("来源:" + searchBooks.get(realposition).getOrigin());
+            ((Viewholder) holder).tvOrigin.setText("来源:" + searchBooks.get(position).getOrigin());
         } else {
             ((Viewholder) holder).tvOrigin.setVisibility(View.GONE);
         }
-        if (searchBooks.get(realposition).getAdd()) {
+        if (searchBooks.get(position).getAdd()) {
             ((Viewholder) holder).tvAddShelf.setText("已添加");
             ((Viewholder) holder).tvAddShelf.setEnabled(false);
         } else {
@@ -141,14 +119,14 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
             @Override
             public void onClick(View v) {
                 if (itemClickListener != null)
-                    itemClickListener.clickItem(((Viewholder) holder).ivCover, realposition, searchBooks.get(realposition));
+                    itemClickListener.clickItem(((Viewholder) holder).ivCover, position, searchBooks.get(position));
             }
         });
         ((Viewholder) holder).tvAddShelf.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (itemClickListener != null)
-                    itemClickListener.clickAddShelf(((Viewholder) holder).tvAddShelf, realposition, searchBooks.get(realposition));
+                    itemClickListener.clickAddShelf(((Viewholder) holder).tvAddShelf, position, searchBooks.get(position));
             }
         });
     }

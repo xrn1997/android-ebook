@@ -1,4 +1,4 @@
-package com.ebook.api;
+package com.ebook.api.service;
 
 import com.ebook.api.config.API;
 import com.ebook.api.entity.Comment;

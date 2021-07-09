@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.ebook.api.service.BeQuGeService;
 import com.ebook.common.BaseApplication;
 import com.ebook.common.event.RxBusTag;
 import com.ebook.basebook.mvp.presenter.IBookDetailPresenter;
@@ -125,13 +126,13 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                         WebBookModelImpl.getInstance().getChapterList(value).subscribe(new SimpleObserver<>() {
                             @Override
                             public void onNext(WebChapter<BookShelf> bookShelfWebChapter) {
-                                mBookShelf=bookShelfWebChapter.getData();
+                                mBookShelf = bookShelfWebChapter.getData();
                                 mView.updateView();
                             }
 
                             @Override
                             public void onError(Throwable e) {
-                                mBookShelf=null;
+                                mBookShelf = null;
                                 mView.getBookShelfError();
                             }
                         });
@@ -199,7 +200,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                     .subscribe(new SimpleObserver<Boolean>() {
                         @Override
                         public void onNext(Boolean value) {
-                            Log.d("移出书架", "onNext: "+value);
+                            Log.d("移出书架", "onNext: " + value);
                             if (value) {
                                 RxBus.get().post(RxBusTag.HAD_REMOVE_BOOK, mBookShelf);
                             } else {
@@ -279,35 +280,5 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
             }
             mView.updateView();
         }
-    }
-
-    public static void main(String[] args) {
-        final BookShelf bookShelfResult = new BookShelf();
-        bookShelfResult.setNoteUrl("https://www.ztv.la/ba598.shtml");
-        bookShelfResult.setFinalDate(System.currentTimeMillis());
-        bookShelfResult.setDurChapter(0);
-        bookShelfResult.setDurChapterPage(0);
-        bookShelfResult.setTag("https://www.ztv.la");
-        WebBookModelImpl.getInstance().getBookInfo(bookShelfResult).subscribe(new Observer<BookShelf>() {
-            @Override
-            public void onSubscribe(Disposable d) {
-                System.out.println("-------------subscribe");
-            }
-
-            @Override
-            public void onNext(BookShelf bookShelf) {
-                System.out.println("-------------next");
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                System.out.println("-------------error");
-            }
-
-            @Override
-            public void onComplete() {
-                System.out.println("-------------complete");
-            }
-        });
     }
 }

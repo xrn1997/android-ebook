@@ -1,5 +1,7 @@
 package com.ebook.find.entity;
 
+import androidx.annotation.NonNull;
+
 /**
  * 书籍类型类
  */
@@ -31,6 +33,7 @@ public class BookType {
         this.url = url;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "BookType{" +

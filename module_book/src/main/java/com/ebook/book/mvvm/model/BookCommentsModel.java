@@ -2,7 +2,7 @@ package com.ebook.book.mvvm.model;
 
 import android.app.Application;
 
-import com.ebook.api.CommentService;
+import com.ebook.api.service.CommentService;
 import com.ebook.api.RetrofitManager;
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.entity.Comment;

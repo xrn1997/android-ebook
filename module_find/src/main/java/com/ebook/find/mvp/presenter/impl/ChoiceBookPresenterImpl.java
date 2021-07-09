@@ -92,9 +92,9 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
     private void searchBook(final long searchTime) {
         WebBookModelImpl.getInstance().getKindBook(url, page)
                 .subscribeOn(Schedulers.io())
-                .compose(((BaseActivity) mView.getContext()).<List<SearchBook>>bindUntilEvent(ActivityEvent.DESTROY))
+                .compose(((BaseActivity) mView.getContext()).bindUntilEvent(ActivityEvent.DESTROY))
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<List<SearchBook>>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(List<SearchBook> value) {
                         if (searchTime == startThisSearchTime) {
@@ -108,7 +108,7 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
                             }
                             if (page == 1) {
                                 mView.refreshSearchBook(value);
-                                mView.refreshFinish(value.size() <= 0 ? true : false);
+                                mView.refreshFinish(value.size() <= 0);
                             } else {
                                 mView.loadMoreSearchBook(value);
                                 mView.loadMoreFinish(value.size() <= 0 ? true : false);

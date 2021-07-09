@@ -6,6 +6,9 @@ import android.app.Application;
 import android.content.Context;
 
 import com.ebook.api.config.API;
+import com.ebook.api.service.BeQuGeService;
+import com.ebook.api.service.CommentService;
+import com.ebook.api.service.UserService;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -60,7 +63,7 @@ public class RetrofitManager {
         return retrofitManager;
     }
 
-    public UserService getCommonService() {
+    public UserService getUserService() {
 
         return mRetrofit.create(UserService.class);
     }
@@ -68,20 +71,4 @@ public class RetrofitManager {
     public CommentService getCommentService() {
         return mRetrofit.create(CommentService.class);
     }
-
-    public void addToken(final String token) {
-        if (okHttpBuilder != null)
-            okHttpBuilder.addInterceptor(new Interceptor() {
-                @NotNull
-                @Override
-                public Response intercept(@NotNull Chain chain) throws IOException {
-                    Request original = chain.request();
-                    Request request = original.newBuilder()
-                            .addHeader("Authorization", "Bearer " + token)
-                            .build();
-                    return chain.proceed(request);
-                }
-            });
-    }
-
 }

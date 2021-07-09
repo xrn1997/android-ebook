@@ -74,14 +74,11 @@ public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
             } else {
                 ((LoadMoreViewHolder) holder).tvLoadMore.setText("加载失败,点击重试");
             }
-            ((LoadMoreViewHolder) holder).tvLoadMore.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (null != clickTryAgainListener && loadMoreError) {
-                        clickTryAgainListener.loadMoreErrorTryAgain();
-                        loadMoreError = false;
-                        ((LoadMoreViewHolder) holder).tvLoadMore.setText("正在加载...");
-                    }
+            ((LoadMoreViewHolder) holder).tvLoadMore.setOnClickListener(v -> {
+                if (null != clickTryAgainListener && loadMoreError) {
+                    clickTryAgainListener.loadMoreErrorTryAgain();
+                    loadMoreError = false;
+                    ((LoadMoreViewHolder) holder).tvLoadMore.setText("正在加载...");
                 }
             });
         } else
@@ -166,12 +163,7 @@ public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
             if (Looper.myLooper() == Looper.getMainLooper()) {
                 notifyDataSetChanged();
             } else {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        notifyDataSetChanged();
-                    }
-                });
+                handler.post(this::notifyDataSetChanged);
             }
         }
     }

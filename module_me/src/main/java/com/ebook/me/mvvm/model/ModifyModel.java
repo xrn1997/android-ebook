@@ -3,7 +3,7 @@ package com.ebook.me.mvvm.model;
 import android.app.Application;
 
 import com.blankj.utilcode.util.SPUtils;
-import com.ebook.api.UserService;
+import com.ebook.api.service.UserService;
 import com.ebook.api.RetrofitManager;
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.RxAdapter;
@@ -22,7 +22,7 @@ public class ModifyModel extends BaseModel {
 
     public ModifyModel(Application application) {
         super(application);
-        userService = RetrofitManager.getInstance().getCommonService();
+        userService = RetrofitManager.getInstance().getUserService();
     }
 
     /**

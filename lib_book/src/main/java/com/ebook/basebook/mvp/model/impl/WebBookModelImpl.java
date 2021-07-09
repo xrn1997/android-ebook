@@ -50,7 +50,7 @@ public class WebBookModelImpl implements WebBookModel {
     }
 
     @Override
-    public Observable<List<SearchBook>> getKindBook(String url, int page) {
+    public Observable<List<SearchBook>> getKindBook(String url, int page)  {
         return stationBookModel.getKindBook(url, page);
     }
 

@@ -1,7 +1,7 @@
 
 package com.ebook.basebook.mvp.model.impl;
 
-import com.ebook.api.config.IGxwztvApi;
+import com.ebook.api.service.IGxwztvService;
 import com.ebook.basebook.cache.ACache;
 import com.ebook.basebook.base.impl.MBaseModelImpl;
 import com.ebook.basebook.base.manager.ErrorAnalyContentManager;
@@ -52,7 +52,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
      */
     @Override
     public Observable<Library> getLibraryData(final ACache aCache) {
-        return getRetrofitObject(IGxwztvApi.URL).create(IGxwztvApi.class).getLibraryData("").flatMap((Function<String, ObservableSource<Library>>) s -> {
+        return getRetrofitObject(IGxwztvService.URL).create(IGxwztvService.class).getLibraryData("").flatMap((Function<String, ObservableSource<Library>>) s -> {
             if (s.length() > 0 && aCache != null) {
                 aCache.put("cache_library", s);
             }
@@ -74,7 +74,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
             List<LibraryNewBook> libraryNewBooks = new ArrayList<>();
             for (int i = 0; i < newBookEs.size(); i++) {
                 Element itemE = newBookEs.get(i).getElementsByTag("a").get(0);
-                LibraryNewBook item = new LibraryNewBook(itemE.text(), IGxwztvApi.URL + itemE.attr("href"), IGxwztvApi.URL, "ztv.la");
+                LibraryNewBook item = new LibraryNewBook(itemE.text(), IGxwztvService.URL + itemE.attr("href"), IGxwztvService.URL, "ztv.la");
                 libraryNewBooks.add(item);
             }
             result.setLibraryNewBooks(libraryNewBooks);
@@ -91,9 +91,9 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
                 for (int j = 0; j < bookEs.size(); j++) {
                     SearchBook searchBook = new SearchBook();
                     searchBook.setOrigin("ztv.la");
-                    searchBook.setTag(IGxwztvApi.URL);
+                    searchBook.setTag(IGxwztvService.URL);
                     searchBook.setName(bookEs.get(j).getElementsByTag("span").get(0).text());
-                    searchBook.setNoteUrl(IGxwztvApi.URL + bookEs.get(j).getElementsByTag("a").get(0).attr("href"));
+                    searchBook.setNoteUrl(IGxwztvService.URL + bookEs.get(j).getElementsByTag("a").get(0).attr("href"));
                     searchBook.setCoverUrl(bookEs.get(j).getElementsByTag("img").get(0).attr("src"));
                     books.add(searchBook);
                 }
@@ -105,15 +105,15 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
             for (int i = 0; i < kindEs.size(); i++) {
                 LibraryKindBookList kindItem = new LibraryKindBookList();
                 kindItem.setKindName(kindEs.get(i).getElementsByClass("panel-title").get(0).text());
-                kindItem.setKindUrl(IGxwztvApi.URL + kindEs.get(i).getElementsByClass("listMore").get(0).getElementsByTag("a").get(0).attr("href"));
+                kindItem.setKindUrl(IGxwztvService.URL + kindEs.get(i).getElementsByClass("listMore").get(0).getElementsByTag("a").get(0).attr("href"));
 
                 List<SearchBook> books = new ArrayList<>();
                 Element firstBookE = kindEs.get(i).getElementsByTag("dl").get(0);
                 SearchBook firstBook = new SearchBook();
-                firstBook.setTag(IGxwztvApi.URL);
+                firstBook.setTag(IGxwztvService.URL);
                 firstBook.setOrigin("ztv.la");
                 firstBook.setName(firstBookE.getElementsByTag("a").get(1).text());
-                firstBook.setNoteUrl(IGxwztvApi.URL + firstBookE.getElementsByTag("a").get(0).attr("href"));
+                firstBook.setNoteUrl(IGxwztvService.URL + firstBookE.getElementsByTag("a").get(0).attr("href"));
                 firstBook.setCoverUrl(firstBookE.getElementsByTag("a").get(0).getElementsByTag("img").get(0).attr("src"));
                 firstBook.setKind(kindItem.getKindName());
                 books.add(firstBook);
@@ -121,10 +121,10 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
                 Elements otherBookEs = kindEs.get(i).getElementsByClass("book_textList").get(0).getElementsByTag("li");
                 for (int j = 0; j < otherBookEs.size(); j++) {
                     SearchBook item = new SearchBook();
-                    item.setTag(IGxwztvApi.URL);
+                    item.setTag(IGxwztvService.URL);
                     item.setOrigin("ztv.la");
                     item.setKind(kindItem.getKindName());
-                    item.setNoteUrl(IGxwztvApi.URL + otherBookEs.get(j).getElementsByTag("a").get(0).attr("href"));
+                    item.setNoteUrl(IGxwztvService.URL + otherBookEs.get(j).getElementsByTag("a").get(0).attr("href"));
                     item.setName(otherBookEs.get(j).getElementsByTag("a").get(0).text());
                     books.add(item);
                 }
@@ -141,7 +141,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     @Override
     public Observable<List<SearchBook>> searchBook(String content, int page) {
-        return getRetrofitObject(IGxwztvApi.URL).create(IGxwztvApi.class).searchBook(content, page).flatMap((Function<String, ObservableSource<List<SearchBook>>>) this::analyzeSearchBook);
+        return getRetrofitObject(IGxwztvService.URL).create(IGxwztvService.class).searchBook(content, page).flatMap((Function<String, ObservableSource<List<SearchBook>>>) this::analyzeSearchBook);
     }
 
     public Observable<List<SearchBook>> analyzeSearchBook(final String s) {
@@ -153,13 +153,13 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
                     List<SearchBook> books = new ArrayList<>();
                     for (int i = 1; i < booksE.size(); i++) {
                         SearchBook item = new SearchBook();
-                        item.setTag(IGxwztvApi.URL);
+                        item.setTag(IGxwztvService.URL);
                         item.setAuthor(booksE.get(i).getElementsByClass("col-xs-2").get(0).text());
                         item.setKind(booksE.get(i).getElementsByClass("col-xs-1").get(0).text());
                         item.setLastChapter(booksE.get(i).getElementsByClass("col-xs-4").get(0).getElementsByTag("a").get(0).text());
                         item.setOrigin("ztv.la");
                         item.setName(booksE.get(i).getElementsByClass("col-xs-3").get(0).getElementsByTag("a").get(0).text());
-                        item.setNoteUrl(IGxwztvApi.URL + booksE.get(i).getElementsByClass("col-xs-3").get(0).getElementsByTag("a").get(0).attr("href"));
+                        item.setNoteUrl(IGxwztvService.URL + booksE.get(i).getElementsByClass("col-xs-3").get(0).getElementsByTag("a").get(0).attr("href"));
                         item.setCoverUrl("noimage");
                         books.add(item);
                     }
@@ -178,12 +178,15 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     @Override
     public Observable<BookShelf> getBookInfo(final BookShelf bookShelf) {
-        return getRetrofitObject(IGxwztvApi.URL).create(IGxwztvApi.class).getBookInfo(bookShelf.getNoteUrl().replace(IGxwztvApi.URL, "")).flatMap((Function<String, ObservableSource<BookShelf>>) s -> analyzeBookInfo(s, bookShelf));
+        return getRetrofitObject(IGxwztvService.URL)
+                .create(IGxwztvService.class)
+                .getBookInfo(bookShelf.getNoteUrl().replace(IGxwztvService.URL, ""))
+                .flatMap((Function<String, ObservableSource<BookShelf>>) s -> analyzeBookInfo(s, bookShelf));
     }
 
     private Observable<BookShelf> analyzeBookInfo(final String s, final BookShelf bookShelf) {
         return Observable.create(e -> {
-            bookShelf.setTag(IGxwztvApi.URL);
+            bookShelf.setTag(IGxwztvService.URL);
             bookShelf.setBookInfo(analyzeBookInfo(s, bookShelf.getNoteUrl()));
             e.onNext(bookShelf);
             e.onComplete();
@@ -193,7 +196,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
     private BookInfo analyzeBookInfo(String s, String novelUrl) {
         BookInfo bookInfo = new BookInfo();
         bookInfo.setNoteUrl(novelUrl);   //id
-        bookInfo.setTag(IGxwztvApi.URL);
+        bookInfo.setTag(IGxwztvService.URL);
         Document doc = Jsoup.parse(s);
         Element resultE = doc.getElementsByClass("panel panel-warning").get(0);
         bookInfo.setCoverUrl(resultE.getElementsByClass("panel-body").get(0).getElementsByClass("img-thumbnail").get(0).attr("src"));
@@ -207,7 +210,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
             introduce = introduceE.getElementById("shot").text();
         }
         bookInfo.setIntroduce("\u3000\u3000" + introduce);
-        bookInfo.setChapterUrl(IGxwztvApi.URL + resultE.getElementsByClass("list-group-item tac").get(0).getElementsByTag("a").get(0).attr("href"));
+        bookInfo.setChapterUrl(IGxwztvService.URL + resultE.getElementsByClass("list-group-item tac").get(0).getElementsByTag("a").get(0).attr("href"));
         bookInfo.setOrigin("ztv.la");
         return bookInfo;
     }
@@ -215,14 +218,14 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     @Override
     public Observable<WebChapter<BookShelf>> getChapterList(final BookShelf bookShelf) {
-       return getRetrofitObject(IGxwztvApi.URL).create(IGxwztvApi.class).getChapterList(bookShelf.getBookInfo().getChapterUrl().replace(IGxwztvApi.URL, "")).flatMap((Function<String, ObservableSource<WebChapter<BookShelf>>>) s -> analyzeChapterList(s, bookShelf))
+       return getRetrofitObject(IGxwztvService.URL).create(IGxwztvService.class).getChapterList(bookShelf.getBookInfo().getChapterUrl().replace(IGxwztvService.URL, "")).flatMap((Function<String, ObservableSource<WebChapter<BookShelf>>>) s -> analyzeChapterList(s, bookShelf))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread());
     }
 
     private Observable<WebChapter<BookShelf>> analyzeChapterList(final String s, final BookShelf bookShelf) {
         return Observable.create(e -> {
-            bookShelf.setTag(IGxwztvApi.URL);
+            bookShelf.setTag(IGxwztvService.URL);
             WebChapter<List<ChapterList>> temp = analyzeChapterList(s, bookShelf.getNoteUrl());
             bookShelf.getBookInfo().setChapterlist(temp.getData());
             e.onNext(new WebChapter<>(bookShelf, temp.getNext()));
@@ -236,11 +239,11 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
         List<ChapterList> chapters = new ArrayList<>();
         for (int i = 0; i < chapterList.size(); i++) {
             ChapterList temp = new ChapterList();
-            temp.setDurChapterUrl(IGxwztvApi.URL + chapterList.get(i).attr("href"));   //id
+            temp.setDurChapterUrl(IGxwztvService.URL + chapterList.get(i).attr("href"));   //id
             temp.setDurChapterIndex(i);
             temp.setDurChapterName(chapterList.get(i).text());
             temp.setNoteUrl(novelUrl);
-            temp.setTag(IGxwztvApi.URL);
+            temp.setTag(IGxwztvService.URL);
 
             chapters.add(temp);
         }
@@ -250,7 +253,10 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     @Override
     public Observable<BookContent> getBookContent(final String durChapterUrl, final int durChapterIndex) {
-        return getRetrofitObject(IGxwztvApi.URL).create(IGxwztvApi.class).getBookContent(durChapterUrl.replace(IGxwztvApi.URL, "")).flatMap((Function<String, ObservableSource<BookContent>>) s -> analyzeBookContent(s, durChapterUrl, durChapterIndex));
+        return getRetrofitObject(IGxwztvService.URL)
+                .create(IGxwztvService.class)
+                .getBookContent(durChapterUrl.replace(IGxwztvService.URL, ""))
+                .flatMap((Function<String, ObservableSource<BookContent>>) s -> analyzeBookContent(s, durChapterUrl, durChapterIndex));
     }
 
     private Observable<BookContent> analyzeBookContent(final String s, final String durChapterUrl, final int durChapterIndex) {
@@ -258,7 +264,7 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
             BookContent bookContent = new BookContent();
             bookContent.setDurChapterIndex(durChapterIndex);
             bookContent.setDurChapterUrl(durChapterUrl);
-            bookContent.setTag(IGxwztvApi.URL);
+            bookContent.setTag(IGxwztvService.URL);
             try {
                 Document doc = Jsoup.parse(s);
                 List<TextNode> contentEs = doc.getElementById("txtContent").textNodes();
@@ -294,6 +300,6 @@ public class GxwztvBookModelImpl extends MBaseModelImpl implements StationBookMo
     @Override
     public Observable<List<SearchBook>> getKindBook(String url, int page) {
         url = url + page + ".htm";
-        return getRetrofitObject(IGxwztvApi.URL).create(IGxwztvApi.class).getKindBooks(url.replace(IGxwztvApi.URL, "")).flatMap((Function<String, ObservableSource<List<SearchBook>>>) this::analyzeSearchBook);
+        return getRetrofitObject(IGxwztvService.URL).create(IGxwztvService.class).getKindBooks(url.replace(IGxwztvService.URL, "")).flatMap((Function<String, ObservableSource<List<SearchBook>>>) this::analyzeSearchBook);
     }
 }

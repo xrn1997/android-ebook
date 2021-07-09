@@ -5,6 +5,7 @@ import com.ebook.basebook.base.converter.EncodeConverter;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.scalars.ScalarsConverterFactory;
@@ -16,6 +17,9 @@ public class MBaseModelImpl {
             .readTimeout(10, TimeUnit.SECONDS);
 
     protected Retrofit getRetrofitObject(String url) {
+        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+        clientBuilder.interceptors().add(logging);
         return new Retrofit.Builder().baseUrl(url)
                 //增加返回值为字符串的支持(以实体类返回)
                 .addConverterFactory(ScalarsConverterFactory.create())

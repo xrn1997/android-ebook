@@ -2,7 +2,6 @@ package com.ebook.find.fragment;
 
 import android.content.Context;
 import android.content.Intent;
-import android.util.AttributeSet;
 import android.view.View;
 import android.widget.FrameLayout;
 
@@ -11,7 +10,6 @@ import com.ebook.common.mvvm.BaseMvvmRefreshFragment;
 import com.ebook.common.util.ObservableListUtil;
 import com.ebook.find.BR;
 import com.ebook.find.R;
-import com.ebook.find.adapter.LibraryBookAdapter;
 import com.ebook.find.adapter.LibraryBookListAdapter;
 import com.ebook.find.databinding.FragmentFindMainBinding;
 import com.ebook.find.entity.BookType;

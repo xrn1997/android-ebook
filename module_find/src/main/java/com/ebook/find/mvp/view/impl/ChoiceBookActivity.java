@@ -66,15 +66,12 @@ public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> imple
         rfRvSearchBooks.setRefreshRecyclerViewAdapter(searchBookAdapter, new LinearLayoutManager(this));
 
         View viewRefreshError = LayoutInflater.from(this).inflate(R.layout.view_searchbook_refresherror, null);
-        viewRefreshError.findViewById(R.id.tv_refresh_again).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                searchBookAdapter.replaceAll(null);
-                //刷新失败 ，重试
-                mPresenter.initPage();
-                mPresenter.toSearchBooks(null);
-                startRefreshAnim();
-            }
+        viewRefreshError.findViewById(R.id.tv_refresh_again).setOnClickListener(v -> {
+            searchBookAdapter.replaceAll(null);
+            //刷新失败 ，重试
+            mPresenter.initPage();
+            mPresenter.toSearchBooks(null);
+            startRefreshAnim();
         });
         rfRvSearchBooks.setNoDataAndrRefreshErrorView(LayoutInflater.from(this).inflate(R.layout.view_searchbook_nodata, null),
                 viewRefreshError);
@@ -82,12 +79,9 @@ public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> imple
 
     @Override
     protected void bindEvent() {
-        ivReturn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // finish();
-                onBackPressed();
-            }
+        ivReturn.setOnClickListener(v -> {
+            // finish();
+            onBackPressed();
         });
         searchBookAdapter.setItemClickListener(new ChoiceBookAdapter.OnItemClickListener() {
             @Override
@@ -104,13 +98,10 @@ public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> imple
             }
         });
 
-        rfRvSearchBooks.setBaseRefreshListener(new BaseRefreshListener() {
-            @Override
-            public void startRefresh() {
-                mPresenter.initPage();
-                mPresenter.toSearchBooks(null);
-                startRefreshAnim();
-            }
+        rfRvSearchBooks.setBaseRefreshListener(() -> {
+            mPresenter.initPage();
+            mPresenter.toSearchBooks(null);
+            startRefreshAnim();
         });
         rfRvSearchBooks.setLoadMoreListener(new OnLoadMoreListener() {
             @Override

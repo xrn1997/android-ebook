@@ -3,7 +3,7 @@ package com.ebook.me.mvvm.model;
 import android.app.Application;
 
 import com.blankj.utilcode.util.SPUtils;
-import com.ebook.api.CommentService;
+import com.ebook.api.service.CommentService;
 import com.ebook.api.RetrofitManager;
 import com.ebook.api.entity.Comment;
 import com.ebook.api.dto.RespDTO;

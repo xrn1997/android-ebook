@@ -2,7 +2,7 @@ package com.ebook.login.mvvm.model;
 
 import android.app.Application;
 
-import com.ebook.api.UserService;
+import com.ebook.api.service.UserService;
 import com.ebook.api.RetrofitManager;
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.RxAdapter;
@@ -16,7 +16,7 @@ public class ModifyPwdModel extends BaseModel {
 
     public ModifyPwdModel(Application application) {
         super(application);
-        mUserService = RetrofitManager.getInstance().getCommonService();
+        mUserService = RetrofitManager.getInstance().getUserService();
     }
 
     @SuppressWarnings("unchecked")
