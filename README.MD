@@ -6,9 +6,6 @@
 
 该项目是在[ZhangQinhao/MONKOVEL (github.com)](https://github.com/ZhangQinhao/MONKOVEL) 和[mxdldev/android-mvp-mvvm-flytour (github.com)](https://github.com/mxdldev/android-mvp-mvvm-flytour) 的基础上编写的，并没有整合的非常好（属于MVVM和MVP的混搭），很多地方仍需要改进，但是至少能用了不是，要什么自行车。
 
-我还搭了一个服务器，也会开源（腾讯云服务器，很垃圾的一个小服务器，2021年底就过期了），服务器项目也是在大佬的项目（ [mxdldev/spring-cloud-flycloud (github.com)](https://github.com/mxdldev/spring-cloud-flycloud) ）基础上修改的。请注意，现在的spring cloud都不用这些了，服务器的代码基本上都过时了，但是服务器代码与安卓代码还是不一样的，老当益壮？不存在不更新就用不了的情况。
-
-这两天把书源更新了一下，然后决定开源出来，以后应该还会时不时更新更新。
 
 文档最后更新时间：2021年7月10日。
 
