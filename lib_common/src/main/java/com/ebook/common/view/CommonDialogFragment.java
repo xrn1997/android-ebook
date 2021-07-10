@@ -126,23 +126,17 @@ public class CommonDialogFragment extends DialogFragment {
         if (rightBtnTextColor != 0) {
             btnRight.setTextColor(rightBtnTextColor);
         }
-        btnLeft.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (mOnDialogClickListener != null) {
-                    mOnDialogClickListener.onLeftBtnClick(view);
-                }
-                dismiss();
+        btnLeft.setOnClickListener(view1 -> {
+            if (mOnDialogClickListener != null) {
+                mOnDialogClickListener.onLeftBtnClick(view1);
             }
+            dismiss();
         });
-        btnRight.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (mOnDialogClickListener != null) {
-                    mOnDialogClickListener.onRightBtnClick(view);
-                }
-                dismiss();
+        btnRight.setOnClickListener(view12 -> {
+            if (mOnDialogClickListener != null) {
+                mOnDialogClickListener.onRightBtnClick(view12);
             }
+            dismiss();
         });
         return view;
     }

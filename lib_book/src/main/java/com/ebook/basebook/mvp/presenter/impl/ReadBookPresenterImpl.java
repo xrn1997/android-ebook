@@ -9,10 +9,16 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 
 import com.ebook.basebook.base.manager.BitIntentDataManager;
 import com.ebook.common.event.RxBusTag;
@@ -35,7 +41,7 @@ import com.ebook.db.entity.BookShelfDao;
 import com.ebook.db.entity.LocBookShelf;
 import com.ebook.db.entity.ReadBookContent;
 import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
-import com.ebook.basebook.utils.PremissionCheck;
+
 import com.permissionx.guolindev.PermissionX;
 import com.trello.rxlifecycle3.android.ActivityEvent;
 
@@ -80,15 +86,32 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
             BitIntentDataManager.getInstance().cleanData(key);
             checkInShelf();
         } else {
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !PremissionCheck.checkPremission(activity,
-//                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-//                //申请权限
-//                activity.requestPermissions(
-//                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0x11);
-//            } else {
-                openBookFromOther(activity);
-   //         }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                    !Environment.isExternalStorageManager()) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(activity)
+                        .setMessage("在Android11及以上的版本中，本程序还需要您同意允许访问所有文件权限，不然无法打开和扫描本地文件")
+                        .setPositiveButton("确定", (dialog, which) -> {
+                            mView.getRequestPermission().launch(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+                        })
+                        .setNegativeButton("取消", ((dialog, which) -> {
+                            activity.onBackPressed();
+                        }));
+                AlertDialog dialog = builder.create();
+                //点击dialog之外的空白处，dialog不能消失
+                dialog.setCanceledOnTouchOutside(false);
+                dialog.show();
+            }
         }
+    }
+
+    /**
+     * 所有需要的权限
+     */
+    public static List<String> allNeedPermissions() {
+        List<String> permissions = new ArrayList<>();
+        permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+        return permissions;
     }
 
     @Override
@@ -207,17 +230,14 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
                 }
             } else {
                 final int finalPageIndex1 = pageIndex;
-                Observable.create(new ObservableOnSubscribe<ReadBookContent>() {
-                    @Override
-                    public void subscribe(ObservableEmitter<ReadBookContent> e) throws Exception {
-                        List<BookContent> tempList = GreenDaoManager.getInstance().getmDaoSession().getBookContentDao().queryBuilder().where(BookContentDao.Properties.DurChapterUrl.eq(bookShelf.getBookInfo().getChapterlist().get(chapterIndex).getDurChapterUrl())).build().list();
-                        e.onNext(new ReadBookContent(tempList == null ? new ArrayList<BookContent>() : tempList, finalPageIndex1));
-                        e.onComplete();
-                    }
+                Observable.create((ObservableOnSubscribe<ReadBookContent>) e -> {
+                    List<BookContent> tempList = GreenDaoManager.getInstance().getmDaoSession().getBookContentDao().queryBuilder().where(BookContentDao.Properties.DurChapterUrl.eq(bookShelf.getBookInfo().getChapterlist().get(chapterIndex).getDurChapterUrl())).build().list();
+                    e.onNext(new ReadBookContent(tempList == null ? new ArrayList<>() : tempList, finalPageIndex1));
+                    e.onComplete();
                 }).observeOn(AndroidSchedulers.mainThread())
                         .subscribeOn(Schedulers.io())
                         .compose(((BaseActivity) mView.getContext()).<ReadBookContent>bindUntilEvent(ActivityEvent.DESTROY))
-                        .subscribe(new SimpleObserver<ReadBookContent>() {
+                        .subscribe(new SimpleObserver<>() {
                             @Override
                             public void onNext(ReadBookContent tempList) {
                                 if (tempList.getBookContentList() != null && tempList.getBookContentList().size() > 0 && tempList.getBookContentList().get(0).getDurCapterContent() != null) {
@@ -283,16 +303,13 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
     @Override
     public void saveProgress() {
         if (bookShelf != null) {
-            Observable.create(new ObservableOnSubscribe<BookShelf>() {
-                @Override
-                public void subscribe(ObservableEmitter<BookShelf> e) throws Exception {
-                    bookShelf.setFinalDate(System.currentTimeMillis());
-                    GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
-                    e.onNext(bookShelf);
-                    e.onComplete();
-                }
+            Observable.create((ObservableOnSubscribe<BookShelf>) e -> {
+                bookShelf.setFinalDate(System.currentTimeMillis());
+                GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
+                e.onNext(bookShelf);
+                e.onComplete();
             }).subscribeOn(Schedulers.io())
-                    .subscribe(new SimpleObserver<BookShelf>() {
+                    .subscribe(new SimpleObserver<>() {
                         @Override
                         public void onNext(BookShelf value) {
                             RxBus.get().post(RxBusTag.UPDATE_BOOK_PROGRESS, bookShelf);
@@ -315,19 +332,16 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
     }
 
     public Observable<List<String>> SeparateParagraphtoLines(final String paragraphstr) {
-        return Observable.create(new ObservableOnSubscribe<List<String>>() {
-            @Override
-            public void subscribe(ObservableEmitter<List<String>> e) throws Exception {
-                TextPaint mPaint = (TextPaint) mView.getPaint();
-                mPaint.setSubpixelText(true);
-                Layout tempLayout = new StaticLayout(paragraphstr, mPaint, mView.getContentWidth(), Layout.Alignment.ALIGN_NORMAL, 0, 0, false);
-                List<String> linesdata = new ArrayList<String>();
-                for (int i = 0; i < tempLayout.getLineCount(); i++) {
-                    linesdata.add(paragraphstr.substring(tempLayout.getLineStart(i), tempLayout.getLineEnd(i)));
-                }
-                e.onNext(linesdata);
-                e.onComplete();
+        return Observable.create(e -> {
+            TextPaint mPaint = (TextPaint) mView.getPaint();
+            mPaint.setSubpixelText(true);
+            Layout tempLayout = new StaticLayout(paragraphstr, mPaint, mView.getContentWidth(), Layout.Alignment.ALIGN_NORMAL, 0, 0, false);
+            List<String> linesdata = new ArrayList<>();
+            for (int i = 0; i < tempLayout.getLineCount(); i++) {
+                linesdata.add(paragraphstr.substring(tempLayout.getLineStart(i), tempLayout.getLineEnd(i)));
             }
+            e.onNext(linesdata);
+            e.onComplete();
         });
     }
 
@@ -337,17 +351,14 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
     }
 
     private void checkInShelf() {
-        Observable.create(new ObservableOnSubscribe<Boolean>() {
-            @Override
-            public void subscribe(ObservableEmitter<Boolean> e) throws Exception {
-                List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().where(BookShelfDao.Properties.NoteUrl.eq(bookShelf.getNoteUrl())).build().list();
-                if (temp == null || temp.size() == 0) {
-                    isAdd = false;
-                } else
-                    isAdd = true;
-                e.onNext(isAdd);
-                e.onComplete();
-            }
+        Observable.create((ObservableOnSubscribe<Boolean>) e -> {
+            List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().where(BookShelfDao.Properties.NoteUrl.eq(bookShelf.getNoteUrl())).build().list();
+            if (temp == null || temp.size() == 0) {
+                isAdd = false;
+            } else
+                isAdd = true;
+            e.onNext(isAdd);
+            e.onComplete();
         }).subscribeOn(Schedulers.io())
                 .compose(((BaseActivity) mView.getContext()).<Boolean>bindUntilEvent(ActivityEvent.DESTROY))
                 .observeOn(AndroidSchedulers.mainThread())
@@ -407,36 +418,33 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
     }
 
     public Observable<String> getRealFilePath(final Context context, final Uri uri) {
-        return Observable.create(new ObservableOnSubscribe<String>() {
-            @Override
-            public void subscribe(ObservableEmitter<String> e) throws Exception {
-                String data = "";
-                if (null != uri) {
-                    final String scheme = uri.getScheme();
-                    if (scheme == null)
-                        data = uri.getPath();
-                    else if (ContentResolver.SCHEME_FILE.equals(scheme)) {
-                        data = uri.getPath();
-                    } else if (ContentResolver.SCHEME_CONTENT.equals(scheme)) {
-                        Cursor cursor = context.getContentResolver().query(uri, new String[]{MediaStore.Images.ImageColumns.DATA}, null, null, null);
-                        if (null != cursor) {
-                            if (cursor.moveToFirst()) {
-                                int index = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
-                                if (index > -1) {
-                                    data = cursor.getString(index);
-                                }
+        return Observable.create(e -> {
+            String data = "";
+            if (null != uri) {
+                final String scheme = uri.getScheme();
+                if (scheme == null)
+                    data = uri.getPath();
+                else if (ContentResolver.SCHEME_FILE.equals(scheme)) {
+                    data = uri.getPath();
+                } else if (ContentResolver.SCHEME_CONTENT.equals(scheme)) {
+                    Cursor cursor = context.getContentResolver().query(uri, new String[]{MediaStore.Images.ImageColumns.DATA}, null, null, null);
+                    if (null != cursor) {
+                        if (cursor.moveToFirst()) {
+                            int index = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
+                            if (index > -1) {
+                                data = cursor.getString(index);
                             }
-                            cursor.close();
                         }
+                        cursor.close();
+                    }
 
-                        if ((data == null || data.length() <= 0) && uri.getPath() != null && uri.getPath().contains("/storage/emulated/")) {
-                            data = uri.getPath().substring(uri.getPath().indexOf("/storage/emulated/"));
-                        }
+                    if ((data == null || data.length() <= 0) && uri.getPath() != null && uri.getPath().contains("/storage/emulated/")) {
+                        data = uri.getPath().substring(uri.getPath().indexOf("/storage/emulated/"));
                     }
                 }
-                e.onNext(data == null ? "" : data);
-                e.onComplete();
             }
+            e.onNext(data == null ? "" : data);
+            e.onComplete();
         });
     }
 }

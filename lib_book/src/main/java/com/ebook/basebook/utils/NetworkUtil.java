@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class NetworkUtil {
     private static final Map<Integer, String> errorMap = new HashMap<>();
-    private static Context context = BaseApplication.getInstance();
+    private static final Context context = BaseApplication.getInstance();
     public static final int SUCCESS = 10000;
     public static final int ERROR_CODE_NONET = 10001;
     public static final int ERROR_CODE_OUTTIME = 10002;

@@ -25,26 +25,11 @@ public abstract class BaseRefreshActivity<M extends BaseModel, V extends BaseRef
     public void initRefreshView() {
         mRefreshLayout = findViewById(onBindRreshLayout());
         // 下拉刷新
-        mRefreshLayout.setOnRefreshListener(new BaseRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                onRefreshEvent();
-            }
-        });
+        mRefreshLayout.setOnRefreshListener(this::onRefreshEvent);
         // 上拉加载
-        mRefreshLayout.setOnLoadMoreListener(new BaseRefreshLayout.OnLoadMoreListener() {
-            @Override
-            public void onLoadMore() {
-                onLoadMoreEvent();
-            }
-        });
+        mRefreshLayout.setOnLoadMoreListener(this::onLoadMoreEvent);
         // 自动加载
-        mRefreshLayout.setOnAutoLoadListener(new BaseRefreshLayout.OnAutoLoadListener() {
-            @Override
-            public void onAutoLoad() {
-                onAutoLoadEvent();
-            }
-        });
+        mRefreshLayout.setOnAutoLoadListener(this::onAutoLoadEvent);
     }
 
     protected abstract int onBindRreshLayout();

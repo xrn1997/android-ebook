@@ -11,6 +11,7 @@ import android.view.View;
 import com.ebook.basebook.base.manager.AppActivityManager;
 import com.ebook.basebook.base.IPresenter;
 import com.ebook.basebook.base.IView;
+import com.hwangjr.rxbus.RxBus;
 import com.trello.rxlifecycle3.components.support.RxAppCompatActivity;
 
 import androidx.annotation.NonNull;
@@ -29,6 +30,7 @@ public abstract class BaseActivity<T extends IPresenter> extends RxAppCompatActi
             startShareAnim = getIntent().getBooleanExtra(start_share_ele, false);
         }
         AppActivityManager.getInstance().add(this);
+        RxBus.get().register(this);
         initSDK();
         onCreateActivity();
         mPresenter = initInjector();
@@ -116,6 +118,7 @@ public abstract class BaseActivity<T extends IPresenter> extends RxAppCompatActi
     protected void onDestroy() {
         super.onDestroy();
         detachView();
+        RxBus.get().unregister(this);
         AppActivityManager.getInstance().remove(this);
     }
 

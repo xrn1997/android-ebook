@@ -70,31 +70,20 @@ public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBi
     @Override
     public void initListener() {
         super.initListener();
-        mCommentListAdapter.setItemClickListener(new BaseBindAdapter.OnItemClickListener<Comment>() {
-            @Override
-            public void onItemClick(Comment comment, int position) {
-                Bundle bundle = new Bundle();
-                bundle.putString("chapterUrl", comment.getChapterUrl());
-                bundle.putString("chapterName", comment.getChapterName());
-                bundle.putString("bookName", comment.getBookName());
-                ARouter.getInstance().build(KeyCode.Book.Comment_PATH)
-                        .with(bundle)
-                        .navigation(MyCommentActivity.this, new LoginNavigationCallbackImpl());
-            }
+        mCommentListAdapter.setItemClickListener((comment, position) -> {
+            Bundle bundle = new Bundle();
+            bundle.putString("chapterUrl", comment.getChapterUrl());
+            bundle.putString("chapterName", comment.getChapterName());
+            bundle.putString("bookName", comment.getBookName());
+            ARouter.getInstance().build(KeyCode.Book.Comment_PATH)
+                    .with(bundle)
+                    .navigation(MyCommentActivity.this, new LoginNavigationCallbackImpl());
         });
-        mCommentListAdapter.setOnItemLongClickListener(new BaseBindAdapter.OnItemLongClickListener<Comment>() {
-            @Override
-            public boolean onItemLongClick(Comment comment, int postion) {
-                DeleteDialog deleteDialog = DeleteDialog.newInstance();
-                deleteDialog.setOnClickListener(new DeleteDialog.OnDeleteClickListener() {
-                    @Override
-                    public void onItemClick() {
-                        mViewModel.deleteComent(comment.getId());
-                    }
-                });
-                deleteDialog.show(getSupportFragmentManager(), "deleteDialog");
-                return true;
-            }
+        mCommentListAdapter.setOnItemLongClickListener((comment, postion) -> {
+            DeleteDialog deleteDialog = DeleteDialog.newInstance();
+            deleteDialog.setOnClickListener(() -> mViewModel.deleteComent(comment.getId()));
+            deleteDialog.show(getSupportFragmentManager(), "deleteDialog");
+            return true;
         });
     }
 

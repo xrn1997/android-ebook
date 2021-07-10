@@ -65,19 +65,9 @@ public class LoginActivity extends BaseMvvmActivity<ActivityLoginBinding, LoginV
     @Override
     public void initListener() {
         super.initListener();
-        mTvRegister.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                toRegisterActivity();
-            }
-        });
+        mTvRegister.setOnClickListener(view -> toRegisterActivity());
 
-        mTvForgetPwd.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                toForgetPwdActivity();
-            }
-        });
+        mTvForgetPwd.setOnClickListener(view -> toForgetPwdActivity());
     }
 
     @Override

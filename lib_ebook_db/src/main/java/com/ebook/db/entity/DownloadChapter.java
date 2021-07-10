@@ -122,7 +122,7 @@ public class DownloadChapter implements Parcelable {
         this.coverUrl = coverUrl;
     }
 
-    public static final Creator<DownloadChapter> CREATOR = new Creator<DownloadChapter>() {
+    public static final Creator<DownloadChapter> CREATOR = new Creator<>() {
         @Override
         public DownloadChapter createFromParcel(Parcel in) {
             return new DownloadChapter(in);

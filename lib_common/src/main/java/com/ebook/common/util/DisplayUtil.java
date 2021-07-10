@@ -15,7 +15,7 @@ import com.ebook.common.BaseApplication;
  * </ul>
  */
 public class DisplayUtil {
-    private static Context context = BaseApplication.getInstance().getApplicationContext();
+    private static final Context context = BaseApplication.getInstance().getApplicationContext();
 
     /**
      * 将px值转换为dip或dp值，保证尺寸大小不变

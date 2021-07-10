@@ -10,7 +10,6 @@ public interface IImportBookView extends IView {
     /**
      * 新增书籍
      *
-     * @param newFile
      */
     void addNewBook(File newFile);
 
@@ -28,4 +27,5 @@ public interface IImportBookView extends IView {
      * 添加失败
      */
     void addError();
+
 }

@@ -9,6 +9,10 @@
     <string name="tv_book_name">《%s》</string>
     <string name="tv_searchbook_lastest">最新章节:%s</string>
     <string name="tv_pop_checkaddshelf">是否将《%s》放入书架？</string>
-    <string name="tv_importbook_count">共%s个Text文件</string>
+    <string name="tv_importbook_count">共%d个Text文件</string>
     <string name="iv_return">返回</string>
+    <string name="scan">智能扫描</string>
+    <string name="add_book">添加书籍</string>
+    <string name="local_file">本地文件</string>
+    <string name="back">返回</string>
 </resources>

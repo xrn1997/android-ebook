@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">lib_fly_api</string>
+    <string name="scan_cancel">停止扫描</string>
 </resources>

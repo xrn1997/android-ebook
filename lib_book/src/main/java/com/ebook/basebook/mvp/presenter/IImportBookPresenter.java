@@ -10,4 +10,9 @@ public interface IImportBookPresenter extends IPresenter {
     void searchLocationBook();
 
     void importBooks(List<File> books);
+
+    /**
+     * 停止扫描
+     */
+    void ScanCancel();
 }

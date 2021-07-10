@@ -34,7 +34,7 @@ public class ModifyViewModel extends BaseViewModel<ModifyModel> {
      */
     public void modifyNickname() {
 
-        mModel.modifyNickname(nickname.get()).subscribe(new Observer<RespDTO<Integer>>() {
+        mModel.modifyNickname(nickname.get()).subscribe(new Observer<>() {
             @Override
             public void onSubscribe(Disposable d) {
 
@@ -71,7 +71,7 @@ public class ModifyViewModel extends BaseViewModel<ModifyModel> {
      */
     public void modifyProfiePhoto(String path) {
 
-        mModel.modifyProfiePhoto(path).subscribe(new Observer<RespDTO<String>>() {
+        mModel.modifyProfiePhoto(path).subscribe(new Observer<>() {
             @Override
             public void onSubscribe(Disposable d) {
 

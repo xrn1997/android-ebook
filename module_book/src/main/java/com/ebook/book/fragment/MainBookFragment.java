@@ -90,48 +90,33 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
     @Override
     public void initListener() {
         super.initListener();
-        ibDownload.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                downloadListPop.showAsDropDown(ibDownload);
-            }
-        });
+        ibDownload.setOnClickListener(v -> downloadListPop.showAsDropDown(ibDownload));
 
-        ibAdd.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //点击更多
-                startActivity(new Intent(mActivity, ImportBookActivity.class));
-            }
+        ibAdd.setOnClickListener(v -> {
+            //点击更多
+            startActivity(new Intent(mActivity, ImportBookActivity.class));
         });
-        mBookListAdatper.setItemClickListener(new BaseBindAdapter.OnItemClickListener<BookShelf>() {
-
-            @Override
-            public void onItemClick(BookShelf bookShelf, int position) {
-                Intent intent = new Intent(mActivity, ReadBookActivity.class);
-                intent.putExtra("from", ReadBookPresenterImpl.OPEN_FROM_APP);
-                String key = String.valueOf(System.currentTimeMillis());
-                intent.putExtra("data_key", key);
-                try {
-                    BitIntentDataManager.getInstance().putData(key, bookShelf.clone());
-                } catch (CloneNotSupportedException e) {
-                    BitIntentDataManager.getInstance().putData(key, bookShelf);
-                    e.printStackTrace();
-                }
-                startActivity(intent);
-            }
-        });
-        mBookListAdatper.setOnItemLongClickListener(new BaseBindAdapter.OnItemLongClickListener<BookShelf>() {
-            @Override
-            public boolean onItemLongClick(BookShelf bookShelf, int postion) {
-                Intent intent = new Intent(mActivity, BookDetailActivity.class);
-                intent.putExtra("from", BookDetailPresenterImpl.FROM_BOOKSHELF);
-                String key = String.valueOf(System.currentTimeMillis());
-                intent.putExtra("data_key", key);
+        mBookListAdatper.setItemClickListener((bookShelf, position) -> {
+            Intent intent = new Intent(mActivity, ReadBookActivity.class);
+            intent.putExtra("from", ReadBookPresenterImpl.OPEN_FROM_APP);
+            String key = String.valueOf(System.currentTimeMillis());
+            intent.putExtra("data_key", key);
+            try {
+                BitIntentDataManager.getInstance().putData(key, bookShelf.clone());
+            } catch (CloneNotSupportedException e) {
                 BitIntentDataManager.getInstance().putData(key, bookShelf);
-                startActivity(intent);
-                return true;
+                e.printStackTrace();
             }
+            startActivity(intent);
+        });
+        mBookListAdatper.setOnItemLongClickListener((bookShelf, postion) -> {
+            Intent intent = new Intent(mActivity, BookDetailActivity.class);
+            intent.putExtra("from", BookDetailPresenterImpl.FROM_BOOKSHELF);
+            String key = String.valueOf(System.currentTimeMillis());
+            intent.putExtra("data_key", key);
+            BitIntentDataManager.getInstance().putData(key, bookShelf);
+            startActivity(intent);
+            return true;
         });
 
     }

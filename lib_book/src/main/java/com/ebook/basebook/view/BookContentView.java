@@ -43,7 +43,7 @@ public class BookContentView extends FrameLayout {
     private SetDataListener setDataListener;
 
     public interface SetDataListener {
-        public void setDataFinish(BookContentView bookContentView, int durChapterIndex, int chapterAll, int durPageIndex, int pageAll, int fromPageIndex);
+        void setDataFinish(BookContentView bookContentView, int durChapterIndex, int chapterAll, int durPageIndex, int pageAll, int fromPageIndex);
     }
 
     public BookContentView(Context context) {
@@ -68,24 +68,21 @@ public class BookContentView extends FrameLayout {
     private void init() {
         view = LayoutInflater.from(getContext()).inflate(R.layout.adapter_content_switch_item, this, false);
         addView(view);
-        ivBg = (ImageView) view.findViewById(R.id.iv_bg);
-        tvTitle = (TextView) view.findViewById(R.id.tv_title);
-        llContent = (LinearLayout) view.findViewById(R.id.ll_content);
-        tvContent = (MTextView) view.findViewById(R.id.tv_content);
+        ivBg = view.findViewById(R.id.iv_bg);
+        tvTitle = view.findViewById(R.id.tv_title);
+        llContent = view.findViewById(R.id.ll_content);
+        tvContent = view.findViewById(R.id.tv_content);
         vBottom = view.findViewById(R.id.v_bottom);
-        tvPage = (TextView) view.findViewById(R.id.tv_page);
+        tvPage = view.findViewById(R.id.tv_page);
 
-        tvLoading = (TextView) view.findViewById(R.id.tv_loading);
-        llError = (LinearLayout) view.findViewById(R.id.ll_error);
-        tvErrorInfo = (TextView) view.findViewById(R.id.tv_error_info);
-        tvLoadAgain = (TextView) view.findViewById(R.id.tv_load_again);
+        tvLoading = view.findViewById(R.id.tv_loading);
+        llError = view.findViewById(R.id.ll_error);
+        tvErrorInfo = view.findViewById(R.id.tv_error_info);
+        tvLoadAgain = view.findViewById(R.id.tv_load_again);
 
-        tvLoadAgain.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (loadDataListener != null)
-                    loading();
-            }
+        tvLoadAgain.setOnClickListener(v -> {
+            if (loadDataListener != null)
+                loading();
         });
     }
 

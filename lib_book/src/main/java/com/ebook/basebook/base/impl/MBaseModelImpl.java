@@ -19,7 +19,7 @@ public class MBaseModelImpl {
     protected Retrofit getRetrofitObject(String url) {
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
-        clientBuilder.interceptors().add(logging);
+      //  clientBuilder.interceptors().add(logging);
         return new Retrofit.Builder().baseUrl(url)
                 //增加返回值为字符串的支持(以实体类返回)
                 .addConverterFactory(ScalarsConverterFactory.create())

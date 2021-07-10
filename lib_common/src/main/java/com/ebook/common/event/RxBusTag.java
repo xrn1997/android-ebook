@@ -29,5 +29,5 @@ public interface RxBusTag {
 
     String SET_PROFIE_PICTURE_AND_NICKNAME = "rxbus_set_profie_picture_and_nickname";
 
-    String DELETE_COMMENT = "rxbus_delete_comment";
+    String SHOW_SCAN_PATH="show_scan_path";
 }

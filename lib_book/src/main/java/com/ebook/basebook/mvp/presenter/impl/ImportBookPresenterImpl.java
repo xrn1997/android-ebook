@@ -30,6 +30,8 @@ import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
 public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> implements IImportBookPresenter {
+    //停止扫描
+    boolean isCancel = false;
 
     public ImportBookPresenterImpl() {
 
@@ -37,21 +39,21 @@ public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> 
 
     @Override
     public void searchLocationBook() {
-        Observable.create(new ObservableOnSubscribe<File>() {
-            @Override
-            public void subscribe(@NotNull ObservableEmitter<File> e) throws Exception {
-                if (Environment.getExternalStorageState().equals(
-                        Environment.MEDIA_MOUNTED)) {
-                    searchBook(e, new File(Environment.getExternalStorageDirectory().getAbsolutePath()));
-                }
-                e.onComplete();
+        Observable.create((ObservableOnSubscribe<File>) e -> {
+            if (Environment.getExternalStorageState().equals(
+                    Environment.MEDIA_MOUNTED)) {
+                searchBook(e, new File(Environment.getExternalStorageDirectory().getAbsolutePath()));
             }
-        }).observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(new SimpleObserver<File>() {
+            e.onComplete();
+        }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(@NotNull File value) {
                         mView.addNewBook(value);
+                        if (isCancel) {
+                            onComplete();
+                        }
                     }
 
                     @Override
@@ -67,35 +69,40 @@ public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> 
     }
 
     private void searchBook(ObservableEmitter<File> e, File parentFile) {
-        Log.e("TAGE", "searchBook: "+ Arrays.toString(parentFile.listFiles()));
-        if (null != parentFile && parentFile.listFiles().length > 0) {
+        if (Objects.requireNonNull(parentFile.listFiles()).length > 0) {
             File[] childFiles = parentFile.listFiles();
-            for (File childFile : childFiles) {
-                if (childFile.isFile() && childFile.getName().substring(childFile.getName().lastIndexOf(".") + 1).equalsIgnoreCase("txt") && childFile.length() > 100 * 1024) {   //100kb
-                    e.onNext(childFile);
-                    continue;
-                }
-                if(childFile.getAbsolutePath().equals("/storage/emulated/0/Android")){
-                    continue;
-                }
-                if (childFile.isDirectory() && childFile.listFiles().length > 0) {
-                    searchBook(e, childFile);
+            if (childFiles != null) {
+                for (File childFile : childFiles) {
+                    RxBus.get().post(RxBusTag.SHOW_SCAN_PATH, childFile.getAbsolutePath());
+                    if (childFile.isFile()) {
+                        Log.e("扫描路径", childFile.getName());
+                    }
+                    if (childFile.isFile() && childFile.getName().substring(childFile.getName().lastIndexOf(".") + 1).equalsIgnoreCase("txt")
+                            && childFile.length() > 100 * 1024) {   //100kb
+                        e.onNext(childFile);
+                        continue;
+                    }
+                    if (childFile.getAbsolutePath().equals("/storage/emulated/0/Android/data")
+                            || childFile.getAbsolutePath().equals("/storage/emulated/0/Android/obb")) {
+                        //这个两个路径没有权限，不扫
+                        continue;
+                    }
+                    if (childFile.isDirectory() && Objects.requireNonNull(childFile.listFiles()).length > 0) {
+                        //进入文件夹中继续扫
+                        searchBook(e, childFile);
+                    }
                 }
             }
+
         }
     }
 
     @Override
     public void importBooks(List<File> books) {
-        Observable.fromIterable(books).flatMap(new Function<File, ObservableSource<LocBookShelf>>() {
-            @Override
-            public ObservableSource<LocBookShelf> apply(@NotNull File file) throws Exception {
-                return ImportBookModelImpl.getInstance().importBook(file);
-            }
-        })
+        Observable.fromIterable(books).flatMap((Function<File, ObservableSource<LocBookShelf>>) file -> ImportBookModelImpl.getInstance().importBook(file))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<LocBookShelf>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(@NotNull LocBookShelf value) {
                         if (value.getNew()) {
@@ -114,6 +121,11 @@ public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> 
                         mView.addSuccess();
                     }
                 });
+    }
+
+    @Override
+    public void ScanCancel() {
+        isCancel = true;
     }
 
     @Override

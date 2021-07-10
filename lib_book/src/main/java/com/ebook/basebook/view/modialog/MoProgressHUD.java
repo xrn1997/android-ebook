@@ -18,7 +18,7 @@ import android.widget.FrameLayout;
 public class MoProgressHUD {
     private Boolean isFinishing = false;
 
-    private Context context;
+    private final Context context;
     private ViewGroup decorView;//activity的根View
     private ViewGroup rootView;// mSharedView 的 根View
     private MoProgressView mSharedView;

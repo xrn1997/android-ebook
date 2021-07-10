@@ -27,24 +27,9 @@ public abstract class BaseRefreshFragment<M extends BaseModel, V extends BaseRef
 
     public void initRefreshView(View view) {
         mRefreshLayout = view.findViewById(onBindRreshLayout());
-        mRefreshLayout.setOnRefreshListener(new BaseRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                onRefreshEvent();
-            }
-        });
-        mRefreshLayout.setOnLoadMoreListener(new BaseRefreshLayout.OnLoadMoreListener() {
-            @Override
-            public void onLoadMore() {
-                onLoadMoreEvent();
-            }
-        });
-        mRefreshLayout.setOnAutoLoadListener(new BaseRefreshLayout.OnAutoLoadListener() {
-            @Override
-            public void onAutoLoad() {
-                onAutoLoadEvent();
-            }
-        });
+        mRefreshLayout.setOnRefreshListener(this::onRefreshEvent);
+        mRefreshLayout.setOnLoadMoreListener(this::onLoadMoreEvent);
+        mRefreshLayout.setOnAutoLoadListener(this::onAutoLoadEvent);
     }
 
     protected abstract int onBindRreshLayout();

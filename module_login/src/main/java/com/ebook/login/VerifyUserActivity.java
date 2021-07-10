@@ -31,12 +31,7 @@ public class VerifyUserActivity extends BaseMvvmActivity<ActivityVerifyUserBindi
     @Override
     public void initListener() {
         super.initListener();
-        mVerifyCodeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                getVerifyCode();
-            }
-        });
+        mVerifyCodeButton.setOnClickListener(v -> getVerifyCode());
     }
 
     @SuppressLint("DefaultLocale")

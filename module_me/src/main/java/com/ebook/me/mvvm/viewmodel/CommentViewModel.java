@@ -31,7 +31,7 @@ public class CommentViewModel extends BaseRefreshViewModel<Comment, CommentModel
 
     @Override
     public void refreshData() {
-        mModel.getUserComments().subscribe(new Observer<RespDTO<List<Comment>>>() {
+        mModel.getUserComments().subscribe(new Observer<>() {
             @Override
             public void onSubscribe(Disposable d) {
 
@@ -42,7 +42,7 @@ public class CommentViewModel extends BaseRefreshViewModel<Comment, CommentModel
             public void onNext(RespDTO<List<Comment>> listRespDTO) {
                 if (listRespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     List<Comment> comments = listRespDTO.data;
-                    comments.sort((x,y)-> DateUtil.parseTime(y.getAddtime(),DateUtil.FormatType.yyyyMMddHHmm).compareTo(DateUtil.parseTime(x.getAddtime(),DateUtil.FormatType.yyyyMMddHHmm)));
+                    comments.sort((x, y) -> DateUtil.parseTime(y.getAddtime(), DateUtil.FormatType.yyyyMMddHHmm).compareTo(DateUtil.parseTime(x.getAddtime(), DateUtil.FormatType.yyyyMMddHHmm)));
                     mList.clear();
                     if (comments != null && comments.size() > 0) {
                         mList.addAll(comments);
@@ -76,7 +76,7 @@ public class CommentViewModel extends BaseRefreshViewModel<Comment, CommentModel
     }
 
     public void deleteComent(Long id) {
-        mModel.deleteComment(id).subscribe(new Observer<RespDTO<Integer>>() {
+        mModel.deleteComment(id).subscribe(new Observer<>() {
             @Override
             public void onSubscribe(Disposable d) {
 

@@ -62,7 +62,7 @@ public class BookShelf implements Parcelable, Cloneable {
     }
 
     @Transient
-    public static final Creator<BookShelf> CREATOR = new Creator<BookShelf>() {
+    public static final Creator<BookShelf> CREATOR = new Creator<>() {
         @Override
         public BookShelf createFromParcel(Parcel in) {
             return new BookShelf(in);

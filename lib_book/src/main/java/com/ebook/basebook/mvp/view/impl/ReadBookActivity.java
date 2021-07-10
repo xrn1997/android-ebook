@@ -1,14 +1,16 @@
 
 package com.ebook.basebook.mvp.view.impl;
 
+import static com.blankj.utilcode.util.ActivityUtils.startActivity;
+
 import android.Manifest;
-import android.annotation.SuppressLint;
-import android.content.pm.PackageManager;
+import android.content.Intent;
 import android.graphics.Paint;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
-import android.util.Log;
+import android.provider.Settings;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -19,7 +21,6 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 
 import com.alibaba.android.arouter.launcher.ARouter;
@@ -50,19 +51,20 @@ import com.ebook.db.entity.DownloadChapterList;
 
 import com.ebook.basebook.mvp.presenter.IBookReadPresenter;
 import com.ebook.basebook.mvp.presenter.impl.ReadBookPresenterImpl;
-import com.ebook.basebook.utils.PremissionCheck;
 import com.permissionx.guolindev.PermissionX;
 
 
 import java.util.ArrayList;
 import java.util.List;
 
-import androidx.annotation.NonNull;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 
 import me.grantland.widget.AutofitTextView;
 
 public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implements IBookReadView {
-
+    private ActivityResultLauncher<Intent> requestPermission;
     private FrameLayout flContent;
 
     private ContentSwitchView csvBook;
@@ -106,21 +108,14 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
     @Override
     protected void onCreateActivity() {
         setContentView(R.layout.activity_bookread);
-        PermissionX
-                .init(this)
-                .permissions(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE)
-                .onExplainRequestReason((scope, deniedList) -> {
-                    scope.showRequestReasonDialog(deniedList, "即将重新申请的权限是程序必须依赖的权限(请选择始终)", "我已明白", "取消");
-                })
-                .onForwardToSettings((scope, deniedList) -> {
-                    scope.showForwardToSettingsDialog(deniedList, "您需要去应用程序设置当中手动开启权限", "我已明白", "取消");
-                })
-                .request((allGranted, grantedList, deniedList) -> {
-                    if (!allGranted) {
-                        //Toast.makeText(this, "所有申请的权限都已通过", Toast.LENGTH_SHORT).show();
-                        onBackPressed();
-                    }
-                });
+        requestPermission = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                    !Environment.isExternalStorageManager()) {
+                onBackPressed();
+            } else {
+                mPresenter.openBookFromOther(this);
+            }
+        });
     }
 
     @Override
@@ -134,12 +129,9 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
 
             @Override
             public void onAnimationEnd(Animation animation) {
-                vMenuBg.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        llMenuTop.startAnimation(menuTopOut);
-                        llMenuBottom.startAnimation(menuBottomOut);
-                    }
+                vMenuBg.setOnClickListener(v -> {
+                    llMenuTop.startAnimation(menuTopOut);
+                    llMenuBottom.startAnimation(menuBottomOut);
                 });
             }
 
@@ -174,27 +166,27 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
     protected void bindView() {
         moProgressHUD = new MoProgressHUD(this);
 
-        flContent = (FrameLayout) findViewById(R.id.fl_content);
-        csvBook = (ContentSwitchView) findViewById(R.id.csv_book);
+        flContent = findViewById(R.id.fl_content);
+        csvBook = findViewById(R.id.csv_book);
         initCsvBook();
 
-        flMenu = (FrameLayout) findViewById(R.id.fl_menu);
+        flMenu = findViewById(R.id.fl_menu);
         vMenuBg = findViewById(R.id.v_menu_bg);
-        llMenuTop = (LinearLayout) findViewById(R.id.ll_menu_top);
-        llMenuBottom = (LinearLayout) findViewById(R.id.ll_menu_bottom);
-        ivReturn = (ImageButton) findViewById(R.id.iv_return);
-        ivMenuMore = (ImageView) findViewById(R.id.iv_more);
-        atvTitle = (AutofitTextView) findViewById(R.id.atv_title);
+        llMenuTop = findViewById(R.id.ll_menu_top);
+        llMenuBottom = findViewById(R.id.ll_menu_bottom);
+        ivReturn = findViewById(R.id.iv_return);
+        ivMenuMore = findViewById(R.id.iv_more);
+        atvTitle = findViewById(R.id.atv_title);
 
-        tvPre = (TextView) findViewById(R.id.tv_pre);
-        tvNext = (TextView) findViewById(R.id.tv_next);
-        hpbReadProgress = (MHorProgressBar) findViewById(R.id.hpb_read_progress);
-        llCatalog = (LinearLayout) findViewById(R.id.ll_catalog);
-        llLight = (LinearLayout) findViewById(R.id.ll_light);
-        llFont = (LinearLayout) findViewById(R.id.ll_font);
-        llSetting = (LinearLayout) findViewById(R.id.ll_setting);
+        tvPre = findViewById(R.id.tv_pre);
+        tvNext = findViewById(R.id.tv_next);
+        hpbReadProgress = findViewById(R.id.hpb_read_progress);
+        llCatalog = findViewById(R.id.ll_catalog);
+        llLight = findViewById(R.id.ll_light);
+        llFont = findViewById(R.id.ll_font);
+        llSetting = findViewById(R.id.ll_setting);
 
-        chapterListView = (ChapterListView) findViewById(R.id.clp_chapterlist);
+        chapterListView = findViewById(R.id.clp_chapterlist);
     }
 
     @Override
@@ -203,12 +195,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
     }
 
     private void initCsvBook() {
-        csvBook.bookReadInit(new ContentSwitchView.OnBookReadInitListener() {
-            @Override
-            public void success() {
-                mPresenter.initData(ReadBookActivity.this);
-            }
-        });
+        csvBook.bookReadInit(() -> mPresenter.initData(ReadBookActivity.this));
     }
 
     @Override
@@ -225,12 +212,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
                 checkAddShelfPop.dismiss();
             }
         });
-        chapterListView.setData(mPresenter.getBookShelf(), new ChapterListView.OnItemClickListener() {
-            @Override
-            public void itemClick(int index) {
-                csvBook.setInitData(index, mPresenter.getBookShelf().getBookInfo().getChapterlist().size(), DBCode.BookContentView.DURPAGEINDEXBEGIN);
-            }
-        });
+        chapterListView.setData(mPresenter.getBookShelf(), index -> csvBook.setInitData(index, mPresenter.getBookShelf().getBookInfo().getChapterlist().size(), DBCode.BookContentView.DURPAGEINDEXBEGIN));
 
         windowLightPop = new WindowLightPop(this);
         windowLightPop.initLight();
@@ -248,60 +230,51 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
         });
 
         readBookMenuMorePop = new ReadBookMenuMorePop(this);
-        readBookMenuMorePop.setOnClickDownload(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                readBookMenuMorePop.dismiss();
-                if (flMenu.getVisibility() == View.VISIBLE) {
-                    llMenuTop.startAnimation(menuTopOut);
-                    llMenuBottom.startAnimation(menuBottomOut);
-                }
-                //弹出离线下载界面
-                int endIndex = mPresenter.getBookShelf().getDurChapter() + 50;
-                if (endIndex >= mPresenter.getBookShelf().getBookInfo().getChapterlist().size()) {
-                    endIndex = mPresenter.getBookShelf().getBookInfo().getChapterlist().size() - 1;
-                }
-                moProgressHUD.showDownloadList(mPresenter.getBookShelf().getDurChapter(), endIndex, mPresenter.getBookShelf().getBookInfo().getChapterlist().size(), new MoProgressHUD.OnClickDownload() {
-                    @Override
-                    public void download(final int start, final int end) {
-                        moProgressHUD.dismiss();
-                        mPresenter.addToShelf(new ReadBookPresenterImpl.OnAddListner() {
-                            @Override
-                            public void addSuccess() {
-
-                                List<DownloadChapter> result = new ArrayList<DownloadChapter>();
-                                for (int i = start; i <= end; i++) {
-                                    DownloadChapter item = new DownloadChapter();
-                                    item.setNoteUrl(mPresenter.getBookShelf().getNoteUrl());
-                                    item.setDurChapterIndex(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterIndex());
-                                    item.setDurChapterName(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterName());
-                                    item.setDurChapterUrl(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterUrl());
-                                    item.setTag(mPresenter.getBookShelf().getTag());
-                                    item.setBookName(mPresenter.getBookShelf().getBookInfo().getName());
-                                    item.setCoverUrl(mPresenter.getBookShelf().getBookInfo().getCoverUrl());
-                                    result.add(item);
-                                }
-                                RxBus.get().post(RxBusTag.START_DOWNLOAD_SERVICE, new DownloadChapterList(result));
-                            }
-                        });
-
-                    }
-                });
+        readBookMenuMorePop.setOnClickDownload(v -> {
+            readBookMenuMorePop.dismiss();
+            if (flMenu.getVisibility() == View.VISIBLE) {
+                llMenuTop.startAnimation(menuTopOut);
+                llMenuBottom.startAnimation(menuBottomOut);
             }
+            //弹出离线下载界面
+            int endIndex = mPresenter.getBookShelf().getDurChapter() + 50;
+            if (endIndex >= mPresenter.getBookShelf().getBookInfo().getChapterlist().size()) {
+                endIndex = mPresenter.getBookShelf().getBookInfo().getChapterlist().size() - 1;
+            }
+            moProgressHUD.showDownloadList(mPresenter.getBookShelf().getDurChapter(), endIndex, mPresenter.getBookShelf().getBookInfo().getChapterlist().size(), new MoProgressHUD.OnClickDownload() {
+                @Override
+                public void download(final int start, final int end) {
+                    moProgressHUD.dismiss();
+                    mPresenter.addToShelf(() -> {
+
+                        List<DownloadChapter> result = new ArrayList<>();
+                        for (int i = start; i <= end; i++) {
+                            DownloadChapter item = new DownloadChapter();
+                            item.setNoteUrl(mPresenter.getBookShelf().getNoteUrl());
+                            item.setDurChapterIndex(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterIndex());
+                            item.setDurChapterName(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterName());
+                            item.setDurChapterUrl(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterUrl());
+                            item.setTag(mPresenter.getBookShelf().getTag());
+                            item.setBookName(mPresenter.getBookShelf().getBookInfo().getName());
+                            item.setCoverUrl(mPresenter.getBookShelf().getBookInfo().getCoverUrl());
+                            result.add(item);
+                        }
+                        RxBus.get().post(RxBusTag.START_DOWNLOAD_SERVICE, new DownloadChapterList(result));
+                    });
+
+                }
+            });
         });
-        readBookMenuMorePop.setOnClickComment(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                readBookMenuMorePop.dismiss();
-                ChapterList path = mPresenter.getBookShelf().getBookInfo().getChapterlist().get(mPresenter.getBookShelf().getDurChapter());
-                Bundle bundle = new Bundle();
-                bundle.putString("chapterUrl", path.getDurChapterUrl());
-                bundle.putString("chapterName", path.getDurChapterName());
-                bundle.putString("bookName", mPresenter.getBookShelf().getBookInfo().getName());
-                ARouter.getInstance().build(KeyCode.Book.Comment_PATH)
-                        .with(bundle)
-                        .navigation(ReadBookActivity.this, new LoginNavigationCallbackImpl());
-            }
+        readBookMenuMorePop.setOnClickComment(v -> {
+            readBookMenuMorePop.dismiss();
+            ChapterList path = mPresenter.getBookShelf().getBookInfo().getChapterlist().get(mPresenter.getBookShelf().getDurChapter());
+            Bundle bundle = new Bundle();
+            bundle.putString("chapterUrl", path.getDurChapterUrl());
+            bundle.putString("chapterName", path.getDurChapterName());
+            bundle.putString("bookName", mPresenter.getBookShelf().getBookInfo().getName());
+            ARouter.getInstance().build(KeyCode.Book.Comment_PATH)
+                    .with(bundle)
+                    .navigation(ReadBookActivity.this, new LoginNavigationCallbackImpl());
         });
 
         moreSettingPop = new MoreSettingPop(this);
@@ -352,19 +325,11 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
                 }
             }
         });
-        ivReturn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // finish();
-                onBackPressed();
-            }
+        ivReturn.setOnClickListener(v -> {
+            // finish();
+            onBackPressed();
         });
-        ivMenuMore.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                readBookMenuMorePop.showAsDropDown(ivMenuMore, 0, DisplayUtil.dip2px(-3.5f));
-            }
-        });
+        ivMenuMore.setOnClickListener(v -> readBookMenuMorePop.showAsDropDown(ivMenuMore, 0, DisplayUtil.dip2px(-3.5f)));
         csvBook.setLoadDataListener(new ContentSwitchView.LoadDataListener() {
             @Override
             public void loaddata(BookContentView bookContentView, long qtag, int chapterIndex, int pageIndex) {
@@ -526,55 +491,13 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
         ivMenuMore.setVisibility(View.VISIBLE);
     }
 
-    // private Boolean showCheckPremission = false;
-
-//    @SuppressLint("NewApi")
-//    @Override
-//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-//        if (requestCode == 0x11) {
-//            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED && PremissionCheck.checkPremission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-//                mPresenter.openBookFromOther(ReadBookActivity.this);
-//            } else {
-//                if (!this.shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-//                    showCheckPremission = true;
-//                    moProgressHUD.showTwoButton("去系统设置打开SD卡读写权限？", "取消", new View.OnClickListener() {
-//                        @Override
-//                        public void onClick(View v) {
-//                            finish();
-//                        }
-//                    }, "设置", new View.OnClickListener() {
-//                        @Override
-//                        public void onClick(View v) {
-//                            PremissionCheck.requestPermissionSetting(ReadBookActivity.this);
-//                        }
-//                    });
-//                } else {
-//                    Toast.makeText(this, "未获取SD卡读取权限", Toast.LENGTH_SHORT).show();
-//                }
-//            }
-//        }
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-//    }
-
     @Override
     protected void onResume() {
         super.onResume();
-//        if (showCheckPremission && mPresenter.getOpen_from() == ReadBookPresenterImpl.OPEN_FROM_OTHER && !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !PremissionCheck.checkPremission(this,
-//                Manifest.permission.WRITE_EXTERNAL_STORAGE))) {
-//            showCheckPremission = true;
-/*        if(mPresenter.getOpen_from() == ReadBookPresenterImpl.OPEN_FROM_OTHER){
-            mPresenter.openBookFromOther(this);
-        }*/
-//        }
     }
 
-//    @Override
-//    public void finish() {
-//        if (!AppActivityManager.getInstance().isExist(MainActivity.class)) {
-//            Intent intent = new Intent(this, MainActivity.class);
-//            startActivity(intent);
-//        }
-//        super.finish();
-//    }
-
+    @Override
+    public ActivityResultLauncher<Intent> getRequestPermission() {
+        return requestPermission;
+    }
 }

@@ -38,7 +38,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
     private List<BookContentView> viewContents;
 
     public interface OnBookReadInitListener {
-        public void success();
+        void success();
     }
 
     private OnBookReadInitListener bookReadInitListener;
@@ -415,15 +415,15 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
     }
 
     public interface LoadDataListener {
-        public void loaddata(BookContentView bookContentView, long tag, int chapterIndex, int pageIndex);
+        void loaddata(BookContentView bookContentView, long tag, int chapterIndex, int pageIndex);
 
-        public void updateProgress(int chapterIndex, int pageIndex);
+        void updateProgress(int chapterIndex, int pageIndex);
 
-        public String getChapterTitle(int chapterIndex);
+        String getChapterTitle(int chapterIndex);
 
-        public void initData(int lineCount);
+        void initData(int lineCount);
 
-        public void showMenu();
+        void showMenu();
     }
 
     private LoadDataListener loadDataListener;
@@ -448,7 +448,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         Toast.makeText(getContext(), "没有下一页", Toast.LENGTH_SHORT).show();
     }
 
-    private ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
+    private final ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
         @Override
         public void onGlobalLayout() {
             if (bookReadInitListener != null) {
@@ -457,7 +457,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             durPageView.getTvContent().getViewTreeObserver().removeOnGlobalLayoutListener(layoutInitListener);
         }
     };
-    private ViewTreeObserver.OnGlobalLayoutListener layoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
+    private final ViewTreeObserver.OnGlobalLayoutListener layoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
         @Override
         public void onGlobalLayout() {
             int height = durPageView.getTvContent().getHeight();
@@ -516,10 +516,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (readBookControl.getCanKeyTurn() && keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
             return true;
-        } else if (readBookControl.getCanKeyTurn() && keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-            return true;
-        }
-        return false;
+        } else return readBookControl.getCanKeyTurn() && keyCode == KeyEvent.KEYCODE_VOLUME_UP;
     }
 
     public OnBookReadInitListener getBookReadInitListener() {

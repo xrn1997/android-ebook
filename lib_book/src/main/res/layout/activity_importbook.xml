@@ -20,26 +20,28 @@
             android:src="@drawable/selector_icon_return"
             android:background="@drawable/bg_ib_pre"
             android:clickable="true"
-            android:layout_gravity="center_vertical" />
+            android:layout_gravity="center_vertical"
+            android:focusable="true"
+            android:contentDescription="@string/back" />
 
         <TextView
             android:id="@+id/atv_title"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="match_parent"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="45dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="45dp"
             android:singleLine="true"
             android:textSize="16sp"
-            android:text="本地文件"
+            android:text="@string/local_file"
             android:textColor="#343434"
-            android:gravity="center|left" />
+            android:gravity="center|start" />
 
         <TextView
             android:id="@+id/tv_addshelf"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="添加书籍"
+            android:text="@string/add_book"
             android:padding="15dp"
             android:layout_gravity="center_vertical"
             android:background="@drawable/bg_ib_pre"
@@ -66,7 +68,8 @@
             android:background="@drawable/bg_shadow"
             android:layout_gravity="top" />
 
-        <View
+        <TextView
+            android:id="@+id/tv_path"
             android:layout_width="match_parent"
             android:layout_height="20dp"
             android:background="@drawable/bg_shadow2"
@@ -74,6 +77,7 @@
     </FrameLayout>
 
     <FrameLayout
+        android:id="@+id/fl_scan"
         android:layout_width="match_parent"
         android:layout_height="48dp">
 
@@ -88,7 +92,7 @@
                 android:layout_height="40dp"
                 app:loading_width="2dp"
                 app:loading_color="@color/tv_text_addshelf_pre"
-                android:layout_marginLeft="10dp"
+                android:layout_marginStart="10dp"
                 android:layout_gravity="center_vertical" />
 
             <TextView
@@ -108,7 +112,8 @@
             android:clickable="true"
             android:textColor="#ffffff"
             android:textSize="16sp"
-            android:text="智能扫描"
-            android:gravity="center" />
+            android:text="@string/scan"
+            android:gravity="center"
+            android:focusable="true" />
     </FrameLayout>
 </LinearLayout>
