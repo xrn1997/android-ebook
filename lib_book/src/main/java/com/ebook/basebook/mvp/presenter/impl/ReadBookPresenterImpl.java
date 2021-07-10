@@ -13,7 +13,6 @@ import android.provider.MediaStore;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
-import android.util.Log;
 
 import com.ebook.basebook.base.manager.BitIntentDataManager;
 import com.ebook.common.event.RxBusTag;
@@ -94,7 +93,6 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
 
     @Override
     public void openBookFromOther(Activity activity) {
-        Log.e("从其他地方打开", "openBookFromOther ");
         //APP外部打开
         Uri uri = activity.getIntent().getData();
         mView.showLoadBook();

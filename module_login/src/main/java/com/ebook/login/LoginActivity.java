@@ -94,7 +94,6 @@ public class LoginActivity extends BaseMvvmActivity<ActivityLoginBinding, LoginV
             username = (String) bundle.get("username");
             password = (String) bundle.get("password");
         }
-        Log.e(TAG, "登录页面接收的参数，username: " + username + ",password: " + password);
         if (!(TextUtils.isEmpty(username)) && (!TextUtils.isEmpty(password))) {
             mViewModel.username.set(username);
             mViewModel.password.set(password);

@@ -2,10 +2,8 @@
 package com.ebook.basebook.mvp.presenter.impl;
 
 import android.content.Intent;
-import android.util.Log;
 import android.widget.Toast;
 
-import com.ebook.api.service.BeQuGeService;
 import com.ebook.common.BaseApplication;
 import com.ebook.common.event.RxBusTag;
 import com.ebook.basebook.mvp.presenter.IBookDetailPresenter;
@@ -52,9 +50,9 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
     private int openfrom;
     private SearchBook searchBook;
     private BookShelf mBookShelf;
-    private Boolean inBookShelf = false;
+    private Boolean inBookShelf;
 
-    private List<BookShelf> bookShelfs = Collections.synchronizedList(new ArrayList<BookShelf>());   //用来比对搜索的书籍是否已经添加进书架
+    private List<BookShelf> bookShelfs = Collections.synchronizedList(new ArrayList<>());   //用来比对搜索的书籍是否已经添加进书架
 
     public BookDetailPresenterImpl(Intent intent) {
         openfrom = intent.getIntExtra("from", FROM_BOOKSHELF);
@@ -200,7 +198,6 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                     .subscribe(new SimpleObserver<Boolean>() {
                         @Override
                         public void onNext(Boolean value) {
-                            Log.d("移出书架", "onNext: " + value);
                             if (value) {
                                 RxBus.get().post(RxBusTag.HAD_REMOVE_BOOK, mBookShelf);
                             } else {

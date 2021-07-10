@@ -26,13 +26,13 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="match_parent"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="45dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="45dp"
             android:singleLine="true"
             android:textSize="16sp"
             android:text="类型书籍"
             android:textColor="#343434"
-            android:gravity="center|left" />
+            android:gravity="center|start" />
     </LinearLayout>
 
     <FrameLayout

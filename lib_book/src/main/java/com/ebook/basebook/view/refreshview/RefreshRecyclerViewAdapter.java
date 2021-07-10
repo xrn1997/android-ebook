@@ -11,6 +11,7 @@ import android.widget.TextView;
 
 import com.ebook.basebook.R;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
@@ -46,18 +47,14 @@ public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
             if (Looper.myLooper() == Looper.getMainLooper()) {
                 notifyItemRangeChanged(getItemCount(), getItemCount() - getItemcount());
             } else {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        notifyDataSetChanged();
-                    }
-                });
+                handler.post(this::notifyDataSetChanged);
             }
         }
     }
 
+    @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         if (viewType == LOADMORETYPE) {
             return new LoadMoreViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.view_refresh_loadmore, parent, false));
         } else

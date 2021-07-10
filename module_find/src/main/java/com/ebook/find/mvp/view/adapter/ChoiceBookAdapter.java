@@ -1,8 +1,6 @@
-
 package com.ebook.find.mvp.view.adapter;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,29 +10,20 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-
-
-import com.ebook.basebook.base.activity.BaseActivity;
-import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
-import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.basebook.view.refreshview.RefreshRecyclerViewAdapter;
 import com.ebook.db.entity.BookShelf;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.find.R;
-import com.trello.rxlifecycle3.android.ActivityEvent;
-
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 import androidx.recyclerview.widget.RecyclerView;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.schedulers.Schedulers;
 
 public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
-    private List<SearchBook> searchBooks;
-    private Context context;
+    private final List<SearchBook> searchBooks;
+    private final Context context;
 
     public interface OnItemClickListener {
         void clickAddShelf(View clickView, int position, SearchBook searchBook);
@@ -52,13 +41,14 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
 
     @Override
     public RecyclerView.ViewHolder onCreateViewholder(ViewGroup parent, int viewType) {
-        return new Viewholder(LayoutInflater.from(parent.getContext()).inflate(R.layout.adapter_searchbook_item, parent, false));
+        return new Viewholder(LayoutInflater.from(context)
+                .inflate(R.layout.adapter_searchbook_item, parent, false));
     }
 
     @Override
     public void onBindViewholder(final RecyclerView.ViewHolder holder, final int position) {
         BookShelf bookShelf = new BookShelf();
-       // Log.d("解析结果", searchBooks.get(position).getCoverUrl());
+        // Log.d("解析结果", searchBooks.get(position).getCoverUrl());
         bookShelf.setNoteUrl(searchBooks.get(position).getNoteUrl());
         Glide.with(((Viewholder) holder).ivCover.getContext())
                 .load(searchBooks.get(position).getCoverUrl())
@@ -115,19 +105,13 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
             ((Viewholder) holder).tvAddShelf.setEnabled(true);
         }
 
-        ((Viewholder) holder).flContent.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (itemClickListener != null)
-                    itemClickListener.clickItem(((Viewholder) holder).ivCover, position, searchBooks.get(position));
-            }
+        ((Viewholder) holder).flContent.setOnClickListener(v -> {
+            if (itemClickListener != null)
+                itemClickListener.clickItem(((Viewholder) holder).ivCover, position, searchBooks.get(position));
         });
-        ((Viewholder) holder).tvAddShelf.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (itemClickListener != null)
-                    itemClickListener.clickAddShelf(((Viewholder) holder).tvAddShelf, position, searchBooks.get(position));
-            }
+        ((Viewholder) holder).tvAddShelf.setOnClickListener(v -> {
+            if (itemClickListener != null)
+                itemClickListener.clickAddShelf(((Viewholder) holder).tvAddShelf, position, searchBooks.get(position));
         });
     }
 
@@ -141,7 +125,7 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
         return searchBooks.size();
     }
 
-    class Viewholder extends RecyclerView.ViewHolder {
+    static class Viewholder extends RecyclerView.ViewHolder {
         FrameLayout flContent;
         ImageView ivCover;
         TextView tvName;
@@ -175,7 +159,7 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
     public void addAll(List<SearchBook> newData) {
         if (newData != null && newData.size() > 0) {
             int position = getItemcount();
-            if (newData != null && newData.size() > 0) {
+            if (newData.size() > 0) {
                 searchBooks.addAll(newData);
             }
             notifyItemInserted(position);

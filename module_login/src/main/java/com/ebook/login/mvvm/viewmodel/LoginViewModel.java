@@ -69,7 +69,6 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
             public void onNext(RespDTO<LoginDTO> loginDTORespDTO) {
                 //   Log.d(TAG, "onNext: start");
                 if (loginDTORespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
-                    Log.v(TAG, "tolen:" + loginDTORespDTO.data.getToken());
                     RetrofitManager.getInstance().TOKEN = "Bearer " + loginDTORespDTO.data.getToken();
                     User user = loginDTORespDTO.data.getUser();
                     user.setPassword(password);//返回的是加密过的密码，不能使用，需要记住本地输入的密码。

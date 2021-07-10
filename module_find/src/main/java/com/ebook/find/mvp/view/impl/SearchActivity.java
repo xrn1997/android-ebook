@@ -257,19 +257,16 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
                 }
             }
         });
-        getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(new
-                                                                                           ViewTreeObserver.OnGlobalLayoutListener() {
-                                                                                               @Override
-                                                                                               public void onGlobalLayout() {
-                                                                                                   new Handler().postDelayed(new Runnable() {
-                                                                                                       @Override
-                                                                                                       public void run() {
-                                                                                                           openKeyBoard();
-                                                                                                       }
-                                                                                                   }, 100);
-                                                                                                   getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                                                                                               }
-                                                                                           });
+        getWindow()
+                .getDecorView()
+                .getViewTreeObserver()
+                .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        new Handler().postDelayed(() -> openKeyBoard(), 100);
+                        getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                    }
+                });
     }
 
     private void checkTvToSearch() {

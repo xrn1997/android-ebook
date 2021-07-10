@@ -15,7 +15,7 @@ import java.util.ArrayList;
 
 public class SearchHistoryAdapter extends TagAdapter<SearchHistory> {
     public SearchHistoryAdapter() {
-        super(new ArrayList<SearchHistory>());
+        super(new ArrayList<>());
     }
 
     public interface OnItemClickListener {
@@ -37,12 +37,9 @@ public class SearchHistoryAdapter extends TagAdapter<SearchHistory> {
         TextView tv = (TextView) LayoutInflater.from(parent.getContext()).inflate(R.layout.adapter_searchhistory_item,
                 parent, false);
         tv.setText(searchHistory.getContent());
-        tv.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (null != onItemClickListener) {
-                    onItemClickListener.itemClick(searchHistory);
-                }
+        tv.setOnClickListener(v -> {
+            if (null != onItemClickListener) {
+                onItemClickListener.itemClick(searchHistory);
             }
         });
         return tv;

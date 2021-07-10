@@ -233,4 +233,21 @@ public class BookInfo implements Parcelable, Cloneable {
         }
         return bookInfo;
     }
+
+    @Override
+    public String toString() {
+        return "BookInfo{" +
+                "name='" + name + '\'' +
+                ", tag='" + tag + '\'' +
+                ", noteUrl='" + noteUrl + '\'' +
+                ", chapterUrl='" + chapterUrl + '\'' +
+                ", chapterlist=" + chapterlist +
+                ", finalRefreshData=" + finalRefreshData +
+                ", coverUrl='" + coverUrl + '\'' +
+                ", author='" + author + '\'' +
+                ", introduce='" + introduce + '\'' +
+                ", origin='" + origin + '\'' +
+                ", status='" + status + '\'' +
+                '}';
+    }
 }

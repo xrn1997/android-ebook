@@ -43,7 +43,6 @@
                     android:layout_marginRight="10dp"
                     android:ellipsize="end"
                     android:lines="1"
-                    android:text="斗破苍穹"
                     android:textColor="#767676"
                     android:textSize="16sp"
                     android:layout_marginBottom="3dp" />
@@ -79,7 +78,6 @@
                                 android:layout_gravity="center_vertical"
                                 android:lines="1"
                                 android:ellipsize="end"
-                                android:text="柳下惠"
                                 android:textColor="#aaaaaa"
                                 android:textSize="12sp" />
 
@@ -88,11 +86,11 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_vertical"
-                                android:layout_marginLeft="5dp"
+                                android:layout_marginStart="5dp"
                                 android:lines="1"
                                 android:ellipsize="end"
                                 android:textColor="#aaaaaa"
-                                android:textSize="10sp" />
+                                android:textSize="11sp" />
                         </LinearLayout>
 
                         <View
@@ -116,7 +114,6 @@
                                 android:paddingLeft="2dp"
                                 android:paddingRight="2dp"
                                 android:paddingTop="0.4dp"
-                                android:text="连载"
                                 android:textColor="#ffffff"
                                 android:textSize="12sp" />
 
@@ -132,7 +129,6 @@
                                 android:paddingLeft="2dp"
                                 android:paddingRight="2dp"
                                 android:paddingTop="0.4dp"
-                                android:text="现代都市"
                                 android:textColor="#ffffff"
                                 android:textSize="12sp" />
 
@@ -147,7 +143,6 @@
                                 android:paddingLeft="2dp"
                                 android:paddingRight="2dp"
                                 android:paddingTop="0.4dp"
-                                android:text="1.2万字"
                                 android:textColor="#ffffff"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -163,7 +158,6 @@
                             android:layout_height="wrap_content"
                             android:ellipsize="end"
                             android:lines="1"
-                            android:text="最新章节:121章 成神"
                             android:textColor="#767676"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -178,7 +172,6 @@
                         android:background="@drawable/selector_tv_addshelf"
                         android:gravity="center"
                         android:lines="1"
-                        android:text="+书架"
                         android:textColor="@drawable/selector_tv_addshelf_text"
                         android:textSize="14sp" />
                 </LinearLayout>

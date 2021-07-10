@@ -133,6 +133,7 @@ public class LibraryModel extends BaseModel {
         bookTypeList.add(new BookType("穿越小说", "https://www.xbiquge.la/chuanyuexiaoshuo/"));
         bookTypeList.add(new BookType("网游小说", "https://www.xbiquge.la/wangyouxiaoshuo/"));
         bookTypeList.add(new BookType("科幻小说", "https://www.xbiquge.la/kehuanxiaoshuo/"));
+        bookTypeList.add(new BookType("其他小说","https://www.xbiquge.la/qitaxiaoshuo/"));
         return bookTypeList;
     }
 

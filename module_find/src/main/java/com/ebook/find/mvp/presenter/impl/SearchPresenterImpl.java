@@ -2,6 +2,9 @@
 package com.ebook.find.mvp.presenter.impl;
 
 
+import android.util.Log;
+
+import com.ebook.api.service.BeQuGeService;
 import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
 import com.ebook.basebook.utils.NetworkUtil;
 import com.ebook.common.event.RxBusTag;
@@ -80,13 +83,13 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
         //搜索引擎初始化
         searchEngine = new ArrayList<>();
 
-        Map<String, Object> gxwztvMap = new HashMap<>();
-        gxwztvMap.put(TAG_KEY, "https://www.ztv.la");
-        gxwztvMap.put(HAS_MORE_KEY, true);
-        gxwztvMap.put(HAS_LOAD_KEY, false);
-        gxwztvMap.put(DUR_REQUEST_TIME, 1);
-        gxwztvMap.put(MAX_REQUEST_TIME, 3);
-        searchEngine.add(gxwztvMap);
+        Map<String, Object> map = new HashMap<>();
+        map.put(TAG_KEY, BeQuGeService.URL);
+        map.put(HAS_MORE_KEY, true);
+        map.put(HAS_LOAD_KEY, false);
+        map.put(DUR_REQUEST_TIME, 1);
+        map.put(MAX_REQUEST_TIME, 3);
+        searchEngine.add(map);
     }
 
     @Override
@@ -307,6 +310,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
 
     @Override
     public void addBookToShelf(final SearchBook searchBook) {
+        Log.e("添加到书架", searchBook.toString());
         final BookShelf bookShelfResult = new BookShelf();
         bookShelfResult.setNoteUrl(searchBook.getNoteUrl());
         bookShelfResult.setFinalDate(0);

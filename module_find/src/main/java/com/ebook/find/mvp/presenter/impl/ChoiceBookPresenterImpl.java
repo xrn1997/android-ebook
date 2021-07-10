@@ -2,6 +2,7 @@
 package com.ebook.find.mvp.presenter.impl;
 
 import android.content.Intent;
+import android.util.Log;
 
 import com.ebook.common.event.RxBusTag;
 import com.ebook.basebook.observer.SimpleObserver;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import androidx.annotation.NonNull;
+
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
@@ -97,7 +99,7 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
                 .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(List<SearchBook> value) {
-                        if (searchTime == startThisSearchTime) {
+                        if (searchTime == startThisSearchTime && value != null) {
                             for (SearchBook temp : value) {
                                 for (BookShelf bookShelf : bookShelfs) {
                                     if (temp.getNoteUrl().equals(bookShelf.getNoteUrl())) {
@@ -111,7 +113,7 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
                                 mView.refreshFinish(value.size() <= 0);
                             } else {
                                 mView.loadMoreSearchBook(value);
-                                mView.loadMoreFinish(value.size() <= 0 ? true : false);
+                                mView.loadMoreFinish(value.size() <= 0);
                             }
                             page++;
                         }
@@ -137,7 +139,7 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
         WebBookModelImpl.getInstance().getBookInfo(bookShelfResult)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .compose(((BaseActivity) mView.getContext()).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
+                .compose(((BaseActivity) mView.getContext()).bindUntilEvent(ActivityEvent.DESTROY))
                 .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(BookShelf value) {

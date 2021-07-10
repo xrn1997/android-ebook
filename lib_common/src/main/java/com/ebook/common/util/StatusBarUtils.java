@@ -74,7 +74,7 @@ public class StatusBarUtils {
     private static boolean hasNotchScreen(Context context) {
 
         if (getInt("ro.miui.notch", context) == 1 || hasNotchAtHuawei(context) || hasNotchAtOPPO(context)
-                || hasNotchAtVivo(context) || isAndroidP(context) != null) { //TODO 各种品牌
+                || hasNotchAtVivo(context) || isAndroidP(context) != null) {
             return true;
         }
 

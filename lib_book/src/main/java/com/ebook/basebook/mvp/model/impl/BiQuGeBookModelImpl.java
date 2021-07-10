@@ -3,7 +3,6 @@ package com.ebook.basebook.mvp.model.impl;
 import android.util.Log;
 
 import com.ebook.api.service.BeQuGeService;
-import com.ebook.api.service.BeQuGeService;
 import com.ebook.basebook.base.impl.MBaseModelImpl;
 import com.ebook.basebook.base.manager.ErrorAnalyContentManager;
 import com.ebook.basebook.cache.ACache;
@@ -75,6 +74,9 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
             case "https://www.xbiquge.la/kehuanxiaoshuo/":
                 type = 6;
                 break;
+            case "https://www.xbiquge.la/qitaxiaoshuo/":
+                type=7;
+                break;
         }
         if (type == -1)
             return null;
@@ -89,8 +91,8 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
             Document doc = Jsoup.parse(s);
             //解析分类书籍
             Elements kindBookEs = doc.getElementsByTag("ul").get(1).getElementsByTag("li");
-            List<SearchBook> books = new ArrayList<>();
             for (int i = 0; i < kindBookEs.size(); i++) {
+                List<SearchBook> books = new ArrayList<>();
                 SearchBook item = new SearchBook();
                 item.setTag(BeQuGeService.URL);
                 item.setAuthor(kindBookEs.get(i).getElementsByClass("s5").text());
@@ -240,15 +242,14 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
         bookInfo.setNoteUrl(novelUrl);   //id
         bookInfo.setTag(BeQuGeService.URL);
         Document doc = Jsoup.parse(s);
-        bookInfo.setCoverUrl(doc.getElementsByClass("fmimg").get(0).getElementsByTag("img").get(0).attr("src"));
         bookInfo.setName(doc.getElementById("info").getElementsByTag("h1").get(0).text());
         bookInfo.setAuthor(doc.getElementById("info").getElementsByTag("p").get(0).text().replace("作&nbsp;&nbsp;&nbsp;&nbsp;者：", ""));
         bookInfo.setIntroduce("\u3000\u3000" + doc.getElementById("intro").getElementsByTag("p").get(1).text());
-        Log.e("简介",  doc.getElementById("intro").getElementsByTag("p").get(1).text());
         String[] temp = novelUrl.split("/");
         bookInfo.setCoverUrl(BeQuGeService.URL + "/files/article/image/" + temp[temp.length - 2] + "/" + temp[temp.length - 1] + "/" + temp[temp.length - 1] + "s.jpg");
         bookInfo.setChapterUrl(novelUrl);
         bookInfo.setOrigin(TAG);
+
         return bookInfo;
     }
 
@@ -274,14 +275,15 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
     }
 
     private WebChapter<List<ChapterList>> analyzeChapterList(String s, String novelUrl) {
+
         Document doc = Jsoup.parse(s);
-        Elements chapterList = doc.getElementById("box_con").getElementsByTag("a");
+        Elements chapterList = doc.getElementsByTag("dl").get(0).getElementsByTag("dd");
         List<ChapterList> chapters = new ArrayList<>();
         for (int i = 0; i < chapterList.size(); i++) {
             ChapterList temp = new ChapterList();
-            temp.setDurChapterUrl(BeQuGeService.URL + chapterList.get(i).attr("href"));   //id
+            temp.setDurChapterUrl(BeQuGeService.URL + chapterList.get(i).getElementsByTag("a").attr("href"));   //id
             temp.setDurChapterIndex(i);
-            temp.setDurChapterName(chapterList.get(i).text());
+            temp.setDurChapterName(chapterList.get(i).getElementsByTag("a").text());
             temp.setNoteUrl(novelUrl);
             temp.setTag(BeQuGeService.URL);
 
@@ -307,7 +309,7 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
             bookContent.setTag(BeQuGeService.URL);
             try {
                 Document doc = Jsoup.parse(s);
-                List<TextNode> contentEs = doc.getElementById("txtContent").textNodes();
+                List<TextNode> contentEs = doc.getElementById("content").textNodes();
                 StringBuilder content = new StringBuilder();
                 for (int i = 0; i < contentEs.size(); i++) {
                     String temp = contentEs.get(i).text().trim();
@@ -319,6 +321,7 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
                         }
                     }
                 }
+                Log.e(TAG, content.toString());
                 bookContent.setDurCapterContent(content.toString());
                 bookContent.setRight(true);
             } catch (Exception ex) {

@@ -156,4 +156,17 @@ public class ChapterList implements Parcelable, Cloneable {
         chapterList.bookContent = new BookContent();
         return chapterList;
     }
+
+    @Override
+    public String toString() {
+        return "ChapterList{" +
+                "noteUrl='" + noteUrl + '\'' +
+                ", durChapterIndex=" + durChapterIndex +
+                ", durChapterUrl='" + durChapterUrl + '\'' +
+                ", durChapterName='" + durChapterName + '\'' +
+                ", tag='" + tag + '\'' +
+                ", hasCache=" + hasCache +
+                ", bookContent=" + bookContent +
+                '}';
+    }
 }

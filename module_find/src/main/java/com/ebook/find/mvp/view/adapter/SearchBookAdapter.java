@@ -40,7 +40,8 @@ public class SearchBookAdapter extends RefreshRecyclerViewAdapter {
 
     @Override
     public RecyclerView.ViewHolder onCreateViewholder(ViewGroup parent, int viewType) {
-        return new Viewholder(LayoutInflater.from(parent.getContext()).inflate(R.layout.adapter_searchbook_item, parent, false));
+        return new Viewholder(LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.adapter_searchbook_item, parent, false));
     }
 
     @Override
@@ -65,7 +66,7 @@ public class SearchBookAdapter extends RefreshRecyclerViewAdapter {
         if (words <= 0) {
             ((Viewholder) holder).tvWords.setVisibility(View.GONE);
         } else {
-            String wordsS = Long.toString(words) + "字";
+            String wordsS = words + "字";
             if (words > 10000) {
                 DecimalFormat df = new DecimalFormat("#.#");
                 wordsS = df.format(words * 1.0f / 10000f) + "万字";
@@ -100,19 +101,13 @@ public class SearchBookAdapter extends RefreshRecyclerViewAdapter {
             ((Viewholder) holder).tvAddShelf.setEnabled(true);
         }
 
-        ((Viewholder) holder).flContent.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (itemClickListener != null)
-                    itemClickListener.clickItem(((Viewholder) holder).ivCover, position, searchBooks.get(position));
-            }
+        ((Viewholder) holder).flContent.setOnClickListener(v -> {
+            if (itemClickListener != null)
+                itemClickListener.clickItem(((Viewholder) holder).ivCover, position, searchBooks.get(position));
         });
-        ((Viewholder) holder).tvAddShelf.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (itemClickListener != null)
-                    itemClickListener.clickAddShelf(((Viewholder) holder).tvAddShelf, position, searchBooks.get(position));
-            }
+        ((Viewholder) holder).tvAddShelf.setOnClickListener(v -> {
+            if (itemClickListener != null)
+                itemClickListener.clickAddShelf(((Viewholder) holder).tvAddShelf, position, searchBooks.get(position));
         });
     }
 
@@ -126,7 +121,7 @@ public class SearchBookAdapter extends RefreshRecyclerViewAdapter {
         return searchBooks.size();
     }
 
-    class Viewholder extends RecyclerView.ViewHolder {
+    static class Viewholder extends RecyclerView.ViewHolder {
         FrameLayout flContent;
         ImageView ivCover;
         TextView tvName;
