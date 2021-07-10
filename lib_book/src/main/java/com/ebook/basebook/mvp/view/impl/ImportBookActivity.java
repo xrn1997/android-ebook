@@ -213,7 +213,6 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
     public void searchFinish() {
         rlLoading.stop();
         rlLoading.setVisibility(View.INVISIBLE);
-        tvPath.setText("");
         if (importBookAdapter.getFileList().size() == 0) {
             tvScan.setVisibility(View.VISIBLE);
             ToastUtils.showShort("未发现本地书籍");
@@ -221,6 +220,7 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
             tvCount.setText(String.format(getResources().getString(R.string.tv_importbook_count), importBookAdapter.getItemCount()));
             importBookAdapter.setCanCheck(true);
         }
+
     }
 
     @Override

@@ -310,7 +310,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
 
     @Override
     public void addBookToShelf(final SearchBook searchBook) {
-        Log.e("添加到书架", searchBook.toString());
+      //  Log.e("添加到书架", searchBook.toString());
         final BookShelf bookShelfResult = new BookShelf();
         bookShelfResult.setNoteUrl(searchBook.getNoteUrl());
         bookShelfResult.setFinalDate(0);

@@ -15,4 +15,5 @@ public interface IImportBookPresenter extends IPresenter {
      * 停止扫描
      */
     void ScanCancel();
+
 }

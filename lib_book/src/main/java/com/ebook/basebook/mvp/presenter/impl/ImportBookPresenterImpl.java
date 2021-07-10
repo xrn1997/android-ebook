@@ -2,7 +2,6 @@
 package com.ebook.basebook.mvp.presenter.impl;
 
 import android.os.Environment;
-import android.util.Log;
 
 import com.ebook.common.event.RxBusTag;
 import com.ebook.basebook.mvp.model.impl.ImportBookModelImpl;
@@ -39,6 +38,7 @@ public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> 
 
     @Override
     public void searchLocationBook() {
+        isCancel = false;
         Observable.create((ObservableOnSubscribe<File>) e -> {
             if (Environment.getExternalStorageState().equals(
                     Environment.MEDIA_MOUNTED)) {
@@ -51,9 +51,6 @@ public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> 
                     @Override
                     public void onNext(@NotNull File value) {
                         mView.addNewBook(value);
-                        if (isCancel) {
-                            onComplete();
-                        }
                     }
 
                     @Override
@@ -69,14 +66,18 @@ public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> 
     }
 
     private void searchBook(ObservableEmitter<File> e, File parentFile) {
+        if (isCancel) {
+            e.onComplete();
+            return;
+        }
         if (Objects.requireNonNull(parentFile.listFiles()).length > 0) {
             File[] childFiles = parentFile.listFiles();
             if (childFiles != null) {
                 for (File childFile : childFiles) {
-                    RxBus.get().post(RxBusTag.SHOW_SCAN_PATH, childFile.getAbsolutePath());
-                    if (childFile.isFile()) {
-                        Log.e("扫描路径", childFile.getName());
-                    }
+                    if (!isCancel)
+                        RxBus.get().post(RxBusTag.SHOW_SCAN_PATH, childFile.getAbsolutePath());
+                    else
+                        RxBus.get().post(RxBusTag.SHOW_SCAN_PATH, "");
                     if (childFile.isFile() && childFile.getName().substring(childFile.getName().lastIndexOf(".") + 1).equalsIgnoreCase("txt")
                             && childFile.length() > 100 * 1024) {   //100kb
                         e.onNext(childFile);
