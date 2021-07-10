@@ -1,7 +1,5 @@
 package com.ebook.basebook.mvp.model.impl;
 
-import android.util.Log;
-
 import com.ebook.api.service.BeQuGeService;
 import com.ebook.basebook.base.impl.MBaseModelImpl;
 import com.ebook.basebook.base.manager.ErrorAnalyContentManager;
@@ -321,7 +319,6 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
                         }
                     }
                 }
-                Log.e(TAG, content.toString());
                 bookContent.setDurCapterContent(content.toString());
                 bookContent.setRight(true);
             } catch (Exception ex) {
