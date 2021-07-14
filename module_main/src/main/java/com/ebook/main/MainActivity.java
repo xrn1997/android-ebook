@@ -2,7 +2,6 @@ package com.ebook.main;
 
 
 import android.view.KeyEvent;
-import android.view.MenuItem;
 
 import com.alibaba.android.arouter.facade.annotation.Autowired;
 import com.ebook.common.mvvm.BaseActivity;
@@ -13,7 +12,6 @@ import com.ebook.common.util.ToastUtil;
 import com.ebook.main.entity.MainChannel;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -47,28 +45,25 @@ public class MainActivity extends BaseActivity {
     public void initView() {
 
         BottomNavigationView navigation = findViewById(R.id.navigation_main);
-        navigation.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
-            @Override
-            public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
-                int i = menuItem.getItemId();
-                if (i == R.id.navigation_trip) {
-                    switchContent(mCurrFragment, mBookFragment, MainChannel.BOOKSHELF.name);
-                    mCurrFragment = mBookFragment;
+        navigation.setOnNavigationItemSelectedListener(menuItem -> {
+            int i = menuItem.getItemId();
+            if (i == R.id.navigation_trip) {
+                switchContent(mCurrFragment, mBookFragment, MainChannel.BOOKSHELF.name);
+                mCurrFragment = mBookFragment;
 
-                    return true;
-                } else if (i == R.id.navigation_discover) {
-                    switchContent(mCurrFragment, mFindFragment, MainChannel.FiINDBOOK.name);
-                    mCurrFragment = mFindFragment;
+                return true;
+            } else if (i == R.id.navigation_discover) {
+                switchContent(mCurrFragment, mFindFragment, MainChannel.BOOKSTORE.name);
+                mCurrFragment = mFindFragment;
 
-                    return true;
-                } else if (i == R.id.navigation_me) {
-                    switchContent(mCurrFragment, mMeFragment, MainChannel.ME.name);
-                    mCurrFragment = mMeFragment;
+                return true;
+            } else if (i == R.id.navigation_me) {
+                switchContent(mCurrFragment, mMeFragment, MainChannel.ME.name);
+                mCurrFragment = mMeFragment;
 
-                    return true;
-                }
-                return false;
+                return true;
             }
+            return false;
         });
         if (mBookProvider != null) {
             mBookFragment = mBookProvider.getMainBookFragment();

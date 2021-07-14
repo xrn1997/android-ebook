@@ -104,18 +104,10 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
     @Override
     public void initListener() {
         super.initListener();
-        mBookTypeShowAdapter.setItemClickListener(new BaseBindAdapter.OnItemClickListener<BookType>() {
-            @Override
-            public void onItemClick(BookType bookType, int position) {
-                ChoiceBookActivity.startChoiceBookActivity(getActivity(), bookType.getBookType(), bookType.getUrl());
-            }
-        });
-        flSearch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //点击搜索
-                startActivity(new Intent(getActivity(), SearchActivity.class));
-            }
+        mBookTypeShowAdapter.setItemClickListener((bookType, position) -> ChoiceBookActivity.startChoiceBookActivity(getActivity(), bookType.getBookType(), bookType.getUrl()));
+        flSearch.setOnClickListener(v -> {
+            //点击搜索
+            startActivity(new Intent(getActivity(), SearchActivity.class));
         });
     }
 

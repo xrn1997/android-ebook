@@ -462,12 +462,9 @@ public class ExpandableTextView extends LinearLayout implements View.OnClickList
         @Override
         public void showView(final boolean isshow) {
             if (mImageButton != null) {
-                new Handler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mImageButton.clearAnimation();
-                        mImageButton.setVisibility(isshow ? View.VISIBLE : View.GONE);
-                    }
+                new Handler().post(() -> {
+                    mImageButton.clearAnimation();
+                    mImageButton.setVisibility(isshow ? View.VISIBLE : View.GONE);
                 });
             }
         }

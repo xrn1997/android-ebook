@@ -28,7 +28,7 @@ import retrofit2.converter.scalars.ScalarsConverterFactory;
 public class RetrofitManager {
     private volatile static RetrofitManager retrofitManager;
     public static Context mContext;
-    private Retrofit mRetrofit;
+    private final Retrofit mRetrofit;
     public String TOKEN;
     private OkHttpClient.Builder okHttpBuilder;
 
@@ -36,7 +36,7 @@ public class RetrofitManager {
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
         okHttpBuilder = new OkHttpClient.Builder();
-        okHttpBuilder.interceptors().add(logging);
+     //   okHttpBuilder.interceptors().add(logging);
         mRetrofit = new Retrofit.Builder()
                 .client(okHttpBuilder.build())
                 .baseUrl(API.URL_HOST_USER)

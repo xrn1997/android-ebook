@@ -1,5 +1,6 @@
 package com.ebook.common.mvvm;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
@@ -34,6 +35,8 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.Objects;
+
 
 public abstract class BaseActivity extends RxAppCompatActivity implements IBaseView {
     protected static final String TAG = BaseActivity.class.getSimpleName();
@@ -54,10 +57,8 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);//由系统选择屏幕方向
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);//竖屏
         super.setContentView(R.layout.activity_root1);
-        mContentView = (ViewGroup) findViewById(android.R.id.content);
+        mContentView = findViewById(android.R.id.content);
         initCommonView();
         initContentView();
         //在baseActivity自动注入属性
@@ -110,7 +111,7 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
         mTxtTitle = view.findViewById(R.id.toolbar_title);
         if (mToolbar != null) {
             setSupportActionBar(mToolbar);
-            getSupportActionBar().setDisplayShowTitleEnabled(false);
+            Objects.requireNonNull(getSupportActionBar()).setDisplayShowTitleEnabled(false);
             mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {

@@ -19,7 +19,9 @@
             android:theme="@style/CAppTransparentTheme" />
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.ReadBookActivity"
-            android:launchMode="singleTask">
+            android:screenOrientation="portrait"
+            android:launchMode="singleTask"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

@@ -21,12 +21,7 @@ import com.ebook.login.mvvm.viewmodel.LoginViewModel;
 public class SplashActivity extends BaseMvvmActivity<ViewDataBinding, LoginViewModel> {
     private Button mBtnSkip;
     private final Handler mHandler = new Handler();
-    private final Runnable mRunnableToMain = new Runnable() {
-        @Override
-        public void run() {
-            startMainActivity();
-        }
-    };
+    private final Runnable mRunnableToMain = this::startMainActivity;
 
     @Override
     public int onBindLayout() {
@@ -35,7 +30,7 @@ public class SplashActivity extends BaseMvvmActivity<ViewDataBinding, LoginViewM
 
     @Override
     public void initView() {
-        mBtnSkip = (Button) findViewById(R.id.id_btn_skip);
+        mBtnSkip = findViewById(R.id.id_btn_skip);
         mHandler.postDelayed(mRunnableToMain, 3000);
     }
 
@@ -58,12 +53,9 @@ public class SplashActivity extends BaseMvvmActivity<ViewDataBinding, LoginViewM
     @Override
     public void initListener() {
         super.initListener();
-        mBtnSkip.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mHandler.removeCallbacks(mRunnableToMain);
-                startMainActivity();
-            }
+        mBtnSkip.setOnClickListener(view -> {
+            mHandler.removeCallbacks(mRunnableToMain);
+            startMainActivity();
         });
     }
 

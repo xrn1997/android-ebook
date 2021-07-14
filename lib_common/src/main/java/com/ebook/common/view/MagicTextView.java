@@ -71,10 +71,10 @@ public class MagicTextView extends TextView {
     }
 
     public void init(AttributeSet attrs) {
-        outerShadows = new ArrayList<Shadow>();
-        innerShadows = new ArrayList<Shadow>();
+        outerShadows = new ArrayList<>();
+        innerShadows = new ArrayList<>();
         if (canvasStore == null) {
-            canvasStore = new WeakHashMap<String, Pair<Canvas, Bitmap>>();
+            canvasStore = new WeakHashMap<>();
         }
 
         if (attrs != null) {
