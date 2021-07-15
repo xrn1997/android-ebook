@@ -31,22 +31,16 @@ public class CommentListAdapter extends BaseBindAdapter<Comment, AdapterCommentL
     @Override
     protected void onBindItem(AdapterCommentListItemBinding binding, Comment item, int position) {
         binding.setComment(item);
-        binding.layoutCommentItem.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mItemClickListener != null) {
-                    mItemClickListener.onItemClick(item, position);
-                }
+        binding.layoutCommentItem.setOnClickListener(v -> {
+            if (mItemClickListener != null) {
+                mItemClickListener.onItemClick(item, position);
             }
         });
-        binding.layoutCommentItem.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                if (mOnItemLongClickListener != null) {
-                    mOnItemLongClickListener.onItemLongClick(item, position);
-                }
-                return true;
+        binding.layoutCommentItem.setOnLongClickListener(v -> {
+            if (mOnItemLongClickListener != null) {
+                mOnItemLongClickListener.onItemLongClick(item, position);
             }
+            return true;
         });
     }
 

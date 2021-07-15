@@ -112,12 +112,7 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
         if (mToolbar != null) {
             setSupportActionBar(mToolbar);
             Objects.requireNonNull(getSupportActionBar()).setDisplayShowTitleEnabled(false);
-            mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    onBackPressed();
-                }
-            });
+            mToolbar.setNavigationOnClickListener(v -> onBackPressed());
         }
     }
 
