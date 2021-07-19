@@ -53,34 +53,14 @@ public class MainMeFragment extends BaseFragment {
 
     @Override
     public void initListener() {
-        mSetComment.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
-            @Override
-            public void onClick() {
-                ARouter.getInstance().build(KeyCode.Me.Comment_PATH)
-                        .navigation(getActivity(), new LoginNavigationCallbackImpl());
-            }
-        });
-        mSetInform.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
-            @Override
-            public void onClick() {
-                ARouter.getInstance().build(KeyCode.Me.Modify_PATH)
-                        .navigation(getActivity(), new LoginNavigationCallbackImpl());
-            }
-        });
-        mButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ARouter.getInstance().build(KeyCode.Login.Login_PATH)
-                        .navigation();
-            }
-        });
-        mSetting.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
-            @Override
-            public void onClick() {
-                ARouter.getInstance().build(KeyCode.Me.Setting_PATH)
-                        .navigation(getActivity(), new LoginNavigationCallbackImpl());
-            }
-        });
+        mSetComment.setOnClickSettingBarViewListener(() -> ARouter.getInstance().build(KeyCode.Me.Comment_PATH)
+                .navigation(getActivity(), new LoginNavigationCallbackImpl()));
+        mSetInform.setOnClickSettingBarViewListener(() -> ARouter.getInstance().build(KeyCode.Me.Modify_PATH)
+                .navigation(getActivity(), new LoginNavigationCallbackImpl()));
+        mButton.setOnClickListener(v -> ARouter.getInstance().build(KeyCode.Login.Login_PATH)
+                .navigation());
+        mSetting.setOnClickSettingBarViewListener(() -> ARouter.getInstance().build(KeyCode.Me.Setting_PATH)
+                .navigation(getActivity(), new LoginNavigationCallbackImpl()));
     }
 
     @Override

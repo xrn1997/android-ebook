@@ -54,18 +54,10 @@ public abstract class BaseMvvmActivity<V extends ViewDataBinding, VM extends Bas
 
     @SuppressWarnings("unchecked")
     protected void initBaseViewObservable() {
-        mViewModel.getUC().getShowInitLoadViewEvent().observe(this, new Observer<Boolean>() {
-            @Override
-            public void onChanged(@Nullable Boolean show) {
-                showInitLoadView(show);
-            }
-        });
-        mViewModel.getUC().getShowTransLoadingViewEvent().observe(this, new Observer<Boolean>() {
-            @Override
-            public void onChanged(@Nullable Boolean show) {
-                KLog.v("MYTAG", "view postShowTransLoadingViewEvent start...");
-                showTransLoadingView(show);
-            }
+        mViewModel.getUC().getShowInitLoadViewEvent().observe(this, (Observer<Boolean>) this::showInitLoadView);
+        mViewModel.getUC().getShowTransLoadingViewEvent().observe(this, (Observer<Boolean>) show -> {
+            KLog.v("MYTAG", "view postShowTransLoadingViewEvent start...");
+            showTransLoadingView(show);
         });
         mViewModel.getUC().getShowNoDataViewEvent().observe(this, new Observer<Boolean>() {
             @Override

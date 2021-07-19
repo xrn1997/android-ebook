@@ -1,6 +1,5 @@
 package com.ebook.api.http;
 
-import android.util.Log;
 import android.widget.Toast;
 
 import com.ebook.api.dto.RespDTO;
@@ -10,18 +9,12 @@ import com.trello.rxlifecycle3.LifecycleTransformer;
 import com.trello.rxlifecycle3.android.ActivityEvent;
 
 import io.reactivex.Observable;
-import io.reactivex.ObservableSource;
 import io.reactivex.ObservableTransformer;
-import io.reactivex.Single;
-import io.reactivex.SingleSource;
 import io.reactivex.SingleTransformer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
-
-import static android.content.ContentValues.TAG;
-
 
 public class RxAdapter {
     /**
@@ -41,13 +34,8 @@ public class RxAdapter {
      * 线程调度器
      */
     public static SingleTransformer singleSchedulersTransformer() {
-        return new SingleTransformer() {
-            @Override
-            public SingleSource apply(Single upstream) {
-                return upstream.subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread());
-            }
-        };
+        return upstream -> upstream.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread());
     }
 
     public static SingleTransformer singleExceptionTransformer() {

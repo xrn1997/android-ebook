@@ -71,25 +71,10 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
     @Override
     public void initListener() {
         super.initListener();
-        mSetModifyImage.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
-            @Override
-            public void onClick() {
-                uploadHeadImage();
-            }
-        });
-        mSetModifyPwd.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
-            @Override
-            public void onClick() {
-                ARouter.getInstance().build(KeyCode.Login.Modify_PATH)
-                        .navigation();
-            }
-        });
-        mSetModifyNickname.setOnClickSettingBarViewListener(new SettingBarView.OnClickSettingBarViewListener() {
-            @Override
-            public void onClick() {
-                startActivity(new Intent(ModifyInformationActivity.this, ModifyNicknameActivity.class));
-            }
-        });
+        mSetModifyImage.setOnClickSettingBarViewListener(() -> uploadHeadImage());
+        mSetModifyPwd.setOnClickSettingBarViewListener(() -> ARouter.getInstance().build(KeyCode.Login.Modify_PATH)
+                .navigation());
+        mSetModifyNickname.setOnClickSettingBarViewListener(() -> startActivity(new Intent(ModifyInformationActivity.this, ModifyNicknameActivity.class)));
     }
 
     @Override
