@@ -31,7 +31,7 @@ public class User implements Parcelable {
         nickname = in.readString();
     }
 
-    public static final Creator<User> CREATOR = new Creator<User>() {
+    public static final Creator<User> CREATOR = new Creator<>() {
         @Override
         public User createFromParcel(Parcel in) {
             return new User(in);

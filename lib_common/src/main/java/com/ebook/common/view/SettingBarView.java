@@ -166,13 +166,9 @@ public class SettingBarView extends RelativeLayout {
 
     @BindingAdapter(value = {"onClickSettingBarView"}, requireAll = false)
     public static void onClickSettingBarView(SettingBarView view, final BindingCommand bindingCommand) {
-        view.layoutSettingBar.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                if (bindingCommand != null) {
-                    bindingCommand.execute();
-                }
+        view.layoutSettingBar.setOnClickListener(v -> {
+            if (bindingCommand != null) {
+                bindingCommand.execute();
             }
         });
     }

@@ -58,14 +58,11 @@ public class WindowLightPop extends PopupWindow {
     }
 
     private void bindEvent() {
-        llFollowSys.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (scbFollowSys.isChecked()) {
-                    scbFollowSys.setChecked(false, true);
-                } else {
-                    scbFollowSys.setChecked(true, true);
-                }
+        llFollowSys.setOnClickListener(v -> {
+            if (scbFollowSys.isChecked()) {
+                scbFollowSys.setChecked(false, true);
+            } else {
+                scbFollowSys.setChecked(true, true);
             }
         });
         scbFollowSys.setOnCheckedChangeListener(new SmoothCheckBox.OnCheckedChangeListener() {

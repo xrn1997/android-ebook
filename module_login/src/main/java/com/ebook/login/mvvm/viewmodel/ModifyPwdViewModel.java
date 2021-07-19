@@ -69,7 +69,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
             return;
         }
         Log.d(TAG, "modify: username: " + username.get() + ",password: " + password_1.get());
-        mModel.modifyPwd(username.get(), password_1.get()).subscribe(new Observer<RespDTO<Integer>>() {
+        mModel.modifyPwd(username.get(), password_1.get()).subscribe(new Observer<>() {
 
             @Override
             public void onSubscribe(Disposable d) {

@@ -43,20 +43,10 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     public void onBindViewHolder(@NonNull VH holder, final int position) {
         final E e = mList.get(position);
         if (mItemClickListener != null) {
-            holder.itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    mItemClickListener.onItemClick(e, position);
-                }
-            });
+            holder.itemView.setOnClickListener(view -> mItemClickListener.onItemClick(e, position));
         }
         if (mOnItemLongClickListener != null) {
-            holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View view) {
-                    return mOnItemLongClickListener.onItemLongClick(e, position);
-                }
-            });
+            holder.itemView.setOnLongClickListener(view -> mOnItemLongClickListener.onItemLongClick(e, position));
         }
         onBindData(holder, e, position);
     }

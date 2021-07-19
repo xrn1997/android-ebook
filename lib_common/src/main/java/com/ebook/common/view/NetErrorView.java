@@ -19,13 +19,9 @@ public class NetErrorView extends RelativeLayout {
     public NetErrorView(Context context, AttributeSet attrs) {
         super(context, attrs);
         inflate(context, R.layout.view_net_error, this);
-        findViewById(R.id.btn_net_refresh).setOnClickListener(new OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                if (mOnClickListener != null) {
-                    mOnClickListener.onClick(v);
-                }
+        findViewById(R.id.btn_net_refresh).setOnClickListener(v -> {
+            if (mOnClickListener != null) {
+                mOnClickListener.onClick(v);
             }
         });
         mRlNetWorkError = findViewById(R.id.rl_net_error_root);

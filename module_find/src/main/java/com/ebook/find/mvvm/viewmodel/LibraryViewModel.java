@@ -36,7 +36,7 @@ public class LibraryViewModel extends BaseRefreshViewModel<Library, LibraryModel
         if (isFirst) {
             isFirst = false;
             mModel.getLibraryData(mCache)
-                    .subscribe(new SimpleObserver<Library>() {
+                    .subscribe(new SimpleObserver<>() {
                         @Override
                         public void onNext(Library value) {
                             libraryKindBookLists.clear();

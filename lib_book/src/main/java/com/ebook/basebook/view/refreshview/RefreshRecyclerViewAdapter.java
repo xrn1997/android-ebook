@@ -115,12 +115,7 @@ public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
                 } else
                     notifyItemRemoved(getItemCount() + 1);
             } else {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        notifyDataSetChanged();
-                    }
-                });
+                handler.post(this::notifyDataSetChanged);
             }
         }
     }

@@ -24,15 +24,12 @@ public class SettingActivity extends BaseActivity {
     @Override
     public void initListener() {
         super.initListener();
-        mExitButtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                SPUtils.getInstance().clear();
-                RetrofitManager.getInstance().TOKEN = "";
-                ToastUtil.showToast("退出登录成功");
-                RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME, new Object());//更新UI
-                finish();
-            }
+        mExitButtn.setOnClickListener(v -> {
+            SPUtils.getInstance().clear();
+            RetrofitManager.getInstance().TOKEN = "";
+            ToastUtil.showToast("退出登录成功");
+            RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME, new Object());//更新UI
+            finish();
         });
     }
 

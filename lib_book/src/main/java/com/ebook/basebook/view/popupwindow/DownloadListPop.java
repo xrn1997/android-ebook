@@ -63,21 +63,15 @@ public class DownloadListPop extends PopupWindow {
     }
 
     private void bindEvent() {
-        tvCancel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                RxBus.get().post(RxBusTag.CANCEL_DOWNLOAD, new Object());
-                tvNone.setVisibility(View.VISIBLE);
-            }
+        tvCancel.setOnClickListener(v -> {
+            RxBus.get().post(RxBusTag.CANCEL_DOWNLOAD, new Object());
+            tvNone.setVisibility(View.VISIBLE);
         });
-        tvDownload.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (tvDownload.getText().equals("开始下载")) {
-                    RxBus.get().post(RxBusTag.START_DOWNLOAD, new Object());
-                } else {
-                    RxBus.get().post(RxBusTag.PAUSE_DOWNLOAD, new Object());
-                }
+        tvDownload.setOnClickListener(v -> {
+            if (tvDownload.getText().equals("开始下载")) {
+                RxBus.get().post(RxBusTag.START_DOWNLOAD, new Object());
+            } else {
+                RxBus.get().post(RxBusTag.PAUSE_DOWNLOAD, new Object());
             }
         });
     }
@@ -93,33 +87,30 @@ public class DownloadListPop extends PopupWindow {
     }
 
     private void initWait() {
-        Observable.create(new ObservableOnSubscribe<DownloadChapter>() {
-            @Override
-            public void subscribe(ObservableEmitter<DownloadChapter> e) throws Exception {
-                List<BookShelf> bookShelfList = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().orderDesc(BookShelfDao.Properties.FinalDate).list();
-                if (bookShelfList != null && bookShelfList.size() > 0) {
-                    for (BookShelf bookItem : bookShelfList) {
-                        if (!bookItem.getTag().equals(BookShelf.LOCAL_TAG)) {
-                            List<DownloadChapter> downloadChapterList = GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().queryBuilder().where(DownloadChapterDao.Properties.NoteUrl.eq(bookItem.getNoteUrl())).orderAsc(DownloadChapterDao.Properties.DurChapterIndex).limit(1).list();
-                            if (downloadChapterList != null && downloadChapterList.size() > 0) {
-                                e.onNext(downloadChapterList.get(0));
-                                e.onComplete();
-                                return;
-                            }
+        Observable.create((ObservableOnSubscribe<DownloadChapter>) e -> {
+            List<BookShelf> bookShelfList = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().orderDesc(BookShelfDao.Properties.FinalDate).list();
+            if (bookShelfList != null && bookShelfList.size() > 0) {
+                for (BookShelf bookItem : bookShelfList) {
+                    if (!bookItem.getTag().equals(BookShelf.LOCAL_TAG)) {
+                        List<DownloadChapter> downloadChapterList = GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().queryBuilder().where(DownloadChapterDao.Properties.NoteUrl.eq(bookItem.getNoteUrl())).orderAsc(DownloadChapterDao.Properties.DurChapterIndex).limit(1).list();
+                        if (downloadChapterList != null && downloadChapterList.size() > 0) {
+                            e.onNext(downloadChapterList.get(0));
+                            e.onComplete();
+                            return;
                         }
                     }
-                    GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().deleteAll();
-                    e.onNext(new DownloadChapter());
-                } else {
-                    GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().deleteAll();
-                    e.onNext(new DownloadChapter());
                 }
-                e.onComplete();
+                GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().deleteAll();
+                e.onNext(new DownloadChapter());
+            } else {
+                GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().deleteAll();
+                e.onNext(new DownloadChapter());
             }
+            e.onComplete();
         })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<DownloadChapter>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(DownloadChapter value) {
                         if (value.getNoteUrl() != null && value.getNoteUrl().length() > 0) {

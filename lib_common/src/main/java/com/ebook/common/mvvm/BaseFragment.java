@@ -147,12 +147,7 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
         if (mToolbar != null) {
             mActivity.setSupportActionBar(mToolbar);
             mActivity.getSupportActionBar().setDisplayShowTitleEnabled(false);
-            mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mActivity.onBackPressed();
-                }
-            });
+            mToolbar.setNavigationOnClickListener(v -> mActivity.onBackPressed());
         }
         if (mTxtTitle != null) {
             mTxtTitle.setText(getToolbarTitle());
@@ -204,15 +199,12 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
         if (mNetErrorView == null) {
             View view = mViewStubError.inflate();
             mNetErrorView = view.findViewById(R.id.view_net_error);
-            mNetErrorView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (!NetUtil.checkNetToast()) {
-                        return;
-                    }
-                    showNetWorkErrView(false);
-                    initData();
+            mNetErrorView.setOnClickListener(v -> {
+                if (!NetUtil.checkNetToast()) {
+                    return;
                 }
+                showNetWorkErrView(false);
+                initData();
             });
         }
         mNetErrorView.setVisibility(show ? View.VISIBLE : View.GONE);

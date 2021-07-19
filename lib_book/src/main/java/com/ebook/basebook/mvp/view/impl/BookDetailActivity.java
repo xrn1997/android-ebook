@@ -123,12 +123,9 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
                     tvChapter.setText("无章节");
                 tvShelf.setText("移出书架");
                 tvRead.setText("继续阅读");
-                tvShelf.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        //从书架移出
-                        mPresenter.removeFromBookShelf();
-                    }
+                tvShelf.setOnClickListener(v -> {
+                    //从书架移出
+                    mPresenter.removeFromBookShelf();
                 });
             } else {
                 if (bookShelf.getBookInfo().getChapterlist().size() == 0) {
@@ -138,12 +135,9 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
                 }
                 tvShelf.setText("放入书架");
                 tvRead.setText("开始阅读");
-                tvShelf.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        //放入书架
-                        mPresenter.addToBookShelf();
-                    }
+                tvShelf.setOnClickListener(v -> {
+                    //放入书架
+                    mPresenter.addToBookShelf();
                 });
             }
             if (tvIntro.getText().toString().trim().length() == 0) {
@@ -164,11 +158,8 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
             tvChapter.setText(String.format(getString(R.string.tv_searchbook_lastest), mPresenter.getSearchBook().getLastChapter()));
             tvShelf.setText("放入书架");
             tvRead.setText("开始阅读");
-            tvRead.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    //放入书架
-                }
+            tvRead.setOnClickListener(v -> {
+                //放入书架
             });
             tvIntro.setVisibility(View.INVISIBLE);
             tvLoading.setVisibility(View.VISIBLE);
@@ -181,13 +172,10 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
     public void getBookShelfError() {
         tvLoading.setVisibility(View.VISIBLE);
         tvLoading.setText("加载失败,点击重试");
-        tvLoading.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                tvLoading.setText("加载中...");
-                tvLoading.setOnClickListener(null);
-                mPresenter.getBookShelfInfo();
-            }
+        tvLoading.setOnClickListener(v -> {
+            tvLoading.setText("加载中...");
+            tvLoading.setOnClickListener(null);
+            mPresenter.getBookShelfInfo();
         });
     }
 
@@ -246,50 +234,39 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
 
     @Override
     protected void bindEvent() {
-        iflContent.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    if (getStart_share_ele()) {
-                        finishAfterTransition();
-                    } else {
-                        finish();
-                        overridePendingTransition(0, android.R.anim.fade_out);
-                    }
-                } else {
-                    finish();
-                    overridePendingTransition(0, android.R.anim.fade_out);
-                }
+        iflContent.setOnClickListener(v -> {
+            if (getStart_share_ele()) {
+                finishAfterTransition();
+            } else {
+                finish();
+                overridePendingTransition(0, android.R.anim.fade_out);
             }
         });
 
-        tvRead.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //进入阅读
-                Intent intent = new Intent(BookDetailActivity.this, ReadBookActivity.class);
-                intent.putExtra("from", ReadBookPresenterImpl.OPEN_FROM_APP);
-                String key = String.valueOf(System.currentTimeMillis());
-                intent.putExtra("data_key", key);
-                try {
-                    BitIntentDataManager.getInstance().putData(key, mPresenter.getBookShelf().clone());
-                } catch (CloneNotSupportedException e) {
-                    BitIntentDataManager.getInstance().putData(key, mPresenter.getBookShelf());
-                    e.printStackTrace();
-                }
-                startActivityByAnim(intent, android.R.anim.fade_in, android.R.anim.fade_out);
+        tvRead.setOnClickListener(v -> {
+            //进入阅读
+            Intent intent = new Intent(BookDetailActivity.this, ReadBookActivity.class);
+            intent.putExtra("from", ReadBookPresenterImpl.OPEN_FROM_APP);
+            String key = String.valueOf(System.currentTimeMillis());
+            intent.putExtra("data_key", key);
+            try {
+                BitIntentDataManager.getInstance().putData(key, mPresenter.getBookShelf().clone());
+            } catch (CloneNotSupportedException e) {
+                BitIntentDataManager.getInstance().putData(key, mPresenter.getBookShelf());
+                e.printStackTrace();
+            }
+            startActivityByAnim(intent, android.R.anim.fade_in, android.R.anim.fade_out);
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    if (getStart_share_ele()) {
-                        finishAfterTransition();
-                    } else {
-                        finish();
-                        overridePendingTransition(0, android.R.anim.fade_out);
-                    }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                if (getStart_share_ele()) {
+                    finishAfterTransition();
                 } else {
                     finish();
                     overridePendingTransition(0, android.R.anim.fade_out);
                 }
+            } else {
+                finish();
+                overridePendingTransition(0, android.R.anim.fade_out);
             }
         });
     }

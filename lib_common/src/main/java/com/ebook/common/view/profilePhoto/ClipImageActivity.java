@@ -71,19 +71,8 @@ public class ClipImageActivity extends BaseActivity {
     public void initListener() {
         super.initListener();
         //设置点击事件监听器
-        btnCancel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
-        btnOk.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                generateUriAndReturn();
-            }
-        });
+        btnCancel.setOnClickListener(v -> finish());
+        btnOk.setOnClickListener(v -> generateUriAndReturn());
     }
 
     @Override

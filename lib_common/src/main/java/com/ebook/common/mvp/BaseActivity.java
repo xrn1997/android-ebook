@@ -84,12 +84,7 @@ public abstract class BaseActivity extends RxAppCompatActivity implements BaseVi
         if (mToolbar != null) {
             setSupportActionBar(mToolbar);
             getSupportActionBar().setDisplayShowTitleEnabled(false);
-            mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    onBackPressed();
-                }
-            });
+            mToolbar.setNavigationOnClickListener(v -> onBackPressed());
         }
     }
 
@@ -191,15 +186,12 @@ public abstract class BaseActivity extends RxAppCompatActivity implements BaseVi
         if (mNetErrorView == null) {
             View view = mViewStubError.inflate();
             mNetErrorView = view.findViewById(R.id.view_net_error);
-            mNetErrorView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (!NetUtil.checkNetToast()) {
-                        return;
-                    }
-                    hideNetWorkErrView();
-                    initData();
+            mNetErrorView.setOnClickListener(v -> {
+                if (!NetUtil.checkNetToast()) {
+                    return;
                 }
+                hideNetWorkErrView();
+                initData();
             });
         }
         mNetErrorView.setVisibility(show ? View.VISIBLE : View.GONE);

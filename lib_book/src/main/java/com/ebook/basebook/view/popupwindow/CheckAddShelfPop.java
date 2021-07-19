@@ -13,8 +13,8 @@ import com.ebook.basebook.R;
 import androidx.annotation.NonNull;
 
 public class CheckAddShelfPop extends PopupWindow {
-    private Context mContext;
-    private View view;
+    private final Context mContext;
+    private final View view;
 
     public interface OnItemClickListener {
         void clickExit();
@@ -22,8 +22,8 @@ public class CheckAddShelfPop extends PopupWindow {
         void clickAddShelf();
     }
 
-    private OnItemClickListener itemClick;
-    private String bookName;
+    private final OnItemClickListener itemClick;
+    private final String bookName;
 
     private TextView tvBookName;
     private TextView tvExit;
@@ -45,22 +45,14 @@ public class CheckAddShelfPop extends PopupWindow {
     }
 
     private void initView() {
-        tvBookName = (TextView) view.findViewById(R.id.tv_book_name);
+        tvBookName = view.findViewById(R.id.tv_book_name);
         tvBookName.setText(String.format(mContext.getString(R.string.tv_pop_checkaddshelf), bookName));
-        tvExit = (TextView) view.findViewById(R.id.tv_exit);
-        tvExit.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dismiss();
-                itemClick.clickExit();
-            }
+        tvExit = view.findViewById(R.id.tv_exit);
+        tvExit.setOnClickListener(v -> {
+            dismiss();
+            itemClick.clickExit();
         });
-        tvAddShelf = (TextView) view.findViewById(R.id.tv_addshelf);
-        tvAddShelf.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                itemClick.clickAddShelf();
-            }
-        });
+        tvAddShelf = view.findViewById(R.id.tv_addshelf);
+        tvAddShelf.setOnClickListener(v -> itemClick.clickAddShelf());
     }
 }

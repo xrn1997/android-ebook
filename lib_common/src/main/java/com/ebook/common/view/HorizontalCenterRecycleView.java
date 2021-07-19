@@ -62,19 +62,16 @@ public class HorizontalCenterRecycleView extends RecyclerView {
 
     private void init() {
         mScroller = new Scroller(getContext());
-        getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                if (isInit) {
-                    if (initPos >= adapter.getItemCount()) {
-                        initPos = adapter.getItemCount() - 1;
-                    }
-                    if (isFirstPosChanged && listener != null) {
-                        listener.selectedPositionChanged(initPos);
-                    }
-                    linearLayoutManager.scrollToPositionWithOffset(0, -initPos * (wrapAdapter.getItemWidth()));
-                    isInit = false;
+        getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            if (isInit) {
+                if (initPos >= adapter.getItemCount()) {
+                    initPos = adapter.getItemCount() - 1;
                 }
+                if (isFirstPosChanged && listener != null) {
+                    listener.selectedPositionChanged(initPos);
+                }
+                linearLayoutManager.scrollToPositionWithOffset(0, -initPos * (wrapAdapter.getItemWidth()));
+                isInit = false;
             }
         });
     }

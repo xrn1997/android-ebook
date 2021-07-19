@@ -59,38 +59,15 @@ public abstract class BaseMvvmActivity<V extends ViewDataBinding, VM extends Bas
             KLog.v("MYTAG", "view postShowTransLoadingViewEvent start...");
             showTransLoadingView(show);
         });
-        mViewModel.getUC().getShowNoDataViewEvent().observe(this, new Observer<Boolean>() {
-            @Override
-            public void onChanged(@Nullable Boolean show) {
-                showNoDataView(show);
-            }
+        mViewModel.getUC().getShowNoDataViewEvent().observe(this, (Observer<Boolean>) this::showNoDataView);
+        mViewModel.getUC().getShowNetWorkErrViewEvent().observe(this, (Observer<Boolean>) this::showNetWorkErrView);
+        mViewModel.getUC().getStartActivityEvent().observe(this, (Observer<Map<String, Object>>) params -> {
+            Class<?> clz = (Class<?>) params.get(BaseViewModel.ParameterField.CLASS);
+            Bundle bundle = (Bundle) params.get(BaseViewModel.ParameterField.BUNDLE);
+            startActivity(clz, bundle);
         });
-        mViewModel.getUC().getShowNetWorkErrViewEvent().observe(this, new Observer<Boolean>() {
-            @Override
-            public void onChanged(@Nullable Boolean show) {
-                showNetWorkErrView(show);
-            }
-        });
-        mViewModel.getUC().getStartActivityEvent().observe(this, new Observer<Map<String, Object>>() {
-            @Override
-            public void onChanged(@Nullable Map<String, Object> params) {
-                Class<?> clz = (Class<?>) params.get(BaseViewModel.ParameterField.CLASS);
-                Bundle bundle = (Bundle) params.get(BaseViewModel.ParameterField.BUNDLE);
-                startActivity(clz, bundle);
-            }
-        });
-        mViewModel.getUC().getFinishActivityEvent().observe(this, new Observer<Void>() {
-            @Override
-            public void onChanged(@Nullable Void v) {
-                finish();
-            }
-        });
-        mViewModel.getUC().getOnBackPressedEvent().observe(this, new Observer<Void>() {
-            @Override
-            public void onChanged(@Nullable Void v) {
-                onBackPressed();
-            }
-        });
+        mViewModel.getUC().getFinishActivityEvent().observe(this, (Observer<Void>) v -> finish());
+        mViewModel.getUC().getOnBackPressedEvent().observe(this, (Observer<Void>) v -> onBackPressed());
     }
 
     public void startActivity(Class<?> clz, Bundle bundle) {
