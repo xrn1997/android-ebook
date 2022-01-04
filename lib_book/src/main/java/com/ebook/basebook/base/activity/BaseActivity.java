@@ -3,7 +3,6 @@ package com.ebook.basebook.base.activity;
 import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 
@@ -95,7 +94,6 @@ public abstract class BaseActivity<T extends IPresenter> extends RxAppCompatActi
     /**
      * P层绑定   若无则返回null;
      *
-     * @return
      */
     protected abstract T initInjector();
 
@@ -135,20 +133,12 @@ public abstract class BaseActivity<T extends IPresenter> extends RxAppCompatActi
     }
 
     protected void startActivityForResultByAnim(Intent intent, int requestCode, @NonNull View view, @NonNull String transitionName, int animIn, int animExit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            startActivityForResult(intent, requestCode, ActivityOptions.makeSceneTransitionAnimation(this, view, transitionName).toBundle());
-        } else {
-            startActivityForResultByAnim(intent, requestCode, animIn, animExit);
-        }
+        startActivityForResult(intent, requestCode, ActivityOptions.makeSceneTransitionAnimation(this, view, transitionName).toBundle());
     }
 
     protected void startActivityByAnim(Intent intent, @NonNull View view, @NonNull String transitionName, int animIn, int animExit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            intent.putExtra(start_share_ele, true);
-            startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(this, view, transitionName).toBundle());
-        } else {
-            startActivityByAnim(intent, animIn, animExit);
-        }
+        intent.putExtra(start_share_ele, true);
+        startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(this, view, transitionName).toBundle());
     }
 
     public Context getContext() {

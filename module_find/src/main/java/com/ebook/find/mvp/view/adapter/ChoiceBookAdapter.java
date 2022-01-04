@@ -40,7 +40,7 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
     }
 
     @Override
-    public RecyclerView.ViewHolder onCreateViewholder(ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateRefreshRecyclerViewHolder(ViewGroup parent, int viewType) {
         return new Viewholder(LayoutInflater.from(context)
                 .inflate(R.layout.adapter_searchbook_item, parent, false));
     }

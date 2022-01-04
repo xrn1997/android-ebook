@@ -2,17 +2,15 @@ package com.ebook.find.fragment;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
-
-import com.ebook.common.adapter.BaseBindAdapter;
 import com.ebook.common.mvvm.BaseMvvmRefreshFragment;
 import com.ebook.common.util.ObservableListUtil;
 import com.ebook.find.BR;
 import com.ebook.find.R;
 import com.ebook.find.adapter.LibraryBookListAdapter;
 import com.ebook.find.databinding.FragmentFindMainBinding;
-import com.ebook.find.entity.BookType;
 import com.ebook.find.adapter.BookTypeShowAdapter;
 import com.ebook.find.mvp.view.impl.ChoiceBookActivity;
 import com.ebook.find.mvp.view.impl.SearchActivity;
@@ -68,7 +66,7 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
 
     @Override
     public void initView(View view) {
-        flSearch = (FrameLayout) view.findViewById(R.id.fl_search);
+        flSearch = view.findViewById(R.id.fl_search);
         mBookTypeShowAdapter = new BookTypeShowAdapter(mActivity, mViewModel.getBookTypeList());
         mLibraryKindBookAdapter = new LibraryBookListAdapter(mActivity, mViewModel.getLibraryKindBookLists());
         mViewModel.getLibraryKindBookLists().addOnListChangedCallback(ObservableListUtil.getListChangedCallback(mLibraryKindBookAdapter));

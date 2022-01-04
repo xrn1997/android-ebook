@@ -2,9 +2,8 @@
 package com.ebook.basebook.mvp.model.impl;
 
 
-import com.ebook.api.RetrofitManager;
-import com.ebook.basebook.mvp.model.ImportBookModel;
 import com.ebook.basebook.base.impl.MBaseModelImpl;
+import com.ebook.basebook.mvp.model.ImportBookModel;
 import com.ebook.db.GreenDaoManager;
 import com.ebook.db.entity.BookInfoDao;
 import com.ebook.db.entity.BookShelf;

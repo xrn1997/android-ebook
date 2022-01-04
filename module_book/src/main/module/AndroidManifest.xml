@@ -33,7 +33,8 @@
         android:theme="@style/AppTheme"
         android:name="debug.BookApplication"
         tools:targetApi="n">
-        <activity android:name="com.ebook.book.debug.MainActivity">
+        <activity android:name="debug.MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

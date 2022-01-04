@@ -8,7 +8,7 @@ import com.ebook.db.entity.SearchBook;
 
 public interface IBookDetailPresenter extends IPresenter {
 
-    int getOpenfrom();
+    int getOpenFrom();
 
     SearchBook getSearchBook();
 

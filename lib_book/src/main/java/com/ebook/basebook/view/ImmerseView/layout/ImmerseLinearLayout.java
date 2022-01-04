@@ -1,6 +1,6 @@
 package com.ebook.basebook.view.ImmerseView.layout;
 
-import android.annotation.SuppressLint;
+
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.ViewGroup;
@@ -32,7 +32,7 @@ public class ImmerseLinearLayout extends LinearLayout implements ImmerseView {
         initManager(attrs);
     }
 
-    @SuppressLint("NewApi")
+
     public ImmerseLinearLayout(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         initManager(attrs);

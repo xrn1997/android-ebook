@@ -41,7 +41,7 @@ public class AppActivityManager {
     添加Activity
      */
     public void add(Activity activity) {
-        activities.add(new WeakReference<Activity>(activity));
+        activities.add(new WeakReference<>(activity));
     }
 
     /*
@@ -72,9 +72,9 @@ public class AppActivityManager {
     关闭指定 activity
      */
     public void finishActivity(BaseActivity... activities) {
-        for (int i = 0; i < activities.length; i++) {
-            if (null != activities[i]) {
-                activities[i].finish();
+        for (BaseActivity activity : activities) {
+            if (null != activity) {
+                activity.finish();
             }
         }
     }
@@ -83,16 +83,16 @@ public class AppActivityManager {
     关闭指定 activity(class)
      */
     public void finishActivity(Class<?>... activityClasses) {
-        ArrayList<WeakReference<Activity>> waitfinish = new ArrayList<>();
+        ArrayList<WeakReference<Activity>> waitFinish = new ArrayList<>();
         for (WeakReference<Activity> temp : activities) {
-            for (int i = 0; i < activityClasses.length; i++) {
-                if (null != temp.get() && temp.get().getClass() == activityClasses[i]) {
-                    waitfinish.add(temp);
+            for (Class<?> activityClass : activityClasses) {
+                if (null != temp.get() && temp.get().getClass() == activityClass) {
+                    waitFinish.add(temp);
                     break;
                 }
             }
         }
-        for (WeakReference<Activity> activityWeakReference : waitfinish) {
+        for (WeakReference<Activity> activityWeakReference : waitFinish) {
             if (null != activityWeakReference.get()) {
                 activityWeakReference.get().finish();
             }
@@ -103,9 +103,8 @@ public class AppActivityManager {
     判断指定Activity是否存在
      */
     public Boolean isExist(Class<?> activityClass) {
-        Boolean result = false;
-        for (Iterator<WeakReference<Activity>> iterator = activities.iterator(); iterator.hasNext(); ) {
-            WeakReference<Activity> item = iterator.next();
+        boolean result = false;
+        for (WeakReference<Activity> item : activities) {
             if (null != item && null != item.get() && item.get().getClass() == activityClass) {
                 result = true;
                 break;

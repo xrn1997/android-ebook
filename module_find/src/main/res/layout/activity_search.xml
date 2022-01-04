@@ -17,47 +17,51 @@
             android:id="@+id/fl_search_content"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="30dp"
+            android:layout_height="48dp"
             android:transitionName="to_search"
-            android:layout_marginLeft="10dp">
+            android:layout_marginStart="10dp">
 
             <EditText
                 android:id="@+id/edt_content"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:autofillHints=""
                 android:background="@drawable/bg_search_content"
-                android:gravity="center_vertical|left"
-                android:paddingLeft="28dp"
-                android:hint="搜书名、作者"
-                android:textColorHint="#6f6f6f"
-                android:textSize="13sp"
-                android:lines="1"
-                android:inputType="text"
-                android:imeOptions="actionSearch"
-                android:textColor="#767676"
                 android:cursorVisible="false"
-                android:textCursorDrawable="@drawable/shape_text_cursor" />
+                android:gravity="center_vertical|start"
+                android:hint="@string/search_book_or_author"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:lines="1"
+                android:paddingStart="28dp"
+                android:paddingEnd="28dp"
+                android:textColor="#767676"
+                android:textColorHint="#616161"
+                android:textCursorDrawable="@drawable/shape_text_cursor"
+                android:textSize="13sp" />
 
             <ImageView
                 android:layout_width="15dp"
                 android:layout_height="15dp"
-                android:layout_gravity="center_vertical|left"
-                android:layout_marginLeft="8dp"
-                android:src="@drawable/icon_search_nor" />
+                android:layout_gravity="center_vertical|start"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/icon_search_nor"
+                android:contentDescription="@string/please_input_author_or_work" />
         </FrameLayout>
 
         <TextView
-            android:id="@+id/tv_tosearch"
+            android:id="@+id/tv_to_search"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:paddingLeft="10dp"
-            android:paddingRight="15dp"
-            android:text="返回"
+            android:paddingStart="10dp"
+            android:paddingEnd="15dp"
+            android:text="@string/str_return"
             android:textSize="16sp"
             android:textColor="@drawable/selector_tv_black"
             android:gravity="center"
             android:clickable="true"
-            android:background="@drawable/bg_ib_pre" />
+            android:background="@drawable/bg_ib_pre"
+            android:focusable="true" />
     </LinearLayout>
 
     <FrameLayout
@@ -95,9 +99,9 @@
                     android:layout_height="wrap_content"
                     android:textSize="16sp"
                     android:textColor="#767676"
-                    android:text="搜索历史"
+                    android:text="@string/str_search_history"
                     android:layout_gravity="center_vertical"
-                    android:layout_marginLeft="18dp"
+                    android:layout_marginStart="18dp"
                     android:layout_marginTop="5dp"
                     android:layout_marginBottom="5dp" />
 
@@ -118,9 +122,10 @@
                     android:paddingLeft="15dp"
                     android:paddingRight="15dp"
                     android:paddingTop="5dp"
-                    android:text="清除"
+                    android:text="@string/str_clean"
                     android:textColor="@drawable/selector_tv_black"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    android:focusable="true" />
             </LinearLayout>
 
             <com.ebook.basebook.view.flowlayout.TagFlowLayout
@@ -130,7 +135,7 @@
                 android:layout_marginTop="10dp"
                 android:layout_marginLeft="3dp"
                 android:layout_marginRight="3dp"
-                android:clickable="false"></com.ebook.basebook.view.flowlayout.TagFlowLayout>
+                android:clickable="false" />
         </LinearLayout>
 
         <View

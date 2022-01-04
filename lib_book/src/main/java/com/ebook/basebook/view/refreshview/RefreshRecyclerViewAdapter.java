@@ -1,5 +1,6 @@
 package com.ebook.basebook.view.refreshview;
 
+import android.annotation.SuppressLint;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
@@ -15,18 +16,18 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
-    private final int LOADMORETYPE = 2001;
+    private final int LOAD_MORE_TYPE = 2001;
 
-    private Handler handler;
+    private final Handler handler;
     private int isRequesting = 0;   //0是未执行网络请求  1是正在下拉刷新  2是正在加载更多
-    private Boolean needLoadMore = false;
+    private final Boolean needLoadMore;
     private Boolean isAll = false;  //判断是否还有更多
     private Boolean loadMoreError = false;
 
     private OnClickTryAgainListener clickTryAgainListener;
 
     public interface OnClickTryAgainListener {
-        public void loadMoreErrorTryAgain();
+        void loadMoreErrorTryAgain();
     }
 
     public RefreshRecyclerViewAdapter(Boolean needLoadMore) {
@@ -55,17 +56,17 @@ public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        if (viewType == LOADMORETYPE) {
+        if (viewType == LOAD_MORE_TYPE) {
             return new LoadMoreViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.view_refresh_loadmore, parent, false));
         } else
-            return onCreateViewholder(parent, viewType);
+            return onCreateRefreshRecyclerViewHolder(parent, viewType);
     }
 
-    public abstract RecyclerView.ViewHolder onCreateViewholder(ViewGroup parent, int viewType);
+    public abstract RecyclerView.ViewHolder onCreateRefreshRecyclerViewHolder(ViewGroup parent, int viewType);
 
     @Override
     public void onBindViewHolder(final RecyclerView.ViewHolder holder, int position) {
-        if (holder.getItemViewType() == LOADMORETYPE) {
+        if (holder.getItemViewType() == LOAD_MORE_TYPE) {
             if (!loadMoreError) {
                 ((LoadMoreViewHolder) holder).tvLoadMore.setText("正在加载...");
             } else {
@@ -87,7 +88,7 @@ public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
     @Override
     public int getItemViewType(int position) {
         if (needLoadMore && isRequesting != 1 && !isAll && position == getItemCount() - 1 && getItemcount() > 0) {
-            return LOADMORETYPE;
+            return LOAD_MORE_TYPE;
         } else {
             return getItemViewtype(position);
         }
@@ -120,14 +121,14 @@ public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
         }
     }
 
-    class LoadMoreViewHolder extends RecyclerView.ViewHolder {
+    static class LoadMoreViewHolder extends RecyclerView.ViewHolder {
         FrameLayout llLoadMore;
         TextView tvLoadMore;
 
         public LoadMoreViewHolder(View itemView) {
             super(itemView);
-            llLoadMore = (FrameLayout) itemView.findViewById(R.id.ll_loadmore);
-            tvLoadMore = (TextView) itemView.findViewById(R.id.tv_loadmore);
+            llLoadMore = itemView.findViewById(R.id.ll_loadmore);
+            tvLoadMore = itemView.findViewById(R.id.tv_loadmore);
         }
     }
 
@@ -148,6 +149,7 @@ public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
         return loadMoreError;
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     public void setLoadMoreError(Boolean loadMoreError, Boolean needNoti) {
         this.isRequesting = 0;
         this.loadMoreError = loadMoreError;

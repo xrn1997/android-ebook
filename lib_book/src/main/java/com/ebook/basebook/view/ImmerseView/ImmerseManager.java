@@ -2,7 +2,6 @@ package com.ebook.basebook.view.ImmerseView;
 
 import android.app.Activity;
 import android.content.res.TypedArray;
-import android.os.Build;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,8 +17,8 @@ import androidx.annotation.NonNull;
  * 类描述：沉浸布局管理器
  */
 public class ImmerseManager {
-    private ViewGroup viewGroup;
-    private ImmerseView immerseView;
+    private final ViewGroup viewGroup;
+    private final ImmerseView immerseView;
     private boolean allImmerse = false;    //默认内部内容不沉浸  默认会设置paddingTop
     private boolean immerseNotchScreen = true;   //默认如果是异形屏 也要沉浸式
 
@@ -33,7 +32,7 @@ public class ImmerseManager {
             this.immerseView = (ImmerseView) this.viewGroup;
             init(attrs);
         } else {
-            throw new RuntimeException("Viewgroup并未实现IimmerseView接口");
+            throw new RuntimeException("ViewGroup并未实现ImmerseView接口");
         }
     }
 
@@ -45,9 +44,8 @@ public class ImmerseManager {
             typedArray.recycle();
         }
         paddingTop = viewGroup.getPaddingTop();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
-                && (immerseNotchScreen || !StatusBarUtils.isNotchScreen(viewGroup.getContext()))) {
-            rootView = (FrameLayout) ((Activity) viewGroup.getContext()).findViewById(android.R.id.content);
+        if (immerseNotchScreen || !StatusBarUtils.isNotchScreen(viewGroup.getContext())) {
+            rootView = ((Activity) viewGroup.getContext()).findViewById(android.R.id.content);
             ((Activity) viewGroup.getContext()).getWindow().setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
                     WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
             immerseView.setImmersePadding(viewGroup.getPaddingLeft(), getPaddingTop(paddingTop), viewGroup.getPaddingRight(), viewGroup.getPaddingBottom());
@@ -62,9 +60,7 @@ public class ImmerseManager {
         MeasureHeightResult measureHeightResult = new MeasureHeightResult();
         int heightMode = View.MeasureSpec.getMode(heightMeasureSpec);
         int tempHeight = View.MeasureSpec.getSize(heightMeasureSpec);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
-                && (immerseNotchScreen || !StatusBarUtils.isNotchScreen(viewGroup.getContext()))
-                && rootView.getChildAt(0) != viewGroup && heightMode == View.MeasureSpec.EXACTLY) {
+        if ((immerseNotchScreen || !StatusBarUtils.isNotchScreen(viewGroup.getContext())) && rootView.getChildAt(0) != viewGroup && heightMode == View.MeasureSpec.EXACTLY) {
             if (realHeight != tempHeight) {
                 realHeight = tempHeight + StatusBarUtils.getStatus_height();
                 measureHeightResult.setHeight(realHeight);
@@ -74,13 +70,12 @@ public class ImmerseManager {
         return measureHeightResult;
     }
 
-    private int getPaddingTop(int paddingtop) {
-        paddingTop = paddingtop;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && !allImmerse
-                && (immerseNotchScreen || !StatusBarUtils.isNotchScreen(viewGroup.getContext()))) {
-            return paddingTop + StatusBarUtils.getStatus_height();
+    private int getPaddingTop(int paddingTop) {
+        this.paddingTop = paddingTop;
+        if (!allImmerse && (immerseNotchScreen || !StatusBarUtils.isNotchScreen(viewGroup.getContext()))) {
+            return this.paddingTop + StatusBarUtils.getStatus_height();
         } else {
-            return paddingTop;
+            return this.paddingTop;
         }
     }
 }

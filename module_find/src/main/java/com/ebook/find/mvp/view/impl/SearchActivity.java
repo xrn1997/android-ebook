@@ -5,7 +5,6 @@ import android.animation.Animator;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Rect;
-import android.os.Build;
 import android.os.Handler;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -13,11 +12,9 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewAnimationUtils;
-import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
@@ -47,6 +44,7 @@ import com.ebook.find.mvp.view.adapter.SearchBookAdapter;
 import com.ebook.find.mvp.view.adapter.SearchHistoryAdapter;
 
 import java.util.List;
+import java.util.Objects;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -55,7 +53,7 @@ import tyrantgit.explosionfield.ExplosionField;
 public class SearchActivity extends BaseActivity<ISearchPresenter> implements ISearchView {
     private FrameLayout flSearchContent;
     private EditText edtContent;
-    private TextView tvTosearch;
+    private TextView tvToSearch;
     private LinearLayout llSearchHistory;
     private TextView tvSearchHistoryClean;
     private TagFlowLayout tflSearchHistory;
@@ -87,7 +85,7 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
     protected void bindView() {
         flSearchContent = findViewById(R.id.fl_search_content);
         edtContent = findViewById(R.id.edt_content);
-        tvTosearch = findViewById(R.id.tv_tosearch);
+        tvToSearch = findViewById(R.id.tv_to_search);
         llSearchHistory = findViewById(R.id.ll_search_history);
         tvSearchHistoryClean = findViewById(R.id.tv_search_history_clean);
         tflSearchHistory = findViewById(R.id.tfl_search_history);
@@ -101,7 +99,7 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
             mPresenter.toSearchBooks(null, true);
             rfRvSearchBooks.startRefresh();
         });
-        rfRvSearchBooks.setNoDataAndrRefreshErrorView(LayoutInflater.from(this).inflate(R.layout.view_searchbook_nodata, null),
+        rfRvSearchBooks.setNoDataAndRefreshErrorView(LayoutInflater.from(this).inflate(R.layout.view_searchbook_nodata, null),
                 viewRefreshError);
         searchBookAdapter.setItemClickListener(new SearchBookAdapter.OnItemClickListener() {
             @Override
@@ -151,7 +149,7 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
             } else
                 return false;
         });
-        tvTosearch.setOnClickListener(v -> {
+        tvToSearch.setOnClickListener(v -> {
             if (!mPresenter.getInput()) {
                 finishAfterTransition();
             } else {
@@ -166,7 +164,7 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
         bindKeyBoardEvent();
         rfRvSearchBooks.setLoadMoreListener(new OnLoadMoreListener() {
             @Override
-            public void startLoadmore() {
+            public void startLoadMore() {
                 mPresenter.toSearchBooks(null, false);
             }
 
@@ -250,10 +248,10 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
 
     private void checkTvToSearch() {
         if (llSearchHistory.getVisibility() == View.VISIBLE) {
-            tvTosearch.setText("搜索");
+            tvToSearch.setText("搜索");
             mPresenter.setInput(true);
         } else {
-            tvTosearch.setText("返回");
+            tvToSearch.setText("返回");
             mPresenter.setInput(false);
         }
     }
@@ -291,7 +289,6 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
                 public void onAnimationRepeat(Animator animation) {
                 }
             });
-            animHistory5.start();
         } else {
             animHistory5 = ViewAnimationUtils.createCircularReveal(
                     llSearchHistory,
@@ -319,19 +316,32 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
                 public void onAnimationRepeat(Animator animation) {
                 }
             });
-            animHistory5.start();
         }
+        animHistory5.start();
     }
 
     private void closeKeyBoard() {
         InputMethodManager imm = (InputMethodManager) this.getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(edtContent.getWindowToken(), 0);
+        /*
+        由于关闭软键盘会触发监听事件导致搜索历史关闭，所以这里为了兼容没有软键盘的例外情况，再次核验了一次是否已经关闭搜索历史。
+         */
+        if (llSearchHistory.getVisibility() == View.VISIBLE)
+            openOrCloseHistory(false);
     }
 
     private void openKeyBoard() {
+
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         edtContent.requestFocus();
-        imm.showSoftInput(edtContent, InputMethodManager.RESULT_UNCHANGED_SHOWN);
+         imm.showSoftInput(edtContent, InputMethodManager.RESULT_UNCHANGED_SHOWN);
+            /*
+            由于思路是通过软键盘改变“屏幕大小”来控制是否显示搜索历史的，
+            因此即便是在打开软键盘失败的情况下，也依旧应该兼容显示搜索历史，
+            如PC端的Android模拟器就有可能不会提供软键盘。
+             */
+            if (llSearchHistory.getVisibility() != View.VISIBLE)
+                openOrCloseHistory(true);
     }
 
     @Override
@@ -404,7 +414,7 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
     public void updateSearchItem(int index) {
         if (index < searchBookAdapter.getItemcount()) {
             int startIndex = ((LinearLayoutManager)
-                    rfRvSearchBooks.getRecyclerView().getLayoutManager()).findFirstVisibleItemPosition();
+                    Objects.requireNonNull(rfRvSearchBooks.getRecyclerView().getLayoutManager())).findFirstVisibleItemPosition();
             TextView tvAddShelf = rfRvSearchBooks.getRecyclerView().getChildAt(index -
                     startIndex).findViewById(R.id.tv_addshelf);
             if (tvAddShelf != null) {
@@ -421,7 +431,7 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
 
     @Override
     public Boolean checkIsExist(SearchBook searchBook) {
-        Boolean result = false;
+        boolean result = false;
         for (int i = 0; i < searchBookAdapter.getItemcount(); i++) {
             if (searchBookAdapter.getSearchBooks().get(i).getNoteUrl().equals(searchBook.getNoteUrl()) &&
                     searchBookAdapter.getSearchBooks().get(i).getTag().equals(searchBook.getTag())) {

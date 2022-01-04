@@ -33,6 +33,7 @@
         android:theme="@style/AppTheme"
         android:name="com.ebook.MyApplication"
         android:usesCleartextTraffic="true"
-        tools:targetApi="n"
-        android:fullBackupContent="true" />
+        tools:targetApi="s"
+        android:fullBackupContent="true"
+        android:dataExtractionRules="@xml/data_extraction_rules" />
 </manifest>

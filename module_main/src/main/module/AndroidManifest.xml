@@ -9,8 +9,9 @@
         android:name="debug.MainApplication"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name="com.ebook.main.MainActivity"></activity>
-        <activity android:name="com.ebook.main.SplashActivity">
+        <activity android:name="com.ebook.main.MainActivity" />
+        <activity android:name="com.ebook.main.SplashActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

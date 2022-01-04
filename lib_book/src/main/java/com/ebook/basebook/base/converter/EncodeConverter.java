@@ -1,6 +1,7 @@
 package com.ebook.basebook.base.converter;
 
-import java.io.IOException;
+import androidx.annotation.NonNull;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
@@ -32,15 +33,11 @@ public class EncodeConverter extends Converter.Factory {
     }
 
     @Override
-    public Converter<ResponseBody, String> responseBodyConverter(Type type, Annotation[] annotations,
-                                                                 Retrofit retrofit) {
-        return new Converter<ResponseBody, String>() {
-            @Override
-            public String convert(ResponseBody value) throws IOException {
-                BufferedSource bufferedSource = Okio.buffer(value.source());
-                String responseData = bufferedSource.readString(Charset.forName(encode));
-                return responseData;
-            }
+    public Converter<ResponseBody, String> responseBodyConverter(@NonNull Type type, @NonNull Annotation[] annotations,
+                                                                 @NonNull Retrofit retrofit) {
+        return value -> {
+            BufferedSource bufferedSource = Okio.buffer(value.source());
+            return bufferedSource.readString(Charset.forName(encode));
         };
     }
 }

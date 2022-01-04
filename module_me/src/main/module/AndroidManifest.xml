@@ -13,7 +13,8 @@
         android:theme="@style/AppTheme"
         android:name="debug.MeApplication"
         tools:targetApi="n">
-        <activity android:name="debug.MainActivity">
+        <activity android:name="debug.MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

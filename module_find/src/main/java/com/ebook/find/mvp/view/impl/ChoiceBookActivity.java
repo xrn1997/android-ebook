@@ -1,11 +1,11 @@
 
 package com.ebook.find.mvp.view.impl;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -15,7 +15,6 @@ import com.ebook.basebook.base.activity.BaseActivity;
 import com.ebook.basebook.mvp.presenter.impl.BookDetailPresenterImpl;
 import com.ebook.basebook.mvp.view.impl.BookDetailActivity;
 import com.ebook.basebook.utils.NetworkUtil;
-import com.ebook.basebook.view.refreshview.BaseRefreshListener;
 import com.ebook.basebook.view.refreshview.OnLoadMoreListener;
 import com.ebook.basebook.view.refreshview.RefreshRecyclerView;
 import com.ebook.db.entity.SearchBook;
@@ -59,10 +58,10 @@ public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> imple
 
     @Override
     protected void bindView() {
-        ivReturn = (ImageButton) findViewById(R.id.iv_return);
-        tvTitle = (TextView) findViewById(R.id.tv_title);
+        ivReturn = findViewById(R.id.iv_return);
+        tvTitle = findViewById(R.id.tv_title);
         tvTitle.setText(mPresenter.getTitle());
-        rfRvSearchBooks = (RefreshRecyclerView) findViewById(R.id.rfRv_search_books);
+        rfRvSearchBooks = findViewById(R.id.rfRv_search_books);
         rfRvSearchBooks.setRefreshRecyclerViewAdapter(searchBookAdapter, new LinearLayoutManager(this));
 
         View viewRefreshError = LayoutInflater.from(this).inflate(R.layout.view_searchbook_refresherror, null);
@@ -73,7 +72,7 @@ public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> imple
             mPresenter.toSearchBooks(null);
             startRefreshAnim();
         });
-        rfRvSearchBooks.setNoDataAndrRefreshErrorView(LayoutInflater.from(this).inflate(R.layout.view_searchbook_nodata, null),
+        rfRvSearchBooks.setNoDataAndRefreshErrorView(LayoutInflater.from(this).inflate(R.layout.view_searchbook_nodata, null),
                 viewRefreshError);
     }
 
@@ -105,7 +104,7 @@ public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> imple
         });
         rfRvSearchBooks.setLoadMoreListener(new OnLoadMoreListener() {
             @Override
-            public void startLoadmore() {
+            public void startLoadMore() {
                 mPresenter.toSearchBooks(null);
             }
 
@@ -151,6 +150,7 @@ public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> imple
         super.onDestroy();
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     @Override
     public void addBookShelfSuccess(List<SearchBook> datas) {
         searchBookAdapter.notifyDataSetChanged();
@@ -171,7 +171,7 @@ public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> imple
         int tempIndex = index;
         if (tempIndex < searchBookAdapter.getItemcount()) {
             int startIndex = ((LinearLayoutManager) rfRvSearchBooks.getRecyclerView().getLayoutManager()).findFirstVisibleItemPosition();
-            TextView tvAddShelf = (TextView) ((ViewGroup) rfRvSearchBooks.getRecyclerView()).getChildAt(tempIndex - startIndex).findViewById(R.id.tv_addshelf);
+            TextView tvAddShelf = rfRvSearchBooks.getRecyclerView().getChildAt(tempIndex - startIndex).findViewById(R.id.tv_addshelf);
             if (tvAddShelf != null) {
                 if (searchBookAdapter.getSearchBooks().get(index).getAdd()) {
                     tvAddShelf.setText("已添加");
