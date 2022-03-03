@@ -143,10 +143,13 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
 
     public abstract int onBindLayout();
 
+    @Override
     public abstract void initView();
 
+    @Override
     public abstract void initData();
 
+    @Override
     public void initListener() {
     }
 
@@ -163,6 +166,7 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
         return true;
     }
 
+    @Override
     public void showInitLoadView(boolean show) {
         if (mLoadingInitView == null) {
             View view = mViewStubInitLoading.inflate();
@@ -173,6 +177,7 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
     }
 
 
+    @Override
     public void showNetWorkErrView(boolean show) {
         if (mNetErrorView == null) {
             View view = mViewStubError.inflate();
@@ -189,6 +194,7 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
     }
 
 
+    @Override
     public void showNoDataView(boolean show) {
         if (mNoDataView == null) {
             View view = mViewStubNoData.inflate();
@@ -198,6 +204,7 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
     }
 
 
+    @Override
     public void showTransLoadingView(boolean show) {
         if (mLoadingTransView == null) {
             View view = mViewStubTransLoading.inflate();

@@ -162,13 +162,16 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
 
     public abstract void initView(View view);
 
+    @Override
     public void initView() {
     }
 
+    @Override
     public abstract void initData();
 
     public abstract String getToolbarTitle();
 
+    @Override
     public void initListener() {
     }
 
@@ -185,6 +188,7 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
         return R.layout.common_toolbar;
     }
 
+    @Override
     public void showInitLoadView(boolean show) {
         if (mLoadingInitView == null) {
             View view = mViewStubInitLoading.inflate();
@@ -195,6 +199,7 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
     }
 
 
+    @Override
     public void showNetWorkErrView(boolean show) {
         if (mNetErrorView == null) {
             View view = mViewStubError.inflate();
@@ -211,6 +216,7 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
     }
 
 
+    @Override
     public void showNoDataView(boolean show) {
         if (mNoDataView == null) {
             View view = mViewStubNoData.inflate();
@@ -226,6 +232,7 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
         }
     }
 
+    @Override
     public void showTransLoadingView(boolean show) {
         if (mLoadingTransView == null) {
             View view = mViewStubTransLoading.inflate();

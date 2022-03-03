@@ -20,7 +20,7 @@ public class ActivityManager {
             synchronized (ActivityManager.class) {
                 if (instance == null) {
                     instance = new ActivityManager();
-                    instance.activityStack = new Stack();
+                    activityStack = new Stack();
                 }
             }
 
@@ -125,10 +125,12 @@ public class ActivityManager {
      * @param cls
      */
     public void returnToActivity(Class<?> cls) {
-        while (activityStack.size() != 0) if (activityStack.peek().getClass() == cls) {
-            break;
-        } else {
-            finishActivity(activityStack.peek());
+        while (activityStack.size() != 0) {
+            if (activityStack.peek().getClass() == cls) {
+                break;
+            } else {
+                finishActivity(activityStack.peek());
+            }
         }
     }
 
