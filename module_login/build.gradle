@@ -4,14 +4,14 @@ if (isLoginModule.toBoolean()) {
     apply plugin: 'com.android.library'
 }
 android {
-    compileSdk 31
+    compileSdk 32
     defaultConfig {
         //如果是独立模块，则使用当前组件的包名
         if (isLoginModule.toBoolean()) {
             applicationId "com.ebook.login"
         }
         minSdk 23
-        targetSdk 31
+        targetSdk 32
         versionCode 1
         versionName '1.1.1'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -45,7 +45,7 @@ android {
         }
     }
     buildFeatures{
-        dataBinding=true;
+        dataBinding true
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11

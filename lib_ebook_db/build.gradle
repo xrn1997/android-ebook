@@ -1,10 +1,10 @@
 apply plugin: 'com.android.library'
 apply plugin: 'org.greenrobot.greendao'
 android {
-    compileSdk 31
+    compileSdk 32
     defaultConfig {
         minSdk 23
-        targetSdk 31
+        targetSdk 32
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles 'proguard-rules.pro'
@@ -36,7 +36,7 @@ android {
 
 dependencies {
     api fileTree(dir: 'libs', include: ['*.jar'])
-    api 'androidx.appcompat:appcompat:1.4.0'
+    api 'androidx.appcompat:appcompat:1.4.1'
 
     api 'org.greenrobot:greendao:3.3.0'
     api 'org.greenrobot:greendao-generator:3.3.0'

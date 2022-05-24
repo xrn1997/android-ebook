@@ -1,5 +1,6 @@
 package com.ebook.book.service;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -389,10 +390,16 @@ public class DownloadService extends Service {
                 });
     }
 
+    @SuppressLint("UnspecifiedImmutableFlag")
     private void isProgress(DownloadChapter downloadChapter) {
         RxBus.get().post(RxBusTag.PROGRESS_DOWNLOAD_LISTENER, downloadChapter);
         Intent mainIntent = new Intent(this, MainBookFragment.class);
-        PendingIntent mainPendingIntent = PendingIntent.getActivity(this, 0, mainIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent mainPendingIntent;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            mainPendingIntent = PendingIntent.getActivity(this, 0, mainIntent, PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            mainPendingIntent = PendingIntent.getActivity(this, 0, mainIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        }
         //创建 Notification.Builder 对象
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "40")
                 .setSmallIcon(R.mipmap.ic_launcher)
