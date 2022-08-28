@@ -1,9 +1,11 @@
 
 package com.ebook.basebook.mvp.view.impl;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Build;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -79,17 +81,17 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
 
     @Override
     protected void bindView() {
-        iflContent = (FrameLayout) findViewById(R.id.ifl_content);
-        ivBlurCover = (ImageView) findViewById(R.id.iv_blur_cover);
-        ivCover = (ImageView) findViewById(R.id.iv_cover);
-        tvName = (TextView) findViewById(R.id.tv_name);
-        tvAuthor = (TextView) findViewById(R.id.tv_author);
-        tvOrigin = (TextView) findViewById(R.id.tv_origin);
-        tvChapter = (TextView) findViewById(R.id.tv_chapter);
-        tvIntro = (TextView) findViewById(R.id.tv_intro);
-        tvShelf = (TextView) findViewById(R.id.tv_shelf);
-        tvRead = (TextView) findViewById(R.id.tv_read);
-        tvLoading = (TextView) findViewById(R.id.tv_loading);
+        iflContent = findViewById(R.id.ifl_content);
+        ivBlurCover = findViewById(R.id.iv_blur_cover);
+        ivCover = findViewById(R.id.iv_cover);
+        tvName = findViewById(R.id.tv_name);
+        tvAuthor = findViewById(R.id.tv_author);
+        tvOrigin = findViewById(R.id.tv_origin);
+        tvChapter = findViewById(R.id.tv_chapter);
+        tvIntro = findViewById(R.id.tv_intro);
+        tvShelf = findViewById(R.id.tv_shelf);
+        tvRead = findViewById(R.id.tv_read);
+        tvLoading = findViewById(R.id.tv_loading);
 
         tvIntro.setMovementMethod(ScrollingMovementMethod.getInstance());
         initView();
@@ -97,10 +99,10 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
         updateView();
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     public void updateView() {
         BookShelf bookShelf = mPresenter.getBookShelf();
-
         if (null != bookShelf) {
             Glide.with(this)
                     .load(bookShelf.getBookInfo().getCoverUrl())
@@ -156,11 +158,6 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
             }
         } else {
             tvChapter.setText(String.format(getString(R.string.tv_searchbook_lastest), mPresenter.getSearchBook().getLastChapter()));
-            tvShelf.setText("放入书架");
-            tvRead.setText("开始阅读");
-            tvRead.setOnClickListener(v -> {
-                //放入书架
-            });
             tvIntro.setVisibility(View.INVISIBLE);
             tvLoading.setVisibility(View.VISIBLE);
             tvLoading.setText("加载中...");
@@ -188,6 +185,7 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private void initView() {
         String coverUrl;
         String name;

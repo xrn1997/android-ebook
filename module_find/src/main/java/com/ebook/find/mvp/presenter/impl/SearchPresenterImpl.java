@@ -26,6 +26,7 @@ import com.ebook.db.entity.SearchHistory;
 import com.ebook.db.entity.SearchHistoryDao;
 
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

@@ -1,6 +1,8 @@
 package com.ebook.basebook.mvp.model.impl;
 
 
+import android.content.Context;
+
 import com.ebook.basebook.cache.ACache;
 import com.ebook.basebook.mvp.model.StationBookModel;
 import com.ebook.basebook.mvp.model.WebBookModel;
@@ -10,6 +12,7 @@ import com.ebook.db.entity.Library;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.db.entity.WebChapter;
 
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 import io.reactivex.Observable;
@@ -41,7 +44,7 @@ public class WebBookModelImpl implements WebBookModel {
 
     @Override
     public Observable<WebChapter<BookShelf>> getChapterList(final BookShelf bookShelf) {
-      return  stationBookModel.getChapterList(bookShelf);
+        return stationBookModel.getChapterList(bookShelf);
     }
 
     @Override
@@ -50,8 +53,8 @@ public class WebBookModelImpl implements WebBookModel {
     }
 
     @Override
-    public Observable<List<SearchBook>> getKindBook(String url, int page)  {
-        return stationBookModel.getKindBook(url, page);
+    public Observable<List<SearchBook>> getKindBook(Context context, String url, int page) {
+        return stationBookModel.getKindBook(context, url, page);
     }
 
     @Override

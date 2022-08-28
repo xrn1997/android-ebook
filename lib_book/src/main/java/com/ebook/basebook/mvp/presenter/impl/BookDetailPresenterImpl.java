@@ -2,6 +2,7 @@
 package com.ebook.basebook.mvp.presenter.impl;
 
 import android.content.Intent;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.ebook.common.BaseApplication;

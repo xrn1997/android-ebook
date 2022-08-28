@@ -15,7 +15,8 @@ import retrofit2.http.Url;
  */
 public interface BeQuGeService {
 
-    String URL= "https://www.xbiquge.la";
+    String URL = "https://www.shuangliusc.com";
+    String COVER_URL = "https://img.shuangliusc.com";
 
     @GET
     @Headers({"Accept:text/html,application/xhtml+xml,application/xml",
@@ -34,13 +35,14 @@ public interface BeQuGeService {
     Observable<String> getBookInfo(@Url String url);
 
     @FormUrlEncoded
-    @POST("/modules/article/waps.php")
+    @POST("/modules/article/search.php")
     @Headers({"Accept:text/html,application/xhtml+xml,application/xml",
             "User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.101 Safari/537.36 Edg/91.0.864.48",
+            "Content-Type:application/x-www-form-urlencoded; charset=GBK",
             "Accept-Charset:UTF-8",
             "Connection:close",
             "Cache-Control:no-cache"})
-    Observable<String> searchBook(@Field("searchkey") String content);
+    Observable<String> searchBook(@Field(value = "searchkey", encoded = true) String content);
 
     @GET
     @Headers({"Accept:text/html,application/xhtml+xml,application/xml",

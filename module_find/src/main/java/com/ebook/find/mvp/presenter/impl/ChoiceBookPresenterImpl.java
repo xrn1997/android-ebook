@@ -48,17 +48,14 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
     public ChoiceBookPresenterImpl(final Intent intent) {
         url = intent.getStringExtra("url");
         title = intent.getStringExtra("title");
-        Observable.create(new ObservableOnSubscribe<List<BookShelf>>() {
-            @Override
-            public void subscribe(ObservableEmitter<List<BookShelf>> e) throws Exception {
-                List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().list();
-                if (temp == null)
-                    temp = new ArrayList<BookShelf>();
-                e.onNext(temp);
-            }
+        Observable.create((ObservableOnSubscribe<List<BookShelf>>) e -> {
+            List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().list();
+            if (temp == null)
+                temp = new ArrayList<>();
+            e.onNext(temp);
         }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SimpleObserver<List<BookShelf>>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(List<BookShelf> value) {
                         bookShelfs.addAll(value);
@@ -92,7 +89,7 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
     }
 
     private void searchBook(final long searchTime) {
-        WebBookModelImpl.getInstance().getKindBook(url, page)
+        WebBookModelImpl.getInstance().getKindBook(mView.getContext(), url, page)
                 .subscribeOn(Schedulers.io())
                 .compose(((BaseActivity) mView.getContext()).bindUntilEvent(ActivityEvent.DESTROY))
                 .observeOn(AndroidSchedulers.mainThread())
@@ -170,16 +167,16 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
 
     private void saveBookToShelf(final BookShelf bookShelf) {
         Observable.create(new ObservableOnSubscribe<BookShelf>() {
-            @Override
-            public void subscribe(ObservableEmitter<BookShelf> e) throws Exception {
-                GreenDaoManager.getInstance().getmDaoSession().getChapterListDao().insertOrReplaceInTx(bookShelf.getBookInfo().getChapterlist());
-                GreenDaoManager.getInstance().getmDaoSession().getBookInfoDao().insertOrReplace(bookShelf.getBookInfo());
-                //网络数据获取成功  存入BookShelf表数据库
-                GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
-                e.onNext(bookShelf);
-                e.onComplete();
-            }
-        }).subscribeOn(Schedulers.io())
+                    @Override
+                    public void subscribe(ObservableEmitter<BookShelf> e) throws Exception {
+                        GreenDaoManager.getInstance().getmDaoSession().getChapterListDao().insertOrReplaceInTx(bookShelf.getBookInfo().getChapterlist());
+                        GreenDaoManager.getInstance().getmDaoSession().getBookInfoDao().insertOrReplace(bookShelf.getBookInfo());
+                        //网络数据获取成功  存入BookShelf表数据库
+                        GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
+                        e.onNext(bookShelf);
+                        e.onComplete();
+                    }
+                }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .compose(((BaseActivity) mView.getContext()).<BookShelf>bindUntilEvent(ActivityEvent.DESTROY))
                 .subscribe(new SimpleObserver<BookShelf>() {

@@ -15,6 +15,7 @@ import android.provider.Settings;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
+import android.util.Log;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -231,10 +232,10 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
             } else {
                 final int finalPageIndex1 = pageIndex;
                 Observable.create((ObservableOnSubscribe<ReadBookContent>) e -> {
-                    List<BookContent> tempList = GreenDaoManager.getInstance().getmDaoSession().getBookContentDao().queryBuilder().where(BookContentDao.Properties.DurChapterUrl.eq(bookShelf.getBookInfo().getChapterlist().get(chapterIndex).getDurChapterUrl())).build().list();
-                    e.onNext(new ReadBookContent(tempList == null ? new ArrayList<>() : tempList, finalPageIndex1));
-                    e.onComplete();
-                }).observeOn(AndroidSchedulers.mainThread())
+                            List<BookContent> tempList = GreenDaoManager.getInstance().getmDaoSession().getBookContentDao().queryBuilder().where(BookContentDao.Properties.DurChapterUrl.eq(bookShelf.getBookInfo().getChapterlist().get(chapterIndex).getDurChapterUrl())).build().list();
+                            e.onNext(new ReadBookContent(tempList == null ? new ArrayList<>() : tempList, finalPageIndex1));
+                            e.onComplete();
+                        }).observeOn(AndroidSchedulers.mainThread())
                         .subscribeOn(Schedulers.io())
                         .compose(((BaseActivity) mView.getContext()).<ReadBookContent>bindUntilEvent(ActivityEvent.DESTROY))
                         .subscribe(new SimpleObserver<>() {
@@ -245,17 +246,14 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
                                     loadContent(bookContentView, bookTag, chapterIndex, tempList.getPageIndex());
                                 } else {
                                     final int finalPageIndex1 = tempList.getPageIndex();
-                                    WebBookModelImpl.getInstance().getBookContent(bookShelf.getBookInfo().getChapterlist().get(chapterIndex).getDurChapterUrl(), chapterIndex).map(new Function<BookContent, BookContent>() {
-                                        @Override
-                                        public BookContent apply(BookContent bookContent) throws Exception {
-                                            if (bookContent.getRight()) {
-                                                GreenDaoManager.getInstance().getmDaoSession().getBookContentDao().insertOrReplace(bookContent);
-                                                bookShelf.getBookInfo().getChapterlist().get(chapterIndex).setHasCache(true);
-                                                GreenDaoManager.getInstance().getmDaoSession().getChapterListDao().update(bookShelf.getBookInfo().getChapterlist().get(chapterIndex));
-                                            }
-                                            return bookContent;
-                                        }
-                                    })
+                                    WebBookModelImpl.getInstance().getBookContent(bookShelf.getBookInfo().getChapterlist().get(chapterIndex).getDurChapterUrl(), chapterIndex).map(bookContent -> {
+                                                if (bookContent.getRight()) {
+                                                    GreenDaoManager.getInstance().getmDaoSession().getBookContentDao().insertOrReplace(bookContent);
+                                                    bookShelf.getBookInfo().getChapterlist().get(chapterIndex).setHasCache(true);
+                                                    GreenDaoManager.getInstance().getmDaoSession().getChapterListDao().update(bookShelf.getBookInfo().getChapterlist().get(chapterIndex));
+                                                }
+                                                return bookContent;
+                                            })
                                             .observeOn(AndroidSchedulers.mainThread())
                                             .subscribeOn(Schedulers.io())
                                             .compose(((BaseActivity) mView.getContext()).<BookContent>bindUntilEvent(ActivityEvent.DESTROY))
@@ -304,11 +302,11 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
     public void saveProgress() {
         if (bookShelf != null) {
             Observable.create((ObservableOnSubscribe<BookShelf>) e -> {
-                bookShelf.setFinalDate(System.currentTimeMillis());
-                GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
-                e.onNext(bookShelf);
-                e.onComplete();
-            }).subscribeOn(Schedulers.io())
+                        bookShelf.setFinalDate(System.currentTimeMillis());
+                        GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
+                        e.onNext(bookShelf);
+                        e.onComplete();
+                    }).subscribeOn(Schedulers.io())
                     .subscribe(new SimpleObserver<>() {
                         @Override
                         public void onNext(BookShelf value) {
@@ -352,14 +350,14 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
 
     private void checkInShelf() {
         Observable.create((ObservableOnSubscribe<Boolean>) e -> {
-            List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().where(BookShelfDao.Properties.NoteUrl.eq(bookShelf.getNoteUrl())).build().list();
-            if (temp == null || temp.size() == 0) {
-                isAdd = false;
-            } else
-                isAdd = true;
-            e.onNext(isAdd);
-            e.onComplete();
-        }).subscribeOn(Schedulers.io())
+                    List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().where(BookShelfDao.Properties.NoteUrl.eq(bookShelf.getNoteUrl())).build().list();
+                    if (temp == null || temp.size() == 0) {
+                        isAdd = false;
+                    } else
+                        isAdd = true;
+                    e.onNext(isAdd);
+                    e.onComplete();
+                }).subscribeOn(Schedulers.io())
                 .compose(((BaseActivity) mView.getContext()).<Boolean>bindUntilEvent(ActivityEvent.DESTROY))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<Boolean>() {
@@ -385,18 +383,18 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
     public void addToShelf(final OnAddListner addListner) {
         if (bookShelf != null) {
             Observable.create(new ObservableOnSubscribe<Boolean>() {
-                @Override
-                public void subscribe(ObservableEmitter<Boolean> e) throws Exception {
-                    GreenDaoManager.getInstance().getmDaoSession().getChapterListDao().insertOrReplaceInTx(bookShelf.getBookInfo().getChapterlist());
-                    GreenDaoManager.getInstance().getmDaoSession().getBookInfoDao().insertOrReplace(bookShelf.getBookInfo());
-                    //网络数据获取成功  存入BookShelf表数据库
-                    GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
-                    RxBus.get().post(RxBusTag.HAD_ADD_BOOK, bookShelf);
-                    isAdd = true;
-                    e.onNext(true);
-                    e.onComplete();
-                }
-            }).subscribeOn(Schedulers.io())
+                        @Override
+                        public void subscribe(ObservableEmitter<Boolean> e) throws Exception {
+                            GreenDaoManager.getInstance().getmDaoSession().getChapterListDao().insertOrReplaceInTx(bookShelf.getBookInfo().getChapterlist());
+                            GreenDaoManager.getInstance().getmDaoSession().getBookInfoDao().insertOrReplace(bookShelf.getBookInfo());
+                            //网络数据获取成功  存入BookShelf表数据库
+                            GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
+                            RxBus.get().post(RxBusTag.HAD_ADD_BOOK, bookShelf);
+                            isAdd = true;
+                            e.onNext(true);
+                            e.onComplete();
+                        }
+                    }).subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(new SimpleObserver<Object>() {
                         @Override

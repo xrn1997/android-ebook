@@ -19,7 +19,9 @@
             android:src="@drawable/selector_icon_return"
             android:background="@drawable/bg_ib_pre"
             android:clickable="true"
-            android:layout_gravity="center_vertical" />
+            android:layout_gravity="center_vertical"
+            android:contentDescription="@string/book"
+            android:focusable="true" />
 
         <TextView
             android:id="@+id/tv_title"
@@ -30,7 +32,7 @@
             android:layout_marginEnd="45dp"
             android:singleLine="true"
             android:textSize="16sp"
-            android:text="类型书籍"
+            android:text="@string/type_books"
             android:textColor="#343434"
             android:gravity="center|start" />
     </LinearLayout>
