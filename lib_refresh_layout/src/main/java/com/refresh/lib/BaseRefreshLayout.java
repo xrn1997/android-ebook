@@ -6,23 +6,14 @@ import android.view.MotionEvent;
 
 
 public abstract class BaseRefreshLayout extends SuperSwipeRefreshLayout {
-    private boolean isEnableRefresh = true;//是否启用下拉刷新
-    private boolean isEnableLoadMore = true;//是否启用上拉加载更多
     protected OnRefreshListener mOnRefreshListener;//下拉刷新监听器
     protected OnLoadMoreListener mOnLoadMoreListener;//上拉加载更多监听器
     protected OnAutoLoadListener mOnAutoLoadListener;//自动加载的回调
+    private boolean isEnableRefresh = true;//是否启用下拉刷新
+    private boolean isEnableLoadMore = true;//是否启用上拉加载更多
 
-    public interface OnRefreshListener {
-        void onRefresh();
-    }
-
-    public interface OnLoadMoreListener {
-        void onLoadMore();
-    }
-
-    //调用autoLoad的回调
-    public interface OnAutoLoadListener {
-        void onAutoLoad();
+    public BaseRefreshLayout(Context context, AttributeSet attrs) {
+        super(context, attrs);
     }
 
     public void setOnRefreshListener(OnRefreshListener onRefreshListener) {
@@ -35,10 +26,6 @@ public abstract class BaseRefreshLayout extends SuperSwipeRefreshLayout {
 
     public void setOnAutoLoadListener(OnAutoLoadListener onAutoLoadListener) {
         mOnAutoLoadListener = onAutoLoadListener;
-    }
-
-    public BaseRefreshLayout(Context context, AttributeSet attrs) {
-        super(context, attrs);
     }
 
     /**
@@ -106,4 +93,17 @@ public abstract class BaseRefreshLayout extends SuperSwipeRefreshLayout {
     }
 
     public abstract void showRefresh();
+
+    public interface OnRefreshListener {
+        void onRefresh();
+    }
+
+    public interface OnLoadMoreListener {
+        void onLoadMore();
+    }
+
+    //调用autoLoad的回调
+    public interface OnAutoLoadListener {
+        void onAutoLoad();
+    }
 }

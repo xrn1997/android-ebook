@@ -1,14 +1,13 @@
 package debug;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.Bundle;
 import android.view.View;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.blankj.utilcode.util.SPUtils;
 import com.blankj.utilcode.util.ToastUtils;
-
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
 import com.ebook.login.R;

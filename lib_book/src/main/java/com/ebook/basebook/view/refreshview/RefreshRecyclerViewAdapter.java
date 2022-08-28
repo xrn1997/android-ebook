@@ -9,26 +9,21 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
-
-import com.ebook.basebook.R;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.ebook.basebook.R;
 
 public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
     private final int LOAD_MORE_TYPE = 2001;
 
     private final Handler handler;
-    private int isRequesting = 0;   //0是未执行网络请求  1是正在下拉刷新  2是正在加载更多
     private final Boolean needLoadMore;
+    private int isRequesting = 0;   //0是未执行网络请求  1是正在下拉刷新  2是正在加载更多
     private Boolean isAll = false;  //判断是否还有更多
     private Boolean loadMoreError = false;
 
     private OnClickTryAgainListener clickTryAgainListener;
-
-    public interface OnClickTryAgainListener {
-        void loadMoreErrorTryAgain();
-    }
 
     public RefreshRecyclerViewAdapter(Boolean needLoadMore) {
         this.needLoadMore = needLoadMore;
@@ -121,17 +116,6 @@ public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
         }
     }
 
-    static class LoadMoreViewHolder extends RecyclerView.ViewHolder {
-        FrameLayout llLoadMore;
-        TextView tvLoadMore;
-
-        public LoadMoreViewHolder(View itemView) {
-            super(itemView);
-            llLoadMore = itemView.findViewById(R.id.ll_loadmore);
-            tvLoadMore = itemView.findViewById(R.id.tv_loadmore);
-        }
-    }
-
     public Boolean canLoadMore() {
         return needLoadMore && isRequesting == 0 && !isAll && getItemcount() > 0;
     }
@@ -159,6 +143,21 @@ public abstract class RefreshRecyclerViewAdapter extends RecyclerView.Adapter {
             } else {
                 handler.post(this::notifyDataSetChanged);
             }
+        }
+    }
+
+    public interface OnClickTryAgainListener {
+        void loadMoreErrorTryAgain();
+    }
+
+    static class LoadMoreViewHolder extends RecyclerView.ViewHolder {
+        FrameLayout llLoadMore;
+        TextView tvLoadMore;
+
+        public LoadMoreViewHolder(View itemView) {
+            super(itemView);
+            llLoadMore = itemView.findViewById(R.id.ll_loadmore);
+            tvLoadMore = itemView.findViewById(R.id.tv_loadmore);
         }
     }
 }

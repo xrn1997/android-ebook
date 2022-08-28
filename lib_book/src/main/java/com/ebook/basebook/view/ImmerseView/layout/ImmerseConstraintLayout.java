@@ -5,11 +5,11 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.ebook.basebook.view.ImmerseView.ImmerseView;
-import com.ebook.basebook.view.ImmerseView.ImmerseManager;
-import com.ebook.basebook.view.ImmerseView.MeasureHeightResult;
-
 import androidx.constraintlayout.widget.ConstraintLayout;
+
+import com.ebook.basebook.view.ImmerseView.ImmerseManager;
+import com.ebook.basebook.view.ImmerseView.ImmerseView;
+import com.ebook.basebook.view.ImmerseView.MeasureHeightResult;
 
 /**
  * 沉浸式ConstraintLayout

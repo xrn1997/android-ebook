@@ -12,14 +12,13 @@ import com.ebook.db.entity.Library;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.db.entity.WebChapter;
 
-import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 import io.reactivex.Observable;
 
 public class WebBookModelImpl implements WebBookModel {
-    private final StationBookModel stationBookModel;
     private volatile static WebBookModel bookModel;
+    private final StationBookModel stationBookModel;
 
     public WebBookModelImpl(StationBookModel iStationBookModel) {
         this.stationBookModel = iStationBookModel;

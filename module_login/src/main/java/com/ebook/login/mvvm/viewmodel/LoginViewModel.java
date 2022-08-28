@@ -5,13 +5,16 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.databinding.ObservableField;
+
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.RetrofitManager;
 import com.ebook.api.dto.RespDTO;
+import com.ebook.api.entity.LoginDTO;
 import com.ebook.api.entity.User;
 import com.ebook.api.http.ExceptionHandler;
-import com.ebook.api.entity.LoginDTO;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
 import com.ebook.common.event.SingleLiveEvent;
@@ -20,20 +23,16 @@ import com.ebook.common.util.ToastUtil;
 import com.ebook.login.mvvm.model.LoginModel;
 import com.hwangjr.rxbus.RxBus;
 
-import java.security.Key;
-
-import androidx.annotation.NonNull;
-import androidx.databinding.ObservableField;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 
 public class LoginViewModel extends BaseViewModel<LoginModel> {
     private static String TAG = LoginViewModel.class.getSimpleName();
-    private SingleLiveEvent<Void> mVoidSingleLiveEvent;
     public ObservableField<String> username = new ObservableField<>();
     public ObservableField<String> password = new ObservableField<>();
     public String path;//被拦截的路径
     public Bundle bundle;//被拦截的信息
+    private SingleLiveEvent<Void> mVoidSingleLiveEvent;
 
     public LoginViewModel(@NonNull Application application, LoginModel model) {
         super(application, model);

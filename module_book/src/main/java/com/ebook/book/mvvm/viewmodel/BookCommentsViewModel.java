@@ -4,6 +4,10 @@ import android.app.Application;
 import android.os.Build;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.databinding.ObservableField;
+
 import com.blankj.utilcode.util.SPUtils;
 import com.blankj.utilcode.util.StringUtils;
 import com.ebook.api.dto.RespDTO;
@@ -11,7 +15,6 @@ import com.ebook.api.entity.Comment;
 import com.ebook.api.entity.User;
 import com.ebook.api.http.ExceptionHandler;
 import com.ebook.book.mvvm.model.BookCommentsModel;
-
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.SingleLiveEvent;
 import com.ebook.common.mvvm.viewmodel.BaseRefreshViewModel;
@@ -20,9 +23,6 @@ import com.ebook.common.util.ToastUtil;
 
 import java.util.List;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import androidx.databinding.ObservableField;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 
@@ -50,9 +50,9 @@ public class BookCommentsViewModel extends BaseRefreshViewModel<Comment, BookCom
             public void onNext(RespDTO<List<Comment>> listRespDTO) {
                 if (listRespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     List<Comment> comments = listRespDTO.data;
-                    comments.sort((x,y)->DateUtil.parseTime(y.getAddtime(),DateUtil.FormatType.yyyyMMddHHmm).compareTo(DateUtil.parseTime(x.getAddtime(),DateUtil.FormatType.yyyyMMddHHmm)));
+                    comments.sort((x, y) -> DateUtil.parseTime(y.getAddtime(), DateUtil.FormatType.yyyyMMddHHmm).compareTo(DateUtil.parseTime(x.getAddtime(), DateUtil.FormatType.yyyyMMddHHmm)));
                     mList.clear();
-                    if ( comments.size() > 0) {
+                    if (comments.size() > 0) {
                         mList.addAll(comments);
                     }
                 } else {

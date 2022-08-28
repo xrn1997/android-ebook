@@ -2,8 +2,8 @@ package com.ebook.api.http;
 
 import android.widget.Toast;
 
-import com.ebook.api.dto.RespDTO;
 import com.ebook.api.RetrofitManager;
+import com.ebook.api.dto.RespDTO;
 import com.trello.rxlifecycle3.LifecycleProvider;
 import com.trello.rxlifecycle3.LifecycleTransformer;
 import com.trello.rxlifecycle3.android.ActivityEvent;

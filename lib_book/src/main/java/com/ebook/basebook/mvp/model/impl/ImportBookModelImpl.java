@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.mvp.model.impl;
 
 
@@ -41,6 +40,7 @@ public class ImportBookModelImpl extends MBaseModelImpl implements ImportBookMod
         }
         return importBookModel;
     }
+
     @Override
     public Observable<LocBookShelf> importBook(final File book) {
         return Observable.create(e -> {

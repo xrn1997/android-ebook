@@ -1,16 +1,11 @@
-
 package com.ebook.basebook.mvp.view.impl;
 
-import static com.blankj.utilcode.util.ActivityUtils.startActivity;
-
-import android.Manifest;
 import android.content.Intent;
 import android.graphics.Paint;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.provider.Settings;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -22,18 +17,18 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.ebook.basebook.R;
 import com.ebook.basebook.base.activity.BaseActivity;
+import com.ebook.basebook.mvp.presenter.IBookReadPresenter;
+import com.ebook.basebook.mvp.presenter.impl.ReadBookPresenterImpl;
 import com.ebook.basebook.mvp.view.IBookReadView;
 import com.ebook.basebook.view.BookContentView;
 import com.ebook.basebook.view.ChapterListView;
 import com.ebook.basebook.view.ContentSwitchView;
-import com.ebook.common.event.KeyCode;
-import com.ebook.common.event.RxBusTag;
-import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
-import com.ebook.common.util.DisplayUtil;
 import com.ebook.basebook.view.modialog.MoProgressHUD;
 import com.ebook.basebook.view.mprogressbar.MHorProgressBar;
 import com.ebook.basebook.view.mprogressbar.OnProgressListener;
@@ -42,24 +37,18 @@ import com.ebook.basebook.view.popupwindow.FontPop;
 import com.ebook.basebook.view.popupwindow.MoreSettingPop;
 import com.ebook.basebook.view.popupwindow.ReadBookMenuMorePop;
 import com.ebook.basebook.view.popupwindow.WindowLightPop;
+import com.ebook.common.event.KeyCode;
+import com.ebook.common.event.RxBusTag;
+import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
+import com.ebook.common.util.DisplayUtil;
 import com.ebook.db.entity.ChapterList;
+import com.ebook.db.entity.DownloadChapter;
+import com.ebook.db.entity.DownloadChapterList;
 import com.ebook.db.event.DBCode;
 import com.hwangjr.rxbus.RxBus;
 
-import com.ebook.db.entity.DownloadChapter;
-import com.ebook.db.entity.DownloadChapterList;
-
-import com.ebook.basebook.mvp.presenter.IBookReadPresenter;
-import com.ebook.basebook.mvp.presenter.impl.ReadBookPresenterImpl;
-import com.permissionx.guolindev.PermissionX;
-
-
 import java.util.ArrayList;
 import java.util.List;
-
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
 
 import me.grantland.widget.AutofitTextView;
 

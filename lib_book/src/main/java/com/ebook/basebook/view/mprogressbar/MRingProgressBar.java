@@ -51,6 +51,8 @@ public class MRingProgressBar extends View {
     private Handler handler;
 
     private Paint paint;
+    ///////////////////////////////////////////////属性修改/////////////////////////////////////
+    private OnRingProgressListener ringProgressListener;
 
     public MRingProgressBar(Context context) {
         this(context, null);
@@ -252,9 +254,6 @@ public class MRingProgressBar extends View {
         return bitmap;
     }
 
-    ///////////////////////////////////////////////属性修改/////////////////////////////////////
-    private OnRingProgressListener ringProgressListener;
-
     public void setRingProgressListener(OnRingProgressListener ringProgressListener) {
         this.ringProgressListener = ringProgressListener;
     }
@@ -307,6 +306,14 @@ public class MRingProgressBar extends View {
         refreshDurProgress(durProgress);
     }
 
+    public float getDurProgressFinal() {
+        return durProgressFinal;
+    }
+
+    public Drawable getFontDrawable() {
+        return fontDrawable;
+    }
+
     public void setFontDrawable(Drawable fontDrawable) {
         this.fontDrawable = fontDrawable;
         fontBitmap = null;
@@ -315,6 +322,10 @@ public class MRingProgressBar extends View {
         } else {
             this.postInvalidate();
         }
+    }
+
+    public Drawable getBgDrawable() {
+        return bgDrawable;
     }
 
     public void setBgDrawable(Drawable bgDrawable) {
@@ -327,6 +338,10 @@ public class MRingProgressBar extends View {
         }
     }
 
+    public int getBgBorderColor() {
+        return bgBorderColor;
+    }
+
     public void setBgBorderColor(int bgBorderColor) {
         this.bgBorderColor = bgBorderColor;
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -334,6 +349,10 @@ public class MRingProgressBar extends View {
         } else {
             this.postInvalidate();
         }
+    }
+
+    public int getBgBorderWidth() {
+        return bgBorderWidth;
     }
 
     public void setBgBorderWidth(int bgBorderWidth) {
@@ -345,6 +364,10 @@ public class MRingProgressBar extends View {
         }
     }
 
+    public int getStartLeft() {
+        return startLeft;
+    }
+
     public void setStartLeft(int startLeft) {
         this.startLeft = startLeft;
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -352,6 +375,10 @@ public class MRingProgressBar extends View {
         } else {
             this.postInvalidate();
         }
+    }
+
+    public int getProgressWidth() {
+        return progressWidth;
     }
 
     public void setProgressWidth(int progressWidth) {
@@ -363,6 +390,10 @@ public class MRingProgressBar extends View {
         }
     }
 
+    public StateListDrawable getCursorDrawable() {
+        return cursorDrawable;
+    }
+
     public void setCursorDrawable(StateListDrawable cursorDrawable) {
         this.cursorDrawable = cursorDrawable;
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -370,6 +401,14 @@ public class MRingProgressBar extends View {
         } else {
             this.postInvalidate();
         }
+    }
+
+    public Bitmap getCursorBitmap() {
+        return cursorBitmap;
+    }
+
+    public int getCursorDrawableWidth() {
+        return cursorDrawableWidth;
     }
 
     public void setCursorDrawableWidth(int cursorDrawableWidth) {
@@ -381,6 +420,10 @@ public class MRingProgressBar extends View {
         }
     }
 
+    public int getCursorDrawableHeight() {
+        return cursorDrawableHeight;
+    }
+
     public void setCursorDrawableHeight(int cursorDrawableHeight) {
         this.cursorDrawableHeight = cursorDrawableHeight;
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -390,6 +433,10 @@ public class MRingProgressBar extends View {
         }
     }
 
+    public int getStartAngle() {
+        return startAngle;
+    }
+
     public void setStartAngle(int startAngle) {
         this.startAngle = startAngle;
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -397,53 +444,5 @@ public class MRingProgressBar extends View {
         } else {
             this.postInvalidate();
         }
-    }
-
-    public float getDurProgressFinal() {
-        return durProgressFinal;
-    }
-
-    public Drawable getFontDrawable() {
-        return fontDrawable;
-    }
-
-    public Drawable getBgDrawable() {
-        return bgDrawable;
-    }
-
-    public int getBgBorderColor() {
-        return bgBorderColor;
-    }
-
-    public int getBgBorderWidth() {
-        return bgBorderWidth;
-    }
-
-    public int getStartLeft() {
-        return startLeft;
-    }
-
-    public int getProgressWidth() {
-        return progressWidth;
-    }
-
-    public StateListDrawable getCursorDrawable() {
-        return cursorDrawable;
-    }
-
-    public Bitmap getCursorBitmap() {
-        return cursorBitmap;
-    }
-
-    public int getCursorDrawableWidth() {
-        return cursorDrawableWidth;
-    }
-
-    public int getCursorDrawableHeight() {
-        return cursorDrawableHeight;
-    }
-
-    public int getStartAngle() {
-        return startAngle;
     }
 }

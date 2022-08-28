@@ -1,11 +1,10 @@
 package com.ebook.common.view;
 
 import android.content.Context;
-
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+
+import androidx.recyclerview.widget.RecyclerView;
 
 
 public class TouchyRecyclerView extends RecyclerView {
@@ -13,10 +12,6 @@ public class TouchyRecyclerView extends RecyclerView {
 
     public TouchyRecyclerView(Context context, AttributeSet attrs) {
         super(context, attrs);
-    }
-
-    public interface OnNoChildClickListener {
-        public void onNoChildClick();
     }
 
     public void setOnNoChildClickListener(OnNoChildClickListener listener) {
@@ -32,5 +27,9 @@ public class TouchyRecyclerView extends RecyclerView {
             }
         }
         return super.dispatchTouchEvent(event);
+    }
+
+    public interface OnNoChildClickListener {
+        public void onNoChildClick();
     }
 }

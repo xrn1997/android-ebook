@@ -14,7 +14,6 @@ import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
-
 import com.ebook.common.util.DisplayUtil;
 import com.ebook.common.util.ScreenUtils;
 import com.ebook.db.event.DBCode;
@@ -23,12 +22,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ContentSwitchView extends FrameLayout implements BookContentView.SetDataListener {
-    private final int screenWidth = ScreenUtils.getScreenWidth(getContext());
-    private final long animDuration = 300;
     public final static int NONE = -1;
     public final static int PREANDNEXT = 0;
     public final static int ONLYPRE = 1;
     public final static int ONLYNEXT = 2;
+    private final int screenWidth = ScreenUtils.getScreenWidth(getContext());
+    private final long animDuration = 300;
     private int state = NONE;    //0是有上一页   也有下一页 ;  2是只有下一页  ；1是只有上一页;-1是没有上一页 也没有下一页；
 
     private int scrollX;
@@ -36,12 +35,23 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
 
     private BookContentView durPageView;
     private List<BookContentView> viewContents;
-
-    public interface OnBookReadInitListener {
-        void success();
-    }
-
     private OnBookReadInitListener bookReadInitListener;
+    private ReadBookControl readBookControl;
+    private float startX = -1;
+    private LoadDataListener loadDataListener;
+    private int durHeight = 0;
+    private final ViewTreeObserver.OnGlobalLayoutListener layoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
+        @Override
+        public void onGlobalLayout() {
+            int height = durPageView.getTvContent().getHeight();
+            if (height > 0) {
+                if (loadDataListener != null && durHeight != height) {
+                    durHeight = height;
+                    loadDataListener.initData(durPageView.getLineCount(height));
+                }
+            }
+        }
+    };
 
     public ContentSwitchView(Context context) {
         super(context);
@@ -52,6 +62,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         super(context, attrs);
         init();
     }
+
 
     public ContentSwitchView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
@@ -64,8 +75,6 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         init();
     }
 
-    private ReadBookControl readBookControl;
-
     private void init() {
         readBookControl = ReadBookControl.getInstance();
         scrollX = DisplayUtil.dip2px(30f);
@@ -77,7 +86,6 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
 
         addView(durPageView);
     }
-
 
     public void bookReadInit(OnBookReadInitListener bookReadInitListener) {
         this.bookReadInitListener = bookReadInitListener;
@@ -99,8 +107,6 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
-
-    private float startX = -1;
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -406,27 +412,12 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         }
     }
 
-
     @Override
     public void setDataFinish(BookContentView bookContentView, int durChapterIndex, int chapterAll, int durPageIndex, int pageAll, int fromPageIndex) {
         if (null != getDurContentView() && bookContentView == getDurContentView() && chapterAll > 0 && pageAll > 0) {
             updateOtherPage(durChapterIndex, chapterAll, durPageIndex, pageAll);
         }
     }
-
-    public interface LoadDataListener {
-        void loaddata(BookContentView bookContentView, long tag, int chapterIndex, int pageIndex);
-
-        void updateProgress(int chapterIndex, int pageIndex);
-
-        String getChapterTitle(int chapterIndex);
-
-        void initData(int lineCount);
-
-        void showMenu();
-    }
-
-    private LoadDataListener loadDataListener;
 
     public LoadDataListener getLoadDataListener() {
         return loadDataListener;
@@ -448,7 +439,9 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         Toast.makeText(getContext(), "没有下一页", Toast.LENGTH_SHORT).show();
     }
 
-    private final ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
+    public Paint getTextPaint() {
+        return durPageView.getTvContent().getPaint();
+    }    private final ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
         @Override
         public void onGlobalLayout() {
             if (bookReadInitListener != null) {
@@ -457,24 +450,6 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             durPageView.getTvContent().getViewTreeObserver().removeOnGlobalLayoutListener(layoutInitListener);
         }
     };
-    private final ViewTreeObserver.OnGlobalLayoutListener layoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
-        @Override
-        public void onGlobalLayout() {
-            int height = durPageView.getTvContent().getHeight();
-            if (height > 0) {
-                if (loadDataListener != null && durHeight != height) {
-                    durHeight = height;
-                    loadDataListener.initData(durPageView.getLineCount(height));
-                }
-            }
-        }
-    };
-
-    private int durHeight = 0;
-
-    public Paint getTextPaint() {
-        return durPageView.getTvContent().getPaint();
-    }
 
     public int getContentWidth() {
         return durPageView.getTvContent().getWidth();
@@ -532,4 +507,22 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             durPageView.loadError();
         }
     }
+
+    public interface OnBookReadInitListener {
+        void success();
+    }
+
+    public interface LoadDataListener {
+        void loaddata(BookContentView bookContentView, long tag, int chapterIndex, int pageIndex);
+
+        void updateProgress(int chapterIndex, int pageIndex);
+
+        String getChapterTitle(int chapterIndex);
+
+        void initData(int lineCount);
+
+        void showMenu();
+    }
+
+
 }

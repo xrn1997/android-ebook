@@ -1,12 +1,8 @@
 package com.ebook.api.dto;
 
-import android.util.Log;
-
-import java.io.Serializable;
-
 import androidx.annotation.NonNull;
 
-import static android.content.ContentValues.TAG;
+import java.io.Serializable;
 
 public class RespDTO<T> implements Serializable {
 
@@ -18,8 +14,16 @@ public class RespDTO<T> implements Serializable {
         return code;
     }
 
+    public void setCode(int code) {
+        this.code = code;
+    }
+
     public String getError() {
         return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
     }
 
     public T getData() {
@@ -38,13 +42,5 @@ public class RespDTO<T> implements Serializable {
                 ", error='" + error + '\'' +
                 ", data=" + data +
                 '}';
-    }
-
-    public void setCode(int code) {
-        this.code = code;
-    }
-
-    public void setError(String error) {
-        this.error = error;
     }
 }

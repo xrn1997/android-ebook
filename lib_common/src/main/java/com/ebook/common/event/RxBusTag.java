@@ -1,4 +1,3 @@
-
 package com.ebook.common.event;
 
 public interface RxBusTag {
@@ -29,5 +28,5 @@ public interface RxBusTag {
 
     String SET_PROFIE_PICTURE_AND_NICKNAME = "rxbus_set_profie_picture_and_nickname";
 
-    String SHOW_SCAN_PATH="show_scan_path";
+    String SHOW_SCAN_PATH = "show_scan_path";
 }

@@ -3,10 +3,10 @@ package com.ebook.me.mvvm.factory;
 import android.annotation.SuppressLint;
 import android.app.Application;
 
-import androidx.lifecycle.ViewModel;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
+import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.ebook.me.mvvm.model.CommentModel;
 import com.ebook.me.mvvm.model.ModifyModel;
@@ -19,6 +19,10 @@ public class MeViewModelFactory extends ViewModelProvider.NewInstanceFactory {
     private static volatile MeViewModelFactory INSTANCE;
     private final Application mApplication;
 
+    private MeViewModelFactory(Application application) {
+        this.mApplication = application;
+    }
+
     public static MeViewModelFactory getInstance(Application application) {
         if (INSTANCE == null) {
             synchronized (MeViewModelFactory.class) {
@@ -28,10 +32,6 @@ public class MeViewModelFactory extends ViewModelProvider.NewInstanceFactory {
             }
         }
         return INSTANCE;
-    }
-
-    private MeViewModelFactory(Application application) {
-        this.mApplication = application;
     }
 
     @VisibleForTesting

@@ -5,6 +5,17 @@ import android.os.Parcelable;
 
 
 public class User implements Parcelable {
+    public static final Creator<User> CREATOR = new Creator<>() {
+        @Override
+        public User createFromParcel(Parcel in) {
+            return new User(in);
+        }
+
+        @Override
+        public User[] newArray(int size) {
+            return new User[size];
+        }
+    };
     private Long id;//ID
     private String username;//用户名（账号）
     private String password;//密码
@@ -30,18 +41,6 @@ public class User implements Parcelable {
         image = in.readString();
         nickname = in.readString();
     }
-
-    public static final Creator<User> CREATOR = new Creator<>() {
-        @Override
-        public User createFromParcel(Parcel in) {
-            return new User(in);
-        }
-
-        @Override
-        public User[] newArray(int size) {
-            return new User[size];
-        }
-    };
 
     public Long getId() {
         return id;

@@ -5,6 +5,9 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.databinding.ObservableField;
+
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.dto.RespDTO;
@@ -18,8 +21,6 @@ import com.ebook.login.ModifyPwdActivity;
 import com.ebook.login.mvvm.model.ModifyPwdModel;
 import com.hwangjr.rxbus.RxBus;
 
-import androidx.annotation.NonNull;
-import androidx.databinding.ObservableField;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 
@@ -29,8 +30,8 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
     public ObservableField<String> verifycode = new ObservableField<>();
     public ObservableField<String> password_1 = new ObservableField<>();
     public ObservableField<String> password_2 = new ObservableField<>();
-    private SingleLiveEvent<Void> mVoidSingleLiveEvent;
     public String mVerifyCode; // 验证码
+    private SingleLiveEvent<Void> mVoidSingleLiveEvent;
 
     public ModifyPwdViewModel(@NonNull Application application, ModifyPwdModel model) {
         super(application, model);

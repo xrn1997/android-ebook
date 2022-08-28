@@ -1,14 +1,13 @@
 package com.ebook.find.adapter;
 
 import android.content.Context;
-import android.view.View;
+
+import androidx.databinding.ObservableArrayList;
 
 import com.ebook.common.adapter.BaseBindAdapter;
 import com.ebook.find.R;
 import com.ebook.find.databinding.AdpaterBookTypeItemBinding;
 import com.ebook.find.entity.BookType;
-
-import androidx.databinding.ObservableArrayList;
 
 public class BookTypeShowAdapter extends BaseBindAdapter<BookType, AdpaterBookTypeItemBinding> {
 

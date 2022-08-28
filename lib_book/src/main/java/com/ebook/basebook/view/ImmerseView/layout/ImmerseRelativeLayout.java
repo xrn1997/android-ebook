@@ -6,8 +6,8 @@ import android.util.AttributeSet;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 
-import com.ebook.basebook.view.ImmerseView.ImmerseView;
 import com.ebook.basebook.view.ImmerseView.ImmerseManager;
+import com.ebook.basebook.view.ImmerseView.ImmerseView;
 import com.ebook.basebook.view.ImmerseView.MeasureHeightResult;
 
 /**
@@ -32,13 +32,13 @@ public class ImmerseRelativeLayout extends RelativeLayout implements ImmerseView
         initManager(attrs);
     }
 
-    public void initManager(AttributeSet attrs) {
-        immerseManager = new ImmerseManager(this, attrs);
-    }
-
     @SuppressLint("NewApi")
     public ImmerseRelativeLayout(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
+    }
+
+    public void initManager(AttributeSet attrs) {
+        immerseManager = new ImmerseManager(this, attrs);
     }
 
     @Override

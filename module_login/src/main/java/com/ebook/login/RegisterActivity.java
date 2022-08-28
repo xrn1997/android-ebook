@@ -1,6 +1,6 @@
 package com.ebook.login;
 
-;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.alibaba.android.arouter.facade.annotation.Route;
 import com.ebook.common.event.KeyCode;
@@ -9,7 +9,7 @@ import com.ebook.login.databinding.ActivityRegisterBinding;
 import com.ebook.login.mvvm.factory.LoginViewModelFactory;
 import com.ebook.login.mvvm.viewmodel.RegisterViewModel;
 
-import androidx.lifecycle.ViewModelProvider;
+;
 
 @Route(path = KeyCode.Login.Register_PATH)
 public class RegisterActivity extends BaseMvvmActivity<ActivityRegisterBinding, RegisterViewModel> {

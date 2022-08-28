@@ -16,14 +16,14 @@
 
 package com.ebook.common.event;
 
+import android.util.Log;
+
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
-import androidx.annotation.MainThread;
-import androidx.annotation.Nullable;
-
-import android.util.Log;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

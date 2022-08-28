@@ -6,14 +6,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
+import androidx.annotation.NonNull;
 
-import com.ebook.basebook.base.manager.AppActivityManager;
 import com.ebook.basebook.base.IPresenter;
 import com.ebook.basebook.base.IView;
+import com.ebook.basebook.base.manager.AppActivityManager;
 import com.hwangjr.rxbus.RxBus;
 import com.trello.rxlifecycle3.components.support.RxAppCompatActivity;
-
-import androidx.annotation.NonNull;
 
 public abstract class BaseActivity<T extends IPresenter> extends RxAppCompatActivity implements IView {
     public final static String start_share_ele = "start_with_share_ele";
@@ -93,7 +92,6 @@ public abstract class BaseActivity<T extends IPresenter> extends RxAppCompatActi
 
     /**
      * P层绑定   若无则返回null;
-     *
      */
     protected abstract T initInjector();
 

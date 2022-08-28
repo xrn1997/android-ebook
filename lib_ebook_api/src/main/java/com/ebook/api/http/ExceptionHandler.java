@@ -1,21 +1,17 @@
 package com.ebook.api.http;
 
 import android.net.ParseException;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.ebook.api.RetrofitManager;
 import com.google.gson.JsonParseException;
 import com.google.gson.stream.MalformedJsonException;
 
-import org.apache.http.conn.ConnectTimeoutException;
 import org.json.JSONException;
 
 import java.net.ConnectException;
 
 import retrofit2.HttpException;
-
-import static android.content.ContentValues.TAG;
 
 public class ExceptionHandler {
 
@@ -80,43 +76,6 @@ public class ExceptionHandler {
 
     }
 
-    public static class SYSTEM_ERROR {
-        public static final int UNAUTHORIZED = 401;
-        public static final int FORBIDDEN = 403;
-        public static final int NOT_FOUND = 404;
-        public static final int REQUEST_TIMEOUT = 408;
-        public static final int INTERNAL_SERVER_ERROR = 500;
-        public static final int SERVICE_UNAVAILABLE = 503;
-
-        /**
-         * 未知错误
-         */
-        public static final int UNKNOWN = 1000;
-        /**
-         * 解析错误
-         */
-        public static final int PARSE_ERROR = 1001;
-        /**
-         * SSL_ERROR         * 网络错误
-         */
-        public static final int NETWORD_ERROR = 1002;
-        /**
-         * 协议出错
-         */
-        public static final int HTTP_ERROR = 1003;
-
-        /**
-         * 证书出错
-         */
-        public static final int SSL_ERROR = 1005;
-
-        /**
-         * 连接超时
-         */
-        public static final int TIMEOUT_ERROR = 1006;
-
-    }
-
     public interface APP_ERROR {
         public static final int SUCC = 0;//	处理成功，无错误
         public static final int INTERFACE_PROCESSING_TIMEOUT = 1;//	接口处理超时
@@ -160,5 +119,42 @@ public class ExceptionHandler {
          * 授权车辆不允许修改此信息。
          */
         int VHEICLE_NOT_EDIT_CODE = 110904;
+    }
+
+    public static class SYSTEM_ERROR {
+        public static final int UNAUTHORIZED = 401;
+        public static final int FORBIDDEN = 403;
+        public static final int NOT_FOUND = 404;
+        public static final int REQUEST_TIMEOUT = 408;
+        public static final int INTERNAL_SERVER_ERROR = 500;
+        public static final int SERVICE_UNAVAILABLE = 503;
+
+        /**
+         * 未知错误
+         */
+        public static final int UNKNOWN = 1000;
+        /**
+         * 解析错误
+         */
+        public static final int PARSE_ERROR = 1001;
+        /**
+         * SSL_ERROR         * 网络错误
+         */
+        public static final int NETWORD_ERROR = 1002;
+        /**
+         * 协议出错
+         */
+        public static final int HTTP_ERROR = 1003;
+
+        /**
+         * 证书出错
+         */
+        public static final int SSL_ERROR = 1005;
+
+        /**
+         * 连接超时
+         */
+        public static final int TIMEOUT_ERROR = 1006;
+
     }
 }

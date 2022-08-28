@@ -10,6 +10,8 @@ import com.ebook.common.util.ToastUtil;
 public class MainActivity extends BaseActivity {
 
 
+    private long exitTime = 0;
+
     @Override
     public int onBindLayout() {
         return R.layout.activity_main;
@@ -38,8 +40,6 @@ public class MainActivity extends BaseActivity {
         }
         return super.onKeyDown(keyCode, event);
     }
-
-    private long exitTime = 0;
 
     public void exit() {
         if ((System.currentTimeMillis() - exitTime) > 2000) {

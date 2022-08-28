@@ -31,19 +31,13 @@ import javax.net.ssl.X509TrustManager;
 public class SSLContextUtil {
 
     /**
-     * 如果不需要https证书.(NoHttp已经修补了系统的SecureRandom的bug)。
+     * 域名验证
      */
-    public static SSLContext getDefaultSLLContext() {
-        SSLContext sslContext = null;
-        try {
-            sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, new TrustManager[]{trustManagers}, new SecureRandom());
-        } catch (Exception e) {
-            e.printStackTrace();
+    public static final HostnameVerifier HOSTNAME_VERIFIER = new HostnameVerifier() {
+        public boolean verify(String hostname, SSLSession session) {
+            return true;
         }
-        return sslContext;
-    }
-
+    };
     /**
      * 信任管理器
      */
@@ -67,12 +61,17 @@ public class SSLContextUtil {
     };
 
     /**
-     * 域名验证
+     * 如果不需要https证书.(NoHttp已经修补了系统的SecureRandom的bug)。
      */
-    public static final HostnameVerifier HOSTNAME_VERIFIER = new HostnameVerifier() {
-        public boolean verify(String hostname, SSLSession session) {
-            return true;
+    public static SSLContext getDefaultSLLContext() {
+        SSLContext sslContext = null;
+        try {
+            sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[]{trustManagers}, new SecureRandom());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-    };
+        return sslContext;
+    }
 
 }

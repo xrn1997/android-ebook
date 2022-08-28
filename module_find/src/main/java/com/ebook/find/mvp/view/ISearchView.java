@@ -1,4 +1,3 @@
-
 package com.ebook.find.mvp.view;
 
 import android.widget.EditText;
@@ -7,7 +6,6 @@ import com.ebook.basebook.base.IView;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.db.entity.SearchHistory;
 import com.ebook.find.mvp.view.adapter.SearchBookAdapter;
-
 
 import java.util.List;
 

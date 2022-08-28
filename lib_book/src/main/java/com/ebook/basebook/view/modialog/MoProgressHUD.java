@@ -12,21 +12,35 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
 
-;import com.ebook.basebook.R;
+import com.ebook.basebook.R;
+
+;
 
 
 public class MoProgressHUD {
-    private Boolean isFinishing = false;
-
     private final Context context;
+    private Boolean isFinishing = false;
     private ViewGroup decorView;//activity的根View
     private ViewGroup rootView;// mSharedView 的 根View
     private MoProgressView mSharedView;
+    Animation.AnimationListener outAnimListener = new Animation.AnimationListener() {
+        @Override
+        public void onAnimationStart(Animation animation) {
+            isFinishing = true;
+        }
 
+        @Override
+        public void onAnimationEnd(Animation animation) {
+            dismissImmediately();
+        }
 
+        @Override
+        public void onAnimationRepeat(Animation animation) {
+
+        }
+    };
     private Animation inAnim;
     private Animation outAnim;
-
     private Boolean canBack = false;
 
     public MoProgressHUD(Context context) {
@@ -143,23 +157,6 @@ public class MoProgressHUD {
         return false;
     }
 
-    Animation.AnimationListener outAnimListener = new Animation.AnimationListener() {
-        @Override
-        public void onAnimationStart(Animation animation) {
-            isFinishing = true;
-        }
-
-        @Override
-        public void onAnimationEnd(Animation animation) {
-            dismissImmediately();
-        }
-
-        @Override
-        public void onAnimationRepeat(Animation animation) {
-
-        }
-    };
-
     public void dismissImmediately() {
         if (mSharedView != null && rootView != null && mSharedView.getParent() != null) {
             new Handler().post(() -> {
@@ -231,11 +228,6 @@ public class MoProgressHUD {
         mSharedView.getChildAt(0).startAnimation(inAnim);
     }
 
-    ////////////////////离线章节选择////////////////////////////
-    public interface OnClickDownload {
-        public void download(int start, int end);
-    }
-
     public void showDownloadList(int startIndex, int endIndex, int all, OnClickDownload clickDownload) {
         initCenter();
         initAnimation();
@@ -248,7 +240,6 @@ public class MoProgressHUD {
         }
         mSharedView.getChildAt(0).startAnimation(inAnim);
     }
-    //////////////////////////////////////////////////////////
 
     public Boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
@@ -259,6 +250,7 @@ public class MoProgressHUD {
         }
         return false;
     }
+    //////////////////////////////////////////////////////////
 
     public Boolean getCanBack() {
         return canBack;
@@ -270,5 +262,10 @@ public class MoProgressHUD {
             return true;
         }
         return false;
+    }
+
+    ////////////////////离线章节选择////////////////////////////
+    public interface OnClickDownload {
+        public void download(int start, int end);
     }
 }

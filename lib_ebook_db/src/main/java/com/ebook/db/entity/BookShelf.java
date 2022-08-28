@@ -3,14 +3,14 @@ package com.ebook.db.entity;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.annotation.NonNull;
+
 import com.ebook.db.event.DBCode;
 
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Generated;
 import org.greenrobot.greendao.annotation.Id;
 import org.greenrobot.greendao.annotation.Transient;
-
-import androidx.annotation.NonNull;
 
 /**
  * 书架item
@@ -22,21 +22,26 @@ public class BookShelf implements Parcelable, Cloneable {
     public static final long REFRESH_TIME = 5 * 60 * 1000;   //更新时间间隔 至少
     @Transient
     public static final String LOCAL_TAG = "loc_book";
+    @Transient
+    public static final Creator<BookShelf> CREATOR = new Creator<>() {
+        @Override
+        public BookShelf createFromParcel(Parcel in) {
+            return new BookShelf(in);
+        }
 
+        @Override
+        public BookShelf[] newArray(int size) {
+            return new BookShelf[size];
+        }
+    };
     @Id
     private String noteUrl; //对应BookInfo noteUrl;
-
     private int durChapter;   //当前章节 （包括番外）
-
     private int durChapterPage = DBCode.BookContentView.DURPAGEINDEXBEGIN;
-
     private long finalDate;  //最后阅读时间
-
     private String tag;
-
     @Transient
     private BookInfo bookInfo = new BookInfo();
-
 
     protected BookShelf(Parcel in) {
         noteUrl = in.readString();
@@ -61,18 +66,9 @@ public class BookShelf implements Parcelable, Cloneable {
     public BookShelf() {
     }
 
-    @Transient
-    public static final Creator<BookShelf> CREATOR = new Creator<>() {
-        @Override
-        public BookShelf createFromParcel(Parcel in) {
-            return new BookShelf(in);
-        }
-
-        @Override
-        public BookShelf[] newArray(int size) {
-            return new BookShelf[size];
-        }
-    };
+    public static Creator<BookShelf> getCREATOR() {
+        return CREATOR;
+    }
 
     @Override
     public int describeContents() {
@@ -135,10 +131,6 @@ public class BookShelf implements Parcelable, Cloneable {
 
     public void setBookInfo(BookInfo bookInfo) {
         this.bookInfo = bookInfo;
-    }
-
-    public static Creator<BookShelf> getCREATOR() {
-        return CREATOR;
     }
 
     @NonNull

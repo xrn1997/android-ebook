@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.mvp.view.adapter;
 
 import android.graphics.Color;
@@ -8,14 +7,12 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.ebook.basebook.R;
 import com.ebook.basebook.view.ChapterListView;
 import com.ebook.db.entity.BookShelf;
-
-
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
 
 public class ChapterListAdapter extends RecyclerView.Adapter<ChapterListAdapter.Viewholder> {
     private BookShelf bookShelf;
@@ -68,6 +65,16 @@ public class ChapterListAdapter extends RecyclerView.Adapter<ChapterListAdapter.
             return bookShelf.getBookInfo().getChapterlist().size();
     }
 
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        notifyItemChanged(this.index);
+        this.index = index;
+        notifyItemChanged(this.index);
+    }
+
     public class Viewholder extends RecyclerView.ViewHolder {
         private FrameLayout flContent;
         private TextView tvName;
@@ -79,15 +86,5 @@ public class ChapterListAdapter extends RecyclerView.Adapter<ChapterListAdapter.
             tvName = (TextView) itemView.findViewById(R.id.tv_name);
             vLine = itemView.findViewById(R.id.v_line);
         }
-    }
-
-    public int getIndex() {
-        return index;
-    }
-
-    public void setIndex(int index) {
-        notifyItemChanged(this.index);
-        this.index = index;
-        notifyItemChanged(this.index);
     }
 }

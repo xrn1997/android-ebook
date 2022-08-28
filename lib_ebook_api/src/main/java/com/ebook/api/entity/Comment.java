@@ -4,6 +4,17 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 public class Comment implements Parcelable {
+    public static final Creator<Comment> CREATOR = new Creator<Comment>() {
+        @Override
+        public Comment createFromParcel(Parcel in) {
+            return new Comment(in);
+        }
+
+        @Override
+        public Comment[] newArray(int size) {
+            return new Comment[size];
+        }
+    };
     private Long id;
     private User user;
     private String chapterUrl; //对应BookInfo noteUrl;
@@ -28,18 +39,6 @@ public class Comment implements Parcelable {
         addtime = in.readString();
         user = in.readParcelable(Thread.currentThread().getContextClassLoader());
     }
-
-    public static final Creator<Comment> CREATOR = new Creator<Comment>() {
-        @Override
-        public Comment createFromParcel(Parcel in) {
-            return new Comment(in);
-        }
-
-        @Override
-        public Comment[] newArray(int size) {
-            return new Comment[size];
-        }
-    };
 
     public String getAddtime() {
         return addtime;

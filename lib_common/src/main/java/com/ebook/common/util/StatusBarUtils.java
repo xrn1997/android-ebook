@@ -11,16 +11,20 @@ import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowManager;
 
+import androidx.annotation.NonNull;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-
-import androidx.annotation.NonNull;
 
 /**
  * 状态栏工具
  */
 public class StatusBarUtils {
+    private static final int VIVO_NOTCH = 0x00000020;//是否有刘海
+    private static final int VIVO_FILLET = 0x00000008;//是否有圆角
     private static int status_height = -1;
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    private static Boolean isNotchScreen = null;
 
     /**
      * 获取状态栏高度
@@ -48,9 +52,6 @@ public class StatusBarUtils {
         }
         return status_height;
     }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    private static Boolean isNotchScreen = null;
 
     /**
      * 判断是否是刘海屏
@@ -151,9 +152,6 @@ public class StatusBarUtils {
             return ret;
         }
     }
-
-    private static final int VIVO_NOTCH = 0x00000020;//是否有刘海
-    private static final int VIVO_FILLET = 0x00000008;//是否有圆角
 
     /**
      * VIVO刘海屏判断

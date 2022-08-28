@@ -4,19 +4,19 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 
-import com.ebook.common.BaseApplication;
 import com.ebook.basebook.R;
+import com.ebook.common.BaseApplication;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class NetworkUtil {
-    private static final Map<Integer, String> errorMap = new HashMap<>();
-    private static final Context context = BaseApplication.getInstance();
     public static final int SUCCESS = 10000;
     public static final int ERROR_CODE_NONET = 10001;
     public static final int ERROR_CODE_OUTTIME = 10002;
     public static final int ERROR_CODE_ANALY = 10003;
+    private static final Map<Integer, String> errorMap = new HashMap<>();
+    private static final Context context = BaseApplication.getInstance();
 
     static {
         errorMap.put(ERROR_CODE_NONET, context.getString(R.string.net_error_10001));

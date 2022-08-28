@@ -5,11 +5,11 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.viewpager.widget.ViewPager;
+
 import com.ebook.basebook.view.ImmerseView.ImmerseManager;
 import com.ebook.basebook.view.ImmerseView.ImmerseView;
 import com.ebook.basebook.view.ImmerseView.MeasureHeightResult;
-
-import androidx.viewpager.widget.ViewPager;
 
 /**
  * 沉浸式ViewPager

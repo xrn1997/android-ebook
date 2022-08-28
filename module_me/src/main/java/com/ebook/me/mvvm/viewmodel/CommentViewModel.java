@@ -4,21 +4,19 @@ import android.app.Application;
 import android.os.Build;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.entity.Comment;
-import com.ebook.api.entity.LoginDTO;
 import com.ebook.api.http.ExceptionHandler;
-import com.ebook.common.event.SingleLiveEvent;
 import com.ebook.common.mvvm.viewmodel.BaseRefreshViewModel;
-
 import com.ebook.common.util.DateUtil;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.me.mvvm.model.CommentModel;
 
 import java.util.List;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 

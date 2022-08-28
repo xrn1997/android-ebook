@@ -1,9 +1,7 @@
-
 package com.ebook.db.entity;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-
 
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Generated;
@@ -18,24 +16,28 @@ import java.util.List;
  */
 @Entity
 public class BookContent implements Parcelable {
+    public static final Creator<BookContent> CREATOR = new Creator<BookContent>() {
+        @Override
+        public BookContent createFromParcel(Parcel in) {
+            return new BookContent(in);
+        }
+
+        @Override
+        public BookContent[] newArray(int size) {
+            return new BookContent[size];
+        }
+    };
     @Id
     private String durChapterUrl; //对应BookInfo noteUrl;
-
     private int durChapterIndex;   //当前章节  （包括番外）
-
     private String durCapterContent; //当前章节内容
-
     private String tag;   //来源  某个网站/本地
-
     @Transient
     private Boolean isRight = true;
-
     @Transient
     private List<String> lineContent = new ArrayList<>();
-
     @Transient
     private float lineSize;
-
 
     protected BookContent(Parcel in) {
         durChapterUrl = in.readString();
@@ -132,16 +134,4 @@ public class BookContent implements Parcelable {
     public void setTag(String tag) {
         this.tag = tag;
     }
-
-    public static final Creator<BookContent> CREATOR = new Creator<BookContent>() {
-        @Override
-        public BookContent createFromParcel(Parcel in) {
-            return new BookContent(in);
-        }
-
-        @Override
-        public BookContent[] newArray(int size) {
-            return new BookContent[size];
-        }
-    };
 }

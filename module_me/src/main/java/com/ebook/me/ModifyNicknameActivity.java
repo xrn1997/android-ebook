@@ -1,11 +1,11 @@
 package com.ebook.me;
 
+import androidx.lifecycle.ViewModelProvider;
+
 import com.ebook.common.mvvm.BaseMvvmActivity;
 import com.ebook.me.databinding.ActivityModifyNicknameBinding;
 import com.ebook.me.mvvm.factory.MeViewModelFactory;
 import com.ebook.me.mvvm.viewmodel.ModifyViewModel;
-
-import androidx.lifecycle.ViewModelProvider;
 
 public class ModifyNicknameActivity extends BaseMvvmActivity<ActivityModifyNicknameBinding, ModifyViewModel> {
     @Override

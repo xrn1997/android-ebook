@@ -10,18 +10,6 @@ import java.util.List;
  * 下载章节列表
  */
 public class DownloadChapterList implements Parcelable {
-    private List<DownloadChapter> data;
-
-    public DownloadChapterList(List<DownloadChapter> result) {
-        this.data = result;
-    }
-
-    protected DownloadChapterList(Parcel in) {
-        if (data == null)
-            data = new ArrayList<>();
-        in.readTypedList(data, DownloadChapter.CREATOR);
-    }
-
     public static final Creator<DownloadChapterList> CREATOR = new Creator<DownloadChapterList>() {
         @Override
         public DownloadChapterList createFromParcel(Parcel in) {
@@ -33,6 +21,17 @@ public class DownloadChapterList implements Parcelable {
             return new DownloadChapterList[size];
         }
     };
+    private List<DownloadChapter> data;
+
+    public DownloadChapterList(List<DownloadChapter> result) {
+        this.data = result;
+    }
+
+    protected DownloadChapterList(Parcel in) {
+        if (data == null)
+            data = new ArrayList<>();
+        in.readTypedList(data, DownloadChapter.CREATOR);
+    }
 
     public List<DownloadChapter> getData() {
         return data;

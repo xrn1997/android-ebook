@@ -13,10 +13,6 @@ import java.util.Date;
  */
 public class DateUtil {
 
-    public enum FormatType {
-        yyyy, yyyyMM, yyyyMMdd, yyyyMMddHHmm, yyyyMMddHHmmss, MMdd, HHmm, MM, dd, MMddHHmm;
-    }
-
     /**
      * 格式化时间字符串
      */
@@ -337,5 +333,9 @@ public class DateUtil {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(new Date());
         return (int) Math.ceil((double) (calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)) / 30);
+    }
+
+    public enum FormatType {
+        yyyy, yyyyMM, yyyyMMdd, yyyyMMddHHmm, yyyyMMddHHmmss, MMdd, HHmm, MM, dd, MMddHHmm;
     }
 }

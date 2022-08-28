@@ -1,9 +1,9 @@
 package com.ebook.common.util.log;
 
 
-import androidx.annotation.Nullable;
-
 import android.text.TextUtils;
+
+import androidx.annotation.Nullable;
 
 import com.ebook.common.util.log.klog.BaseLog;
 import com.ebook.common.util.log.klog.FileLog;
@@ -36,22 +36,18 @@ public final class KLog {
 
     public static final String LINE_SEPARATOR = System.getProperty("line.separator");
     public static final String NULL_TIPS = "Log with null object";
-
-    private static final String DEFAULT_MESSAGE = "execute";
-    private static final String PARAM = "Param";
-    private static final String NULL = "null";
-    private static final String TAG_DEFAULT = "KLog";
-    private static final String SUFFIX = ".java";
-
     public static final int JSON_INDENT = 4;
-
     public static final int V = 0x1;
     public static final int D = 0x2;
     public static final int I = 0x3;
     public static final int W = 0x4;
     public static final int E = 0x5;
     public static final int A = 0x6;
-
+    private static final String DEFAULT_MESSAGE = "execute";
+    private static final String PARAM = "Param";
+    private static final String NULL = "null";
+    private static final String TAG_DEFAULT = "KLog";
+    private static final String SUFFIX = ".java";
     private static final int JSON = 0x7;
     private static final int XML = 0x8;
 

@@ -3,27 +3,25 @@ package com.ebook.common.mvp;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
-
-import androidx.annotation.Nullable;
-import androidx.appcompat.widget.Toolbar;
-
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewStub;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.Toolbar;
+
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.ebook.common.R;
+import com.ebook.common.event.common.BaseActivityEvent;
 import com.ebook.common.manager.ActivityManager;
 import com.ebook.common.mvp.view.BaseView;
 import com.ebook.common.util.NetUtil;
-import com.ebook.common.view.LoadingTransView;
-import com.ebook.common.event.common.BaseActivityEvent;
 import com.ebook.common.view.LoadingInitView;
+import com.ebook.common.view.LoadingTransView;
 import com.ebook.common.view.NetErrorView;
 import com.ebook.common.view.NoDataView;
 import com.trello.rxlifecycle3.components.support.RxAppCompatActivity;
-
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;

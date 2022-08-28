@@ -18,14 +18,13 @@ import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.ebook.basebook.R;
-
 import androidx.annotation.NonNull;
+
+import com.ebook.basebook.R;
 
 /**
  * Created by Monke on 2016/10/7.
@@ -68,6 +67,8 @@ public class MHorProgressBar extends View {
     private Paint fontPaint;
 
     private Handler handler;
+    //////////////////////////////属性修改///////////////////////////
+    private OnProgressListener progressListener;
 
     public MHorProgressBar(Context context) {
         this(context, null);
@@ -314,7 +315,6 @@ public class MHorProgressBar extends View {
         return bitmap;
     }
 
-
     /////////////////////////////////////////////////////////////////
     private void updateFontShader(RectF rectF) {
         fontShader = new BitmapShader(toFontBitmap(rectF), Shader.TileMode.REPEAT, Shader.TileMode.CLAMP);
@@ -441,9 +441,6 @@ public class MHorProgressBar extends View {
         return (int) (dpValue * scale + 0.5f);
     }
 
-    //////////////////////////////属性修改///////////////////////////
-    private OnProgressListener progressListener;
-
     public void setProgressListener(OnProgressListener progressListener) {
         this.progressListener = progressListener;
     }
@@ -522,29 +519,9 @@ public class MHorProgressBar extends View {
         this.canTouch = canTouch;
     }
 
-    public void setFontDrawable(@NonNull Drawable fontDrawable) {
-        this.fontDrawable = fontDrawable;
-        fontShader = null;
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            this.invalidate();
-        } else {
-            this.postInvalidate();
-        }
-    }
-
     public void setFontDrawableType(int fontDrawableType) {
         this.fontDrawableType = fontDrawableType;
         fontShader = null;
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            this.invalidate();
-        } else {
-            this.postInvalidate();
-        }
-    }
-
-    public void setBgDrawable(@NonNull Drawable bgDrawable) {
-        this.bgDrawable = bgDrawable;
-        bgShader = null;
         if (Looper.myLooper() == Looper.getMainLooper()) {
             this.invalidate();
         } else {
@@ -562,8 +539,17 @@ public class MHorProgressBar extends View {
         }
     }
 
-    public void setStartLeft(int startLeft) {
-        this.startLeft = startLeft;
+    public float getDurProgressFinal() {
+        return durProgressFinal;
+    }
+
+    public Drawable getFontDrawable() {
+        return fontDrawable;
+    }
+
+    public void setFontDrawable(@NonNull Drawable fontDrawable) {
+        this.fontDrawable = fontDrawable;
+        fontShader = null;
         if (Looper.myLooper() == Looper.getMainLooper()) {
             this.invalidate();
         } else {
@@ -571,13 +557,22 @@ public class MHorProgressBar extends View {
         }
     }
 
-    public void setRadius(int radius) {
-        this.radius = radius;
+    public Drawable getBgDrawable() {
+        return bgDrawable;
+    }
+
+    public void setBgDrawable(@NonNull Drawable bgDrawable) {
+        this.bgDrawable = bgDrawable;
+        bgShader = null;
         if (Looper.myLooper() == Looper.getMainLooper()) {
             this.invalidate();
         } else {
             this.postInvalidate();
         }
+    }
+
+    public int getBgBorderColor() {
+        return bgBorderColor;
     }
 
     public void setBgBorderColor(int bgBorderColor) {
@@ -589,6 +584,10 @@ public class MHorProgressBar extends View {
         }
     }
 
+    public int getBgBorderWidth() {
+        return bgBorderWidth;
+    }
+
     public void setBgBorderWidth(int bgBorderWidth) {
         this.bgBorderWidth = bgBorderWidth;
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -596,6 +595,36 @@ public class MHorProgressBar extends View {
         } else {
             this.postInvalidate();
         }
+    }
+
+    public int getRadius() {
+        return radius;
+    }
+
+    public void setRadius(int radius) {
+        this.radius = radius;
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            this.invalidate();
+        } else {
+            this.postInvalidate();
+        }
+    }
+
+    public int getStartLeft() {
+        return startLeft;
+    }
+
+    public void setStartLeft(int startLeft) {
+        this.startLeft = startLeft;
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            this.invalidate();
+        } else {
+            this.postInvalidate();
+        }
+    }
+
+    public int getProgressWidth() {
+        return progressWidth;
     }
 
     public void setProgressWidth(int progressWidth) {
@@ -607,54 +636,8 @@ public class MHorProgressBar extends View {
         }
     }
 
-    public float getDurProgressFinal() {
-        return durProgressFinal;
-    }
-
-    public Drawable getFontDrawable() {
-        return fontDrawable;
-    }
-
-    public Drawable getBgDrawable() {
-        return bgDrawable;
-    }
-
-    public int getBgBorderColor() {
-        return bgBorderColor;
-    }
-
-    public int getBgBorderWidth() {
-        return bgBorderWidth;
-    }
-
-    public int getRadius() {
-        return radius;
-    }
-
-    public int getStartLeft() {
-        return startLeft;
-    }
-
-    public int getProgressWidth() {
-        return progressWidth;
-    }
-
-    public void setCursorDrawableHeight(int cursorDrawableHeight) {
-        this.cursorDrawableHeight = cursorDrawableHeight;
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            this.invalidate();
-        } else {
-            this.postInvalidate();
-        }
-    }
-
-    public void setCursorDrawableWidth(int cursorDrawableWidth) {
-        this.cursorDrawableWidth = cursorDrawableWidth;
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            this.invalidate();
-        } else {
-            this.postInvalidate();
-        }
+    public StateListDrawable getCursorDrawable() {
+        return cursorDrawable;
     }
 
     public void setCursorDrawable(StateListDrawable cursorDrawable) {
@@ -666,16 +649,30 @@ public class MHorProgressBar extends View {
         }
     }
 
-    public StateListDrawable getCursorDrawable() {
-        return cursorDrawable;
-    }
-
     public int getCursorDrawableWidth() {
         return cursorDrawableWidth;
     }
 
+    public void setCursorDrawableWidth(int cursorDrawableWidth) {
+        this.cursorDrawableWidth = cursorDrawableWidth;
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            this.invalidate();
+        } else {
+            this.postInvalidate();
+        }
+    }
+
     public int getCursorDrawableHeight() {
         return cursorDrawableHeight;
+    }
+
+    public void setCursorDrawableHeight(int cursorDrawableHeight) {
+        this.cursorDrawableHeight = cursorDrawableHeight;
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            this.invalidate();
+        } else {
+            this.postInvalidate();
+        }
     }
 
     public int getRealProgressWidth() {

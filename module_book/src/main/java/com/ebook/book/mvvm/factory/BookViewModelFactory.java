@@ -3,20 +3,24 @@ package com.ebook.book.mvvm.factory;
 import android.annotation.SuppressLint;
 import android.app.Application;
 
-import com.ebook.book.mvvm.model.BookCommentsModel;
-import com.ebook.book.mvvm.model.BookListModel;
-import com.ebook.book.mvvm.viewmodel.BookCommentsViewModel;
-import com.ebook.book.mvvm.viewmodel.BookListViewModel;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.ebook.book.mvvm.model.BookCommentsModel;
+import com.ebook.book.mvvm.model.BookListModel;
+import com.ebook.book.mvvm.viewmodel.BookCommentsViewModel;
+import com.ebook.book.mvvm.viewmodel.BookListViewModel;
+
 public class BookViewModelFactory extends ViewModelProvider.NewInstanceFactory {
     @SuppressLint("StaticFieldLeak")
     private static volatile BookViewModelFactory INSTANCE;
     private final Application mApplication;
+
+    private BookViewModelFactory(Application application) {
+        this.mApplication = application;
+    }
 
     public static BookViewModelFactory getInstance(Application application) {
         if (INSTANCE == null) {
@@ -27,10 +31,6 @@ public class BookViewModelFactory extends ViewModelProvider.NewInstanceFactory {
             }
         }
         return INSTANCE;
-    }
-
-    private BookViewModelFactory(Application application) {
-        this.mApplication = application;
     }
 
     @VisibleForTesting

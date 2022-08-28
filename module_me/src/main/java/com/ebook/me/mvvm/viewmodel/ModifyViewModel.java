@@ -1,22 +1,21 @@
 package com.ebook.me.mvvm.viewmodel;
 
 import android.app.Application;
-
 import android.util.Log;
+
+import androidx.annotation.NonNull;
+import androidx.databinding.ObservableField;
 
 import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.ExceptionHandler;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.common.glide.GlideApp;
 import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.me.mvvm.model.ModifyModel;
 import com.hwangjr.rxbus.RxBus;
 
-import androidx.annotation.NonNull;
-import androidx.databinding.ObservableField;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 

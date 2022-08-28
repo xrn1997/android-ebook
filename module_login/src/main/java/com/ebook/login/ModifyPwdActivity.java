@@ -2,13 +2,12 @@ package com.ebook.login;
 
 import android.os.Bundle;
 
-import com.ebook.common.mvvm.BaseMvvmActivity;
+import androidx.lifecycle.ViewModelProvider;
 
+import com.ebook.common.mvvm.BaseMvvmActivity;
 import com.ebook.login.databinding.ActivityModifyPwdBinding;
 import com.ebook.login.mvvm.factory.LoginViewModelFactory;
 import com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel;
-
-import androidx.lifecycle.ViewModelProvider;
 
 public class ModifyPwdActivity extends BaseMvvmActivity<ActivityModifyPwdBinding, ModifyPwdViewModel> {
     @Override

@@ -1,25 +1,23 @@
 package com.ebook.common.mvp;
 
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.appcompat.widget.Toolbar;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.Fragment;
+
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.ebook.common.R;
+import com.ebook.common.event.common.BaseFragmentEvent;
 import com.ebook.common.mvp.view.BaseView;
 import com.ebook.common.util.NetUtil;
 import com.ebook.common.util.log.KLog;
-
-import com.ebook.common.event.common.BaseFragmentEvent;
 import com.ebook.common.view.LoadingInitView;
 import com.ebook.common.view.LoadingTransView;
 import com.ebook.common.view.NetErrorView;

@@ -5,11 +5,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.Nullable;
+
 import com.ebook.basebook.base.IPresenter;
 import com.ebook.basebook.base.IView;
 import com.trello.rxlifecycle3.components.RxFragment;
-
-import androidx.annotation.Nullable;
 
 public abstract class BaseFragment<T extends IPresenter> extends RxFragment implements IView {
     protected View view;

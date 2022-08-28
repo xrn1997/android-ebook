@@ -2,32 +2,32 @@ package com.ebook.find.fragment;
 
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
+
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.ebook.common.mvvm.BaseMvvmRefreshFragment;
 import com.ebook.common.util.ObservableListUtil;
 import com.ebook.find.BR;
 import com.ebook.find.R;
+import com.ebook.find.adapter.BookTypeShowAdapter;
 import com.ebook.find.adapter.LibraryBookListAdapter;
 import com.ebook.find.databinding.FragmentFindMainBinding;
-import com.ebook.find.adapter.BookTypeShowAdapter;
 import com.ebook.find.mvp.view.impl.ChoiceBookActivity;
 import com.ebook.find.mvp.view.impl.SearchActivity;
 import com.ebook.find.mvvm.factory.FindViewModelFactory;
 import com.ebook.find.mvvm.viewmodel.LibraryViewModel;
 import com.refresh.lib.DaisyRefreshLayout;
 
-import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 
 public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBinding, LibraryViewModel> {
+    public static final String TAG = MainFindFragment.class.getSimpleName();
     private FrameLayout flSearch;
     private BookTypeShowAdapter mBookTypeShowAdapter;
     private LibraryBookListAdapter mLibraryKindBookAdapter;
-    public static final String TAG = MainFindFragment.class.getSimpleName();
 
     public static MainFindFragment newInstance() {
         return new MainFindFragment();
@@ -78,26 +78,6 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
         mBinding.kindLl.setAdapter(mBookTypeShowAdapter);
     }
 
-    //自定义的manager，用于禁用滚动条
-    public static class MyRecycleviewManager extends LinearLayoutManager {
-
-        private boolean isScrollEnabled = true;
-
-        public MyRecycleviewManager(Context context) {
-            super(context);
-        }
-
-        public void setScrollEnabled(boolean flag) {
-            this.isScrollEnabled = flag;
-        }
-
-        @Override
-        public boolean canScrollVertically() {
-            return isScrollEnabled && super.canScrollVertically();
-        }
-
-    }
-
     ////////////////////////////////
     @Override
     public void initListener() {
@@ -117,6 +97,26 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
     @Override
     public String getToolbarTitle() {
         return "书城";
+    }
+
+    //自定义的manager，用于禁用滚动条
+    public static class MyRecycleviewManager extends LinearLayoutManager {
+
+        private boolean isScrollEnabled = true;
+
+        public MyRecycleviewManager(Context context) {
+            super(context);
+        }
+
+        public void setScrollEnabled(boolean flag) {
+            this.isScrollEnabled = flag;
+        }
+
+        @Override
+        public boolean canScrollVertically() {
+            return isScrollEnabled && super.canScrollVertically();
+        }
+
     }
 
 

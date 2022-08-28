@@ -1,25 +1,15 @@
 package com.ebook.basebook.base.impl;
 
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
-
-import org.greenrobot.eclipse.jdt.internal.compiler.util.Util;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 
-import okhttp3.FormBody;
 import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import okio.Buffer;
 
 /**
  * <pre>

@@ -1,4 +1,3 @@
-
 package com.ebook.find.mvp.view.adapter;
 
 import android.view.LayoutInflater;
@@ -10,19 +9,14 @@ import com.ebook.basebook.view.flowlayout.TagAdapter;
 import com.ebook.db.entity.SearchHistory;
 import com.ebook.find.R;
 
-
 import java.util.ArrayList;
 
 public class SearchHistoryAdapter extends TagAdapter<SearchHistory> {
+    private SearchHistoryAdapter.OnItemClickListener onItemClickListener;
+
     public SearchHistoryAdapter() {
         super(new ArrayList<>());
     }
-
-    public interface OnItemClickListener {
-        void itemClick(SearchHistory searchHistory);
-    }
-
-    private SearchHistoryAdapter.OnItemClickListener onItemClickListener;
 
     public OnItemClickListener getListener() {
         return onItemClickListener;
@@ -51,5 +45,9 @@ public class SearchHistoryAdapter extends TagAdapter<SearchHistory> {
 
     public int getDataSize() {
         return mTagDatas.size();
+    }
+
+    public interface OnItemClickListener {
+        void itemClick(SearchHistory searchHistory);
     }
 }

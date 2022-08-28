@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.view.popupwindow;
 
 import android.content.Context;
@@ -8,27 +7,18 @@ import android.view.ViewGroup;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
-import com.ebook.basebook.R;
-
 import androidx.annotation.NonNull;
+
+import com.ebook.basebook.R;
 
 public class CheckAddShelfPop extends PopupWindow {
     private final Context mContext;
     private final View view;
-
-    public interface OnItemClickListener {
-        void clickExit();
-
-        void clickAddShelf();
-    }
-
     private final OnItemClickListener itemClick;
     private final String bookName;
-
     private TextView tvBookName;
     private TextView tvExit;
     private TextView tvAddShelf;
-
     public CheckAddShelfPop(Context context, @NonNull String bookName, @NonNull OnItemClickListener itemClick) {
         super(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         mContext = context;
@@ -54,5 +44,11 @@ public class CheckAddShelfPop extends PopupWindow {
         });
         tvAddShelf = view.findViewById(R.id.tv_addshelf);
         tvAddShelf.setOnClickListener(v -> itemClick.clickAddShelf());
+    }
+
+    public interface OnItemClickListener {
+        void clickExit();
+
+        void clickAddShelf();
     }
 }

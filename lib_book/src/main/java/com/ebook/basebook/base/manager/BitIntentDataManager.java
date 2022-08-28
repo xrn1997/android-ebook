@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.base.manager;
 
 import java.util.HashMap;
@@ -9,6 +8,10 @@ public class BitIntentDataManager {
 
     private static BitIntentDataManager instance = null;
 
+    private BitIntentDataManager() {
+        bigData = new HashMap<>();
+    }
+
     public static BitIntentDataManager getInstance() {
         if (instance == null) {
             synchronized (BitIntentDataManager.class) {
@@ -18,10 +21,6 @@ public class BitIntentDataManager {
             }
         }
         return instance;
-    }
-
-    private BitIntentDataManager() {
-        bigData = new HashMap<>();
     }
 
     public Object getData(String key) {

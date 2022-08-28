@@ -11,7 +11,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-
 import com.ebook.basebook.R;
 
 import java.util.List;
@@ -41,10 +40,6 @@ public class BookContentView extends FrameLayout {
     private ContentSwitchView.LoadDataListener loadDataListener;
 
     private SetDataListener setDataListener;
-
-    public interface SetDataListener {
-        void setDataFinish(BookContentView bookContentView, int durChapterIndex, int chapterAll, int durPageIndex, int pageAll, int fromPageIndex);
-    }
 
     public BookContentView(Context context) {
         this(context, null);
@@ -154,13 +149,13 @@ public class BookContentView extends FrameLayout {
         return loadDataListener;
     }
 
+    public void setLoadDataListener(ContentSwitchView.LoadDataListener loadDataListener) {
+        this.loadDataListener = loadDataListener;
+    }
+
     public void setLoadDataListener(ContentSwitchView.LoadDataListener loadDataListener, SetDataListener setDataListener) {
         this.loadDataListener = loadDataListener;
         this.setDataListener = setDataListener;
-    }
-
-    public void setLoadDataListener(ContentSwitchView.LoadDataListener loadDataListener) {
-        this.loadDataListener = loadDataListener;
     }
 
     public void loadError() {
@@ -246,5 +241,9 @@ public class BookContentView extends FrameLayout {
     public void setTextKind(ReadBookControl readBookControl) {
         tvContent.setTextSize(readBookControl.getTextSize());
         tvContent.setLineSpacing(readBookControl.getTextExtra(), 1);
+    }
+
+    public interface SetDataListener {
+        void setDataFinish(BookContentView bookContentView, int durChapterIndex, int chapterAll, int durPageIndex, int pageAll, int fromPageIndex);
     }
 }

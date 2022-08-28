@@ -4,20 +4,17 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-
-import androidx.annotation.Nullable;
-
-import com.ebook.common.R;
-import com.ebook.common.util.DisplayUtil;
-import com.ebook.common.util.MultiMediaUtil;
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
-
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.ebook.common.R;
+import com.ebook.common.util.MultiMediaUtil;
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
 import java.util.List;
 
@@ -27,24 +24,19 @@ import me.nereo.multi_image_selector.MultiImageSelectorActivity;
 public class PhotoCutDialog extends BottomSheetDialogFragment implements View.OnClickListener {
 
     public static final String TAG = PhotoCutDialog.class.getSimpleName();
-    private OnPhotoClickLisener mOnClickLisener;
-    private String mPhotoPath;
     //请求截图
     private static final int REQUEST_CROP_PHOTO = 102;
+    private OnPhotoClickLisener mOnClickLisener;
+    private String mPhotoPath;
     // 1: 圆形 2: 正方形
     private int type = 1;
-
-    public void setOnClickLisener(OnPhotoClickLisener onPhotoClickLisener) {
-        mOnClickLisener = onPhotoClickLisener;
-    }
 
     public static PhotoCutDialog newInstance() {
         return new PhotoCutDialog();
     }
 
-    public interface OnPhotoClickLisener {
-        void onScreenPhotoClick(Uri uri);
-
+    public void setOnClickLisener(OnPhotoClickLisener onPhotoClickLisener) {
+        mOnClickLisener = onPhotoClickLisener;
     }
 
     @Override
@@ -127,5 +119,10 @@ public class PhotoCutDialog extends BottomSheetDialogFragment implements View.On
         intent.putExtra("type", type);
         intent.setData(uri);
         startActivityForResult(intent, REQUEST_CROP_PHOTO);
+    }
+
+    public interface OnPhotoClickLisener {
+        void onScreenPhotoClick(Uri uri);
+
     }
 }

@@ -15,12 +15,11 @@ import java.util.List;
 public class AppActivityManager {
 
     private static List<WeakReference<Activity>> activities;
+    private static volatile AppActivityManager instance;
 
     private AppActivityManager() {
         activities = new ArrayList<>();
     }
-
-    private static volatile AppActivityManager instance;
 
     public static AppActivityManager getInstance() {
         if (null == instance) {

@@ -3,12 +3,11 @@ package com.ebook.db.entity;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.annotation.NonNull;
+
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Generated;
 import org.greenrobot.greendao.annotation.Id;
-
-import androidx.annotation.NonNull;
-
 import org.greenrobot.greendao.annotation.Transient;
 
 import java.util.ArrayList;
@@ -21,30 +20,31 @@ import java.util.List;
 public class BookInfo implements Parcelable, Cloneable {
 
     @Transient
+    public static final Creator<BookInfo> CREATOR = new Creator<BookInfo>() {
+        @Override
+        public BookInfo createFromParcel(Parcel in) {
+            return new BookInfo(in);
+        }
+
+        @Override
+        public BookInfo[] newArray(int size) {
+            return new BookInfo[size];
+        }
+    };
+    @Transient
     private static final long REFRESH_DUR = 10 * 60 * 1000;
-
     private String name; //小说名
-
     private String tag;
-
     @Id
     private String noteUrl;  //如果是来源网站   则小说根地址 /如果是本地  则是小说本地MD5
-
     private String chapterUrl;  //章节目录地址
-
     @Transient
     private List<ChapterList> chapterlist = new ArrayList<>();    //章节列表
-
     private long finalRefreshData;  //章节最后更新时间
-
     private String coverUrl; //小说封面
-
     private String author;//作者
-
     private String introduce; //简介
-
     private String origin; //来源
-
     private String status;//状态，连载or完结
 
     protected BookInfo(Parcel in) {
@@ -77,23 +77,18 @@ public class BookInfo implements Parcelable, Cloneable {
         this.status = status;
     }
 
+
     @Generated(hash = 1952025412)
     public BookInfo() {
     }
 
+    public static long getRefreshDur() {
+        return REFRESH_DUR;
+    }
 
-    @Transient
-    public static final Creator<BookInfo> CREATOR = new Creator<BookInfo>() {
-        @Override
-        public BookInfo createFromParcel(Parcel in) {
-            return new BookInfo(in);
-        }
-
-        @Override
-        public BookInfo[] newArray(int size) {
-            return new BookInfo[size];
-        }
-    };
+    public static Creator<BookInfo> getCREATOR() {
+        return CREATOR;
+    }
 
     @Override
     public int describeContents() {
@@ -163,20 +158,12 @@ public class BookInfo implements Parcelable, Cloneable {
         this.finalRefreshData = finalRefreshData;
     }
 
-    public static long getRefreshDur() {
-        return REFRESH_DUR;
-    }
-
     public List<ChapterList> getChapterlist() {
         return chapterlist;
     }
 
     public void setChapterlist(List<ChapterList> chapterlist) {
         this.chapterlist = chapterlist;
-    }
-
-    public static Creator<BookInfo> getCREATOR() {
-        return CREATOR;
     }
 
     public String getCoverUrl() {

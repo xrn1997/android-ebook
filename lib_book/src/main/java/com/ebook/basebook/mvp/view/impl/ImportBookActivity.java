@@ -1,14 +1,10 @@
-
 package com.ebook.basebook.mvp.view.impl;
-
-import static com.blankj.utilcode.util.ActivityUtils.startActivity;
 
 import android.Manifest;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.Settings;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.animation.Animation;
@@ -19,15 +15,19 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.blankj.utilcode.util.ToastUtils;
 import com.ebook.basebook.R;
+import com.ebook.basebook.base.activity.BaseActivity;
 import com.ebook.basebook.mvp.presenter.IImportBookPresenter;
 import com.ebook.basebook.mvp.presenter.impl.ImportBookPresenterImpl;
 import com.ebook.basebook.mvp.view.IImportBookView;
 import com.ebook.basebook.mvp.view.adapter.ImportBookAdapter;
-
-import com.ebook.basebook.base.activity.BaseActivity;
 import com.ebook.basebook.view.modialog.MoProgressHUD;
 import com.ebook.common.event.RxBusTag;
 import com.hwangjr.rxbus.annotation.Subscribe;
@@ -39,12 +39,6 @@ import com.victor.loading.rotate.RotateLoading;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 public class ImportBookActivity extends BaseActivity<IImportBookPresenter> implements IImportBookView {
     private final String TAG = "ImportBookActivity";
@@ -64,6 +58,7 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
     private Animation animOut;
 
     private MoProgressHUD moProgressHUD;
+    private Boolean isExiting = false;
 
     @Override
     protected IImportBookPresenter initInjector() {
@@ -95,13 +90,13 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
                                     .setPositiveButton("确定", (dialog, which) -> {
                                         requestPermission.launch(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
                                     })
-                                    .setNegativeButton("取消",((dialog, which) -> {
+                                    .setNegativeButton("取消", ((dialog, which) -> {
                                         onBackPressed();
                                     }));
                             AlertDialog dialog = builder.create();
                             //点击dialog之外的空白处，dialog不能消失
                             dialog.setCanceledOnTouchOutside(false);
-                           dialog.show();
+                            dialog.show();
                         }
                     }
                 });
@@ -190,8 +185,6 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
     protected void firstRequest() {
         llContent.startAnimation(animIn);
     }
-
-    private Boolean isExiting = false;
 
     @Override
     public void finish() {

@@ -6,11 +6,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import com.ebook.common.R;
-
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
-
 import androidx.annotation.Nullable;
+
+import com.ebook.common.R;
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
 
 public class DeleteDialog extends BottomSheetDialogFragment implements View.OnClickListener {
@@ -18,17 +17,12 @@ public class DeleteDialog extends BottomSheetDialogFragment implements View.OnCl
     public static final String TAG = DeleteDialog.class.getSimpleName();
     private OnDeleteClickListener mOnClickListener;
 
-    public void setOnClickListener(OnDeleteClickListener onDeleteClickListener) {
-        mOnClickListener = onDeleteClickListener;
-    }
-
     public static DeleteDialog newInstance() {
         return new DeleteDialog();
     }
 
-    public interface OnDeleteClickListener {
-        void onItemClick();
-
+    public void setOnClickListener(OnDeleteClickListener onDeleteClickListener) {
+        mOnClickListener = onDeleteClickListener;
     }
 
     @Override
@@ -60,6 +54,11 @@ public class DeleteDialog extends BottomSheetDialogFragment implements View.OnCl
         } else if (i == R.id.btn_cancel) {
             dismiss();
         }
+    }
+
+    public interface OnDeleteClickListener {
+        void onItemClick();
+
     }
 
 }

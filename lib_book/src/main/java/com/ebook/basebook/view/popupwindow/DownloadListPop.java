@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.view.popupwindow;
 
 import android.content.Context;
@@ -12,10 +11,9 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-
 import com.ebook.basebook.R;
-import com.ebook.common.event.RxBusTag;
 import com.ebook.basebook.observer.SimpleObserver;
+import com.ebook.common.event.RxBusTag;
 import com.ebook.db.GreenDaoManager;
 import com.ebook.db.entity.BookShelf;
 import com.ebook.db.entity.BookShelfDao;
@@ -29,7 +27,6 @@ import com.hwangjr.rxbus.thread.EventThread;
 import java.util.List;
 
 import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
@@ -88,26 +85,26 @@ public class DownloadListPop extends PopupWindow {
 
     private void initWait() {
         Observable.create((ObservableOnSubscribe<DownloadChapter>) e -> {
-            List<BookShelf> bookShelfList = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().orderDesc(BookShelfDao.Properties.FinalDate).list();
-            if (bookShelfList != null && bookShelfList.size() > 0) {
-                for (BookShelf bookItem : bookShelfList) {
-                    if (!bookItem.getTag().equals(BookShelf.LOCAL_TAG)) {
-                        List<DownloadChapter> downloadChapterList = GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().queryBuilder().where(DownloadChapterDao.Properties.NoteUrl.eq(bookItem.getNoteUrl())).orderAsc(DownloadChapterDao.Properties.DurChapterIndex).limit(1).list();
-                        if (downloadChapterList != null && downloadChapterList.size() > 0) {
-                            e.onNext(downloadChapterList.get(0));
-                            e.onComplete();
-                            return;
+                    List<BookShelf> bookShelfList = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().orderDesc(BookShelfDao.Properties.FinalDate).list();
+                    if (bookShelfList != null && bookShelfList.size() > 0) {
+                        for (BookShelf bookItem : bookShelfList) {
+                            if (!bookItem.getTag().equals(BookShelf.LOCAL_TAG)) {
+                                List<DownloadChapter> downloadChapterList = GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().queryBuilder().where(DownloadChapterDao.Properties.NoteUrl.eq(bookItem.getNoteUrl())).orderAsc(DownloadChapterDao.Properties.DurChapterIndex).limit(1).list();
+                                if (downloadChapterList != null && downloadChapterList.size() > 0) {
+                                    e.onNext(downloadChapterList.get(0));
+                                    e.onComplete();
+                                    return;
+                                }
+                            }
                         }
+                        GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().deleteAll();
+                        e.onNext(new DownloadChapter());
+                    } else {
+                        GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().deleteAll();
+                        e.onNext(new DownloadChapter());
                     }
-                }
-                GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().deleteAll();
-                e.onNext(new DownloadChapter());
-            } else {
-                GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().deleteAll();
-                e.onNext(new DownloadChapter());
-            }
-            e.onComplete();
-        })
+                    e.onComplete();
+                })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<>() {

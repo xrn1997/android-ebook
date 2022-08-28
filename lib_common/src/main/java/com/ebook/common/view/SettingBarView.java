@@ -2,11 +2,6 @@ package com.ebook.common.view;
 
 import android.content.Context;
 import android.content.res.TypedArray;
-
-import androidx.databinding.BindingAdapter;
-import androidx.databinding.InverseBindingAdapter;
-import androidx.databinding.InverseBindingListener;
-
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -18,6 +13,10 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import androidx.databinding.BindingAdapter;
+import androidx.databinding.InverseBindingAdapter;
+import androidx.databinding.InverseBindingListener;
 
 import com.ebook.common.R;
 import com.ebook.common.binding.command.BindingCommand;
@@ -33,22 +32,6 @@ public class SettingBarView extends RelativeLayout {
     private OnClickRightImgListener mOnClickRightImgListener;
     private boolean isEdit = false;//是否需要编辑
     private OnViewChangeListener mOnViewChangeListener;
-
-    public interface OnClickSettingBarViewListener {
-        void onClick();
-    }
-
-    public interface OnClickRightImgListener {
-        void onClick();
-    }
-
-    public void setOnClickRightImgListener(OnClickRightImgListener onClickRightImgListener) {
-        mOnClickRightImgListener = onClickRightImgListener;
-    }
-
-    public void setOnClickSettingBarViewListener(OnClickSettingBarViewListener onClickSettingBarViewListener) {
-        mOnClickSettingBarViewListener = onClickSettingBarViewListener;
-    }
 
     public SettingBarView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -117,19 +100,6 @@ public class SettingBarView extends RelativeLayout {
         });
     }
 
-    public void setContent(String value) {
-        if (txtSetContent != null && !TextUtils.isEmpty(value)) {
-            txtSetContent.setText(value);
-        }
-    }
-
-    public String getContent() {
-        if (txtSetContent != null) {
-            return txtSetContent.getText().toString();
-        }
-        return null;
-    }
-
     @BindingAdapter(value = "content", requireAll = false)
     public static void setContent(SettingBarView view, String value) {
         if (!TextUtils.isEmpty(view.getContent()) && view.getContent().equals(value)) {
@@ -173,8 +143,25 @@ public class SettingBarView extends RelativeLayout {
         });
     }
 
-    private interface OnViewChangeListener {
-        void onChange();
+    public void setOnClickRightImgListener(OnClickRightImgListener onClickRightImgListener) {
+        mOnClickRightImgListener = onClickRightImgListener;
+    }
+
+    public void setOnClickSettingBarViewListener(OnClickSettingBarViewListener onClickSettingBarViewListener) {
+        mOnClickSettingBarViewListener = onClickSettingBarViewListener;
+    }
+
+    public String getContent() {
+        if (txtSetContent != null) {
+            return txtSetContent.getText().toString();
+        }
+        return null;
+    }
+
+    public void setContent(String value) {
+        if (txtSetContent != null && !TextUtils.isEmpty(value)) {
+            txtSetContent.setText(value);
+        }
     }
 
     private void setViewChangeListener(OnViewChangeListener listener) {
@@ -202,6 +189,18 @@ public class SettingBarView extends RelativeLayout {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         return layoutSettingBar.onTouchEvent(event);
+    }
+
+    public interface OnClickSettingBarViewListener {
+        void onClick();
+    }
+
+    public interface OnClickRightImgListener {
+        void onClick();
+    }
+
+    private interface OnViewChangeListener {
+        void onChange();
     }
 
 }

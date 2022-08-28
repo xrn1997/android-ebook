@@ -5,28 +5,28 @@ import android.os.Parcelable;
 
 public class SearchBook implements Parcelable {
 
+    public static final Creator<SearchBook> CREATOR = new Creator<SearchBook>() {
+        @Override
+        public SearchBook createFromParcel(Parcel in) {
+            return new SearchBook(in);
+        }
+
+        @Override
+        public SearchBook[] newArray(int size) {
+            return new SearchBook[size];
+        }
+    };
     private String noteUrl;
-
     private String coverUrl;
-
     private String name;
-
     private String author;
-
     private long words;
-
     private String state;
-
     private String lastChapter;
-
     private Boolean isAdd = false;
-
     private String tag;
-
     private String kind;
-
     private String origin;
-
     private String desc;
 
     public SearchBook() {
@@ -68,18 +68,6 @@ public class SearchBook implements Parcelable {
     public int describeContents() {
         return 0;
     }
-
-    public static final Creator<SearchBook> CREATOR = new Creator<SearchBook>() {
-        @Override
-        public SearchBook createFromParcel(Parcel in) {
-            return new SearchBook(in);
-        }
-
-        @Override
-        public SearchBook[] newArray(int size) {
-            return new SearchBook[size];
-        }
-    };
 
     public String getNoteUrl() {
         return noteUrl;

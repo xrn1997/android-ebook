@@ -1,16 +1,15 @@
-
 package com.ebook.find.mvp.view.impl;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.ebook.basebook.base.activity.BaseActivity;
 import com.ebook.basebook.mvp.presenter.impl.BookDetailPresenterImpl;
@@ -26,8 +25,6 @@ import com.ebook.find.mvp.view.IChoiceBookView;
 import com.ebook.find.mvp.view.adapter.ChoiceBookAdapter;
 
 import java.util.List;
-
-import androidx.recyclerview.widget.LinearLayoutManager;
 
 public class ChoiceBookActivity extends BaseActivity<IChoiceBookPresenter> implements IChoiceBookView {
     private ImageButton ivReturn;

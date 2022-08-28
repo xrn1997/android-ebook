@@ -1,17 +1,16 @@
 package com.ebook.common.adapter;
 
 import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 
+import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.databinding.DataBindingUtil;
 import androidx.databinding.ObservableArrayList;
 import androidx.databinding.ViewDataBinding;
-import androidx.annotation.LayoutRes;
 import androidx.recyclerview.widget.RecyclerView;
-
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 
 
 public abstract class BaseBindAdapter<T, B extends ViewDataBinding> extends RecyclerView.Adapter {
@@ -43,13 +42,6 @@ public abstract class BaseBindAdapter<T, B extends ViewDataBinding> extends Recy
         this.onBindItem(binding, this.items.get(position), position);
     }
 
-
-    public static class BaseBindingViewHolder extends RecyclerView.ViewHolder {
-        BaseBindingViewHolder(View itemView) {
-            super(itemView);
-        }
-    }
-
     @LayoutRes
     protected abstract int getLayoutItemId(int viewType);
 
@@ -69,6 +61,12 @@ public abstract class BaseBindAdapter<T, B extends ViewDataBinding> extends Recy
 
     public interface OnItemLongClickListener<E> {
         boolean onItemLongClick(E e, int postion);
+    }
+
+    public static class BaseBindingViewHolder extends RecyclerView.ViewHolder {
+        BaseBindingViewHolder(View itemView) {
+            super(itemView);
+        }
     }
 
 }

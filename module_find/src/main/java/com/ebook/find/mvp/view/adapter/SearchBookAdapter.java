@@ -1,4 +1,3 @@
-
 package com.ebook.find.mvp.view.adapter;
 
 import android.view.LayoutInflater;
@@ -8,29 +7,20 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-
 import com.ebook.basebook.view.refreshview.RefreshRecyclerViewAdapter;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.find.R;
-
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-import androidx.recyclerview.widget.RecyclerView;
-
 public class SearchBookAdapter extends RefreshRecyclerViewAdapter {
     private List<SearchBook> searchBooks;
-
-    public interface OnItemClickListener {
-        void clickAddShelf(View clickView, int position, SearchBook searchBook);
-
-        void clickItem(View animView, int position, SearchBook searchBook);
-    }
-
     private OnItemClickListener itemClickListener;
 
     public SearchBookAdapter() {
@@ -121,33 +111,6 @@ public class SearchBookAdapter extends RefreshRecyclerViewAdapter {
         return searchBooks.size();
     }
 
-    static class Viewholder extends RecyclerView.ViewHolder {
-        FrameLayout flContent;
-        ImageView ivCover;
-        TextView tvName;
-        TextView tvAuthor;
-        TextView tvState;
-        TextView tvWords;
-        TextView tvKind;
-        TextView tvLastest;
-        TextView tvAddShelf;
-        TextView tvOrigin;
-
-        public Viewholder(View itemView) {
-            super(itemView);
-            flContent = (FrameLayout) itemView.findViewById(R.id.fl_content);
-            ivCover = (ImageView) itemView.findViewById(R.id.iv_cover);
-            tvName = (TextView) itemView.findViewById(R.id.tv_name);
-            tvAuthor = (TextView) itemView.findViewById(R.id.tv_author);
-            tvState = (TextView) itemView.findViewById(R.id.tv_state);
-            tvWords = (TextView) itemView.findViewById(R.id.tv_words);
-            tvLastest = (TextView) itemView.findViewById(R.id.tv_lastest);
-            tvAddShelf = (TextView) itemView.findViewById(R.id.tv_addshelf);
-            tvKind = (TextView) itemView.findViewById(R.id.tv_kind);
-            tvOrigin = (TextView) itemView.findViewById(R.id.tv_origin);
-        }
-    }
-
     public void setItemClickListener(OnItemClickListener itemClickListener) {
         this.itemClickListener = itemClickListener;
     }
@@ -174,5 +137,38 @@ public class SearchBookAdapter extends RefreshRecyclerViewAdapter {
 
     public void setSearchBooks(List<SearchBook> searchBooks) {
         this.searchBooks = searchBooks;
+    }
+
+    public interface OnItemClickListener {
+        void clickAddShelf(View clickView, int position, SearchBook searchBook);
+
+        void clickItem(View animView, int position, SearchBook searchBook);
+    }
+
+    static class Viewholder extends RecyclerView.ViewHolder {
+        FrameLayout flContent;
+        ImageView ivCover;
+        TextView tvName;
+        TextView tvAuthor;
+        TextView tvState;
+        TextView tvWords;
+        TextView tvKind;
+        TextView tvLastest;
+        TextView tvAddShelf;
+        TextView tvOrigin;
+
+        public Viewholder(View itemView) {
+            super(itemView);
+            flContent = (FrameLayout) itemView.findViewById(R.id.fl_content);
+            ivCover = (ImageView) itemView.findViewById(R.id.iv_cover);
+            tvName = (TextView) itemView.findViewById(R.id.tv_name);
+            tvAuthor = (TextView) itemView.findViewById(R.id.tv_author);
+            tvState = (TextView) itemView.findViewById(R.id.tv_state);
+            tvWords = (TextView) itemView.findViewById(R.id.tv_words);
+            tvLastest = (TextView) itemView.findViewById(R.id.tv_lastest);
+            tvAddShelf = (TextView) itemView.findViewById(R.id.tv_addshelf);
+            tvKind = (TextView) itemView.findViewById(R.id.tv_kind);
+            tvOrigin = (TextView) itemView.findViewById(R.id.tv_origin);
+        }
     }
 }

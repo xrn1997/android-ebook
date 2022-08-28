@@ -6,7 +6,6 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 
-
 import com.ebook.basebook.R;
 
 import java.util.ArrayList;

@@ -10,8 +10,8 @@ import java.util.Set;
 
 public abstract class TagAdapter<T> {
     protected List<T> mTagDatas;
-    private OnDataChangedListener mOnDataChangedListener;
     protected HashSet<Integer> mCheckedPosList = new HashSet<Integer>();
+    private OnDataChangedListener mOnDataChangedListener;
 
     public TagAdapter() {
 
@@ -23,10 +23,6 @@ public abstract class TagAdapter<T> {
 
     public TagAdapter(T[] datas) {
         mTagDatas = new ArrayList<T>(Arrays.asList(datas));
-    }
-
-    interface OnDataChangedListener {
-        void onChanged();
     }
 
     void setOnDataChangedListener(OnDataChangedListener listener) {
@@ -59,7 +55,6 @@ public abstract class TagAdapter<T> {
         return mCheckedPosList;
     }
 
-
     public int getCount() {
         return mTagDatas == null ? 0 : mTagDatas.size();
     }
@@ -76,6 +71,10 @@ public abstract class TagAdapter<T> {
 
     public boolean setSelected(int position, T t) {
         return false;
+    }
+
+    interface OnDataChangedListener {
+        void onChanged();
     }
 
 

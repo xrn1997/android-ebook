@@ -1,8 +1,8 @@
 package com.ebook.common.mvvm;
 
-import androidx.lifecycle.Observer;
-import androidx.databinding.ViewDataBinding;
 import androidx.annotation.Nullable;
+import androidx.databinding.ViewDataBinding;
+import androidx.lifecycle.Observer;
 
 import com.ebook.common.mvvm.viewmodel.BaseRefreshViewModel;
 import com.refresh.lib.DaisyRefreshLayout;

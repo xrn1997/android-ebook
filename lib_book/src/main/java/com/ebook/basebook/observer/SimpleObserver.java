@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.observer;
 
 import io.reactivex.Observer;

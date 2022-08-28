@@ -3,23 +3,20 @@ package com.ebook.me;
 
 import android.os.Bundle;
 
+import androidx.lifecycle.ViewModelProvider;
+
 import com.alibaba.android.arouter.facade.annotation.Route;
 import com.alibaba.android.arouter.launcher.ARouter;
-import com.ebook.api.entity.Comment;
-import com.ebook.common.adapter.BaseBindAdapter;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
 import com.ebook.common.mvvm.BaseMvvmRefreshActivity;
 import com.ebook.common.util.ObservableListUtil;
+import com.ebook.common.view.DeleteDialog;
 import com.ebook.me.adapter.CommentListAdapter;
 import com.ebook.me.databinding.ActivityCommentBinding;
 import com.ebook.me.mvvm.factory.MeViewModelFactory;
 import com.ebook.me.mvvm.viewmodel.CommentViewModel;
-import com.ebook.common.view.DeleteDialog;
 import com.refresh.lib.DaisyRefreshLayout;
-
-
-import androidx.lifecycle.ViewModelProvider;
 
 @Route(path = KeyCode.Me.Comment_PATH)
 public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBinding, CommentViewModel> {

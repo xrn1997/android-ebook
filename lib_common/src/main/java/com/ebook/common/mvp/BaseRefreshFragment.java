@@ -6,7 +6,6 @@ import com.ebook.common.mvp.model.BaseModel;
 import com.ebook.common.mvp.presenter.BaseRefreshPresenter;
 import com.ebook.common.mvp.view.BaseRefreshView;
 import com.ebook.common.util.log.KLog;
-import com.refresh.lib.BaseRefreshLayout;
 import com.refresh.lib.DaisyRefreshLayout;
 
 /**

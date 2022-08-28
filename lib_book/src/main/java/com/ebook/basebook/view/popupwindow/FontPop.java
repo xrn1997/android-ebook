@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.view.popupwindow;
 
 import android.content.Context;
@@ -10,11 +9,11 @@ import android.widget.FrameLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 
 import com.ebook.basebook.R;
 import com.ebook.basebook.view.ReadBookControl;
 
-import androidx.annotation.NonNull;
 import de.hdodenhof.circleimageview.CircleImageView;
 
 public class FontPop extends PopupWindow {
@@ -30,13 +29,6 @@ public class FontPop extends PopupWindow {
     private CircleImageView civBgBlack;
 
     private ReadBookControl readBookControl;
-
-    public interface OnChangeProListener {
-        public void textChange(int index);
-
-        public void bgChange(int index);
-    }
-
     private OnChangeProListener changeProListener;
 
     public FontPop(Context context, @NonNull OnChangeProListener changeProListener) {
@@ -147,5 +139,11 @@ public class FontPop extends PopupWindow {
 
     private void initData() {
         readBookControl = ReadBookControl.getInstance();
+    }
+
+    public interface OnChangeProListener {
+        public void textChange(int index);
+
+        public void bgChange(int index);
     }
 }

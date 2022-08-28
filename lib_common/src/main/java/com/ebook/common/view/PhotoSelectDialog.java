@@ -3,21 +3,19 @@ package com.ebook.common.view;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-
-import androidx.annotation.Nullable;
-
-import com.ebook.common.R;
-import com.ebook.common.util.DisplayUtil;
-import com.ebook.common.util.MultiMediaUtil;
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
-
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.ebook.common.R;
+import com.ebook.common.util.DisplayUtil;
+import com.ebook.common.util.MultiMediaUtil;
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
 import java.util.List;
 
@@ -30,18 +28,12 @@ public class PhotoSelectDialog extends BottomSheetDialogFragment implements View
     private OnPhotoClickListener mOnClickListener;
     private String mPhotoPath;
 
-    public void setOnClickListener(OnPhotoClickListener onPhotoClickLisener) {
-        mOnClickListener = onPhotoClickLisener;
-    }
-
     public static PhotoSelectDialog newInstance() {
         return new PhotoSelectDialog();
     }
 
-    public interface OnPhotoClickListener {
-        void onTakePhotoClick(String path);
-
-        void onSelectPhotoClick(List<String> list);
+    public void setOnClickListener(OnPhotoClickListener onPhotoClickLisener) {
+        mOnClickListener = onPhotoClickLisener;
     }
 
     @Override
@@ -101,5 +93,11 @@ public class PhotoSelectDialog extends BottomSheetDialogFragment implements View
                 dismiss();
                 break;
         }
+    }
+
+    public interface OnPhotoClickListener {
+        void onTakePhotoClick(String path);
+
+        void onSelectPhotoClick(List<String> list);
     }
 }

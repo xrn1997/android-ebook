@@ -1,6 +1,5 @@
 package com.ebook.me;
 
-import android.view.View;
 import android.widget.Button;
 
 import com.alibaba.android.arouter.facade.annotation.Route;

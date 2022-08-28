@@ -3,19 +3,22 @@ package com.ebook.find.mvvm.factory;
 import android.annotation.SuppressLint;
 import android.app.Application;
 
-
-import com.ebook.find.mvvm.model.LibraryModel;
-import com.ebook.find.mvvm.viewmodel.LibraryViewModel;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.ebook.find.mvvm.model.LibraryModel;
+import com.ebook.find.mvvm.viewmodel.LibraryViewModel;
+
 public class FindViewModelFactory extends ViewModelProvider.NewInstanceFactory {
     @SuppressLint("StaticFieldLeak")
     private static volatile FindViewModelFactory INSTANCE;
     private final Application mApplication;
+
+    private FindViewModelFactory(Application application) {
+        this.mApplication = application;
+    }
 
     public static FindViewModelFactory getInstance(Application application) {
         if (INSTANCE == null) {
@@ -26,10 +29,6 @@ public class FindViewModelFactory extends ViewModelProvider.NewInstanceFactory {
             }
         }
         return INSTANCE;
-    }
-
-    private FindViewModelFactory(Application application) {
-        this.mApplication = application;
     }
 
     @VisibleForTesting

@@ -1,5 +1,9 @@
 package com.ebook.common.util;
 
+import static com.ebook.common.util.NetUtil.NetType.NET_4G;
+import static com.ebook.common.util.NetUtil.NetType.NO_NET;
+import static com.ebook.common.util.NetUtil.NetType.WIFI;
+
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -7,10 +11,6 @@ import android.net.NetworkInfo;
 import androidx.annotation.NonNull;
 
 import com.ebook.common.BaseApplication;
-
-import static com.ebook.common.util.NetUtil.NetType.NET_4G;
-import static com.ebook.common.util.NetUtil.NetType.NO_NET;
-import static com.ebook.common.util.NetUtil.NetType.WIFI;
 
 
 /**

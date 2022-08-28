@@ -5,8 +5,8 @@ import android.util.AttributeSet;
 import android.view.ViewGroup;
 import android.widget.TableLayout;
 
-import com.ebook.basebook.view.ImmerseView.ImmerseView;
 import com.ebook.basebook.view.ImmerseView.ImmerseManager;
+import com.ebook.basebook.view.ImmerseView.ImmerseView;
 import com.ebook.basebook.view.ImmerseView.MeasureHeightResult;
 
 /**

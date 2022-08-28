@@ -5,24 +5,25 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 
-import com.ebook.book.BR;
-import com.ebook.book.R;
-import com.ebook.book.adapter.BookListAdapter;
-import com.ebook.book.databinding.FragmentBookMainBinding;
+import androidx.lifecycle.ViewModelProvider;
+
+import com.ebook.basebook.base.manager.BitIntentDataManager;
 import com.ebook.basebook.mvp.presenter.impl.BookDetailPresenterImpl;
 import com.ebook.basebook.mvp.presenter.impl.ReadBookPresenterImpl;
 import com.ebook.basebook.mvp.view.impl.BookDetailActivity;
 import com.ebook.basebook.mvp.view.impl.ImportBookActivity;
 import com.ebook.basebook.mvp.view.impl.ReadBookActivity;
+import com.ebook.basebook.view.popupwindow.DownloadListPop;
+import com.ebook.book.BR;
+import com.ebook.book.R;
+import com.ebook.book.adapter.BookListAdapter;
+import com.ebook.book.databinding.FragmentBookMainBinding;
 import com.ebook.book.mvvm.factory.BookViewModelFactory;
 import com.ebook.book.mvvm.viewmodel.BookListViewModel;
 import com.ebook.book.service.DownloadService;
-import com.ebook.common.adapter.BaseBindAdapter;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.basebook.base.manager.BitIntentDataManager;
 import com.ebook.common.mvvm.BaseMvvmRefreshFragment;
 import com.ebook.common.util.ObservableListUtil;
-import com.ebook.basebook.view.popupwindow.DownloadListPop;
 import com.ebook.db.entity.BookShelf;
 import com.ebook.db.entity.DownloadChapterList;
 import com.hwangjr.rxbus.RxBus;
@@ -33,8 +34,6 @@ import com.refresh.lib.DaisyRefreshLayout;
 
 import java.util.Timer;
 import java.util.TimerTask;
-
-import androidx.lifecycle.ViewModelProvider;
 
 public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBinding, BookListViewModel> {
     private BookListAdapter mBookListAdatper;

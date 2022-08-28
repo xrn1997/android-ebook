@@ -1,9 +1,13 @@
 package com.ebook.find.adapter;
 
+import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
+import static com.blankj.utilcode.util.ActivityUtils.startActivity;
+
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
-import android.view.View;
+
+import androidx.databinding.ObservableArrayList;
 
 import com.ebook.basebook.mvp.presenter.impl.BookDetailPresenterImpl;
 import com.ebook.basebook.mvp.view.impl.BookDetailActivity;
@@ -14,13 +18,6 @@ import com.ebook.db.entity.SearchBook;
 import com.ebook.find.R;
 import com.ebook.find.databinding.ViewLibraryKindbookBinding;
 import com.ebook.find.mvp.view.impl.ChoiceBookActivity;
-
-import androidx.databinding.ObservableArrayList;
-import androidx.recyclerview.widget.LinearLayoutManager;
-
-import static android.view.View.GONE;
-import static android.view.View.VISIBLE;
-import static com.blankj.utilcode.util.ActivityUtils.startActivity;
 
 
 public class LibraryBookListAdapter extends BaseBindAdapter<LibraryKindBookList, ViewLibraryKindbookBinding> {

@@ -3,6 +3,9 @@ package com.ebook.main;
 
 import android.view.KeyEvent;
 
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+
 import com.alibaba.android.arouter.facade.annotation.Autowired;
 import com.ebook.common.mvvm.BaseActivity;
 import com.ebook.common.provider.IBookProvider;
@@ -11,9 +14,6 @@ import com.ebook.common.provider.IMeProvider;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.main.entity.MainChannel;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentTransaction;
 
 
 public class MainActivity extends BaseActivity {
@@ -30,6 +30,7 @@ public class MainActivity extends BaseActivity {
     private Fragment mFindFragment;
     private Fragment mMeFragment;
     private Fragment mCurrFragment;
+    private long exitTime = 0;
 
     @Override
     public int onBindLayout() {
@@ -105,8 +106,6 @@ public class MainActivity extends BaseActivity {
         }
         return super.onKeyDown(keyCode, event);
     }
-
-    private long exitTime = 0;
 
     public void exit() {
         if ((System.currentTimeMillis() - exitTime) > 2000) {

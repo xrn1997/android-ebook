@@ -2,13 +2,14 @@ package com.ebook.book.mvvm.viewmodel;
 
 import android.app.Application;
 
+import androidx.annotation.NonNull;
+
 import com.ebook.book.mvvm.model.BookListModel;
 import com.ebook.common.mvvm.viewmodel.BaseRefreshViewModel;
 import com.ebook.db.entity.BookShelf;
 
 import java.util.List;
 
-import androidx.annotation.NonNull;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 

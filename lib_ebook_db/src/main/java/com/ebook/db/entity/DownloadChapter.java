@@ -6,22 +6,27 @@ import android.os.Parcelable;
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Generated;
 import org.greenrobot.greendao.annotation.Id;
-import org.greenrobot.greendao.annotation.Transient;
 
 @Entity
 public class DownloadChapter implements Parcelable {
-    private String noteUrl;
+    public static final Creator<DownloadChapter> CREATOR = new Creator<>() {
+        @Override
+        public DownloadChapter createFromParcel(Parcel in) {
+            return new DownloadChapter(in);
+        }
 
+        @Override
+        public DownloadChapter[] newArray(int size) {
+            return new DownloadChapter[size];
+        }
+    };
+    private String noteUrl;
     private int durChapterIndex;  //当前章节数
     @Id
     private String durChapterUrl;  //当前章节对应的文章地址
-
     private String durChapterName;  //当前章节名称
-
     private String tag;
-
     private String bookName;
-
     private String coverUrl; //小说封面
 
     protected DownloadChapter(Parcel in) {
@@ -121,16 +126,4 @@ public class DownloadChapter implements Parcelable {
     public void setCoverUrl(String coverUrl) {
         this.coverUrl = coverUrl;
     }
-
-    public static final Creator<DownloadChapter> CREATOR = new Creator<>() {
-        @Override
-        public DownloadChapter createFromParcel(Parcel in) {
-            return new DownloadChapter(in);
-        }
-
-        @Override
-        public DownloadChapter[] newArray(int size) {
-            return new DownloadChapter[size];
-        }
-    };
 }

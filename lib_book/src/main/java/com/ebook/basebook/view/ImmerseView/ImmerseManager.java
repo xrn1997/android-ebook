@@ -8,10 +8,10 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 
+import androidx.annotation.NonNull;
+
 import com.ebook.basebook.R;
 import com.ebook.common.util.StatusBarUtils;
-
-import androidx.annotation.NonNull;
 
 /**
  * 类描述：沉浸布局管理器

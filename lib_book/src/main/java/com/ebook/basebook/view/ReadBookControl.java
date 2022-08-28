@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.view;
 
 import android.graphics.Color;
@@ -18,32 +17,16 @@ public class ReadBookControl {
 
     private static List<Map<String, Integer>> textKind;
     private static List<Map<String, Integer>> textDrawable;
-
+    private static ReadBookControl readBookControl;
     private int textSize;
     private int textExtra;
     private int textColor;
     private int textBackground;
-
     private int textKindIndex = DEFAULT_TEXT;
     private int textDrawableIndex = DEFAULT_BG;
-
     private Boolean canClickTurn = true;
     private Boolean canKeyTurn = true;
-
     private SPUtils preference;
-
-    private static ReadBookControl readBookControl;
-
-    public static ReadBookControl getInstance() {
-        if (readBookControl == null) {
-            synchronized (ReadBookControl.class) {
-                if (readBookControl == null) {
-                    readBookControl = new ReadBookControl();
-                }
-            }
-        }
-        return readBookControl;
-    }
 
     private ReadBookControl() {
         if (null == textKind) {
@@ -122,6 +105,25 @@ public class ReadBookControl {
         this.canKeyTurn = preference.getBoolean("canClickTurn", true);
     }
 
+    public static ReadBookControl getInstance() {
+        if (readBookControl == null) {
+            synchronized (ReadBookControl.class) {
+                if (readBookControl == null) {
+                    readBookControl = new ReadBookControl();
+                }
+            }
+        }
+        return readBookControl;
+    }
+
+    public static List<Map<String, Integer>> getTextKind() {
+        return textKind;
+    }
+
+    public static List<Map<String, Integer>> getTextDrawable() {
+        return textDrawable;
+    }
+
     public int getTextSize() {
         return textSize;
     }
@@ -158,14 +160,6 @@ public class ReadBookControl {
         preference.put("textDrawableIndex", textDrawableIndex);
         this.textColor = textDrawable.get(textDrawableIndex).get("textColor");
         this.textBackground = textDrawable.get(textDrawableIndex).get("textBackground");
-    }
-
-    public static List<Map<String, Integer>> getTextKind() {
-        return textKind;
-    }
-
-    public static List<Map<String, Integer>> getTextDrawable() {
-        return textDrawable;
     }
 
     public Boolean getCanKeyTurn() {

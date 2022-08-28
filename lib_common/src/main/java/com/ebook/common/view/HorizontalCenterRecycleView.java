@@ -1,16 +1,14 @@
 package com.ebook.common.view;
 
 import android.content.Context;
+import android.util.AttributeSet;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Scroller;
 
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import android.util.AttributeSet;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
-import android.widget.Scroller;
 
 /**
  * Description: <横向中心子View定位的RecycleView><br>
@@ -285,11 +283,40 @@ public class HorizontalCenterRecycleView extends RecyclerView {
         }
     }
 
+    public void setOnSelectedPositionChangedListener(OnSelectedPositionChangedListener listener) {
+        this.listener = listener;
+    }
+
+
+    public interface IAutoLocateHorizontalView {
+        /**
+         * 获取item的根布局
+         */
+        View getItemView();
+
+        /**
+         * 当item被选中时会触发这个回调，可以修改被选中时的样式
+         *
+         * @param isSelected 是否被选中
+         * @param pos        当前view的位置
+         * @param holder
+         * @param itemWidth  当前整个item的宽度
+         */
+        void onViewSelected(boolean isSelected, int pos, ViewHolder holder, int itemWidth);
+    }
+
+    /***
+     * 选中位置改变时的监听
+     */
+    public interface OnSelectedPositionChangedListener {
+        void selectedPositionChanged(int pos);
+    }
+
     class WrapperAdapter extends RecyclerView.Adapter {
+        private static final int HEADER_FOOTER_TYPE = -1;
         private Context context;
         private RecyclerView.Adapter adapter;
         private int itemCount;
-        private static final int HEADER_FOOTER_TYPE = -1;
         private View itemView;
         /**
          * 头部或尾部的宽度
@@ -385,35 +412,6 @@ public class HorizontalCenterRecycleView extends RecyclerView {
         }
 
 
-    }
-
-
-    public interface IAutoLocateHorizontalView {
-        /**
-         * 获取item的根布局
-         */
-        View getItemView();
-
-        /**
-         * 当item被选中时会触发这个回调，可以修改被选中时的样式
-         *
-         * @param isSelected 是否被选中
-         * @param pos        当前view的位置
-         * @param holder
-         * @param itemWidth  当前整个item的宽度
-         */
-        void onViewSelected(boolean isSelected, int pos, ViewHolder holder, int itemWidth);
-    }
-
-    /***
-     * 选中位置改变时的监听
-     */
-    public interface OnSelectedPositionChangedListener {
-        void selectedPositionChanged(int pos);
-    }
-
-    public void setOnSelectedPositionChangedListener(OnSelectedPositionChangedListener listener) {
-        this.listener = listener;
     }
 
 }

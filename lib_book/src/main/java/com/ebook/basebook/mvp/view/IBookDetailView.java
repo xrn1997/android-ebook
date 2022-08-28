@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.mvp.view;
 
 import com.ebook.basebook.base.IView;

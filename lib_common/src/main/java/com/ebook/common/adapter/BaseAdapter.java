@@ -1,13 +1,12 @@
 package com.ebook.common.adapter;
 
 import android.content.Context;
-
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -160,6 +159,12 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         return super.getItemViewType(position);
     }
 
+    protected abstract int onBindLayout();
+
+    protected abstract VH onCreateHolder(View view);
+
+    protected abstract void onBindData(VH holder, E e, int position);
+
     public interface OnItemClickListener<E> {
         void onItemClick(E e, int position);
     }
@@ -167,10 +172,4 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     public interface OnItemLongClickListener<E> {
         boolean onItemLongClick(E e, int postion);
     }
-
-    protected abstract int onBindLayout();
-
-    protected abstract VH onCreateHolder(View view);
-
-    protected abstract void onBindData(VH holder, E e, int position);
 }

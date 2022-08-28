@@ -1,17 +1,13 @@
 package com.ebook.common.mvvm;
 
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModelProvider.Factory;
-
 import android.content.Intent;
+import android.os.Bundle;
 
 import androidx.databinding.DataBindingUtil;
 import androidx.databinding.ViewDataBinding;
-
-import android.os.Bundle;
-
-import androidx.annotation.Nullable;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewModelProvider.Factory;
 
 import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.log.KLog;

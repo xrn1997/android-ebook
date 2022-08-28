@@ -7,7 +7,6 @@ import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
@@ -19,14 +18,13 @@ import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.ebook.basebook.R;
-
 import androidx.annotation.NonNull;
+
+import com.ebook.basebook.R;
 
 /**
  * Created by Monke on 2016/10/7.
@@ -68,6 +66,8 @@ public class MVerProgressBar extends View {
     private Paint fontPaint;
 
     private Handler handler;
+    ////////////////////////////////////属性修改/////////////////////////////////////
+    private OnProgressListener progressListener;
 
     public MVerProgressBar(Context context) {
         this(context, null);
@@ -286,7 +286,6 @@ public class MVerProgressBar extends View {
             progressListener.durProgressChange(durProgress);
     }
 
-
     private void updateBgShader(RectF rectF) {
         bgShader = new BitmapShader(toBgBitmap(rectF), Shader.TileMode.CLAMP, Shader.TileMode.REPEAT);
     }
@@ -320,7 +319,6 @@ public class MVerProgressBar extends View {
         bgDrawable.draw(canvas);
         return bitmap;
     }
-
 
     /////////////////////////////////////////////////////////////////
     private void updateFontShader(RectF rectF) {
@@ -448,9 +446,6 @@ public class MVerProgressBar extends View {
         return (int) (dpValue * scale + 0.5f);
     }
 
-    ////////////////////////////////////属性修改/////////////////////////////////////
-    private OnProgressListener progressListener;
-
     public void setProgressListener(OnProgressListener progressListener) {
         this.progressListener = progressListener;
     }
@@ -521,33 +516,9 @@ public class MVerProgressBar extends View {
         else throw new RuntimeException("speed must > 0");
     }
 
-    public void setCanTouch(Boolean canTouch) {
-        this.canTouch = canTouch;
-    }
-
-    public void setFontDrawable(@NonNull Drawable fontDrawable) {
-        this.fontDrawable = fontDrawable;
-        fontShader = null;
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            this.invalidate();
-        } else {
-            this.postInvalidate();
-        }
-    }
-
     public void setFontDrawableType(int fontDrawableType) {
         this.fontDrawableType = fontDrawableType;
         fontShader = null;
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            this.invalidate();
-        } else {
-            this.postInvalidate();
-        }
-    }
-
-    public void setBgDrawable(@NonNull Drawable bgDrawable) {
-        this.bgDrawable = bgDrawable;
-        bgShader = null;
         if (Looper.myLooper() == Looper.getMainLooper()) {
             this.invalidate();
         } else {
@@ -565,6 +536,50 @@ public class MVerProgressBar extends View {
         }
     }
 
+    public Boolean getCanTouch() {
+        return canTouch;
+    }
+
+    public void setCanTouch(Boolean canTouch) {
+        this.canTouch = canTouch;
+    }
+
+    public float getDurProgressFinal() {
+        return durProgressFinal;
+    }
+
+    public Drawable getFontDrawable() {
+        return fontDrawable;
+    }
+
+    public void setFontDrawable(@NonNull Drawable fontDrawable) {
+        this.fontDrawable = fontDrawable;
+        fontShader = null;
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            this.invalidate();
+        } else {
+            this.postInvalidate();
+        }
+    }
+
+    public Drawable getBgDrawable() {
+        return bgDrawable;
+    }
+
+    public void setBgDrawable(@NonNull Drawable bgDrawable) {
+        this.bgDrawable = bgDrawable;
+        bgShader = null;
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            this.invalidate();
+        } else {
+            this.postInvalidate();
+        }
+    }
+
+    public int getBgBorderColor() {
+        return bgBorderColor;
+    }
+
     public void setBgBorderColor(int bgBorderColor) {
         this.bgBorderColor = bgBorderColor;
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -572,6 +587,10 @@ public class MVerProgressBar extends View {
         } else {
             this.postInvalidate();
         }
+    }
+
+    public int getBgBorderWidth() {
+        return bgBorderWidth;
     }
 
     public void setBgBorderWidth(int bgBorderWidth) {
@@ -583,6 +602,10 @@ public class MVerProgressBar extends View {
         }
     }
 
+    public int getRadius() {
+        return radius;
+    }
+
     public void setRadius(int radius) {
         this.radius = radius;
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -590,6 +613,10 @@ public class MVerProgressBar extends View {
         } else {
             this.postInvalidate();
         }
+    }
+
+    public int getStartbottom() {
+        return startbottom;
     }
 
     public void setStartbottom(int startbottom) {
@@ -601,6 +628,10 @@ public class MVerProgressBar extends View {
         }
     }
 
+    public int getProgressWidth() {
+        return progressWidth;
+    }
+
     public void setProgressWidth(int progressWidth) {
         this.progressWidth = progressWidth;
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -608,6 +639,10 @@ public class MVerProgressBar extends View {
         } else {
             this.postInvalidate();
         }
+    }
+
+    public StateListDrawable getCursorDrawable() {
+        return cursorDrawable;
     }
 
     public void setCursorDrawable(StateListDrawable cursorDrawable) {
@@ -619,6 +654,10 @@ public class MVerProgressBar extends View {
         }
     }
 
+    public int getCursorDrawableWidth() {
+        return cursorDrawableWidth;
+    }
+
     public void setCursorDrawableWidth(int cursorDrawableWidth) {
         this.cursorDrawableWidth = cursorDrawableWidth;
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -628,6 +667,10 @@ public class MVerProgressBar extends View {
         }
     }
 
+    public int getCursorDrawableHeight() {
+        return cursorDrawableHeight;
+    }
+
     public void setCursorDrawableHeight(int cursorDrawableHeight) {
         this.cursorDrawableHeight = cursorDrawableHeight;
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -635,54 +678,6 @@ public class MVerProgressBar extends View {
         } else {
             this.postInvalidate();
         }
-    }
-
-    public Boolean getCanTouch() {
-        return canTouch;
-    }
-
-    public float getDurProgressFinal() {
-        return durProgressFinal;
-    }
-
-    public Drawable getFontDrawable() {
-        return fontDrawable;
-    }
-
-    public Drawable getBgDrawable() {
-        return bgDrawable;
-    }
-
-    public int getBgBorderColor() {
-        return bgBorderColor;
-    }
-
-    public int getBgBorderWidth() {
-        return bgBorderWidth;
-    }
-
-    public int getRadius() {
-        return radius;
-    }
-
-    public int getStartbottom() {
-        return startbottom;
-    }
-
-    public int getProgressWidth() {
-        return progressWidth;
-    }
-
-    public StateListDrawable getCursorDrawable() {
-        return cursorDrawable;
-    }
-
-    public int getCursorDrawableWidth() {
-        return cursorDrawableWidth;
-    }
-
-    public int getCursorDrawableHeight() {
-        return cursorDrawableHeight;
     }
 
     public int getRealProgressWidth() {

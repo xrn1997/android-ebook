@@ -3,9 +3,9 @@ package com.ebook.login;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
-import android.view.View;
 import android.widget.TextView;
+
+import androidx.lifecycle.ViewModelProvider;
 
 import com.alibaba.android.arouter.facade.annotation.Autowired;
 import com.alibaba.android.arouter.facade.annotation.Route;
@@ -15,15 +15,12 @@ import com.ebook.login.databinding.ActivityLoginBinding;
 import com.ebook.login.mvvm.factory.LoginViewModelFactory;
 import com.ebook.login.mvvm.viewmodel.LoginViewModel;
 
-import androidx.lifecycle.ViewModelProvider;
-
 @Route(path = KeyCode.Login.Login_PATH)
 public class LoginActivity extends BaseMvvmActivity<ActivityLoginBinding, LoginViewModel> {
-    private TextView mTvRegister;
-    private TextView mTvForgetPwd;
     @Autowired
     public String path;
-
+    private TextView mTvRegister;
+    private TextView mTvForgetPwd;
     private Bundle mBundle;//储存被拦截的信息
 
     @Override

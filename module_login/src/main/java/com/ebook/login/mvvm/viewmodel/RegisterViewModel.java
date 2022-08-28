@@ -4,25 +4,26 @@ import android.app.Application;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.databinding.ObservableField;
+
 import com.ebook.api.dto.RespDTO;
-import com.ebook.api.http.ExceptionHandler;
 import com.ebook.api.entity.LoginDTO;
+import com.ebook.api.http.ExceptionHandler;
 import com.ebook.common.event.SingleLiveEvent;
 import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.login.mvvm.model.RegisterModel;
 
-import androidx.annotation.NonNull;
-import androidx.databinding.ObservableField;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 
 public class RegisterViewModel extends BaseViewModel<RegisterModel> {
     private static String TAG = RegisterViewModel.class.getSimpleName();
-    private SingleLiveEvent<Void> mVoidSingleLiveEvent;
     public ObservableField<String> username = new ObservableField<>();
     public ObservableField<String> password_1 = new ObservableField<>();
     public ObservableField<String> password_2 = new ObservableField<>();
+    private SingleLiveEvent<Void> mVoidSingleLiveEvent;
 
     public RegisterViewModel(@NonNull Application application, RegisterModel model) {
         super(application, model);

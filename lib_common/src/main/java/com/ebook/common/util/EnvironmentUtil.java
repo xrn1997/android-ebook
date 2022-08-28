@@ -148,25 +148,6 @@ public class EnvironmentUtil {
     }
 
     /**
-     * 当前app的是否在运行
-     *
-     * @return false: 说明app不在当前系统的栈中; true:当前app正处于用户使用状态(包含在Home在后台)
-     */
-
-    public boolean isAppRunning(Context context) {
-        ActivityManager activityManager = (ActivityManager) (context.getSystemService(Context.ACTIVITY_SERVICE));
-        List<ActivityManager.RunningTaskInfo> runningTaskInfos = activityManager.getRunningTasks(100);
-        if (runningTaskInfos == null) {
-            return false;
-        }
-        for (ActivityManager.RunningTaskInfo taskInfo : runningTaskInfos)
-            if (context.getPackageName().equals(taskInfo.baseActivity.getPackageName())) {
-                return true;
-            }
-        return false;
-    }
-
-    /**
      * app是否在前台
      *
      * @param context
@@ -185,22 +166,6 @@ public class EnvironmentUtil {
             }
         }
         return false;
-    }
-
-    /**
-     * 判断当前Activity是否排在栈顶
-     *
-     * @return
-     */
-    protected boolean isTopActivity(Context context, Class clazz) {
-        ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningTaskInfo> runningTaskInfos = manager.getRunningTasks(1);
-        if (runningTaskInfos != null && !runningTaskInfos.isEmpty()
-                && clazz.getName().equals(runningTaskInfos.get(0).topActivity.getClassName())) {
-            return true;
-        } else {
-            return false;
-        }
     }
 
     /**
@@ -237,6 +202,41 @@ public class EnvironmentUtil {
         intent.setComponent(cn);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         context.startActivity(intent);
+    }
+
+    /**
+     * 当前app的是否在运行
+     *
+     * @return false: 说明app不在当前系统的栈中; true:当前app正处于用户使用状态(包含在Home在后台)
+     */
+
+    public boolean isAppRunning(Context context) {
+        ActivityManager activityManager = (ActivityManager) (context.getSystemService(Context.ACTIVITY_SERVICE));
+        List<ActivityManager.RunningTaskInfo> runningTaskInfos = activityManager.getRunningTasks(100);
+        if (runningTaskInfos == null) {
+            return false;
+        }
+        for (ActivityManager.RunningTaskInfo taskInfo : runningTaskInfos)
+            if (context.getPackageName().equals(taskInfo.baseActivity.getPackageName())) {
+                return true;
+            }
+        return false;
+    }
+
+    /**
+     * 判断当前Activity是否排在栈顶
+     *
+     * @return
+     */
+    protected boolean isTopActivity(Context context, Class clazz) {
+        ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> runningTaskInfos = manager.getRunningTasks(1);
+        if (runningTaskInfos != null && !runningTaskInfos.isEmpty()
+                && clazz.getName().equals(runningTaskInfos.get(0).topActivity.getClassName())) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**

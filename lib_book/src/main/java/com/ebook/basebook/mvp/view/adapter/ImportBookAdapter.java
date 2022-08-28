@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.mvp.view.adapter;
 
 import android.annotation.SuppressLint;
@@ -9,6 +8,8 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.ebook.basebook.R;
 import com.ebook.basebook.view.checkbox.SmoothCheckBox;
@@ -18,23 +19,34 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
-
 public class ImportBookAdapter extends RecyclerView.Adapter<ImportBookAdapter.Viewholder> {
     private final List<File> fileList;
     private final List<File> selectFileList;
-
-    public interface OnCheckBookListener {
-        void checkBook(int count);
-    }
-
     private final OnCheckBookListener checkBookListener;
+    private Boolean canCheck = false;
 
     public ImportBookAdapter(@NonNull OnCheckBookListener checkBookListener) {
         fileList = new ArrayList<>();
         selectFileList = new ArrayList<>();
         this.checkBookListener = checkBookListener;
+    }
+
+    public static String convertByte(long size) {
+        DecimalFormat df = new DecimalFormat("###.#");
+        float f;
+        if (size < 1024) {
+            f = size;
+            return (df.format(Float.valueOf(f).doubleValue()) + "B");
+        } else if (size < 1024 * 1024) {
+            f = (float) size / (float) 1024;
+            return (df.format(Float.valueOf(f).doubleValue()) + "KB");
+        } else if (size < 1024 * 1024 * 1024) {
+            f = (float) size / (float) (1024 * 1024);
+            return (df.format(Float.valueOf(f).doubleValue()) + "MB");
+        } else {
+            f = (float) size / (float) (1024 * 1024 * 1024);
+            return (df.format(Float.valueOf(f).doubleValue()) + "GB");
+        }
     }
 
     @NonNull
@@ -73,8 +85,6 @@ public class ImportBookAdapter extends RecyclerView.Adapter<ImportBookAdapter.Vi
         notifyItemRangeChanged(position, 1);
     }
 
-    private Boolean canCheck = false;
-
     @SuppressLint("NotifyDataSetChanged")
     public void setCanCheck(Boolean canCheck) {
         this.canCheck = canCheck;
@@ -84,6 +94,18 @@ public class ImportBookAdapter extends RecyclerView.Adapter<ImportBookAdapter.Vi
     @Override
     public int getItemCount() {
         return fileList.size();
+    }
+
+    public List<File> getSelectFileList() {
+        return selectFileList;
+    }
+
+    public List<File> getFileList() {
+        return fileList;
+    }
+
+    public interface OnCheckBookListener {
+        void checkBook(int count);
     }
 
     static class Viewholder extends RecyclerView.ViewHolder {
@@ -102,28 +124,4 @@ public class ImportBookAdapter extends RecyclerView.Adapter<ImportBookAdapter.Vi
             tvLoc = itemView.findViewById(R.id.tv_loc);
         }
     }
-
-    public static String convertByte(long size) {
-        DecimalFormat df = new DecimalFormat("###.#");
-        float f;
-        if (size < 1024) {
-            f = size;
-            return (df.format(Float.valueOf(f).doubleValue()) + "B");
-        } else if (size < 1024 * 1024) {
-            f = (float) size / (float) 1024;
-            return (df.format(Float.valueOf(f).doubleValue()) + "KB");
-        } else if (size < 1024 * 1024 * 1024) {
-            f = (float) size / (float) (1024 * 1024);
-            return (df.format(Float.valueOf(f).doubleValue()) + "MB");
-        } else {
-            f = (float) size / (float) (1024 * 1024 * 1024);
-            return (df.format(Float.valueOf(f).doubleValue()) + "GB");
-        }
-    }
-
-    public List<File> getSelectFileList() {
-        return selectFileList;
-    }
-
-    public List<File> getFileList(){return fileList;}
 }

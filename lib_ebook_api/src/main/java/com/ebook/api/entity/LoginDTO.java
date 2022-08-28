@@ -1,7 +1,5 @@
 package com.ebook.api.entity;
 
-import com.ebook.api.entity.User;
-
 import androidx.annotation.NonNull;
 
 public class LoginDTO {

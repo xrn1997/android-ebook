@@ -1,10 +1,10 @@
 package com.ebook.basebook.base.impl;
 
 
+import androidx.annotation.NonNull;
+
 import com.ebook.basebook.base.IPresenter;
 import com.ebook.basebook.base.IView;
-
-import androidx.annotation.NonNull;
 
 public abstract class BasePresenterImpl<T extends IView> implements IPresenter {
     protected T mView;

@@ -1,13 +1,12 @@
 package com.ebook.common.mvp;
 
 import android.content.Context;
-
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -114,14 +113,6 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         mOnItemLongClickListener = onItemLongClickListener;
     }
 
-    public interface OnItemClickListener<E> {
-        void onItemClick(E e, int position);
-    }
-
-    public interface OnItemLongClickListener<E> {
-        boolean onItemLongClick(E e, int postion);
-    }
-
     @Override
     public int getItemViewType(int position) {
         return super.getItemViewType(position);
@@ -129,5 +120,13 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
 
     public List<E> getListData() {
         return mList;
+    }
+
+    public interface OnItemClickListener<E> {
+        void onItemClick(E e, int position);
+    }
+
+    public interface OnItemLongClickListener<E> {
+        boolean onItemLongClick(E e, int postion);
     }
 }

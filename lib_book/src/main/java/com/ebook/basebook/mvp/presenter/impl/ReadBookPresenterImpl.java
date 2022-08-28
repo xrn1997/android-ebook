@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.mvp.presenter.impl;
 
 import android.Manifest;
@@ -15,35 +14,29 @@ import android.provider.Settings;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
-import android.util.Log;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 
+import com.ebook.basebook.base.activity.BaseActivity;
+import com.ebook.basebook.base.impl.BasePresenterImpl;
 import com.ebook.basebook.base.manager.BitIntentDataManager;
-import com.ebook.common.event.RxBusTag;
 import com.ebook.basebook.mvp.model.impl.ImportBookModelImpl;
+import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
 import com.ebook.basebook.mvp.presenter.IBookReadPresenter;
 import com.ebook.basebook.mvp.view.IBookReadView;
 import com.ebook.basebook.observer.SimpleObserver;
-import com.ebook.common.util.ToastUtil;
 import com.ebook.basebook.view.BookContentView;
+import com.ebook.common.event.RxBusTag;
+import com.ebook.common.util.ToastUtil;
 import com.ebook.db.GreenDaoManager;
-import com.ebook.db.event.DBCode;
-import com.hwangjr.rxbus.RxBus;
-import com.ebook.basebook.base.activity.BaseActivity;
-import com.ebook.basebook.base.impl.BasePresenterImpl;
-
 import com.ebook.db.entity.BookContent;
 import com.ebook.db.entity.BookContentDao;
 import com.ebook.db.entity.BookShelf;
 import com.ebook.db.entity.BookShelfDao;
 import com.ebook.db.entity.LocBookShelf;
 import com.ebook.db.entity.ReadBookContent;
-import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
-
-import com.permissionx.guolindev.PermissionX;
+import com.ebook.db.event.DBCode;
+import com.hwangjr.rxbus.RxBus;
 import com.trello.rxlifecycle3.android.ActivityEvent;
 
 import org.jetbrains.annotations.NotNull;
@@ -56,7 +49,6 @@ import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
 public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> implements IBookReadPresenter {
@@ -72,6 +64,16 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
 
     public ReadBookPresenterImpl() {
 
+    }
+
+    /**
+     * 所有需要的权限
+     */
+    public static List<String> allNeedPermissions() {
+        List<String> permissions = new ArrayList<>();
+        permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+        return permissions;
     }
 
     @Override
@@ -103,16 +105,6 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
                 dialog.show();
             }
         }
-    }
-
-    /**
-     * 所有需要的权限
-     */
-    public static List<String> allNeedPermissions() {
-        List<String> permissions = new ArrayList<>();
-        permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-        return permissions;
     }
 
     @Override
@@ -375,10 +367,6 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
                 });
     }
 
-    public interface OnAddListner {
-        public void addSuccess();
-    }
-
     @Override
     public void addToShelf(final OnAddListner addListner) {
         if (bookShelf != null) {
@@ -444,5 +432,9 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
             e.onNext(data == null ? "" : data);
             e.onComplete();
         });
+    }
+
+    public interface OnAddListner {
+        public void addSuccess();
     }
 }

@@ -37,22 +37,6 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
      */
     public static final boolean DEBUG = true;
     /**
-     * CrashHandler实例
-     */
-    private static CrashHandler mCrashHandler;
-    /**
-     * 程序的Context对象
-     */
-    private Context mContext;
-    /**
-     * 系统默认的UncaughtException处理类
-     */
-    private Thread.UncaughtExceptionHandler mDefaultHandler;
-    /**
-     * 使用Properties来保存设备的信息和错误堆栈信息
-     */
-    private Properties mDeviceCrashInfo = new Properties();
-    /**
      * 版本
      */
     private static final String VERSION_NAME = "versionName";
@@ -68,6 +52,22 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
      * 错误报告文件的扩展名
      */
     private static final String CRASH_REPORTER_EXTENSION = ".txt";
+    /**
+     * CrashHandler实例
+     */
+    private static CrashHandler mCrashHandler;
+    /**
+     * 程序的Context对象
+     */
+    private Context mContext;
+    /**
+     * 系统默认的UncaughtException处理类
+     */
+    private Thread.UncaughtExceptionHandler mDefaultHandler;
+    /**
+     * 使用Properties来保存设备的信息和错误堆栈信息
+     */
+    private Properties mDeviceCrashInfo = new Properties();
 
     /**
      * 保证只有一个CrashHandler实例
@@ -84,6 +84,15 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
             mCrashHandler = new CrashHandler();
         }
         return mCrashHandler;
+    }
+
+    private static void openApp(Context context, String className) {
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        ComponentName cn = new ComponentName(context.getPackageName(), className);
+        intent.setComponent(cn);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(intent);
     }
 
     /**
@@ -126,15 +135,6 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
 
             android.os.Process.killProcess(android.os.Process.myPid());
         }
-    }
-
-    private static void openApp(Context context, String className) {
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_LAUNCHER);
-        ComponentName cn = new ComponentName(context.getPackageName(), className);
-        intent.setComponent(cn);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        context.startActivity(intent);
     }
 
     /**

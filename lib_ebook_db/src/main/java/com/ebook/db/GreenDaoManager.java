@@ -10,8 +10,8 @@ import com.ebook.db.entity.DaoSession;
 
 @SuppressLint("StaticFieldLeak")
 public class GreenDaoManager {
-    private volatile static GreenDaoManager greenDaoManager;
     public static Context mContext;
+    private volatile static GreenDaoManager greenDaoManager;
     private DaoMaster.DevOpenHelper mHelper;
     private SQLiteDatabase db;
     private DaoMaster mDaoMaster;

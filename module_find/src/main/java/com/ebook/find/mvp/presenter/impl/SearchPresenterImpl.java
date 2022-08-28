@@ -1,16 +1,20 @@
-
 package com.ebook.find.mvp.presenter.impl;
 
 
-import android.util.Log;
+import androidx.annotation.NonNull;
 
 import com.ebook.api.service.BeQuGeService;
+import com.ebook.basebook.base.IView;
+import com.ebook.basebook.base.impl.BasePresenterImpl;
 import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
+import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.basebook.utils.NetworkUtil;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.basebook.observer.SimpleObserver;
 import com.ebook.db.GreenDaoManager;
-
+import com.ebook.db.entity.BookShelf;
+import com.ebook.db.entity.SearchBook;
+import com.ebook.db.entity.SearchHistory;
+import com.ebook.db.entity.SearchHistoryDao;
 import com.ebook.db.entity.WebChapter;
 import com.ebook.find.mvp.presenter.ISearchPresenter;
 import com.ebook.find.mvp.view.ISearchView;
@@ -18,21 +22,11 @@ import com.hwangjr.rxbus.RxBus;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
 import com.hwangjr.rxbus.thread.EventThread;
-import com.ebook.basebook.base.IView;
-import com.ebook.basebook.base.impl.BasePresenterImpl;
-import com.ebook.db.entity.BookShelf;
-import com.ebook.db.entity.SearchBook;
-import com.ebook.db.entity.SearchHistory;
-import com.ebook.db.entity.SearchHistoryDao;
 
-
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import androidx.annotation.NonNull;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
@@ -48,26 +42,22 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
     public static final String MAX_REQUEST_TIME = "maxRequestTime";   //最大连续请求失败次数
 
     public static final int BOOK = 2;
-
-    private Boolean hasSearch = false;   //判断是否搜索过
-
-    private int page = 1;
     private final List<Map<String, Object>> searchEngine;
+    private final List<BookShelf> bookShelfList = new ArrayList<>();   //用来比对搜索的书籍是否已经添加进书架
+    private Boolean hasSearch = false;   //判断是否搜索过
+    private int page = 1;
     private long startThisSearchTime;
     private String durSearchKey;
-
-    private final List<BookShelf> bookShelfList = new ArrayList<>();   //用来比对搜索的书籍是否已经添加进书架
-
     private Boolean isInput = false;
 
     public SearchPresenterImpl() {
         Observable.create((ObservableOnSubscribe<List<BookShelf>>) e -> {
-            List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().list();
-            if (temp == null)
-                temp = new ArrayList<>();
-            e.onNext(temp);
-            e.onComplete();
-        }).subscribeOn(Schedulers.io())
+                    List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().list();
+                    if (temp == null)
+                        temp = new ArrayList<>();
+                    e.onNext(temp);
+                    e.onComplete();
+                }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<>() {
                     @Override
@@ -108,22 +98,22 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
         final int type = SearchPresenterImpl.BOOK;
         final String content = mView.getEdtContent().getText().toString().trim();
         Observable.create((ObservableOnSubscribe<SearchHistory>) e -> {
-            List<SearchHistory> datas = GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao()
-                    .queryBuilder()
-                    .where(SearchHistoryDao.Properties.Type.eq(type), SearchHistoryDao.Properties.Content.eq(content))
-                    .limit(1)
-                    .build().list();
-            SearchHistory searchHistory;
-            if (null != datas && datas.size() > 0) {
-                searchHistory = datas.get(0);
-                searchHistory.setDate(System.currentTimeMillis());
-                GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao().update(searchHistory);
-            } else {
-                searchHistory = new SearchHistory(type, content, System.currentTimeMillis());
-                GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao().insert(searchHistory);
-            }
-            e.onNext(searchHistory);
-        }).subscribeOn(Schedulers.io())
+                    List<SearchHistory> datas = GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao()
+                            .queryBuilder()
+                            .where(SearchHistoryDao.Properties.Type.eq(type), SearchHistoryDao.Properties.Content.eq(content))
+                            .limit(1)
+                            .build().list();
+                    SearchHistory searchHistory;
+                    if (null != datas && datas.size() > 0) {
+                        searchHistory = datas.get(0);
+                        searchHistory.setDate(System.currentTimeMillis());
+                        GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao().update(searchHistory);
+                    } else {
+                        searchHistory = new SearchHistory(type, content, System.currentTimeMillis());
+                        GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao().insert(searchHistory);
+                    }
+                    e.onNext(searchHistory);
+                }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<>() {
                     @Override
@@ -142,12 +132,12 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
     public void cleanSearchHistory() {
         final String content = mView.getEdtContent().getText().toString().trim();
         Observable.create((ObservableOnSubscribe<Integer>) e -> {
-            int a = GreenDaoManager.getInstance().getDb().delete(
-                    SearchHistoryDao.TABLENAME,
-                    SearchHistoryDao.Properties.Type.columnName + "=? and " + SearchHistoryDao.Properties.Content.columnName + " like ?",
-                    new String[]{String.valueOf(SearchPresenterImpl.BOOK), "%" + content + "%"});
-            e.onNext(a);
-        }).subscribeOn(Schedulers.io())
+                    int a = GreenDaoManager.getInstance().getDb().delete(
+                            SearchHistoryDao.TABLENAME,
+                            SearchHistoryDao.Properties.Type.columnName + "=? and " + SearchHistoryDao.Properties.Content.columnName + " like ?",
+                            new String[]{String.valueOf(SearchPresenterImpl.BOOK), "%" + content + "%"});
+                    e.onNext(a);
+                }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<>() {
                     @Override
@@ -168,14 +158,14 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
     public void querySearchHistory() {
         final String content = mView.getEdtContent().getText().toString().trim();
         Observable.create((ObservableOnSubscribe<List<SearchHistory>>) e -> {
-            List<SearchHistory> datas = GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao()
-                    .queryBuilder()
-                    .where(SearchHistoryDao.Properties.Type.eq(SearchPresenterImpl.BOOK), SearchHistoryDao.Properties.Content.like("%" + content + "%"))
-                    .orderDesc(SearchHistoryDao.Properties.Date)
-                    .limit(20)
-                    .build().list();
-            e.onNext(datas);
-        }).subscribeOn(Schedulers.io())
+                    List<SearchHistory> datas = GreenDaoManager.getInstance().getmDaoSession().getSearchHistoryDao()
+                            .queryBuilder()
+                            .where(SearchHistoryDao.Properties.Type.eq(SearchPresenterImpl.BOOK), SearchHistoryDao.Properties.Content.like("%" + content + "%"))
+                            .orderDesc(SearchHistoryDao.Properties.Date)
+                            .limit(20)
+                            .build().list();
+                    e.onNext(datas);
+                }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<>() {
                     @Override
@@ -311,7 +301,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
 
     @Override
     public void addBookToShelf(final SearchBook searchBook) {
-      //  Log.e("添加到书架", searchBook.toString());
+        //  Log.e("添加到书架", searchBook.toString());
         final BookShelf bookShelfResult = new BookShelf();
         bookShelfResult.setNoteUrl(searchBook.getNoteUrl());
         bookShelfResult.setFinalDate(0);
@@ -346,16 +336,16 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
 
     private void saveBookToShelf(final BookShelf bookShelf) {
         Observable.create(new ObservableOnSubscribe<BookShelf>() {
-            @Override
-            public void subscribe(ObservableEmitter<BookShelf> e) throws Exception {
-                GreenDaoManager.getInstance().getmDaoSession().getChapterListDao().insertOrReplaceInTx(bookShelf.getBookInfo().getChapterlist());
-                GreenDaoManager.getInstance().getmDaoSession().getBookInfoDao().insertOrReplace(bookShelf.getBookInfo());
-                //网络数据获取成功  存入BookShelf表数据库
-                GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
-                e.onNext(bookShelf);
-                e.onComplete();
-            }
-        }).subscribeOn(Schedulers.io())
+                    @Override
+                    public void subscribe(ObservableEmitter<BookShelf> e) throws Exception {
+                        GreenDaoManager.getInstance().getmDaoSession().getChapterListDao().insertOrReplaceInTx(bookShelf.getBookInfo().getChapterlist());
+                        GreenDaoManager.getInstance().getmDaoSession().getBookInfoDao().insertOrReplace(bookShelf.getBookInfo());
+                        //网络数据获取成功  存入BookShelf表数据库
+                        GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().insertOrReplace(bookShelf);
+                        e.onNext(bookShelf);
+                        e.onComplete();
+                    }
+                }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<BookShelf>() {
                     @Override

@@ -1,13 +1,6 @@
 package com.ebook.common.mvvm;
 
-import android.content.pm.ActivityInfo;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.appcompat.widget.Toolbar;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,15 +8,19 @@ import android.view.ViewStub;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.Fragment;
+
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.ebook.common.R;
+import com.ebook.common.event.common.BaseFragmentEvent;
 import com.ebook.common.mvvm.view.IBaseView;
 import com.ebook.common.util.NetUtil;
 import com.ebook.common.util.log.KLog;
-import com.ebook.common.view.LoadingTransView;
-;
-import com.ebook.common.event.common.BaseFragmentEvent;
 import com.ebook.common.view.LoadingInitView;
+import com.ebook.common.view.LoadingTransView;
 import com.ebook.common.view.NetErrorView;
 import com.ebook.common.view.NoDataView;
 import com.hwangjr.rxbus.RxBus;
@@ -32,6 +29,8 @@ import com.trello.rxlifecycle3.components.support.RxAppCompatActivity;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+
+;
 
 
 public abstract class BaseFragment extends Fragment implements IBaseView {
@@ -45,9 +44,8 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
     protected NoDataView mNoDataView;
     protected LoadingInitView mLoadingInitView;
     protected LoadingTransView mLoadingTransView;
-
-    private ViewStub mViewStubToolbar;
     protected RelativeLayout mViewStubContent;
+    private ViewStub mViewStubToolbar;
     private ViewStub mViewStubInitLoading;
     private ViewStub mViewStubTransLoading;
     private ViewStub mViewStubNoData;

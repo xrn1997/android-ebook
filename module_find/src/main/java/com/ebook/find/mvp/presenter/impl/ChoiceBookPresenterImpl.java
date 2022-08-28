@@ -1,12 +1,19 @@
-
 package com.ebook.find.mvp.presenter.impl;
 
 import android.content.Intent;
-import android.util.Log;
 
-import com.ebook.common.event.RxBusTag;
+import androidx.annotation.NonNull;
+
+import com.ebook.basebook.base.IView;
+import com.ebook.basebook.base.activity.BaseActivity;
+import com.ebook.basebook.base.impl.BasePresenterImpl;
+import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
 import com.ebook.basebook.observer.SimpleObserver;
+import com.ebook.basebook.utils.NetworkUtil;
+import com.ebook.common.event.RxBusTag;
 import com.ebook.db.GreenDaoManager;
+import com.ebook.db.entity.BookShelf;
+import com.ebook.db.entity.SearchBook;
 import com.ebook.db.entity.WebChapter;
 import com.ebook.find.mvp.presenter.IChoiceBookPresenter;
 import com.ebook.find.mvp.view.IChoiceBookView;
@@ -14,22 +21,10 @@ import com.hwangjr.rxbus.RxBus;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
 import com.hwangjr.rxbus.thread.EventThread;
-import com.ebook.basebook.base.IView;
-import com.ebook.basebook.base.activity.BaseActivity;
-import com.ebook.basebook.base.impl.BasePresenterImpl;
-
-import com.ebook.db.entity.BookShelf;
-import com.ebook.db.entity.SearchBook;
-
-import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
-import com.ebook.basebook.utils.NetworkUtil;
 import com.trello.rxlifecycle3.android.ActivityEvent;
-
 
 import java.util.ArrayList;
 import java.util.List;
-
-import androidx.annotation.NonNull;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
@@ -49,11 +44,11 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
         url = intent.getStringExtra("url");
         title = intent.getStringExtra("title");
         Observable.create((ObservableOnSubscribe<List<BookShelf>>) e -> {
-            List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().list();
-            if (temp == null)
-                temp = new ArrayList<>();
-            e.onNext(temp);
-        }).subscribeOn(Schedulers.io())
+                    List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().list();
+                    if (temp == null)
+                        temp = new ArrayList<>();
+                    e.onNext(temp);
+                }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<>() {
                     @Override

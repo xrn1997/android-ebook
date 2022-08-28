@@ -10,10 +10,9 @@ import com.ebook.common.mvvm.BaseActivity;
 @Route(path = KeyCode.Login.Test_PATH)
 public class TestInterruptActivity extends BaseActivity {
 
-    private TextView tvMsg;
-
     @Autowired
     public String msg;
+    private TextView tvMsg;
 
     @Override
     public int onBindLayout() {

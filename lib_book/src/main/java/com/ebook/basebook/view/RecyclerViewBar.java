@@ -15,13 +15,12 @@ import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
-
-import com.ebook.basebook.R;
-import com.ebook.common.util.DisplayUtil;
-
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.ebook.basebook.R;
+import com.ebook.common.util.DisplayUtil;
 
 public class RecyclerViewBar extends LinearLayout {
     public static long SLIDE_ANIM_TIME = 800;
@@ -33,6 +32,27 @@ public class RecyclerViewBar extends LinearLayout {
 
     private Animator slideIn;
     private Animator slideOut;
+    private float finalY = -10000;
+    private TimeCountDown timeCountDown = new TimeCountDown();
+    private int height = 0;
+    private ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
+        @Override
+        public void onGlobalLayout() {
+            if (getHeight() > 0) {
+                if (height == 0) {
+                    height = getHeight();
+                } else {
+                    int diff = height - getHeight();
+                    if (diff != 0) {
+                        LayoutParams l = (LayoutParams) ivSlider.getLayoutParams();
+                        l.topMargin = (int) ((l.topMargin * 1.0f / (height - sliderHeight)) * (getHeight() - sliderHeight));
+                        ivSlider.setLayoutParams(l);
+                        height = getHeight();
+                    }
+                }
+            }
+        }
+    };
 
     public RecyclerViewBar(Context context) {
         this(context, null);
@@ -73,8 +93,6 @@ public class RecyclerViewBar extends LinearLayout {
 
         RecyclerViewBar.this.getViewTreeObserver().addOnGlobalLayoutListener(layoutInitListener);
     }
-
-    private float finalY = -10000;
 
     private void initIvSlider() {
         ivSlider.setOnTouchListener(new OnTouchListener() {
@@ -196,8 +214,6 @@ public class RecyclerViewBar extends LinearLayout {
         }
     }
 
-    private TimeCountDown timeCountDown = new TimeCountDown();
-
     class TimeCountDown extends CountDownTimer {
 
         public TimeCountDown() {
@@ -218,24 +234,4 @@ public class RecyclerViewBar extends LinearLayout {
             hideSlide();
         }
     }
-
-    private int height = 0;
-    private ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
-        @Override
-        public void onGlobalLayout() {
-            if (getHeight() > 0) {
-                if (height == 0) {
-                    height = getHeight();
-                } else {
-                    int diff = height - getHeight();
-                    if (diff != 0) {
-                        LayoutParams l = (LayoutParams) ivSlider.getLayoutParams();
-                        l.topMargin = (int) ((l.topMargin * 1.0f / (height - sliderHeight)) * (getHeight() - sliderHeight));
-                        ivSlider.setLayoutParams(l);
-                        height = getHeight();
-                    }
-                }
-            }
-        }
-    };
 }

@@ -1,4 +1,3 @@
-
 package com.ebook.find.mvp.view.impl;
 
 import android.animation.Animator;
@@ -23,17 +22,18 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.recyclerview.widget.LinearLayoutManager;
+
 import com.daimajia.androidanimations.library.Techniques;
 import com.daimajia.androidanimations.library.YoYo;
-
 import com.ebook.basebook.base.activity.BaseActivity;
 import com.ebook.basebook.mvp.presenter.impl.BookDetailPresenterImpl;
 import com.ebook.basebook.mvp.view.impl.BookDetailActivity;
-import com.ebook.common.util.StatusBarUtils;
 import com.ebook.basebook.utils.NetworkUtil;
 import com.ebook.basebook.view.flowlayout.TagFlowLayout;
 import com.ebook.basebook.view.refreshview.OnLoadMoreListener;
 import com.ebook.basebook.view.refreshview.RefreshRecyclerView;
+import com.ebook.common.util.StatusBarUtils;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.db.entity.SearchHistory;
 import com.ebook.find.R;
@@ -45,8 +45,6 @@ import com.ebook.find.mvp.view.adapter.SearchHistoryAdapter;
 
 import java.util.List;
 import java.util.Objects;
-
-import androidx.recyclerview.widget.LinearLayoutManager;
 
 import tyrantgit.explosionfield.ExplosionField;
 
@@ -334,14 +332,14 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
 
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         edtContent.requestFocus();
-         imm.showSoftInput(edtContent, InputMethodManager.RESULT_UNCHANGED_SHOWN);
+        imm.showSoftInput(edtContent, InputMethodManager.RESULT_UNCHANGED_SHOWN);
             /*
             由于思路是通过软键盘改变“屏幕大小”来控制是否显示搜索历史的，
             因此即便是在打开软键盘失败的情况下，也依旧应该兼容显示搜索历史，
             如PC端的Android模拟器就有可能不会提供软键盘。
              */
-            if (llSearchHistory.getVisibility() != View.VISIBLE)
-                openOrCloseHistory(true);
+        if (llSearchHistory.getVisibility() != View.VISIBLE)
+            openOrCloseHistory(true);
     }
 
     @Override

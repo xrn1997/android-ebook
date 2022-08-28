@@ -1,11 +1,11 @@
 package com.ebook.common.glide;
 
 
+import androidx.annotation.NonNull;
+
 import com.bumptech.glide.annotation.GlideExtension;
 import com.bumptech.glide.annotation.GlideOption;
 import com.bumptech.glide.request.BaseRequestOptions;
-
-import androidx.annotation.NonNull;
 
 
 @GlideExtension

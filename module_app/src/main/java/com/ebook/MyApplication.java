@@ -2,7 +2,6 @@ package com.ebook;
 
 import com.ebook.api.RetrofitManager;
 import com.ebook.common.BaseApplication;
-
 import com.ebook.db.GreenDaoManager;
 
 

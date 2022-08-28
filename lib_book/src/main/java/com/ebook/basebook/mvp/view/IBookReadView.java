@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.mvp.view;
 
 import android.content.Intent;
@@ -42,5 +41,5 @@ public interface IBookReadView extends IView {
 
     void showDownloadMenu();
 
-     ActivityResultLauncher<Intent> getRequestPermission();
+    ActivityResultLauncher<Intent> getRequestPermission();
 }

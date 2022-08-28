@@ -1,20 +1,18 @@
 package com.ebook.common.view;
 
 import android.content.Context;
-
-import androidx.annotation.ColorRes;
-
 import android.os.Build;
 import android.util.AttributeSet;
-import android.view.View;
 import android.widget.RelativeLayout;
+
+import androidx.annotation.ColorRes;
 
 import com.ebook.common.R;
 
 
 public class NetErrorView extends RelativeLayout {
-    private OnClickListener mOnClickListener;
     private final RelativeLayout mRlNetWorkError;
+    private OnClickListener mOnClickListener;
 
     public NetErrorView(Context context, AttributeSet attrs) {
         super(context, attrs);

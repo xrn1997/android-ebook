@@ -9,12 +9,11 @@ import com.ebook.db.entity.Library;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.db.entity.WebChapter;
 
-import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 import io.reactivex.Observable;
 
-public interface  WebBookModel {
+public interface WebBookModel {
     /**
      * 网络请求并解析书籍信息
      */

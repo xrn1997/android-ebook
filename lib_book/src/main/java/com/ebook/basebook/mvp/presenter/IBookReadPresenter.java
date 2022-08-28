@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.mvp.presenter;
 
 import android.app.Activity;

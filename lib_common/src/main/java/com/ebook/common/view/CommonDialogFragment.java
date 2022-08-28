@@ -4,18 +4,17 @@ import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.DialogFragment;
-import androidx.fragment.app.FragmentManager;
-
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentManager;
 
 import com.ebook.common.R;
 import com.ebook.common.util.DisplayUtil;
@@ -24,8 +23,25 @@ import com.ebook.common.util.log.KLog;
 
 public class CommonDialogFragment extends DialogFragment {
     public static final String TAG = CommonDialogFragment.class.getSimpleName();
-    private OnDialogClickListener mOnDialogClickListener;
     private static boolean isShowing = false;//避免弹多个dialog
+    private OnDialogClickListener mOnDialogClickListener;
+
+    public static boolean isShowing() {
+        return isShowing;
+    }
+
+    public static CommonDialogFragment newInstance(Builder builder) {
+        CommonDialogFragment commonDialogFragment = new CommonDialogFragment();
+        Bundle args = new Bundle();
+        args.putString("title", builder.title);
+        args.putString("describe", builder.describe);
+        args.putString("leftbtn", builder.leftbtn);
+        args.putString("rightbtn", builder.rightbtn);
+        args.putInt("rightbtncolor", builder.btnRightTextColor);
+        commonDialogFragment.mOnDialogClickListener = builder.mListener;
+        commonDialogFragment.setArguments(args);
+        return commonDialogFragment;
+    }
 
     @Override
     public void dismiss() {
@@ -40,35 +56,12 @@ public class CommonDialogFragment extends DialogFragment {
         isShowing = true;
     }
 
-    public static boolean isShowing() {
-        return isShowing;
-    }
-
     public CommonDialogFragment setOnDialogClickListener(OnDialogClickListener onDialogClickListener) {
         mOnDialogClickListener = onDialogClickListener;
         return this;
     }
 
-    public interface OnDialogClickListener {
-        void onLeftBtnClick(View view);
-
-        void onRightBtnClick(View view);
-    }
-
     ;
-
-    public static CommonDialogFragment newInstance(Builder builder) {
-        CommonDialogFragment commonDialogFragment = new CommonDialogFragment();
-        Bundle args = new Bundle();
-        args.putString("title", builder.title);
-        args.putString("describe", builder.describe);
-        args.putString("leftbtn", builder.leftbtn);
-        args.putString("rightbtn", builder.rightbtn);
-        args.putInt("rightbtncolor", builder.btnRightTextColor);
-        commonDialogFragment.mOnDialogClickListener = builder.mListener;
-        commonDialogFragment.setArguments(args);
-        return commonDialogFragment;
-    }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -141,6 +134,19 @@ public class CommonDialogFragment extends DialogFragment {
         return view;
     }
 
+    @Override
+    public void onCancel(DialogInterface dialog) {
+        super.onCancel(dialog);
+        isShowing = false;
+        KLog.v(TAG, "onCancel start...");
+    }
+
+    public interface OnDialogClickListener {
+        void onLeftBtnClick(View view);
+
+        void onRightBtnClick(View view);
+    }
+
     public static class Builder {
         String title;
         String describe;
@@ -186,12 +192,5 @@ public class CommonDialogFragment extends DialogFragment {
         public CommonDialogFragment build() {
             return CommonDialogFragment.newInstance(this);
         }
-    }
-
-    @Override
-    public void onCancel(DialogInterface dialog) {
-        super.onCancel(dialog);
-        isShowing = false;
-        KLog.v(TAG, "onCancel start...");
     }
 }

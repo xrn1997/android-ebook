@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.view.popupwindow;
 
 import android.app.Activity;
@@ -14,9 +13,9 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
 import com.ebook.basebook.R;
+import com.ebook.basebook.view.checkbox.SmoothCheckBox;
 import com.ebook.basebook.view.mprogressbar.MHorProgressBar;
 import com.ebook.basebook.view.mprogressbar.OnProgressListener;
-import com.ebook.basebook.view.checkbox.SmoothCheckBox;
 
 
 public class WindowLightPop extends PopupWindow {
@@ -106,12 +105,6 @@ public class WindowLightPop extends PopupWindow {
         });
     }
 
-    public void setScreenBrightness(int value) {
-        WindowManager.LayoutParams params = ((Activity) mContext).getWindow().getAttributes();
-        params.screenBrightness = value * 1.0f / 255f;
-        ((Activity) mContext).getWindow().setAttributes(params);
-    }
-
     public void setScreenBrightness() {
         WindowManager.LayoutParams params = ((Activity) mContext).getWindow().getAttributes();
         params.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
@@ -127,6 +120,12 @@ public class WindowLightPop extends PopupWindow {
             e.printStackTrace();
         }
         return value;
+    }
+
+    public void setScreenBrightness(int value) {
+        WindowManager.LayoutParams params = ((Activity) mContext).getWindow().getAttributes();
+        params.screenBrightness = value * 1.0f / 255f;
+        ((Activity) mContext).getWindow().setAttributes(params);
     }
 
     private void saveLight() {

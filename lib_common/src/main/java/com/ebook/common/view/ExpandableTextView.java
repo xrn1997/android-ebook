@@ -21,12 +21,6 @@ import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
-
-import androidx.annotation.DrawableRes;
-import androidx.annotation.IdRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.SparseBooleanArray;
@@ -39,6 +33,11 @@ import android.view.animation.Transformation;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.annotation.DrawableRes;
+import androidx.annotation.IdRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.ebook.common.R;
 
@@ -117,6 +116,43 @@ public class ExpandableTextView extends LinearLayout implements View.OnClickList
     public ExpandableTextView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         init(attrs);
+    }
+
+    private static boolean isPostHoneycomb() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB;
+    }
+
+    private static boolean isPostLolipop() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
+    }
+
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    private static void applyAlphaAnimation(View view, float alpha) {
+        if (isPostHoneycomb()) {
+            view.setAlpha(alpha);
+        } else {
+            AlphaAnimation alphaAnimation = new AlphaAnimation(alpha, alpha);
+            // make it instant
+            alphaAnimation.setDuration(0);
+            alphaAnimation.setFillAfter(true);
+            view.startAnimation(alphaAnimation);
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    private static Drawable getDrawable(@NonNull Context context, @DrawableRes int resId) {
+        Resources resources = context.getResources();
+        if (isPostLolipop()) {
+            return resources.getDrawable(resId, context.getTheme());
+        } else {
+            return resources.getDrawable(resId);
+        }
+    }
+
+    private static int getRealTextViewHeight(@NonNull TextView textView) {
+        int textHeight = textView.getLayout().getLineTop(textView.getLineCount());
+        int padding = textView.getCompoundPaddingTop() + textView.getCompoundPaddingBottom();
+        return textHeight + padding;
     }
 
     @Override
@@ -240,15 +276,6 @@ public class ExpandableTextView extends LinearLayout implements View.OnClickList
         mListener = listener;
     }
 
-    public void setText(@Nullable CharSequence text) {
-        mRelayout = true;
-        mTv.setText(text);
-        setVisibility(TextUtils.isEmpty(text) ? View.GONE : View.VISIBLE);
-        clearAnimation();
-        getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
-        requestLayout();
-    }
-
     public void setText(@Nullable CharSequence text, @NonNull SparseBooleanArray collapsedStatus,
                         int position) {
         mCollapsedStatus = collapsedStatus;
@@ -266,6 +293,15 @@ public class ExpandableTextView extends LinearLayout implements View.OnClickList
             return "";
         }
         return mTv.getText();
+    }
+
+    public void setText(@Nullable CharSequence text) {
+        mRelayout = true;
+        mTv.setText(text);
+        setVisibility(TextUtils.isEmpty(text) ? View.GONE : View.VISIBLE);
+        clearAnimation();
+        getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        requestLayout();
     }
 
     private void init(AttributeSet attrs) {
@@ -308,43 +344,6 @@ public class ExpandableTextView extends LinearLayout implements View.OnClickList
         mToggleView.setOnClickListener(this);
     }
 
-    private static boolean isPostHoneycomb() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB;
-    }
-
-    private static boolean isPostLolipop() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
-    }
-
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    private static void applyAlphaAnimation(View view, float alpha) {
-        if (isPostHoneycomb()) {
-            view.setAlpha(alpha);
-        } else {
-            AlphaAnimation alphaAnimation = new AlphaAnimation(alpha, alpha);
-            // make it instant
-            alphaAnimation.setDuration(0);
-            alphaAnimation.setFillAfter(true);
-            view.startAnimation(alphaAnimation);
-        }
-    }
-
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    private static Drawable getDrawable(@NonNull Context context, @DrawableRes int resId) {
-        Resources resources = context.getResources();
-        if (isPostLolipop()) {
-            return resources.getDrawable(resId, context.getTheme());
-        } else {
-            return resources.getDrawable(resId);
-        }
-    }
-
-    private static int getRealTextViewHeight(@NonNull TextView textView) {
-        int textHeight = textView.getLayout().getLineTop(textView.getLineCount());
-        int padding = textView.getCompoundPaddingTop() + textView.getCompoundPaddingBottom();
-        return textHeight + padding;
-    }
-
     private ExpandIndicatorController setupExpandToggleController(@NonNull Context context,
                                                                   TypedArray typedArray) {
         final int expandToggleType =
@@ -378,6 +377,63 @@ public class ExpandableTextView extends LinearLayout implements View.OnClickList
         }
 
         return expandIndicatorController;
+    }
+
+    public void showToogleView(boolean isshow) {
+        if (mExpandIndicatorController != null) {
+            mExpandIndicatorController.showView(isshow);
+        }
+    }
+
+    public void expandView() {
+        mCollapsed = false;
+        requestLayout();
+    }
+
+    public interface OnExpandStateChangeListener {
+        /**
+         * Called when the expand/collapse animation has been finished
+         *
+         * @param textView   - TextView being expanded/collapsed
+         * @param isExpanded - true if the TextView has been expanded
+         */
+        void onExpandStateChanged(TextView textView, boolean isExpanded);
+    }
+
+    interface ExpandIndicatorController {
+        void changeState(boolean collapsed);
+
+        void setView(View toggleView);
+
+        void showView(boolean isshow);
+    }
+
+    static class TextViewExpandController implements ExpandIndicatorController {
+
+        private final String mExpandText;
+        private final String mCollapseText;
+
+        private TextView mTextView;
+
+        public TextViewExpandController(String expandText, String collapseText) {
+            mExpandText = expandText;
+            mCollapseText = collapseText;
+        }
+
+        @Override
+        public void changeState(boolean collapsed) {
+            mTextView.setText(collapsed ? mExpandText : mCollapseText);
+        }
+
+        @Override
+        public void setView(View toggleView) {
+            mTextView = (TextView) toggleView;
+        }
+
+        @Override
+        public void showView(boolean isshow) {
+
+        }
     }
 
     class ExpandCollapseAnimation extends Animation {
@@ -414,24 +470,6 @@ public class ExpandableTextView extends LinearLayout implements View.OnClickList
         }
     }
 
-    public interface OnExpandStateChangeListener {
-        /**
-         * Called when the expand/collapse animation has been finished
-         *
-         * @param textView   - TextView being expanded/collapsed
-         * @param isExpanded - true if the TextView has been expanded
-         */
-        void onExpandStateChanged(TextView textView, boolean isExpanded);
-    }
-
-    interface ExpandIndicatorController {
-        void changeState(boolean collapsed);
-
-        void setView(View toggleView);
-
-        void showView(boolean isshow);
-    }
-
     class ImageButtonExpandController implements ExpandIndicatorController {
 
         private final Drawable mExpandDrawable;
@@ -463,44 +501,5 @@ public class ExpandableTextView extends LinearLayout implements View.OnClickList
                 });
             }
         }
-    }
-
-    static class TextViewExpandController implements ExpandIndicatorController {
-
-        private final String mExpandText;
-        private final String mCollapseText;
-
-        private TextView mTextView;
-
-        public TextViewExpandController(String expandText, String collapseText) {
-            mExpandText = expandText;
-            mCollapseText = collapseText;
-        }
-
-        @Override
-        public void changeState(boolean collapsed) {
-            mTextView.setText(collapsed ? mExpandText : mCollapseText);
-        }
-
-        @Override
-        public void setView(View toggleView) {
-            mTextView = (TextView) toggleView;
-        }
-
-        @Override
-        public void showView(boolean isshow) {
-
-        }
-    }
-
-    public void showToogleView(boolean isshow) {
-        if (mExpandIndicatorController != null) {
-            mExpandIndicatorController.showView(isshow);
-        }
-    }
-
-    public void expandView() {
-        mCollapsed = false;
-        requestLayout();
     }
 }

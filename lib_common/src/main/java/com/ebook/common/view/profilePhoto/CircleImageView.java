@@ -33,11 +33,11 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.util.AttributeSet;
 
-import com.ebook.common.R;
-
 import androidx.annotation.ColorInt;
 import androidx.annotation.ColorRes;
 import androidx.annotation.DrawableRes;
+
+import com.ebook.common.R;
 
 /**
  * https://github.com/hdodenhof/CircleImageView
@@ -301,6 +301,11 @@ public class CircleImageView extends androidx.appcompat.widget.AppCompatImageVie
     }
 
     @Override
+    public ColorFilter getColorFilter() {
+        return mColorFilter;
+    }
+
+    @Override
     public void setColorFilter(ColorFilter cf) {
         if (cf == mColorFilter) {
             return;
@@ -309,11 +314,6 @@ public class CircleImageView extends androidx.appcompat.widget.AppCompatImageVie
         mColorFilter = cf;
         applyColorFilter();
         invalidate();
-    }
-
-    @Override
-    public ColorFilter getColorFilter() {
-        return mColorFilter;
     }
 
     private void applyColorFilter() {

@@ -2,6 +2,9 @@ package com.ebook.find.mvvm.viewmodel;
 
 import android.app.Application;
 
+import androidx.annotation.NonNull;
+import androidx.databinding.ObservableArrayList;
+
 import com.ebook.basebook.cache.ACache;
 import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
 import com.ebook.basebook.observer.SimpleObserver;
@@ -12,19 +15,16 @@ import com.ebook.db.entity.LibraryKindBookList;
 import com.ebook.find.entity.BookType;
 import com.ebook.find.mvvm.model.LibraryModel;
 
-import androidx.annotation.NonNull;
-import androidx.databinding.ObservableArrayList;
-
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 
 public class LibraryViewModel extends BaseRefreshViewModel<Library, LibraryModel> {
-    private final ObservableArrayList<BookType> bookTypes = new ObservableArrayList<>();
-    private final ObservableArrayList<LibraryKindBookList> libraryKindBookLists = new ObservableArrayList<>();
-    private Boolean isFirst = true;
-    private final ACache mCache = ACache.get(BaseApplication.getInstance());
     public static final String TAG = LibraryViewModel.class.getSimpleName();
     public final static String LIBRARY_CACHE_KEY = "cache_library";
+    private final ObservableArrayList<BookType> bookTypes = new ObservableArrayList<>();
+    private final ObservableArrayList<LibraryKindBookList> libraryKindBookLists = new ObservableArrayList<>();
+    private final ACache mCache = ACache.get(BaseApplication.getInstance());
+    private Boolean isFirst = true;
 
     public LibraryViewModel(@NonNull Application application, LibraryModel model) {
         super(application, model);

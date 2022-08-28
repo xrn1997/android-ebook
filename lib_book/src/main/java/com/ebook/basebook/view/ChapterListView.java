@@ -12,17 +12,16 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-
-import com.ebook.basebook.R;
-import com.ebook.basebook.mvp.view.adapter.ChapterListAdapter;
-import com.ebook.db.entity.BookShelf;
-
 import androidx.annotation.AttrRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StyleRes;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.ebook.basebook.R;
+import com.ebook.basebook.mvp.view.adapter.ChapterListAdapter;
+import com.ebook.db.entity.BookShelf;
 
 public class ChapterListView extends FrameLayout {
     private TextView tvName;
@@ -37,6 +36,8 @@ public class ChapterListView extends FrameLayout {
 
     private Animation animIn;
     private Animation animOut;
+    private OnItemClickListener itemClickListener;
+    private BookShelf bookShelf;
 
     public ChapterListView(@NonNull Context context) {
         this(context, null);
@@ -119,13 +120,6 @@ public class ChapterListView extends FrameLayout {
         }
     }
 
-    public interface OnItemClickListener {
-        public void itemClick(int index);
-    }
-
-    private OnItemClickListener itemClickListener;
-    private BookShelf bookShelf;
-
     private void initView() {
         flBg = (FrameLayout) findViewById(R.id.fl_bg);
         llContent = (LinearLayout) findViewById(R.id.ll_content);
@@ -164,5 +158,9 @@ public class ChapterListView extends FrameLayout {
             llContent.startAnimation(animOut);
             return true;
         }
+    }
+
+    public interface OnItemClickListener {
+        public void itemClick(int index);
     }
 }

@@ -1,22 +1,19 @@
-
 package com.ebook.basebook.mvp.presenter.impl;
 
 import android.os.Environment;
 
-import com.ebook.common.event.RxBusTag;
+import com.ebook.basebook.base.impl.BasePresenterImpl;
 import com.ebook.basebook.mvp.model.impl.ImportBookModelImpl;
 import com.ebook.basebook.mvp.presenter.IImportBookPresenter;
 import com.ebook.basebook.mvp.view.IImportBookView;
 import com.ebook.basebook.observer.SimpleObserver;
-import com.hwangjr.rxbus.RxBus;
-import com.ebook.basebook.base.impl.BasePresenterImpl;
+import com.ebook.common.event.RxBusTag;
 import com.ebook.db.entity.LocBookShelf;
-
+import com.hwangjr.rxbus.RxBus;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -40,12 +37,12 @@ public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> 
     public void searchLocationBook() {
         isCancel = false;
         Observable.create((ObservableOnSubscribe<File>) e -> {
-            if (Environment.getExternalStorageState().equals(
-                    Environment.MEDIA_MOUNTED)) {
-                searchBook(e, new File(Environment.getExternalStorageDirectory().getAbsolutePath()));
-            }
-            e.onComplete();
-        }).subscribeOn(Schedulers.io())
+                    if (Environment.getExternalStorageState().equals(
+                            Environment.MEDIA_MOUNTED)) {
+                        searchBook(e, new File(Environment.getExternalStorageDirectory().getAbsolutePath()));
+                    }
+                    e.onComplete();
+                }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<>() {
                     @Override

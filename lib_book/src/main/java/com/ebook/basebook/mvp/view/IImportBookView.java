@@ -1,4 +1,3 @@
-
 package com.ebook.basebook.mvp.view;
 
 import com.ebook.basebook.base.IView;
@@ -9,7 +8,6 @@ public interface IImportBookView extends IView {
 
     /**
      * 新增书籍
-     *
      */
     void addNewBook(File newFile);
 

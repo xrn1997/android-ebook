@@ -1,11 +1,11 @@
-
 package com.ebook.basebook.mvp.view.impl;
+
+import static com.bumptech.glide.request.RequestOptions.bitmapTransform;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Build;
 import android.text.method.ScrollingMovementMethod;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -15,8 +15,6 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-
-
 import com.ebook.basebook.R;
 import com.ebook.basebook.base.activity.BaseActivity;
 import com.ebook.basebook.base.manager.BitIntentDataManager;
@@ -27,8 +25,6 @@ import com.ebook.basebook.mvp.view.IBookDetailView;
 import com.ebook.db.entity.BookShelf;
 
 import jp.wasabeef.glide.transformations.BlurTransformation;
-
-import static com.bumptech.glide.request.RequestOptions.bitmapTransform;
 
 public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> implements IBookDetailView {
     private FrameLayout iflContent;

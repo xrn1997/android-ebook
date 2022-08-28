@@ -3,12 +3,12 @@ package com.ebook.db.entity;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.annotation.NonNull;
+
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Generated;
 import org.greenrobot.greendao.annotation.Id;
 import org.greenrobot.greendao.annotation.Transient;
-
-import androidx.annotation.NonNull;
 
 /**
  * 章节列表
@@ -16,16 +16,24 @@ import androidx.annotation.NonNull;
 @Entity
 public class ChapterList implements Parcelable, Cloneable {
 
-    private String noteUrl; //对应BookInfo noteUrl;
+    @Transient
+    public static final Creator<ChapterList> CREATOR = new Creator<ChapterList>() {
+        @Override
+        public ChapterList createFromParcel(Parcel in) {
+            return new ChapterList(in);
+        }
 
+        @Override
+        public ChapterList[] newArray(int size) {
+            return new ChapterList[size];
+        }
+    };
+    private String noteUrl; //对应BookInfo noteUrl;
     private int durChapterIndex;  //当前章节数
     @Id
     private String durChapterUrl;  //当前章节对应的文章地址
-
     private String durChapterName;  //当前章节名称
-
     private String tag;
-
     private Boolean hasCache = false;
     @Transient
     private BookContent bookContent = new BookContent();
@@ -53,6 +61,10 @@ public class ChapterList implements Parcelable, Cloneable {
 
     @Generated(hash = 1539606642)
     public ChapterList() {
+    }
+
+    public static Creator<ChapterList> getCREATOR() {
+        return CREATOR;
     }
 
     @Override
@@ -119,29 +131,12 @@ public class ChapterList implements Parcelable, Cloneable {
         this.hasCache = hasCache;
     }
 
-    @Transient
-    public static final Creator<ChapterList> CREATOR = new Creator<ChapterList>() {
-        @Override
-        public ChapterList createFromParcel(Parcel in) {
-            return new ChapterList(in);
-        }
-
-        @Override
-        public ChapterList[] newArray(int size) {
-            return new ChapterList[size];
-        }
-    };
-
     public BookContent getBookContent() {
         return bookContent;
     }
 
     public void setBookContent(BookContent bookContent) {
         this.bookContent = bookContent;
-    }
-
-    public static Creator<ChapterList> getCREATOR() {
-        return CREATOR;
     }
 
     @NonNull

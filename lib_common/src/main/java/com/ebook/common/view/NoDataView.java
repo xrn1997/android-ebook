@@ -1,14 +1,13 @@
 package com.ebook.common.view;
 
 import android.content.Context;
-
-import androidx.annotation.ColorRes;
-import androidx.annotation.DrawableRes;
-
 import android.os.Build;
 import android.util.AttributeSet;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+
+import androidx.annotation.ColorRes;
+import androidx.annotation.DrawableRes;
 
 import com.ebook.common.R;
 

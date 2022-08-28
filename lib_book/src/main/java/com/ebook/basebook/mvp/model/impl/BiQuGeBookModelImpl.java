@@ -25,12 +25,9 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 
-import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import io.reactivex.Observable;
@@ -38,15 +35,14 @@ import io.reactivex.ObservableSource;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
-import kotlin.text.Charsets;
 
 /**
  * @author xrn1997
  * @date 2021/6/19
  */
 public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookModel {
-    private final String TAG = "shuangliusc.com";
     private volatile static BiQuGeBookModelImpl bookModel;
+    private final String TAG = "shuangliusc.com";
 
     public static BiQuGeBookModelImpl getInstance() {
         if (bookModel == null) {
@@ -86,7 +82,7 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
                 type = 8;
                 break;
         }
-        if (type == -1){
+        if (type == -1) {
             Log.e(TAG, "getKindBook: 网址错误");
             return null;
         }
@@ -205,7 +201,7 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
     @Override
     public Observable<List<SearchBook>> searchBook(String content, int page) {
         try {
-            String str =  URLEncoder.encode(content, "GBK");
+            String str = URLEncoder.encode(content, "GBK");
             return getRetrofitObject(BeQuGeService.URL)
                     .create(BeQuGeService.class)
                     .searchBook(str)
