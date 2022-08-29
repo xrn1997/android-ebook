@@ -1,6 +1,5 @@
 package com.ebook.basebook.mvp.model.impl;
 
-import android.content.Context;
 import android.util.Log;
 
 import com.ebook.api.service.BeQuGeService;
@@ -57,7 +56,7 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     @Override
-    public Observable<List<SearchBook>> getKindBook(Context context, String url, int page) {
+    public Observable<List<SearchBook>> getKindBook(String url, int page) {
         int type = -1;
         switch (url) {
             case Url.xh:
@@ -97,8 +96,8 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
             Document doc = Jsoup.parse(s);
             //解析分类书籍
             Elements kindBookEs = doc.getElementsByAttributeValue("class", "txt-list txt-list-row5").get(0).getElementsByTag("li");
+            List<SearchBook> books = new ArrayList<>();
             for (int i = 0; i < kindBookEs.size(); i++) {
-                List<SearchBook> books = new ArrayList<>();
                 SearchBook item = new SearchBook();
                 item.setTag(BeQuGeService.URL);
                 item.setAuthor(kindBookEs.get(i).getElementsByClass("s4").text());
@@ -115,8 +114,8 @@ public class BiQuGeBookModelImpl extends MBaseModelImpl implements StationBookMo
                 }
                 item.setCoverUrl(BeQuGeService.COVER_URL + "/" + c + "/" + temp[temp.length - 1] + "/" + temp[temp.length - 1] + "s.jpg");
                 books.add(item);
-                e.onNext(books);
             }
+            e.onNext(books);
             e.onComplete();
         });
     }

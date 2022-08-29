@@ -101,6 +101,7 @@ public class RefreshRecyclerView extends FrameLayout {
         }
     };
     private OnLoadMoreListener loadMoreListener;
+
     public RefreshRecyclerView(Context context) {
         this(context, null);
     }

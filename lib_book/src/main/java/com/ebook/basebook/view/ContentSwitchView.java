@@ -441,6 +441,10 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
 
     public Paint getTextPaint() {
         return durPageView.getTvContent().getPaint();
+    }
+
+    public int getContentWidth() {
+        return durPageView.getTvContent().getWidth();
     }    private final ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
         @Override
         public void onGlobalLayout() {
@@ -450,10 +454,6 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             durPageView.getTvContent().getViewTreeObserver().removeOnGlobalLayoutListener(layoutInitListener);
         }
     };
-
-    public int getContentWidth() {
-        return durPageView.getTvContent().getWidth();
-    }
 
     public void changeBg() {
         for (BookContentView item : viewContents) {
@@ -523,6 +523,8 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
 
         void showMenu();
     }
+
+
 
 
 }

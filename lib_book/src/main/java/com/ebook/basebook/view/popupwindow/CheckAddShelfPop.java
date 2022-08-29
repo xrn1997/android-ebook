@@ -19,6 +19,7 @@ public class CheckAddShelfPop extends PopupWindow {
     private TextView tvBookName;
     private TextView tvExit;
     private TextView tvAddShelf;
+
     public CheckAddShelfPop(Context context, @NonNull String bookName, @NonNull OnItemClickListener itemClick) {
         super(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         mContext = context;

@@ -84,7 +84,7 @@ public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> 
     }
 
     private void searchBook(final long searchTime) {
-        WebBookModelImpl.getInstance().getKindBook(mView.getContext(), url, page)
+        WebBookModelImpl.getInstance().getKindBook(url, page)
                 .subscribeOn(Schedulers.io())
                 .compose(((BaseActivity) mView.getContext()).bindUntilEvent(ActivityEvent.DESTROY))
                 .observeOn(AndroidSchedulers.mainThread())

@@ -1,7 +1,5 @@
 package com.ebook.basebook.mvp.model;
 
-import android.content.Context;
-
 import com.ebook.basebook.cache.ACache;
 import com.ebook.db.entity.BookContent;
 import com.ebook.db.entity.BookShelf;
@@ -32,7 +30,7 @@ public interface WebBookModel {
     /**
      * 获取分类书籍
      */
-    Observable<List<SearchBook>> getKindBook(Context context, String url, int page);
+    Observable<List<SearchBook>> getKindBook(String url, int page);
 
     /**
      * 获取主页信息
