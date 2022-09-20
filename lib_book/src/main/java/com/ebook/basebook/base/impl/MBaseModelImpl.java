@@ -1,6 +1,6 @@
 package com.ebook.basebook.base.impl;
 
-import com.ebook.basebook.base.converter.EncodeConverter;
+import com.ebook.basebook.base.impl.converter.EncodeConverter;
 
 import java.util.concurrent.TimeUnit;
 

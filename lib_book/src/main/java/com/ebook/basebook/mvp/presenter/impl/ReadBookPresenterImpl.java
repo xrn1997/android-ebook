@@ -103,6 +103,8 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
                 //点击dialog之外的空白处，dialog不能消失
                 dialog.setCanceledOnTouchOutside(false);
                 dialog.show();
+            }else{
+                openBookFromOther(activity);
             }
         }
     }
@@ -115,13 +117,13 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
         getRealFilePath(activity, uri)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
-                .subscribe(new SimpleObserver<String>() {
+                .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(@NotNull String value) {
                         ImportBookModelImpl.getInstance().importBook(new File(value))
                                 .observeOn(AndroidSchedulers.mainThread())
                                 .subscribeOn(Schedulers.io())
-                                .subscribe(new SimpleObserver<LocBookShelf>() {
+                                .subscribe(new SimpleObserver<>() {
                                     @Override
                                     public void onNext(@NotNull LocBookShelf value) {
                                         if (value.getNew())
