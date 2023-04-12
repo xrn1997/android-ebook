@@ -16,7 +16,6 @@ package com.ebook.common.view;
 
 import android.annotation.TargetApi;
 import android.content.Context;
-import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
@@ -38,6 +37,7 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
 import com.ebook.common.R;
 
@@ -139,14 +139,9 @@ public class ExpandableTextView extends LinearLayout implements View.OnClickList
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+
     private static Drawable getDrawable(@NonNull Context context, @DrawableRes int resId) {
-        Resources resources = context.getResources();
-        if (isPostLolipop()) {
-            return resources.getDrawable(resId, context.getTheme());
-        } else {
-            return resources.getDrawable(resId);
-        }
+        return ContextCompat.getDrawable(context, resId);
     }
 
     private static int getRealTextViewHeight(@NonNull TextView textView) {

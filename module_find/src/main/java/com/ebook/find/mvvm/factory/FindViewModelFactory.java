@@ -11,7 +11,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.ebook.find.mvvm.model.LibraryModel;
 import com.ebook.find.mvvm.viewmodel.LibraryViewModel;
 
-public class FindViewModelFactory extends ViewModelProvider.NewInstanceFactory {
+public class FindViewModelFactory implements ViewModelProvider.Factory {
     @SuppressLint("StaticFieldLeak")
     private static volatile FindViewModelFactory INSTANCE;
     private final Application mApplication;

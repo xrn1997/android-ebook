@@ -7,6 +7,8 @@ import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.PopupWindow;
 
+import androidx.core.content.ContextCompat;
+
 import com.ebook.basebook.R;
 import com.ebook.basebook.view.ReadBookControl;
 import com.kyleduo.switchbutton.SwitchButton;
@@ -31,7 +33,7 @@ public class MoreSettingPop extends PopupWindow {
         bindView();
         bindEvent();
 
-        setBackgroundDrawable(mContext.getResources().getDrawable(R.drawable.shape_pop_checkaddshelf_bg));
+        setBackgroundDrawable(ContextCompat.getDrawable(mContext, R.drawable.shape_pop_checkaddshelf_bg));
         setFocusable(true);
         setTouchable(true);
         setAnimationStyle(R.style.anim_pop_windowlight);

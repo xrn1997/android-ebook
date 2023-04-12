@@ -3,7 +3,7 @@ package com.ebook.find.mvp.presenter.impl;
 
 import androidx.annotation.NonNull;
 
-import com.ebook.api.service.BeQuGeService;
+import com.ebook.api.service.ZeroBookService;
 import com.ebook.basebook.base.IView;
 import com.ebook.basebook.base.impl.BasePresenterImpl;
 import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
@@ -75,7 +75,7 @@ public class SearchPresenterImpl extends BasePresenterImpl<ISearchView> implemen
         searchEngine = new ArrayList<>();
 
         Map<String, Object> map = new HashMap<>();
-        map.put(TAG_KEY, BeQuGeService.URL);
+        map.put(TAG_KEY, ZeroBookService.URL);
         map.put(HAS_MORE_KEY, true);
         map.put(HAS_LOAD_KEY, false);
         map.put(DUR_REQUEST_TIME, 1);

@@ -2,6 +2,7 @@ package com.ebook.common.view.profilePhoto;
 
 import static com.ebook.common.util.FileUtil.getRealFilePathFromUri;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -310,6 +311,7 @@ public class ClipViewLayout extends RelativeLayout {
         imageView.setImageBitmap(bitmap);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction() & MotionEvent.ACTION_MASK) {

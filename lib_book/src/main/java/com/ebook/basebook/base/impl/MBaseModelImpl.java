@@ -1,6 +1,6 @@
 package com.ebook.basebook.base.impl;
 
-import com.ebook.basebook.base.impl.converter.EncodeConverter;
+import com.ebook.basebook.cache.converter.EncodeConverter;
 
 import java.util.concurrent.TimeUnit;
 
@@ -16,15 +16,18 @@ public class MBaseModelImpl {
             .writeTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS);
 
-    protected Retrofit getRetrofitObject(String url) {
+    public MBaseModelImpl() {
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 //        clientBuilder.interceptors().add(logging);
-        clientBuilder.addInterceptor(new EncodingInterceptor("GBK"));
+        clientBuilder.addInterceptor(new EncodingInterceptor("UTF-8"));
+    }
+
+    protected Retrofit getRetrofitObject(String url) {
         return new Retrofit.Builder().baseUrl(url)
                 //增加返回值为字符串的支持(以实体类返回)
                 .addConverterFactory(ScalarsConverterFactory.create())
-                //增加返回值为Oservable<T>的支持
+                //增加返回值为Observable<T>的支持
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .client(clientBuilder.build())
                 .build();
@@ -34,7 +37,7 @@ public class MBaseModelImpl {
         return new Retrofit.Builder().baseUrl(url)
                 //增加返回值为字符串的支持(以实体类返回)
                 .addConverterFactory(EncodeConverter.create(encode))
-                //增加返回值为Oservable<T>的支持
+                //增加返回值为Observable<T>的支持
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .client(clientBuilder.build())
                 .build();

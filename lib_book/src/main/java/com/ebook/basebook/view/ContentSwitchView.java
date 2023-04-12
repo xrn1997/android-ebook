@@ -2,6 +2,7 @@ package com.ebook.basebook.view;
 
 import android.animation.Animator;
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Paint;
@@ -108,6 +109,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         int action = event.getAction();
@@ -445,6 +447,12 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
 
     public int getContentWidth() {
         return durPageView.getTvContent().getWidth();
+    }
+
+    public void changeBg() {
+        for (BookContentView item : viewContents) {
+            item.setBg(readBookControl);
+        }
     }    private final ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
         @Override
         public void onGlobalLayout() {
@@ -454,12 +462,6 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             durPageView.getTvContent().getViewTreeObserver().removeOnGlobalLayoutListener(layoutInitListener);
         }
     };
-
-    public void changeBg() {
-        for (BookContentView item : viewContents) {
-            item.setBg(readBookControl);
-        }
-    }
 
     public void changeTextSize() {
         for (BookContentView item : viewContents) {

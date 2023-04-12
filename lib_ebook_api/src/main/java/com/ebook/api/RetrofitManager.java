@@ -28,11 +28,11 @@ public class RetrofitManager {
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
         okHttpBuilder = new OkHttpClient.Builder();
-        //   okHttpBuilder.interceptors().add(logging);
+        okHttpBuilder.interceptors().add(logging);
         mRetrofit = new Retrofit.Builder()
                 .client(okHttpBuilder.build())
                 .baseUrl(API.URL_HOST_USER)
-                //增加返回值为Oservable<T>的支持
+                //增加返回值为Observable<T>的支持
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 //增加返回值为字符串的支持(以实体类返回)
                 .addConverterFactory(GsonConverterFactory.create())

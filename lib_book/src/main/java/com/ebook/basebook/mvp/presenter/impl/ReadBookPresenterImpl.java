@@ -103,7 +103,7 @@ public class ReadBookPresenterImpl extends BasePresenterImpl<IBookReadView> impl
                 //点击dialog之外的空白处，dialog不能消失
                 dialog.setCanceledOnTouchOutside(false);
                 dialog.show();
-            }else{
+            } else {
                 openBookFromOther(activity);
             }
         }

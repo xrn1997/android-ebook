@@ -1,6 +1,7 @@
 package com.ebook.basebook.mvp.presenter.impl;
 
 import android.content.Intent;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -110,7 +111,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                     }
                     return bookShelf;
                 }).subscribeOn(Schedulers.io())
-                .compose(((BaseActivity) mView.getContext()).bindUntilEvent(ActivityEvent.DESTROY))
+                .compose(((BaseActivity<?>) mView.getContext()).bindUntilEvent(ActivityEvent.DESTROY))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SimpleObserver<>() {
                     @Override
@@ -125,6 +126,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                             @Override
                             public void onError(Throwable e) {
                                 mBookShelf = null;
+                                Log.e("错误信息", "onError: " + e);
                                 mView.getBookShelfError();
                             }
                         });
@@ -133,6 +135,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                     @Override
                     public void onError(@NotNull Throwable e) {
                         mBookShelf = null;
+                        Log.e("错误信息", "onError: " + e);
                         mView.getBookShelfError();
                     }
                 });
@@ -150,7 +153,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                         e.onComplete();
                     }).subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
-                    .compose(((BaseActivity) mView.getContext()).bindUntilEvent(ActivityEvent.DESTROY))
+                    .compose(((BaseActivity<?>) mView.getContext()).bindUntilEvent(ActivityEvent.DESTROY))
                     .subscribe(new SimpleObserver<>() {
                         @Override
                         public void onNext(@NotNull Boolean value) {

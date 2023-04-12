@@ -4,6 +4,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import androidx.core.content.ContextCompat;
+
 import com.alibaba.android.arouter.launcher.ARouter;
 import com.blankj.utilcode.util.SPUtils;
 import com.bumptech.glide.Glide;
@@ -84,7 +86,7 @@ public class MainMeFragment extends BaseFragment {
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                 .fitCenter()
                 .dontAnimate()
-                .placeholder(getResources().getDrawable(R.drawable.image_default))
+                .placeholder(ContextCompat.getDrawable(mActivity, R.drawable.image_default))
                 .into(mCircleImageView);
     }
 
@@ -98,7 +100,7 @@ public class MainMeFragment extends BaseFragment {
             //未登录，显示按钮
             mTextView.setVisibility(View.GONE);
             mButton.setVisibility(View.VISIBLE);
-            mCircleImageView.setImageDrawable(getResources().getDrawable(R.drawable.image_default));
+            mCircleImageView.setImageDrawable(ContextCompat.getDrawable(mActivity, R.drawable.image_default));
         } else {
             //已登录，显示昵称
             mTextView.setVisibility(View.VISIBLE);

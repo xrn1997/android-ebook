@@ -9,6 +9,8 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import androidx.core.content.ContextCompat;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.ebook.basebook.R;
@@ -52,7 +54,7 @@ public class DownloadListPop extends PopupWindow {
         bindView();
         bindEvent();
         initWait();
-        setBackgroundDrawable(mContext.getResources().getDrawable(R.drawable.shape_pop_checkaddshelf_bg));
+        setBackgroundDrawable(ContextCompat.getDrawable(mContext, R.drawable.shape_pop_checkaddshelf_bg));
         setFocusable(true);
         setTouchable(true);
         setAnimationStyle(R.style.anim_pop_checkaddshelf);

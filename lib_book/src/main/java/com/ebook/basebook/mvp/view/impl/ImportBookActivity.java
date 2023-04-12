@@ -109,6 +109,7 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
         List<String> permissions = new ArrayList<>();
         permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+        permissions.add(PermissionX.permission.POST_NOTIFICATIONS);
         return permissions;
     }
 

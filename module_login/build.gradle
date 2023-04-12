@@ -4,14 +4,15 @@ if (isLoginModule.toBoolean()) {
     apply plugin: 'com.android.library'
 }
 android {
-    compileSdk 32
+
     defaultConfig {
         //如果是独立模块，则使用当前组件的包名
         if (isLoginModule.toBoolean()) {
             applicationId "com.ebook.login"
         }
-        minSdk 23
-        targetSdk 32
+        minSdk 26
+        targetSdk 33
+        compileSdk 33
         versionCode 3
         versionName '1.1.4'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -51,6 +52,7 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+    namespace 'com.ebook.login'
 }
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
@@ -61,6 +63,6 @@ dependencies {
     annotationProcessor 'com.google.dagger:dagger-compiler:2.37'
 
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }

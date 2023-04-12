@@ -7,6 +7,8 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
+import androidx.core.content.ContextCompat;
+
 import com.ebook.basebook.R;
 
 
@@ -25,7 +27,7 @@ public class ReadBookMenuMorePop extends PopupWindow {
 
         initView();
 
-        setBackgroundDrawable(mContext.getResources().getDrawable(R.drawable.shape_pop_checkaddshelf_bg));
+        setBackgroundDrawable(ContextCompat.getDrawable(mContext, R.drawable.shape_pop_checkaddshelf_bg));
         setFocusable(true);
         setTouchable(true);
         setAnimationStyle(R.style.anim_pop_windowmenumore);

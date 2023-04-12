@@ -15,7 +15,7 @@ import com.ebook.login.mvvm.viewmodel.LoginViewModel;
 import com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel;
 import com.ebook.login.mvvm.viewmodel.RegisterViewModel;
 
-public class LoginViewModelFactory extends ViewModelProvider.NewInstanceFactory {
+public class LoginViewModelFactory implements ViewModelProvider.Factory {
     @SuppressLint("StaticFieldLeak")
     private static volatile LoginViewModelFactory INSTANCE;
     private final Application mApplication;

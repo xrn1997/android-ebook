@@ -128,13 +128,13 @@ public class LibraryModel extends BaseModel {
     //获取书籍类型信息，此处用本地数据。
     public List<BookType> getBookTypeList() {
         List<BookType> bookTypeList = new ArrayList<>();
-        bookTypeList.add(new BookType("玄幻小说", Url.xh));
-        bookTypeList.add(new BookType("修真小说", Url.xz));
-        bookTypeList.add(new BookType("都市小说", Url.ds));
-        bookTypeList.add(new BookType("历史小说", Url.ls));
-        bookTypeList.add(new BookType("网游小说", Url.wy));
-        bookTypeList.add(new BookType("科幻小说", Url.kh));
-        bookTypeList.add(new BookType("其他小说", Url.qt));
+        bookTypeList.add(new BookType("玄幻奇幻", Url.xh_qh));
+        bookTypeList.add(new BookType("武侠仙侠", Url.wx_xx));
+        bookTypeList.add(new BookType("都市言情", Url.ds_yq));
+        bookTypeList.add(new BookType("历史军事", Url.ls_js));
+        bookTypeList.add(new BookType("科幻灵异", Url.kh_ly));
+        bookTypeList.add(new BookType("网游竞技", Url.wy_jj));
+        bookTypeList.add(new BookType("女生频道", Url.np));
         return bookTypeList;
     }
 

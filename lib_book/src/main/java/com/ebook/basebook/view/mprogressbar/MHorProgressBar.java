@@ -1,5 +1,6 @@
 package com.ebook.basebook.view.mprogressbar;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -374,6 +375,7 @@ public class MHorProgressBar extends View {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (canTouch) {

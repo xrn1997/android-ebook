@@ -12,6 +12,8 @@ import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
+import androidx.core.content.ContextCompat;
+
 import com.ebook.basebook.R;
 import com.ebook.basebook.view.checkbox.SmoothCheckBox;
 import com.ebook.basebook.view.mprogressbar.MHorProgressBar;
@@ -39,7 +41,7 @@ public class WindowLightPop extends PopupWindow {
         initView();
         bindEvent();
 
-        setBackgroundDrawable(mContext.getResources().getDrawable(R.drawable.shape_pop_checkaddshelf_bg));
+        setBackgroundDrawable(ContextCompat.getDrawable(mContext, R.drawable.shape_pop_checkaddshelf_bg));
         setFocusable(true);
         setTouchable(true);
         setAnimationStyle(R.style.anim_pop_windowlight);

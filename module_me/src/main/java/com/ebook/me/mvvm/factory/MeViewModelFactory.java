@@ -14,7 +14,7 @@ import com.ebook.me.mvvm.viewmodel.CommentViewModel;
 import com.ebook.me.mvvm.viewmodel.ModifyViewModel;
 
 
-public class MeViewModelFactory extends ViewModelProvider.NewInstanceFactory {
+public class MeViewModelFactory implements ViewModelProvider.Factory {
     @SuppressLint("StaticFieldLeak")
     private static volatile MeViewModelFactory INSTANCE;
     private final Application mApplication;

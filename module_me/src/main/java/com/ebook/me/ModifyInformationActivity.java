@@ -5,6 +5,7 @@ import static com.ebook.common.util.FileUtil.getRealFilePathFromUri;
 import android.content.Intent;
 import android.net.Uri;
 
+import androidx.core.content.ContextCompat;
 import androidx.databinding.ViewDataBinding;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -83,7 +84,7 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                 .fitCenter()
                 .dontAnimate()
-                .placeholder(getResources().getDrawable(R.drawable.image_default))
+                .placeholder(ContextCompat.getDrawable(this, R.drawable.image_default))
                 .into(imageView);
     }
 
@@ -114,7 +115,7 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                 .fitCenter()
                 .dontAnimate()
-                .placeholder(getResources().getDrawable(R.drawable.image_default))
+                .placeholder(ContextCompat.getDrawable(ModifyInformationActivity.this, R.drawable.image_default))
                 .into(imageView);
     }
 }

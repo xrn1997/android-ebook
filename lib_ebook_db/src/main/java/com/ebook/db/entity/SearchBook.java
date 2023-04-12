@@ -5,7 +5,7 @@ import android.os.Parcelable;
 
 public class SearchBook implements Parcelable {
 
-    public static final Creator<SearchBook> CREATOR = new Creator<SearchBook>() {
+    public static final Creator<SearchBook> CREATOR = new Creator<>() {
         @Override
         public SearchBook createFromParcel(Parcel in) {
             return new SearchBook(in);

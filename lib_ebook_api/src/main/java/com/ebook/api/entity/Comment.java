@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 public class Comment implements Parcelable {
-    public static final Creator<Comment> CREATOR = new Creator<Comment>() {
+    public static final Creator<Comment> CREATOR = new Creator<>() {
         @Override
         public Comment createFromParcel(Parcel in) {
             return new Comment(in);

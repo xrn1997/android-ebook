@@ -19,20 +19,20 @@ public interface CommentService {
     //添加评论
     @POST(API.URL_HOST_COMMENT + "comments/save")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    Observable<RespDTO<Comment>> addComment(@Header("Authorization") String tolen, @Body Comment comment);
+    Observable<RespDTO<Comment>> addComment(@Header("Authorization") String token, @Body Comment comment);
 
     //删除评论
     @POST(API.URL_HOST_COMMENT + "comments/delete/{id}")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    Observable<RespDTO<Integer>> deleteComment(@Header("Authorization") String tolen, @Path("id") Long id);
+    Observable<RespDTO<Integer>> deleteComment(@Header("Authorization") String token, @Path("id") Long id);
 
     //获得用户评论
     @GET(API.URL_HOST_COMMENT + "comments/query/name/{username}")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    Observable<RespDTO<List<Comment>>> getUserComments(@Header("Authorization") String tolen, @Path("username") String username);
+    Observable<RespDTO<List<Comment>>> getUserComments(@Header("Authorization") String token, @Path("username") String username);
 
     //获得章节评论
     @GET(API.URL_HOST_COMMENT + "comments/query/chapter")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    Observable<RespDTO<List<Comment>>> getChapterComments(@Header("Authorization") String tolen, @Query("chapterUrl") String chapterUrl);
+    Observable<RespDTO<List<Comment>>> getChapterComments(@Header("Authorization") String token, @Query("chapterUrl") String chapterUrl);
 }

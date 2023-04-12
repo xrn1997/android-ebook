@@ -4,7 +4,6 @@ import static com.bumptech.glide.request.RequestOptions.bitmapTransform;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.os.Build;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.view.animation.Animation;
@@ -251,13 +250,8 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
             }
             startActivityByAnim(intent, android.R.anim.fade_in, android.R.anim.fade_out);
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                if (getStart_share_ele()) {
-                    finishAfterTransition();
-                } else {
-                    finish();
-                    overridePendingTransition(0, android.R.anim.fade_out);
-                }
+            if (getStart_share_ele()) {
+                finishAfterTransition();
             } else {
                 finish();
                 overridePendingTransition(0, android.R.anim.fade_out);

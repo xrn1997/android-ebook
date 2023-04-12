@@ -13,7 +13,7 @@ import com.ebook.book.mvvm.model.BookListModel;
 import com.ebook.book.mvvm.viewmodel.BookCommentsViewModel;
 import com.ebook.book.mvvm.viewmodel.BookListViewModel;
 
-public class BookViewModelFactory extends ViewModelProvider.NewInstanceFactory {
+public class BookViewModelFactory implements ViewModelProvider.Factory {
     @SuppressLint("StaticFieldLeak")
     private static volatile BookViewModelFactory INSTANCE;
     private final Application mApplication;

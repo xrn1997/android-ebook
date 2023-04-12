@@ -414,12 +414,9 @@ public class DownloadService extends Service {
     private void finishDownload() {
         RxBus.get().post(RxBusTag.FINISH_DOWNLOAD_LISTENER, new Object());
         notifyManager.cancelAll();
-        new Handler(Looper.getMainLooper()).post(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), "全部离线章节下载完成", Toast.LENGTH_SHORT).show();
-                stopService(new Intent(getApplication(), DownloadService.class));
-            }
+        new Handler(Looper.getMainLooper()).post(() -> {
+            Toast.makeText(getApplicationContext(), "全部离线章节下载完成", Toast.LENGTH_SHORT).show();
+            stopService(new Intent(getApplication(), DownloadService.class));
         });
     }
 
