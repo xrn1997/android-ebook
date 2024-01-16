@@ -1,5 +1,6 @@
 package com.ebook.common.adapter;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,7 +12,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * @author : xrn1997
+ * @description :RecyclerView Adapter基类
+ */
 public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
     protected Context mContext;
     protected List<E> mList;
@@ -29,8 +33,8 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     @NonNull
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        int layoutid = onBindLayout();
-        View view = LayoutInflater.from(mContext).inflate(layoutid, parent, false);
+        int layout = onBindLayout();
+        View view = LayoutInflater.from(mContext).inflate(layout, parent, false);
         return onCreateHolder(view);
     }
 
@@ -61,6 +65,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     /**
      * 添加所有数据
      */
+    @SuppressLint("NotifyDataSetChanged")
     public void addAll(List<E> list) {
         if (list != null && list.size() > 0) {
             mList.addAll(list);
@@ -71,6 +76,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     /**
      * 更新数据
      */
+    @SuppressLint("NotifyDataSetChanged")
     public void refresh(List<E> list) {
         mList.clear();
         if (list != null && list.size() > 0) {
@@ -82,17 +88,18 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     /**
      * 根据位置删除数据
      */
-    public void remove(int positon) {
-        mList.remove(positon);
-        notifyDataSetChanged();
+    public void remove(int position) {
+        mList.remove(position);
+        notifyItemRemoved(position);
     }
 
     /**
      * 根据对象删除数据
      */
     public void remove(E e) {
+        int p = mList.indexOf(e);
         mList.remove(e);
-        notifyDataSetChanged();
+        notifyItemRemoved(p);
     }
 
     /**
@@ -100,7 +107,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
      */
     public void add(E e) {
         mList.add(e);
-        notifyDataSetChanged();
+        notifyItemInserted(mList.size());
     }
 
     /**
@@ -115,12 +122,13 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
      */
     public void addFirst(E e) {
         mList.add(0, e);
-        notifyDataSetChanged();
+        notifyItemInserted(0);
     }
 
     /**
      * 删除所有数据
      */
+    @SuppressLint("NotifyDataSetChanged")
     public void clear() {
         mList.clear();
         notifyDataSetChanged();
@@ -159,17 +167,45 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         return super.getItemViewType(position);
     }
 
+    /**
+     * 绑定item Layout
+     */
     protected abstract int onBindLayout();
 
+    /**
+     * 直接用
+     *
+     * @param view itemView
+     * @return VH
+     */
     protected abstract VH onCreateHolder(View view);
 
+    /**
+     * 绑定数据
+     *
+     * @param holder   viewHolder
+     * @param e        item对象
+     * @param position 索引
+     */
     protected abstract void onBindData(VH holder, E e, int position);
 
     public interface OnItemClickListener<E> {
+        /**
+         * 点按
+         *
+         * @param e        item对象
+         * @param position 索引
+         */
         void onItemClick(E e, int position);
     }
 
     public interface OnItemLongClickListener<E> {
-        boolean onItemLongClick(E e, int postion);
+        /**
+         * 长按
+         *
+         * @param e        item对象
+         * @param position 索引
+         */
+        boolean onItemLongClick(E e, int position);
     }
 }
