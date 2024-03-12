@@ -1,6 +1,8 @@
 buildscript {
     repositories {
+        maven { url 'https://maven.aliyun.com/nexus/content/repositories/google' }
         maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
+        maven { url 'https://maven.aliyun.com/nexus/content/repositories/jcenter' }
         google()
         mavenCentral()
     }
@@ -12,12 +14,20 @@ buildscript {
 
 allprojects {
     repositories {
+        maven { url 'https://maven.aliyun.com/nexus/content/repositories/gradle-plugin' }
+        maven { url 'https://maven.aliyun.com/nexus/content/repositories/google' }
         maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
         maven { url 'https://maven.aliyun.com/nexus/content/repositories/jcenter' }
-        maven { url 'https://maven.aliyun.com/nexus/content/repositories/google' }
-        maven { url 'https://maven.aliyun.com/nexus/content/repositories/gradle-plugin' }
         google()
-        maven { url 'https://jitpack.io' }
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+    }
+    gradle.projectsEvaluated {
+        tasks.withType(JavaCompile).tap {
+            configureEach {
+                options.compilerArgs << "-Xmaxerrs" << "500"
+            }
+        }
     }
 //    gradle.projectsEvaluated {
 //        tasks.withType(JavaCompile) {
