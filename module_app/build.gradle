@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
 
 android {
 
@@ -31,11 +32,16 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     namespace 'com.ebook'
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 }
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_book')
+    implementation 'androidx.core:core-ktx:+'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0'
     if (!isModule.toBoolean()) {
         implementation project(':module_main')
         implementation project(':module_find')

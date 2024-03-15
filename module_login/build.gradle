@@ -1,3 +1,6 @@
+plugins {
+    id 'org.jetbrains.kotlin.android'
+}
 if (isLoginModule.toBoolean()) {
     apply plugin: 'com.android.application'
 } else {
@@ -53,10 +56,15 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     namespace 'com.ebook.login'
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 }
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_common')
+    implementation 'androidx.core:core-ktx:+'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0'
 
     annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
     //Dagger

@@ -1,4 +1,7 @@
 buildscript {
+    ext {
+        kotlin_version = '2.0.0-Beta4'
+    }
     repositories {
         maven { url 'https://maven.aliyun.com/nexus/content/repositories/google' }
         maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
@@ -9,6 +12,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.2.2'
         classpath 'org.greenrobot:greendao-gradle-plugin:3.3.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 

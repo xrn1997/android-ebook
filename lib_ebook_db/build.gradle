@@ -1,5 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'org.greenrobot.greendao'
+apply plugin: 'org.jetbrains.kotlin.android'
 android {
 
     defaultConfig {
@@ -32,6 +33,9 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     namespace 'com.ebook.db'
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 
 }
 
@@ -42,6 +46,7 @@ dependencies {
     api 'org.greenrobot:greendao:3.3.0'
     api 'org.greenrobot:greendao-generator:3.3.0'
     api 'org.greenrobot:greendao-gradle-plugin:3.3.1'
+    implementation 'androidx.core:core-ktx:+'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'

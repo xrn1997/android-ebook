@@ -1,7 +1,11 @@
 apply from: "../module.build.gradle"
+apply plugin: 'org.jetbrains.kotlin.android'
 android {
 
     namespace 'com.ebook.find'
+    kotlinOptions {
+        jvmTarget = '17'
+    }
     defaultConfig {
         if (isModule.toBoolean()) {
             applicationId "com.ebook.find"
@@ -12,6 +16,8 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_common')
     implementation project(':lib_book')
+    implementation 'androidx.core:core-ktx:+'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0'
     annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
     //Dagger
     annotationProcessor 'com.google.dagger:dagger-compiler:2.51'

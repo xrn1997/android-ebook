@@ -1,4 +1,5 @@
 apply from: "../module.build.gradle"
+apply plugin: 'org.jetbrains.kotlin.android'
 android {
     defaultConfig {
         if (isModule.toBoolean()) {
@@ -10,11 +11,16 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     namespace 'com.ebook.book'
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 }
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_common')
     implementation project(':lib_book')
+    implementation 'androidx.core:core-ktx:+'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0'
     annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
     annotationProcessor 'com.google.dagger:dagger-compiler:2.51'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.13.1'
