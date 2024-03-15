@@ -1,8 +1,10 @@
 plugins {
     id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
 }
 if (isLoginModule.toBoolean()) {
     apply plugin: 'com.android.application'
+    apply plugin: 'therouter'
 } else {
     apply plugin: 'com.android.library'
 }
@@ -19,11 +21,6 @@ android {
         versionCode 4
         versionName '1.1.5'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments = [AROUTER_MODULE_NAME: project.getName()]
-            }
-        }
     }
     sourceSets {
         main {
@@ -48,7 +45,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    buildFeatures{
+    buildFeatures {
         dataBinding true
     }
     compileOptions {
@@ -65,9 +62,10 @@ dependencies {
     api project(':lib_common')
     implementation libs.core.ktx
     implementation libs.androidx.lifecycle.viewmodel.ktx
-    annotationProcessor libs.arouter.compiler
+    kapt libs.apt
+    implementation libs.router
     //Dagger
-    annotationProcessor libs.dagger.compiler
+    kapt libs.dagger.compiler
 
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit

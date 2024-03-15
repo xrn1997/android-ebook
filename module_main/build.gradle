@@ -18,8 +18,9 @@ dependencies {
     api project(':lib_book')
     implementation libs.core.ktx
     implementation libs.androidx.lifecycle.viewmodel.ktx
-    annotationProcessor libs.arouter.compiler
-    annotationProcessor libs.dagger.compiler
+    kapt libs.apt
+    implementation libs.router
+    kapt libs.dagger.compiler
 
     if (!isLoginModule.toBoolean()) {
         implementation project(path: ':module_login')

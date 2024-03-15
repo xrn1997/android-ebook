@@ -12,7 +12,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 
-import com.alibaba.android.arouter.launcher.ARouter;
 import com.ebook.common.R;
 import com.ebook.common.event.common.BaseFragmentEvent;
 import com.ebook.common.mvp.view.BaseView;
@@ -22,6 +21,7 @@ import com.ebook.common.view.LoadingInitView;
 import com.ebook.common.view.LoadingTransView;
 import com.ebook.common.view.NetErrorView;
 import com.ebook.common.view.NoDataView;
+import com.therouter.TheRouter;
 import com.trello.rxlifecycle3.components.support.RxAppCompatActivity;
 
 import org.greenrobot.eventbus.EventBus;
@@ -54,7 +54,7 @@ public abstract class BaseFragment extends Fragment implements BaseView {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mActivity = (RxAppCompatActivity) getActivity();
-        ARouter.getInstance().inject(this);
+        TheRouter.inject(this);
         EventBus.getDefault().register(this);
     }
 

@@ -1,17 +1,12 @@
 apply plugin: 'com.android.library'
 apply plugin: 'org.jetbrains.kotlin.android'
-
+apply plugin: 'kotlin-kapt'
 android {
 
     defaultConfig {
         minSdk 26
         targetSdk 34
         compileSdk 34
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments = [AROUTER_MODULE_NAME: project.getName()]
-            }
-        }
         ndk {
             abiFilters "armeabi", "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
         }
@@ -49,10 +44,11 @@ dependencies {
     api libs.appcompat
     api libs.constraintlayout
     api libs.material
-    api libs.arouter.api
+
     implementation libs.core.ktx
     implementation libs.androidx.lifecycle.viewmodel.ktx
-    annotationProcessor libs.arouter.compiler
+    kapt libs.apt
+    api libs.router
     //rxjava
     api libs.rxjava
     api libs.rxandroid
@@ -66,13 +62,13 @@ dependencies {
     api(libs.glide) {
         exclude group: 'com.android.support'
     }
-    annotationProcessor libs.compiler
+    kapt libs.compiler
 
     api libs.androidx.lifecycle.extensions
-    annotationProcessor libs.androidx.lifecycle.common.java8
+    kapt libs.androidx.lifecycle.common.java8
 
     api libs.dagger
-    annotationProcessor libs.dagger.compiler
+    kapt libs.dagger.compiler
 
     api libs.stetho
 

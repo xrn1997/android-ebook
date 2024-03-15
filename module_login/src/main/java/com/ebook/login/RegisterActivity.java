@@ -2,12 +2,12 @@ package com.ebook.login;
 
 import androidx.lifecycle.ViewModelProvider;
 
-import com.alibaba.android.arouter.facade.annotation.Route;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.mvvm.BaseMvvmActivity;
 import com.ebook.login.databinding.ActivityRegisterBinding;
 import com.ebook.login.mvvm.factory.LoginViewModelFactory;
 import com.ebook.login.mvvm.viewmodel.RegisterViewModel;
+import com.therouter.router.Route;
 
 ;
 

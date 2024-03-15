@@ -6,12 +6,12 @@ import android.widget.Button;
 
 import androidx.lifecycle.ViewModelProvider;
 
-import com.alibaba.android.arouter.facade.annotation.Route;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.mvvm.BaseMvvmActivity;
 import com.ebook.login.databinding.ActivityVerifyUserBinding;
 import com.ebook.login.mvvm.factory.LoginViewModelFactory;
 import com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel;
+import com.therouter.router.Route;
 
 @Route(path = KeyCode.Login.Modify_PATH)
 public class VerifyUserActivity extends BaseMvvmActivity<ActivityVerifyUserBinding, ModifyPwdViewModel> {

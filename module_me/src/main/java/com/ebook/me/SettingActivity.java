@@ -2,7 +2,6 @@ package com.ebook.me;
 
 import android.widget.Button;
 
-import com.alibaba.android.arouter.facade.annotation.Route;
 import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.RetrofitManager;
 import com.ebook.common.event.KeyCode;
@@ -10,8 +9,9 @@ import com.ebook.common.event.RxBusTag;
 import com.ebook.common.mvvm.BaseActivity;
 import com.ebook.common.util.ToastUtil;
 import com.hwangjr.rxbus.RxBus;
+import com.therouter.router.Route;
 
-@Route(path = KeyCode.Me.Setting_PATH)
+@Route(path = KeyCode.Me.Setting_PATH, params = {"needLogin", "true"})
 public class SettingActivity extends BaseActivity {
     private Button mExitButtn;
 

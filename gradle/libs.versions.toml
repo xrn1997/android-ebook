@@ -1,7 +1,6 @@
 [versions]
 agp = "8.2.2"
 annotations = "24.1.0"
-arouterCompiler = "1.5.2"
 autofittextview = "0.2.1"
 circleimageview = "3.1.0"
 converterScalars = "2.9.0"
@@ -12,10 +11,10 @@ fastjson2 = "2.0.27"
 fragmentKtx = "1.6.2"
 glide = "4.13.1"
 glideTransformations = "4.3.0"
-gorouterApi = "2.5.1"
 greendao = "3.3.0"
 greendaoGradlePluginVersion = "3.3.1"
 gson = "2.10.1"
+input = "3.3.0"
 jsoup = "1.17.2"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -39,6 +38,7 @@ constraintlayout = "2.1.4"
 kotlin="1.9.22"
 multiimageselector = "1.2"
 permissionx = "1.7.1"
+plugin = "1.2.1"
 recyclerview = "1.3.2"
 rxandroid = "3.0.2"
 rxbinding = "4.0.0"
@@ -48,6 +48,7 @@ rxkotlin = "3.0.0"
 rxlifecycle = "3.1.0"
 rxlifecycleKotlin = "4.0.2"
 rxpermissions = "0.10.2"
+scarlet = "0.1.12"
 stetho = "1.6.0"
 tinypinyin = "2.0.3"
 utilcodex = "1.31.0"
@@ -64,13 +65,14 @@ androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
 annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
-arouter-api = { module = "com.alibaba:arouter-api", version.ref = "arouterCompiler" }
-arouter-compiler = { module = "com.alibaba:arouter-compiler", version.ref = "arouterCompiler" }
+apt = { module = "cn.therouter:apt", version.ref = "plugin" }
 autofittextview = { module = "me.grantland:autofittextview", version.ref = "autofittextview" }
+bottomsheets = { module = "com.afollestad.material-dialogs:bottomsheets", version.ref = "input" }
 circleimageview = { module = "de.hdodenhof:circleimageview", version.ref = "circleimageview" }
 compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterScalars" }
 converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "converterScalars" }
+core = { module = "com.afollestad.material-dialogs:core", version.ref = "input" }
 core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }
 dagger-compiler = { module = "com.google.dagger:dagger-compiler", version.ref = "dagger" }
@@ -84,6 +86,7 @@ greendao = { module = "org.greenrobot:greendao", version.ref = "greendao" }
 greendao-generator = { module = "org.greenrobot:greendao-generator", version.ref = "greendao" }
 greendao-gradle-plugin = { module = "org.greenrobot:greendao-gradle-plugin", version.ref = "greendaoGradlePluginVersion" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+input = { module = "com.afollestad.material-dialogs:input", version.ref = "input" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -102,6 +105,7 @@ material = { group = "com.google.android.material", name = "material", version.r
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 multi-image-selector = { module = "com.github.lovetuzitong:MultiImageSelector", version.ref = "multiimageselector" }
 permissionx = { module = "com.guolindev.permissionx:permissionx", version.ref = "permissionx" }
+router = { module = "cn.therouter:router", version.ref = "plugin" }
 rxandroid = { module = "io.reactivex.rxjava3:rxandroid", version.ref = "rxandroid" }
 rxbinding = { module = "com.jakewharton.rxbinding4:rxbinding", version.ref = "rxbinding" }
 rxbus = { module = "com.hwangjr.rxbus:rxbus", version.ref = "rxbus" }
@@ -114,6 +118,7 @@ rxlifecycle-components = { module = "com.trello.rxlifecycle4:rxlifecycle-compone
 rxlifecycle-kotlin = { module = "com.trello.rxlifecycle4:rxlifecycle-kotlin", version.ref = "rxlifecycleKotlin" }
 rxlifecycle3-rxlifecycle-components = { module = "com.trello.rxlifecycle3:rxlifecycle-components", version.ref = "rxlifecycle" }
 rxpermissions = { module = "com.github.tbruyelle:rxpermissions", version.ref = "rxpermissions" }
+scarlet = { module = "com.tinder.scarlet:scarlet", version.ref = "scarlet" }
 stetho = { module = "com.facebook.stetho:stetho", version.ref = "stetho" }
 stetho-okhttp3 = { module = "com.facebook.stetho:stetho-okhttp3", version.ref = "stetho" }
 switchbutton-library = { module = "com.kyleduo.switchbutton:library", version.ref = "kyleduoLibrary" }

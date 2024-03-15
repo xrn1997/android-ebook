@@ -17,9 +17,10 @@ dependencies {
     api project(':lib_common')
     implementation libs.core.ktx
     implementation libs.androidx.lifecycle.viewmodel.ktx
-    annotationProcessor libs.arouter.compiler
-    annotationProcessor libs.dagger.compiler
 
+    kapt libs.dagger.compiler
+    kapt libs.apt
+    implementation libs.router
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
