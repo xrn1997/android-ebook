@@ -41,14 +41,14 @@ android {
 
 dependencies {
     api fileTree(dir: 'libs', include: ['*.jar'])
-    api 'androidx.appcompat:appcompat:1.6.1'
+    api libs.appcompat
 
-    api 'org.greenrobot:greendao:3.3.0'
-    api 'org.greenrobot:greendao-generator:3.3.0'
-    api 'org.greenrobot:greendao-gradle-plugin:3.3.1'
-    implementation 'androidx.core:core-ktx:+'
+    api libs.greendao
+    api libs.greendao.generator
+    api libs.greendao.gradle.plugin
+    implementation libs.core.ktx
 
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
 }

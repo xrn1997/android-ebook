@@ -1,45 +1,10 @@
 buildscript {
-    ext {
-        kotlin_version = '2.0.0-Beta4'
-    }
-    repositories {
-        maven { url 'https://maven.aliyun.com/nexus/content/repositories/google' }
-        maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
-        maven { url 'https://maven.aliyun.com/nexus/content/repositories/jcenter' }
-        google()
-        mavenCentral()
-    }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.2'
-        classpath 'org.greenrobot:greendao-gradle-plugin:3.3.1'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath libs.greendao.gradle.plugin // add plugin
     }
 }
-
-allprojects {
-    repositories {
-        maven { url 'https://maven.aliyun.com/nexus/content/repositories/gradle-plugin' }
-        maven { url 'https://maven.aliyun.com/nexus/content/repositories/google' }
-        maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
-        maven { url 'https://maven.aliyun.com/nexus/content/repositories/jcenter' }
-        google()
-        mavenCentral()
-        maven { url 'https://www.jitpack.io' }
-    }
-    gradle.projectsEvaluated {
-        tasks.withType(JavaCompile).tap {
-            configureEach {
-                options.compilerArgs << "-Xmaxerrs" << "500"
-            }
-        }
-    }
-//    gradle.projectsEvaluated {
-//        tasks.withType(JavaCompile) {
-//            options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
-//        }
-//    }
-}
-
-tasks.register('clean', Delete) {
-    delete rootProject.buildDir
+plugins {
+    alias(libs.plugins.androidApplication) apply false
+    alias(libs.plugins.kotlinAndroid) apply false
+    alias(libs.plugins.kotlinJvm)  apply false
 }

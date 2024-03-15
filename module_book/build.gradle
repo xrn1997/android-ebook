@@ -19,13 +19,14 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_common')
     implementation project(':lib_book')
-    implementation 'androidx.core:core-ktx:+'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0'
-    annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.51'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.13.1'
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    implementation libs.core.ktx
+    implementation libs.androidx.lifecycle.viewmodel.ktx
+    annotationProcessor libs.arouter.compiler
+    //Dagger
+    annotationProcessor libs.dagger.compiler
+    annotationProcessor libs.compiler
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
 
 }
