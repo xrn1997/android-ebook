@@ -65,8 +65,8 @@ dependencies {
     api 'androidx.lifecycle:lifecycle-extensions:2.2.0'
     annotationProcessor 'androidx.lifecycle:lifecycle-common-java8:2.7.0'
 
-    api 'com.google.dagger:dagger:2.37'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.37'
+    api 'com.google.dagger:dagger:2.51'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.51'
 
     api 'com.facebook.stetho:stetho:1.6.0'
 
@@ -79,7 +79,7 @@ dependencies {
     api 'com.blankj:utilcodex:1.31.0'
 
     //JSOUP
-    api 'org.jsoup:jsoup:1.13.1'
+    api 'org.jsoup:jsoup:1.17.2'
     //高斯模糊类
     api 'jp.wasabeef:glide-transformations:4.3.0'
     //AutoFitTextView

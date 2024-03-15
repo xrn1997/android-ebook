@@ -14,7 +14,7 @@ dependencies {
     implementation project(':lib_book')
     annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
     //Dagger
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.37'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.51'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
