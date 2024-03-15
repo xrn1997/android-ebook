@@ -90,14 +90,14 @@ public class SearchActivity extends BaseActivity<ISearchPresenter> implements IS
         tflSearchHistory.setAdapter(searchHistoryAdapter);
         rfRvSearchBooks = findViewById(R.id.rfRv_search_books);
         rfRvSearchBooks.setRefreshRecyclerViewAdapter(searchBookAdapter, new LinearLayoutManager(this));
-        View viewRefreshError = LayoutInflater.from(this).inflate(R.layout.view_searchbook_refresherror, null);
-        viewRefreshError.findViewById(R.id.tv_refresh_again).setOnClickListener(v -> {
+        View viewRefreshError = LayoutInflater.from(this).inflate(com.ebook.basebook.R.layout.view_searchbook_refresherror, null);
+        viewRefreshError.findViewById(com.ebook.basebook.R.id.tv_refresh_again).setOnClickListener(v -> {
             //刷新失败 ，重试
             mPresenter.initPage();
             mPresenter.toSearchBooks(null, true);
             rfRvSearchBooks.startRefresh();
         });
-        rfRvSearchBooks.setNoDataAndRefreshErrorView(LayoutInflater.from(this).inflate(R.layout.view_searchbook_nodata, null),
+        rfRvSearchBooks.setNoDataAndRefreshErrorView(LayoutInflater.from(this).inflate(com.ebook.basebook.R.layout.view_searchbook_nodata, null),
                 viewRefreshError);
         searchBookAdapter.setItemClickListener(new SearchBookAdapter.OnItemClickListener() {
             @Override

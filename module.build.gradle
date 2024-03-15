@@ -7,8 +7,8 @@ android {
 
     defaultConfig {
         minSdk 26
-        targetSdk 33
-        compileSdk 33
+        targetSdk 34
+        compileSdk 34
         versionCode 4
         versionName '1.1.5'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -45,8 +45,8 @@ android {
         dataBinding true
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 }
 

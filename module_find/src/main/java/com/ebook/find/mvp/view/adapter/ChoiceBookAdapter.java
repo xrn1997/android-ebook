@@ -48,7 +48,7 @@ public class ChoiceBookAdapter extends RefreshRecyclerViewAdapter {
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                 .fitCenter()
                 .dontAnimate()
-                .placeholder(R.drawable.img_cover_default)
+                .placeholder(com.ebook.basebook.R.drawable.img_cover_default)
                 .into(((Viewholder) holder).ivCover);
         ((Viewholder) holder).tvName.setText(searchBooks.get(position).getName());
         ((Viewholder) holder).tvAuthor.setText(searchBooks.get(position).getAuthor());
