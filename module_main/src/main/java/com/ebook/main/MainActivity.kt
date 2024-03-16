@@ -8,9 +8,11 @@ import com.ebook.common.provider.IBookProvider
 import com.ebook.common.provider.IFindProvider
 import com.ebook.common.provider.IMeProvider
 import com.ebook.common.util.ToastUtil
+import com.ebook.login.interceptor.LoginInterceptor
 import com.ebook.main.entity.MainChannel
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.therouter.TheRouter.get
+import com.therouter.TheRouter
+
 
 class MainActivity : BaseActivity() {
     private var mBookFragment: Fragment? = null
@@ -45,9 +47,9 @@ class MainActivity : BaseActivity() {
             }
             false
         }
-        mBookFragment = get(IBookProvider::class.java)?.getMainBookFragment()
-        mFindFragment = get(IFindProvider::class.java)?.getMainFindFragment()
-        mMeFragment = get(IMeProvider::class.java)?.getMainMeFragment()
+        mBookFragment = TheRouter.get(IBookProvider::class.java)?.getMainBookFragment()
+        mFindFragment = TheRouter.get(IFindProvider::class.java)?.getMainFindFragment()
+        mMeFragment = TheRouter.get(IMeProvider::class.java)?.getMainMeFragment()
         mCurrFragment = mBookFragment
         if (mBookFragment != null) {
             supportFragmentManager.beginTransaction()
