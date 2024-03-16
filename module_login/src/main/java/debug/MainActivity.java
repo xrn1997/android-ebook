@@ -31,14 +31,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         int id = v.getId();
         if (id == R.id.btn_login) {
-            TheRouter.build(KeyCode.Login.Login_PATH)
+            TheRouter.build(KeyCode.Login.LOGIN_PATH)
                     .navigation();
         } else if (id == R.id.btn_register) { // 注册
-            TheRouter.build(KeyCode.Login.Register_PATH)
+            TheRouter.build(KeyCode.Login.REGISTER_PATH)
                     .withString("msg", "ARouter传递过来的不需要登录的参数msg")
                     .navigation();
         } else if (id == R.id.btn_interrupt) { // 需要登录的
-            TheRouter.build(KeyCode.Login.Test_PATH)
+            TheRouter.build(KeyCode.Login.TEST_PATH)
                     .withString("msg", "ARouter传递过来的需要登录的参数msg")
                     .navigation(this);
         } else if (id == R.id.btn_exit) { // 退出登录

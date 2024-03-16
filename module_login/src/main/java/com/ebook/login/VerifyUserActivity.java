@@ -13,7 +13,7 @@ import com.ebook.login.mvvm.factory.LoginViewModelFactory;
 import com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel;
 import com.therouter.router.Route;
 
-@Route(path = KeyCode.Login.Modify_PATH)
+@Route(path = KeyCode.Login.MODIFY_PATH)
 public class VerifyUserActivity extends BaseMvvmActivity<ActivityVerifyUserBinding, ModifyPwdViewModel> {
     private Button mVerifyCodeButton;//获取验证码按钮
 

@@ -54,13 +54,13 @@ public class MainMeFragment extends BaseFragment {
 
     @Override
     public void initListener() {
-        mSetComment.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.Comment_PATH)
+        mSetComment.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.COMMENT_PATH)
                 .navigation(getActivity()));
-        mSetInform.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.Modify_PATH)
+        mSetInform.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.MODIFY_PATH)
                 .navigation(getActivity()));
-        mButton.setOnClickListener(v -> TheRouter.build(KeyCode.Login.Login_PATH)
+        mButton.setOnClickListener(v -> TheRouter.build(KeyCode.Login.LOGIN_PATH)
                 .navigation());
-        mSetting.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.Setting_PATH)
+        mSetting.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.SETTING_PATH)
                 .navigation(getActivity()));
     }
 

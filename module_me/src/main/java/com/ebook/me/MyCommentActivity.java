@@ -17,7 +17,7 @@ import com.refresh.lib.DaisyRefreshLayout;
 import com.therouter.TheRouter;
 import com.therouter.router.Route;
 
-@Route(path = KeyCode.Me.Comment_PATH, params = {"needLogin", "true"})
+@Route(path = KeyCode.Me.COMMENT_PATH, params = {"needLogin", "true"})
 public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBinding, CommentViewModel> {
     private CommentListAdapter mCommentListAdapter;
 
@@ -71,7 +71,7 @@ public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBi
             bundle.putString("chapterUrl", comment.getChapterUrl());
             bundle.putString("chapterName", comment.getChapterName());
             bundle.putString("bookName", comment.getBookName());
-            TheRouter.build(KeyCode.Book.Comment_PATH)
+            TheRouter.build(KeyCode.Book.COMMENT_PATH)
                     .with(bundle)
                     .navigation(MyCommentActivity.this);
         });

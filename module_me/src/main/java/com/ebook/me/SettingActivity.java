@@ -11,9 +11,9 @@ import com.ebook.common.util.ToastUtil;
 import com.hwangjr.rxbus.RxBus;
 import com.therouter.router.Route;
 
-@Route(path = KeyCode.Me.Setting_PATH, params = {"needLogin", "true"})
+@Route(path = KeyCode.Me.SETTING_PATH, params = {"needLogin", "true"})
 public class SettingActivity extends BaseActivity {
-    private Button mExitButtn;
+    private Button mExitButton;
 
     @Override
     public int onBindLayout() {
@@ -23,7 +23,7 @@ public class SettingActivity extends BaseActivity {
     @Override
     public void initListener() {
         super.initListener();
-        mExitButtn.setOnClickListener(v -> {
+        mExitButton.setOnClickListener(v -> {
             SPUtils.getInstance().clear();
             RetrofitManager.getInstance().TOKEN = "";
             ToastUtil.showToast("退出登录成功");
@@ -34,7 +34,7 @@ public class SettingActivity extends BaseActivity {
 
     @Override
     public void initView() {
-        mExitButtn = (Button) findViewById(R.id.btn_exit);
+        mExitButton = findViewById(R.id.btn_exit);
     }
 
     @Override

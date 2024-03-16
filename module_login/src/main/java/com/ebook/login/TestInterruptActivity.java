@@ -7,7 +7,7 @@ import com.ebook.common.mvvm.BaseActivity;
 import com.therouter.router.Autowired;
 import com.therouter.router.Route;
 
-@Route(path = KeyCode.Login.Test_PATH, params = {"needLogin", "true"})
+@Route(path = KeyCode.Login.TEST_PATH, params = {"needLogin", "true"})
 public class TestInterruptActivity extends BaseActivity {
 
     @Autowired

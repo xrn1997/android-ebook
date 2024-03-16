@@ -260,7 +260,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
             bundle.putString("chapterUrl", path.getDurChapterUrl());
             bundle.putString("chapterName", path.getDurChapterName());
             bundle.putString("bookName", mPresenter.getBookShelf().getBookInfo().getName());
-            TheRouter.build(KeyCode.Book.Comment_PATH)
+            TheRouter.build(KeyCode.Book.COMMENT_PATH)
                     .with(bundle)
                     .navigation(ReadBookActivity.this);
         });

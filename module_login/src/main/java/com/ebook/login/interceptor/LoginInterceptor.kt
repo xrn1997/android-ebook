@@ -29,7 +29,7 @@ class LoginInterceptor : RouterReplaceInterceptor() {
             return routeItem
         }
         return if (routeItem.getExtras().getBoolean("needLogin")) {
-            val loginItem = matchRouteMap(KeyCode.Login.Login_PATH)
+            val loginItem = matchRouteMap(KeyCode.Login.LOGIN_PATH)
             loginItem?.getExtras()?.putString(KeyCode.Login.PATH, routeItem.path)
             loginItem
         } else routeItem

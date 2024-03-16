@@ -22,7 +22,7 @@ import com.ebook.common.view.DeleteDialog;
 import com.refresh.lib.DaisyRefreshLayout;
 import com.therouter.router.Route;
 
-@Route(path = KeyCode.Book.Comment_PATH)
+@Route(path = KeyCode.Book.COMMENT_PATH)
 public class BookCommentsActivity extends BaseMvvmRefreshActivity<ActivityBookCommentsBinding, BookCommentsViewModel> {
     private EditText editText;
     private BookCommentsAdpater mBookCommentsAdapter;

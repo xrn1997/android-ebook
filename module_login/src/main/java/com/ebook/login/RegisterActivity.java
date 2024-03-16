@@ -11,7 +11,7 @@ import com.therouter.router.Route;
 
 ;
 
-@Route(path = KeyCode.Login.Register_PATH)
+@Route(path = KeyCode.Login.REGISTER_PATH)
 public class RegisterActivity extends BaseMvvmActivity<ActivityRegisterBinding, RegisterViewModel> {
 
     @Override

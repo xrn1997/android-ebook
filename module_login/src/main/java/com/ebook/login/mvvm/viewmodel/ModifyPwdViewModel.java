@@ -87,7 +87,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
                     Bundle bundle = new Bundle();
                     bundle.putString("username", username.get());
                     bundle.putString("password", password_1.get());
-                    TheRouter.build(KeyCode.Login.Login_PATH)
+                    TheRouter.build(KeyCode.Login.LOGIN_PATH)
                             .with(bundle)
                             .navigation();
                     //    Log.d(TAG, "修改密码onNext: finsh");

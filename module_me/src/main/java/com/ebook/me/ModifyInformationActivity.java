@@ -27,7 +27,7 @@ import com.hwangjr.rxbus.thread.EventThread;
 import com.therouter.TheRouter;
 import com.therouter.router.Route;
 
-@Route(path = KeyCode.Me.Modify_PATH, params = {"needLogin", "true"})
+@Route(path = KeyCode.Me.MODIFY_PATH, params = {"needLogin", "true"})
 public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding, ModifyViewModel> {
     private SettingBarView mSetModifyPwd;
     private SettingBarView mSetModifyImage;
@@ -71,7 +71,7 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
     public void initListener() {
         super.initListener();
         mSetModifyImage.setOnClickSettingBarViewListener(() -> uploadHeadImage());
-        mSetModifyPwd.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Login.Modify_PATH)
+        mSetModifyPwd.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Login.MODIFY_PATH)
                 .navigation());
         mSetModifyNickname.setOnClickSettingBarViewListener(() -> startActivity(new Intent(ModifyInformationActivity.this, ModifyNicknameActivity.class)));
     }

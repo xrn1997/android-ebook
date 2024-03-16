@@ -15,7 +15,7 @@ import com.ebook.login.mvvm.viewmodel.LoginViewModel;
 import com.therouter.router.Autowired;
 import com.therouter.router.Route;
 
-@Route(path = KeyCode.Login.Login_PATH)
+@Route(path = KeyCode.Login.LOGIN_PATH)
 public class LoginActivity extends BaseMvvmActivity<ActivityLoginBinding, LoginViewModel> {
     @Autowired
     public String path;
