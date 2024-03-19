@@ -26,7 +26,7 @@ public abstract class BaseMvvmFragment<V extends ViewDataBinding, VM extends Bas
     private int viewModelId;
 
     @Override
-    public void initConentView(ViewGroup root) {
+    public void initContentView(ViewGroup root) {
         mBinding = DataBindingUtil.inflate(LayoutInflater.from(mActivity), onBindLayout(), root, true);
         initViewModel();
         initBaseViewObservable();

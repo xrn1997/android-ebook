@@ -85,10 +85,10 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
             View viewTooBbar = mViewStubToolbar.inflate();
             initTooBar(viewTooBbar);
         }
-        initConentView(mViewStubContent);
+        initContentView(mViewStubContent);
     }
 
-    public void initConentView(ViewGroup root) {
+    public void initContentView(ViewGroup root) {
         LayoutInflater.from(mActivity).inflate(onBindLayout(), root, true);
     }
 
