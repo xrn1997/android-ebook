@@ -14,6 +14,7 @@ import java.util.List;
 
 /**
  * @author : xrn1997
+ * @date :  2024/1/15
  * @description :RecyclerView Adapter基类
  */
 public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
@@ -63,23 +64,23 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     }
 
     /**
-     * 添加所有数据
+     * 添加所有数据,不会清空原有数据
      */
     @SuppressLint("NotifyDataSetChanged")
     public void addAll(List<E> list) {
-        if (list != null && list.size() > 0) {
+        if (list != null && !list.isEmpty()) {
             mList.addAll(list);
             notifyDataSetChanged();
         }
     }
 
     /**
-     * 更新数据
+     * 更新数据,会清空原有数据
      */
     @SuppressLint("NotifyDataSetChanged")
     public void refresh(List<E> list) {
         mList.clear();
-        if (list != null && list.size() > 0) {
+        if (list != null && !list.isEmpty()) {
             mList.addAll(list);
         }
         notifyDataSetChanged();
@@ -105,24 +106,23 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     /**
      * 根据对象添加数据
      */
-    public void add(E e) {
-        mList.add(e);
-        notifyItemInserted(mList.size());
+    public void add(E e, int position) {
+        mList.add(position, e);
+        notifyItemInserted(position);
     }
 
     /**
      * 根据对象添加数据（加在最后）
      */
     public void addLast(E e) {
-        add(e);
+        add(e, mList.size());
     }
 
     /**
      * 根据对象添加数据（加在第一个）
      */
     public void addFirst(E e) {
-        mList.add(0, e);
-        notifyItemInserted(0);
+        add(e, 0);
     }
 
     /**
@@ -174,7 +174,6 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
 
     /**
      * 直接用
-     *
      * @param view itemView
      * @return VH
      */
@@ -182,9 +181,8 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
 
     /**
      * 绑定数据
-     *
-     * @param holder   viewHolder
-     * @param e        item对象
+     * @param holder viewHolder
+     * @param e item对象
      * @param position 索引
      */
     protected abstract void onBindData(VH holder, E e, int position);
@@ -192,8 +190,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     public interface OnItemClickListener<E> {
         /**
          * 点按
-         *
-         * @param e        item对象
+         * @param e item对象
          * @param position 索引
          */
         void onItemClick(E e, int position);
@@ -202,8 +199,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     public interface OnItemLongClickListener<E> {
         /**
          * 长按
-         *
-         * @param e        item对象
+         * @param e item对象
          * @param position 索引
          */
         boolean onItemLongClick(E e, int position);
