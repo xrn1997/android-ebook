@@ -115,7 +115,7 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
 
     private void toAimActivity() {
         if (!TextUtils.isEmpty(path)) {
-            TheRouter router =TheRouter.INSTANCE ;
+            TheRouter router = TheRouter.INSTANCE;
             if (!bundle.isEmpty()) {
                 router.build(path).with(bundle).navigation();
             } else {

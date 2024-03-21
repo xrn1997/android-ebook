@@ -174,6 +174,7 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
 
     /**
      * 直接用
+     *
      * @param view itemView
      * @return VH
      */
@@ -181,8 +182,9 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
 
     /**
      * 绑定数据
-     * @param holder viewHolder
-     * @param e item对象
+     *
+     * @param holder   viewHolder
+     * @param e        item对象
      * @param position 索引
      */
     protected abstract void onBindData(VH holder, E e, int position);
@@ -190,7 +192,8 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     public interface OnItemClickListener<E> {
         /**
          * 点按
-         * @param e item对象
+         *
+         * @param e        item对象
          * @param position 索引
          */
         void onItemClick(E e, int position);
@@ -199,7 +202,8 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     public interface OnItemLongClickListener<E> {
         /**
          * 长按
-         * @param e item对象
+         *
+         * @param e        item对象
          * @param position 索引
          */
         boolean onItemLongClick(E e, int position);

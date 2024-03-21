@@ -453,6 +453,13 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         for (BookContentView item : viewContents) {
             item.setBg(readBookControl);
         }
+    }
+
+    public void changeTextSize() {
+        for (BookContentView item : viewContents) {
+            item.setTextKind(readBookControl);
+        }
+        loadDataListener.initData(durPageView.getLineCount(durHeight));
     }    private final ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
         @Override
         public void onGlobalLayout() {
@@ -462,13 +469,6 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             durPageView.getTvContent().getViewTreeObserver().removeOnGlobalLayoutListener(layoutInitListener);
         }
     };
-
-    public void changeTextSize() {
-        for (BookContentView item : viewContents) {
-            item.setTextKind(readBookControl);
-        }
-        loadDataListener.initData(durPageView.getLineCount(durHeight));
-    }
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (readBookControl.getCanKeyTurn() && keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
