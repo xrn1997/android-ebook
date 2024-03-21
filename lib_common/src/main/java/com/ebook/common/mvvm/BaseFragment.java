@@ -89,7 +89,7 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
     }
 
     public void initContentView(ViewGroup root) {
-        LayoutInflater.from(mActivity).inflate(onBindLayout(), root, true);
+        this.getLayoutInflater().inflate(onBindLayout(), root, true);
     }
 
     @Override
