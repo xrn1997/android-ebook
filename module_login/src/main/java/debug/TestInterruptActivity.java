@@ -1,9 +1,10 @@
-package com.ebook.login;
+package debug;
 
 import android.widget.TextView;
 
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.mvvm.BaseActivity;
+import com.ebook.login.R;
 import com.therouter.router.Autowired;
 import com.therouter.router.Route;
 

@@ -25,7 +25,7 @@
             android:theme="@style/AppTheme.BackBar"
             android:label="注册" />
         <activity
-            android:name=".TestInterruptActivity"
+            android:name="debug.TestInterruptActivity"
             android:label="拦截测试" />
         <activity
             android:name=".VerifyUserActivity"

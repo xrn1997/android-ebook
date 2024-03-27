@@ -17,9 +17,6 @@
             android:label="注册"
             android:theme="@style/AppTheme.BackBar" />
         <activity
-            android:name=".TestInterruptActivity"
-            android:label="测试" />
-        <activity
             android:name=".VerifyUserActivity"
             android:label="验证用户"
             android:theme="@style/AppTheme.BackBar" />

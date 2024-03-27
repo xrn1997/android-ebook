@@ -35,12 +35,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     .navigation();
         } else if (id == R.id.btn_register) { // 注册
             TheRouter.build(KeyCode.Login.REGISTER_PATH)
-                    .withString("msg", "ARouter传递过来的不需要登录的参数msg")
+                    .withString("msg", "TheRouter传递过来的不需要登录的参数msg")
                     .navigation();
-        } else if (id == R.id.btn_interrupt) { // 需要登录的
+        } else if (id == R.id.btn_interrupt) { // 拦截测试
             TheRouter.build(KeyCode.Login.TEST_PATH)
-                    .withString("msg", "ARouter传递过来的需要登录的参数msg")
-                    .navigation(this);
+                    .withString("msg", "TheRouter传递过来的需要登录的参数msg")
+                    .navigation();
         } else if (id == R.id.btn_exit) { // 退出登录
             ToastUtils.showShort("退出登录成功");
             SPUtils.getInstance().remove(KeyCode.Login.SP_IS_LOGIN);
