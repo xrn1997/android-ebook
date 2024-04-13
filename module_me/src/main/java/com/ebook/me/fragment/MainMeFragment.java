@@ -6,14 +6,12 @@ import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
 
-import com.alibaba.android.arouter.launcher.ARouter;
 import com.blankj.utilcode.util.SPUtils;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.ebook.api.config.API;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
 import com.ebook.common.mvvm.BaseFragment;
 import com.ebook.common.view.SettingBarView;
 import com.ebook.common.view.profilePhoto.CircleImageView;
@@ -21,6 +19,7 @@ import com.ebook.me.R;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
 import com.hwangjr.rxbus.thread.EventThread;
+import com.therouter.TheRouter;
 
 
 public class MainMeFragment extends BaseFragment {
@@ -55,14 +54,14 @@ public class MainMeFragment extends BaseFragment {
 
     @Override
     public void initListener() {
-        mSetComment.setOnClickSettingBarViewListener(() -> ARouter.getInstance().build(KeyCode.Me.Comment_PATH)
-                .navigation(getActivity(), new LoginNavigationCallbackImpl()));
-        mSetInform.setOnClickSettingBarViewListener(() -> ARouter.getInstance().build(KeyCode.Me.Modify_PATH)
-                .navigation(getActivity(), new LoginNavigationCallbackImpl()));
-        mButton.setOnClickListener(v -> ARouter.getInstance().build(KeyCode.Login.Login_PATH)
+        mSetComment.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.COMMENT_PATH)
+                .navigation(getActivity()));
+        mSetInform.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.MODIFY_PATH)
+                .navigation(getActivity()));
+        mButton.setOnClickListener(v -> TheRouter.build(KeyCode.Login.LOGIN_PATH)
                 .navigation());
-        mSetting.setOnClickSettingBarViewListener(() -> ARouter.getInstance().build(KeyCode.Me.Setting_PATH)
-                .navigation(getActivity(), new LoginNavigationCallbackImpl()));
+        mSetting.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.SETTING_PATH)
+                .navigation(getActivity()));
     }
 
     @Override

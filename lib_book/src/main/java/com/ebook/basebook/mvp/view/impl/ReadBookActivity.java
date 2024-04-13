@@ -20,7 +20,6 @@ import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 
-import com.alibaba.android.arouter.launcher.ARouter;
 import com.ebook.basebook.R;
 import com.ebook.basebook.base.activity.BaseActivity;
 import com.ebook.basebook.mvp.presenter.IBookReadPresenter;
@@ -39,13 +38,13 @@ import com.ebook.basebook.view.popupwindow.ReadBookMenuMorePop;
 import com.ebook.basebook.view.popupwindow.WindowLightPop;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
 import com.ebook.common.util.DisplayUtil;
 import com.ebook.db.entity.ChapterList;
 import com.ebook.db.entity.DownloadChapter;
 import com.ebook.db.entity.DownloadChapterList;
 import com.ebook.db.event.DBCode;
 import com.hwangjr.rxbus.RxBus;
+import com.therouter.TheRouter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -261,9 +260,9 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
             bundle.putString("chapterUrl", path.getDurChapterUrl());
             bundle.putString("chapterName", path.getDurChapterName());
             bundle.putString("bookName", mPresenter.getBookShelf().getBookInfo().getName());
-            ARouter.getInstance().build(KeyCode.Book.Comment_PATH)
+            TheRouter.build(KeyCode.Book.COMMENT_PATH)
                     .with(bundle)
-                    .navigation(ReadBookActivity.this, new LoginNavigationCallbackImpl());
+                    .navigation(ReadBookActivity.this);
         });
 
         moreSettingPop = new MoreSettingPop(this);

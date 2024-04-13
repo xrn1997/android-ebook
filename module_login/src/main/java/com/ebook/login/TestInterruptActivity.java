@@ -2,12 +2,12 @@ package com.ebook.login;
 
 import android.widget.TextView;
 
-import com.alibaba.android.arouter.facade.annotation.Autowired;
-import com.alibaba.android.arouter.facade.annotation.Route;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.mvvm.BaseActivity;
+import com.therouter.router.Autowired;
+import com.therouter.router.Route;
 
-@Route(path = KeyCode.Login.Test_PATH)
+@Route(path = KeyCode.Login.TEST_PATH, params = {"needLogin", "true"})
 public class TestInterruptActivity extends BaseActivity {
 
     @Autowired

@@ -2,7 +2,6 @@ package com.ebook.me;
 
 import android.widget.Button;
 
-import com.alibaba.android.arouter.facade.annotation.Route;
 import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.RetrofitManager;
 import com.ebook.common.event.KeyCode;
@@ -10,10 +9,11 @@ import com.ebook.common.event.RxBusTag;
 import com.ebook.common.mvvm.BaseActivity;
 import com.ebook.common.util.ToastUtil;
 import com.hwangjr.rxbus.RxBus;
+import com.therouter.router.Route;
 
-@Route(path = KeyCode.Me.Setting_PATH)
+@Route(path = KeyCode.Me.SETTING_PATH, params = {"needLogin", "true"})
 public class SettingActivity extends BaseActivity {
-    private Button mExitButtn;
+    private Button mExitButton;
 
     @Override
     public int onBindLayout() {
@@ -23,7 +23,7 @@ public class SettingActivity extends BaseActivity {
     @Override
     public void initListener() {
         super.initListener();
-        mExitButtn.setOnClickListener(v -> {
+        mExitButton.setOnClickListener(v -> {
             SPUtils.getInstance().clear();
             RetrofitManager.getInstance().TOKEN = "";
             ToastUtil.showToast("退出登录成功");
@@ -34,7 +34,7 @@ public class SettingActivity extends BaseActivity {
 
     @Override
     public void initView() {
-        mExitButtn = (Button) findViewById(R.id.btn_exit);
+        mExitButton = findViewById(R.id.btn_exit);
     }
 
     @Override

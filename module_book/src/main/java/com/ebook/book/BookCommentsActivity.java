@@ -7,7 +7,6 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.alibaba.android.arouter.facade.annotation.Route;
 import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.entity.Comment;
 import com.ebook.book.adapter.BookCommentsAdpater;
@@ -21,8 +20,9 @@ import com.ebook.common.util.ObservableListUtil;
 import com.ebook.common.util.SoftInputUtil;
 import com.ebook.common.view.DeleteDialog;
 import com.refresh.lib.DaisyRefreshLayout;
+import com.therouter.router.Route;
 
-@Route(path = KeyCode.Book.Comment_PATH)
+@Route(path = KeyCode.Book.COMMENT_PATH)
 public class BookCommentsActivity extends BaseMvvmRefreshActivity<ActivityBookCommentsBinding, BookCommentsViewModel> {
     private EditText editText;
     private BookCommentsAdpater mBookCommentsAdapter;

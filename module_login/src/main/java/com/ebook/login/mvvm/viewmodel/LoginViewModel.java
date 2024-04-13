@@ -8,7 +8,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.databinding.ObservableField;
 
-import com.alibaba.android.arouter.launcher.ARouter;
 import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.RetrofitManager;
 import com.ebook.api.dto.RespDTO;
@@ -22,6 +21,7 @@ import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.login.mvvm.model.LoginModel;
 import com.hwangjr.rxbus.RxBus;
+import com.therouter.TheRouter;
 
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
@@ -115,7 +115,7 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
 
     private void toAimActivity() {
         if (!TextUtils.isEmpty(path)) {
-            ARouter router = ARouter.getInstance();
+            TheRouter router = TheRouter.INSTANCE;
             if (!bundle.isEmpty()) {
                 router.build(path).with(bundle).navigation();
             } else {

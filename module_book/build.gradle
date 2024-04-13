@@ -1,4 +1,5 @@
 apply from: "../module.build.gradle"
+apply plugin: 'org.jetbrains.kotlin.android'
 android {
     defaultConfig {
         if (isModule.toBoolean()) {
@@ -6,20 +7,27 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     namespace 'com.ebook.book'
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 }
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_common')
     implementation project(':lib_book')
-    annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.37'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.13.1'
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    implementation libs.core.ktx
+    implementation libs.androidx.lifecycle.viewmodel.ktx
+    kapt libs.apt
+    implementation libs.router
+    //Dagger
+    kapt libs.dagger.compiler
+    kapt libs.compiler
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
 
 }

@@ -1,20 +1,16 @@
 apply plugin: 'com.android.application'
-
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'kotlin-kapt'
 android {
 
     defaultConfig {
         applicationId 'com.ebook'
         minSdk 26
-        targetSdk 33
-        compileSdk 33
+        targetSdk 34
+        compileSdk 34
         versionCode 4
         versionName '1.1.5'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments = [AROUTER_MODULE_NAME: project.getName()]
-            }
-        }
     }
     buildTypes {
         release {
@@ -27,15 +23,20 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     namespace 'com.ebook'
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 }
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_book')
+    implementation libs.core.ktx
+    implementation libs.androidx.lifecycle.viewmodel.ktx
     if (!isModule.toBoolean()) {
         implementation project(':module_main')
         implementation project(':module_find')
@@ -44,7 +45,7 @@ dependencies {
         implementation project(":module_login")
     }
 
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
 }

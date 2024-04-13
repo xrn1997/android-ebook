@@ -1,5 +1,6 @@
 package com.ebook.common.adapter;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,7 +12,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * @author : xrn1997
+ * @date :  2024/1/15
+ * @description :RecyclerView Adapter基类
+ */
 public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
     protected Context mContext;
     protected List<E> mList;
@@ -29,8 +34,8 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     @NonNull
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        int layoutid = onBindLayout();
-        View view = LayoutInflater.from(mContext).inflate(layoutid, parent, false);
+        int layout = onBindLayout();
+        View view = LayoutInflater.from(mContext).inflate(layout, parent, false);
         return onCreateHolder(view);
     }
 
@@ -59,21 +64,23 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     }
 
     /**
-     * 添加所有数据
+     * 添加所有数据,不会清空原有数据
      */
+    @SuppressLint("NotifyDataSetChanged")
     public void addAll(List<E> list) {
-        if (list != null && list.size() > 0) {
+        if (list != null && !list.isEmpty()) {
             mList.addAll(list);
             notifyDataSetChanged();
         }
     }
 
     /**
-     * 更新数据
+     * 更新数据,会清空原有数据
      */
+    @SuppressLint("NotifyDataSetChanged")
     public void refresh(List<E> list) {
         mList.clear();
-        if (list != null && list.size() > 0) {
+        if (list != null && !list.isEmpty()) {
             mList.addAll(list);
         }
         notifyDataSetChanged();
@@ -82,45 +89,46 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
     /**
      * 根据位置删除数据
      */
-    public void remove(int positon) {
-        mList.remove(positon);
-        notifyDataSetChanged();
+    public void remove(int position) {
+        mList.remove(position);
+        notifyItemRemoved(position);
     }
 
     /**
      * 根据对象删除数据
      */
     public void remove(E e) {
+        int p = mList.indexOf(e);
         mList.remove(e);
-        notifyDataSetChanged();
+        notifyItemRemoved(p);
     }
 
     /**
      * 根据对象添加数据
      */
-    public void add(E e) {
-        mList.add(e);
-        notifyDataSetChanged();
+    public void add(E e, int position) {
+        mList.add(position, e);
+        notifyItemInserted(position);
     }
 
     /**
      * 根据对象添加数据（加在最后）
      */
     public void addLast(E e) {
-        add(e);
+        add(e, mList.size());
     }
 
     /**
      * 根据对象添加数据（加在第一个）
      */
     public void addFirst(E e) {
-        mList.add(0, e);
-        notifyDataSetChanged();
+        add(e, 0);
     }
 
     /**
      * 删除所有数据
      */
+    @SuppressLint("NotifyDataSetChanged")
     public void clear() {
         mList.clear();
         notifyDataSetChanged();
@@ -159,17 +167,45 @@ public abstract class BaseAdapter<E, VH extends RecyclerView.ViewHolder> extends
         return super.getItemViewType(position);
     }
 
+    /**
+     * 绑定item Layout
+     */
     protected abstract int onBindLayout();
 
+    /**
+     * 直接用
+     *
+     * @param view itemView
+     * @return VH
+     */
     protected abstract VH onCreateHolder(View view);
 
+    /**
+     * 绑定数据
+     *
+     * @param holder   viewHolder
+     * @param e        item对象
+     * @param position 索引
+     */
     protected abstract void onBindData(VH holder, E e, int position);
 
     public interface OnItemClickListener<E> {
+        /**
+         * 点按
+         *
+         * @param e        item对象
+         * @param position 索引
+         */
         void onItemClick(E e, int position);
     }
 
     public interface OnItemLongClickListener<E> {
-        boolean onItemLongClick(E e, int postion);
+        /**
+         * 长按
+         *
+         * @param e        item对象
+         * @param position 索引
+         */
+        boolean onItemLongClick(E e, int position);
     }
 }

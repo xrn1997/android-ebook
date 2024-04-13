@@ -1,0 +1,112 @@
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'org.jetbrains.kotlin.kapt'
+android {
+    compileSdk 34
+    defaultConfig {
+        minSdk 26
+        targetSdk 34
+        compileSdk 34
+        versionCode 4
+        versionName '1.1.5'
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    buildFeatures {
+        dataBinding true
+        viewBinding true
+        buildConfig true
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+        freeCompilerArgs = ['-Xjvm-default=all-compatibility']//添加
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation libs.core.ktx
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.kotlin.reflect
+
+    //JSON工具
+    implementation libs.fastjson2
+
+    //Activity和Fragment
+    implementation libs.fragment.ktx
+    implementation libs.activity.ktx
+
+    //扁平化布局 https://github.com/androidx/constraintlayout
+    // 教程 https://blog.csdn.net/guolin_blog/article/details/53122387
+    implementation libs.constraintlayout
+
+    //测试依赖
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+
+    //RxLifecycle  https://github.com/trello/RxLifecycle
+    implementation libs.rxlifecycle.kotlin
+    implementation libs.rxlifecycle.android.lifecycle.kotlin
+    implementation libs.rxlifecycle.components
+
+    //Rxjava https://github.com/ReactiveX/RxJava
+    // 教程 https://www.jianshu.com/p/d9b504f5b3bd
+    implementation libs.rxkotlin
+    implementation libs.rxandroid
+
+    //RxBinding https://github.com/JakeWharton/RxBinding
+    implementation libs.rxbinding
+
+    //Glide https://muyangmin.github.io/glide-docs-cn/
+    implementation libs.glide
+    kapt libs.compiler
+
+    //Android 工具类 https://github.com/Blankj/AndroidUtilCode
+    implementation libs.utilcodex
+
+    // ViewModel https://github.com/androidx/androidx/tree/androidx-main/lifecycle
+    // 官网 https://developer.android.google.cn/jetpack/androidx/releases/lifecycle
+    implementation libs.androidx.lifecycle.viewmodel.ktx
+    implementation libs.androidx.lifecycle.viewmodel.compose
+    implementation libs.androidx.lifecycle.livedata.ktx
+    implementation libs.lifecycle.runtime.ktx
+    implementation libs.lifecycle.viewmodel.savedstate
+    kapt libs.androidx.lifecycle.common
+
+    //协程 https://github.com/Kotlin/kotlinx.coroutines
+    implementation libs.kotlinx.coroutines.core
+    implementation libs.kotlinx.coroutines.android
+
+    //PermissionX https://github.com/guolindev/PermissionX
+    // 教程 https://blog.csdn.net/guolin_blog/category_10108528.html
+    implementation libs.permissionx
+
+    //Stetho https://github.com/facebook/stetho
+    //教程 https://www.jianshu.com/p/6a407dd612ee
+    implementation libs.stetho
+    //监控okhttp的请求
+    implementation libs.stetho.okhttp3
+
+    // 输入型dialog https://github.com/afollestad/material-dialogs
+    implementation libs.input
+    implementation libs.core
+    implementation libs.bottomsheets
+
+    //Scarlet  https://github.com/Tinder/Scarlet
+    implementation libs.scarlet
+}

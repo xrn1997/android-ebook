@@ -5,10 +5,7 @@ import android.os.Bundle;
 
 import androidx.lifecycle.ViewModelProvider;
 
-import com.alibaba.android.arouter.facade.annotation.Route;
-import com.alibaba.android.arouter.launcher.ARouter;
 import com.ebook.common.event.KeyCode;
-import com.ebook.common.interceptor.LoginNavigationCallbackImpl;
 import com.ebook.common.mvvm.BaseMvvmRefreshActivity;
 import com.ebook.common.util.ObservableListUtil;
 import com.ebook.common.view.DeleteDialog;
@@ -17,8 +14,10 @@ import com.ebook.me.databinding.ActivityCommentBinding;
 import com.ebook.me.mvvm.factory.MeViewModelFactory;
 import com.ebook.me.mvvm.viewmodel.CommentViewModel;
 import com.refresh.lib.DaisyRefreshLayout;
+import com.therouter.TheRouter;
+import com.therouter.router.Route;
 
-@Route(path = KeyCode.Me.Comment_PATH)
+@Route(path = KeyCode.Me.COMMENT_PATH, params = {"needLogin", "true"})
 public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBinding, CommentViewModel> {
     private CommentListAdapter mCommentListAdapter;
 
@@ -72,9 +71,9 @@ public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBi
             bundle.putString("chapterUrl", comment.getChapterUrl());
             bundle.putString("chapterName", comment.getChapterName());
             bundle.putString("bookName", comment.getBookName());
-            ARouter.getInstance().build(KeyCode.Book.Comment_PATH)
+            TheRouter.build(KeyCode.Book.COMMENT_PATH)
                     .with(bundle)
-                    .navigation(MyCommentActivity.this, new LoginNavigationCallbackImpl());
+                    .navigation(MyCommentActivity.this);
         });
         mCommentListAdapter.setOnItemLongClickListener((comment, postion) -> {
             DeleteDialog deleteDialog = DeleteDialog.newInstance();

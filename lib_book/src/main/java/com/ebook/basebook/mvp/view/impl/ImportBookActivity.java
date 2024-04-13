@@ -145,10 +145,10 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
             mPresenter.searchLocationBook();
             tvScan.setVisibility(View.INVISIBLE);
             rlLoading.start();
-            tvCount.setText(getResources().getString(R.string.scan_cancel));
+            tvCount.setText(getResources().getString(com.ebook.api.R.string.scan_cancel));
         });
         flScan.setOnClickListener(v -> {
-            if (tvCount.getText().equals(getResources().getString(R.string.scan_cancel))) {
+            if (tvCount.getText().equals(getResources().getString(com.ebook.api.R.string.scan_cancel))) {
                 mPresenter.ScanCancel();
             }
         });

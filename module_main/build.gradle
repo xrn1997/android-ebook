@@ -1,7 +1,11 @@
 apply from: "../module.build.gradle"
+apply plugin: 'org.jetbrains.kotlin.android'
 android {
 
     namespace 'com.ebook.main'
+    kotlinOptions {
+        jvmTarget = '17'
+    }
     defaultConfig {
         //如果是独立模块，则使用当前组件的包名
         if (isModule.toBoolean()) {
@@ -12,14 +16,17 @@ android {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_book')
-    annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.37'
+    implementation libs.core.ktx
+    implementation libs.androidx.lifecycle.viewmodel.ktx
+    kapt libs.apt
+    implementation libs.router
+    kapt libs.dagger.compiler
 
     if (!isLoginModule.toBoolean()) {
         implementation project(path: ':module_login')
     }
 
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
 }

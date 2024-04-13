@@ -1,31 +1,11 @@
 buildscript {
-    repositories {
-        maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
-        google()
-        mavenCentral()
-    }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.4.2'
-        classpath 'org.greenrobot:greendao-gradle-plugin:3.3.0'
+        classpath libs.greendao.gradle.plugin // add plugin
     }
 }
-
-allprojects {
-    repositories {
-        maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
-        maven { url 'https://maven.aliyun.com/nexus/content/repositories/jcenter' }
-        maven { url 'https://maven.aliyun.com/nexus/content/repositories/google' }
-        maven { url 'https://maven.aliyun.com/nexus/content/repositories/gradle-plugin' }
-        google()
-        maven { url 'https://jitpack.io' }
-    }
-//    gradle.projectsEvaluated {
-//        tasks.withType(JavaCompile) {
-//            options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
-//        }
-//    }
-}
-
-tasks.register('clean', Delete) {
-    delete rootProject.buildDir
+plugins {
+    alias(libs.plugins.androidApplication) apply false
+    alias(libs.plugins.kotlinAndroid) apply false
+    alias(libs.plugins.kotlinJvm)  apply false
+    id 'cn.therouter.agp8' version '1.2.1' apply false
 }

@@ -9,8 +9,6 @@ import androidx.core.content.ContextCompat;
 import androidx.databinding.ViewDataBinding;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.alibaba.android.arouter.facade.annotation.Route;
-import com.alibaba.android.arouter.launcher.ARouter;
 import com.blankj.utilcode.util.SPUtils;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -26,8 +24,10 @@ import com.ebook.me.mvvm.viewmodel.ModifyViewModel;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
 import com.hwangjr.rxbus.thread.EventThread;
+import com.therouter.TheRouter;
+import com.therouter.router.Route;
 
-@Route(path = KeyCode.Me.Modify_PATH)
+@Route(path = KeyCode.Me.MODIFY_PATH, params = {"needLogin", "true"})
 public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding, ModifyViewModel> {
     private SettingBarView mSetModifyPwd;
     private SettingBarView mSetModifyImage;
@@ -71,7 +71,7 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
     public void initListener() {
         super.initListener();
         mSetModifyImage.setOnClickSettingBarViewListener(() -> uploadHeadImage());
-        mSetModifyPwd.setOnClickSettingBarViewListener(() -> ARouter.getInstance().build(KeyCode.Login.Modify_PATH)
+        mSetModifyPwd.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Login.MODIFY_PATH)
                 .navigation());
         mSetModifyNickname.setOnClickSettingBarViewListener(() -> startActivity(new Intent(ModifyInformationActivity.this, ModifyNicknameActivity.class)));
     }

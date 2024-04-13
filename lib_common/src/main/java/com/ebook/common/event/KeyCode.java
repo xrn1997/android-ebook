@@ -17,29 +17,29 @@ public interface KeyCode {
         String SP_USER_ID = "sp_user_id";
 
         String PATH = "path";
-        String BASE_PATH = "/baseLogin/";
+        String BASE_PATH = "/ebook/user/";
         //登录
-        String Login_PATH = BASE_PATH + "login";
+        String LOGIN_PATH = BASE_PATH + "login";
         //注册
-        String Register_PATH = BASE_PATH + "register";
+        String REGISTER_PATH = BASE_PATH + "register";
         //拦截登录测试
-        String Test_PATH = BASE_PATH + "test";
+        String TEST_PATH = BASE_PATH + "test";
         //修改密码
-        String Modify_PATH = BASE_PATH + "modify";
+        String MODIFY_PATH = BASE_PATH + "modify";
     }
 
     interface Book {
-        String BASE_PATH = "/baseBook/";
-        String Comment_PATH = BASE_PATH + "comment";
+        String BASE_PATH = "/ebook/book/";
+        String COMMENT_PATH = BASE_PATH + "comment";
     }
 
     interface Find {
     }
 
     interface Me {
-        String BASE_PATH = "/baseMe/";
-        String Setting_PATH = BASE_PATH + "setting";
-        String Modify_PATH = BASE_PATH + "modify";
-        String Comment_PATH = BASE_PATH + "comment";
+        String BASE_PATH = "/ebook/me/";
+        String SETTING_PATH = BASE_PATH + "setting";
+        String MODIFY_PATH = BASE_PATH + "modify";
+        String COMMENT_PATH = BASE_PATH + "comment";
     }
 }

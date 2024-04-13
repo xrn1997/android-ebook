@@ -14,7 +14,6 @@ import androidx.annotation.LayoutRes;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
 
-import com.alibaba.android.arouter.launcher.ARouter;
 import com.ebook.common.R;
 import com.ebook.common.event.common.BaseActivityEvent;
 import com.ebook.common.manager.ActivityManager;
@@ -25,6 +24,7 @@ import com.ebook.common.view.LoadingTransView;
 import com.ebook.common.view.NetErrorView;
 import com.ebook.common.view.NoDataView;
 import com.hwangjr.rxbus.RxBus;
+import com.therouter.TheRouter;
 import com.trello.rxlifecycle3.components.support.RxAppCompatActivity;
 
 import org.greenrobot.eventbus.EventBus;
@@ -58,7 +58,7 @@ public abstract class BaseActivity extends RxAppCompatActivity implements IBaseV
         initCommonView();
         initContentView();
         //在baseActivity自动注入属性
-        ARouter.getInstance().inject(this);
+        TheRouter.inject(this);
         initView();
         initListener();
         initData();

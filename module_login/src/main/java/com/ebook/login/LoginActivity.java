@@ -7,15 +7,15 @@ import android.widget.TextView;
 
 import androidx.lifecycle.ViewModelProvider;
 
-import com.alibaba.android.arouter.facade.annotation.Autowired;
-import com.alibaba.android.arouter.facade.annotation.Route;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.mvvm.BaseMvvmActivity;
 import com.ebook.login.databinding.ActivityLoginBinding;
 import com.ebook.login.mvvm.factory.LoginViewModelFactory;
 import com.ebook.login.mvvm.viewmodel.LoginViewModel;
+import com.therouter.router.Autowired;
+import com.therouter.router.Route;
 
-@Route(path = KeyCode.Login.Login_PATH)
+@Route(path = KeyCode.Login.LOGIN_PATH)
 public class LoginActivity extends BaseMvvmActivity<ActivityLoginBinding, LoginViewModel> {
     @Autowired
     public String path;

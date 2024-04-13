@@ -26,7 +26,7 @@ public abstract class BaseMvvmFragment<V extends ViewDataBinding, VM extends Bas
     private int viewModelId;
 
     @Override
-    public void initConentView(ViewGroup root) {
+    public void initContentView(ViewGroup root) {
         mBinding = DataBindingUtil.inflate(LayoutInflater.from(mActivity), onBindLayout(), root, true);
         initViewModel();
         initBaseViewObservable();
@@ -75,34 +75,20 @@ public abstract class BaseMvvmFragment<V extends ViewDataBinding, VM extends Bas
                 showNoDataView(show);
             }
         });
-        mViewModel.getUC().getShowNetWorkErrViewEvent().observe(this, new Observer<Boolean>() {
-            @Override
-            public void onChanged(@Nullable Boolean show) {
-                showNetWorkErrView(show);
+        mViewModel.getUC().getShowNetWorkErrViewEvent().observe(this, (Observer<Boolean>) show -> showNetWorkErrView(show));
+        mViewModel.getUC().getStartActivityEvent().observe(this, (Observer<Map<String, Object>>) params -> {
+            Class<?> clz = (Class<?>) params.get(BaseViewModel.ParameterField.CLASS);
+            Bundle bundle = (Bundle) params.get(BaseViewModel.ParameterField.BUNDLE);
+            startActivity(clz, bundle);
+        });
+        mViewModel.getUC().getFinishActivityEvent().observe(this, (Observer<Void>) v -> {
+            if (mActivity != null) {
+                mActivity.finish();
             }
         });
-        mViewModel.getUC().getStartActivityEvent().observe(this, new Observer<Map<String, Object>>() {
-            @Override
-            public void onChanged(@Nullable Map<String, Object> params) {
-                Class<?> clz = (Class<?>) params.get(BaseViewModel.ParameterField.CLASS);
-                Bundle bundle = (Bundle) params.get(BaseViewModel.ParameterField.BUNDLE);
-                startActivity(clz, bundle);
-            }
-        });
-        mViewModel.getUC().getFinishActivityEvent().observe(this, new Observer<Void>() {
-            @Override
-            public void onChanged(@Nullable Void v) {
-                if (mActivity != null) {
-                    mActivity.finish();
-                }
-            }
-        });
-        mViewModel.getUC().getOnBackPressedEvent().observe(this, new Observer<Void>() {
-            @Override
-            public void onChanged(@Nullable Void v) {
-                if (mActivity != null) {
-                    mActivity.onBackPressed();
-                }
+        mViewModel.getUC().getOnBackPressedEvent().observe(this, (Observer<Void>) v -> {
+            if (mActivity != null) {
+                mActivity.onBackPressed();
             }
         });
     }

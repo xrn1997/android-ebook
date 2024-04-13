@@ -1,5 +1,10 @@
+plugins {
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.kapt'
+}
 if (isLoginModule.toBoolean()) {
     apply plugin: 'com.android.application'
+    apply plugin: 'therouter'
 } else {
     apply plugin: 'com.android.library'
 }
@@ -11,16 +16,11 @@ android {
             applicationId "com.ebook.login"
         }
         minSdk 26
-        targetSdk 33
-        compileSdk 33
+        targetSdk 34
+        compileSdk 34
         versionCode 4
         versionName '1.1.5'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments = [AROUTER_MODULE_NAME: project.getName()]
-            }
-        }
     }
     sourceSets {
         main {
@@ -45,24 +45,29 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    buildFeatures{
+    buildFeatures {
         dataBinding true
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     namespace 'com.ebook.login'
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 }
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_common')
-
-    annotationProcessor 'com.alibaba:arouter-compiler:1.5.2'
+    implementation libs.core.ktx
+    implementation libs.androidx.lifecycle.viewmodel.ktx
+    kapt libs.apt
+    implementation libs.router
     //Dagger
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.37'
+    kapt libs.dagger.compiler
 
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
 }

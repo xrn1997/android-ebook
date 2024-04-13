@@ -40,7 +40,7 @@ public class PhotoSelectDialog extends BottomSheetDialogFragment implements View
     public void onStart() {
         super.onStart();
         getDialog().getWindow().setLayout(getResources().getDisplayMetrics().widthPixels - DisplayUtil.dip2px(16) * 2, ViewGroup.LayoutParams.WRAP_CONTENT);
-        getDialog().getWindow().findViewById(R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
+        getDialog().getWindow().findViewById(com.google.android.material.R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
     }
 
     @Nullable

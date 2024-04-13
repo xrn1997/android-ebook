@@ -13,7 +13,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 
-import com.alibaba.android.arouter.launcher.ARouter;
 import com.ebook.common.R;
 import com.ebook.common.event.common.BaseFragmentEvent;
 import com.ebook.common.mvvm.view.IBaseView;
@@ -24,6 +23,7 @@ import com.ebook.common.view.LoadingTransView;
 import com.ebook.common.view.NetErrorView;
 import com.ebook.common.view.NoDataView;
 import com.hwangjr.rxbus.RxBus;
+import com.therouter.TheRouter;
 import com.trello.rxlifecycle3.components.support.RxAppCompatActivity;
 
 import org.greenrobot.eventbus.EventBus;
@@ -57,7 +57,7 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mActivity = (RxAppCompatActivity) getActivity();
-        ARouter.getInstance().inject(this);
+        TheRouter.inject(this);
         RxBus.get().register(this);
         EventBus.getDefault().register(this);
     }
@@ -85,11 +85,11 @@ public abstract class BaseFragment extends Fragment implements IBaseView {
             View viewTooBbar = mViewStubToolbar.inflate();
             initTooBar(viewTooBbar);
         }
-        initConentView(mViewStubContent);
+        initContentView(mViewStubContent);
     }
 
-    public void initConentView(ViewGroup root) {
-        LayoutInflater.from(mActivity).inflate(onBindLayout(), root, true);
+    public void initContentView(ViewGroup root) {
+        this.getLayoutInflater().inflate(onBindLayout(), root, true);
     }
 
     @Override

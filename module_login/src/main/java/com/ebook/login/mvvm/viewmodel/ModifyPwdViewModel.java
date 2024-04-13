@@ -8,7 +8,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.databinding.ObservableField;
 
-import com.alibaba.android.arouter.launcher.ARouter;
 import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.ExceptionHandler;
@@ -20,6 +19,7 @@ import com.ebook.common.util.ToastUtil;
 import com.ebook.login.ModifyPwdActivity;
 import com.ebook.login.mvvm.model.ModifyPwdModel;
 import com.hwangjr.rxbus.RxBus;
+import com.therouter.TheRouter;
 
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
@@ -87,7 +87,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
                     Bundle bundle = new Bundle();
                     bundle.putString("username", username.get());
                     bundle.putString("password", password_1.get());
-                    ARouter.getInstance().build(KeyCode.Login.Login_PATH)
+                    TheRouter.build(KeyCode.Login.LOGIN_PATH)
                             .with(bundle)
                             .navigation();
                     //    Log.d(TAG, "修改密码onNext: finsh");
