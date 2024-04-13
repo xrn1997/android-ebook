@@ -24,6 +24,7 @@ juniversalchardet = "1.0.3"
 kotlinReflect = "1.9.22"
 kotlinxCoroutinesCore = "1.7.1"
 kyleduoLibrary = "2.1.0"
+leakcanaryAndroid = "2.13"
 legacySupportV4 = "1.0.0"
 lib = "1.0.4"
 library = "2.4"
@@ -96,6 +97,7 @@ juniversalchardet = { module = "com.googlecode.juniversalchardet:juniversalchard
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlinReflect" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesCore" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
+leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanaryAndroid" }
 lib = { module = "com.victor:lib", version.ref = "lib" }
 library = { module = "com.daimajia.easing:library", version.ref = "library" }
 lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
