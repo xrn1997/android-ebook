@@ -41,7 +41,7 @@
                 android:layout_height="56dp"
                 android:background="@drawable/editext_selector"
                 android:gravity="start|center"
-                android:text="@={viewModel.verifycode}"
+                android:text="@={viewModel.verifyCode}"
                 android:hint="@string/print_verify_code"
                 android:inputType="number"
                 android:maxLength="6"

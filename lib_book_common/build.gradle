@@ -24,6 +24,7 @@ android {
     }
     buildFeatures {
         dataBinding true
+        viewBinding true
         buildConfig true
     }
     compileOptions {
@@ -38,7 +39,7 @@ android {
 
 dependencies {
     api fileTree(include: ['*.jar'], dir: 'libs')
-
+    api project(':lib_common')
     api project(":lib_refresh_layout")
     api project(':lib_ebook_api')
     api project(":lib_ebook_db")

@@ -22,8 +22,8 @@
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:layout_marginTop="10dp"
-            android:paddingLeft="12dp"
-            android:paddingRight="12dp">
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
 
             <com.ebook.common.view.profilePhoto.CircleImageView
                 android:id="@+id/view_profile_photo"

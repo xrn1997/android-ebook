@@ -12,8 +12,7 @@
         android:allowBackup="true"
         android:label="@string/app_name"
         android:requestLegacyExternalStorage="true"
-        android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:supportsRtl="true">
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.BookDetailActivity"
 

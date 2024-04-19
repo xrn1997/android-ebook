@@ -4,33 +4,29 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.widget.Button;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.ebook.common.event.KeyCode;
-import com.ebook.common.mvvm.BaseMvvmActivity;
 import com.ebook.login.databinding.ActivityVerifyUserBinding;
 import com.ebook.login.mvvm.factory.LoginViewModelFactory;
 import com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel;
 import com.therouter.router.Route;
+import com.xrn1997.common.mvvm.view.BaseMvvmActivity;
 
 @Route(path = KeyCode.Login.MODIFY_PATH)
 public class VerifyUserActivity extends BaseMvvmActivity<ActivityVerifyUserBinding, ModifyPwdViewModel> {
-    private Button mVerifyCodeButton;//获取验证码按钮
 
+    @NonNull
     @Override
     public Class<ModifyPwdViewModel> onBindViewModel() {
         return ModifyPwdViewModel.class;
     }
 
+    @NonNull
     @Override
     public ViewModelProvider.Factory onBindViewModelFactory() {
-        return LoginViewModelFactory.getInstance(getApplication());
-    }
-
-    @Override
-    public void initListener() {
-        super.initListener();
-        mVerifyCodeButton.setOnClickListener(v -> getVerifyCode());
+        return LoginViewModelFactory.INSTANCE;
     }
 
     @SuppressLint("DefaultLocale")
@@ -48,8 +44,9 @@ public class VerifyUserActivity extends BaseMvvmActivity<ActivityVerifyUserBindi
 
     @Override
     public void initView() {
-        super.initView();
-        mVerifyCodeButton = findViewById(R.id.btn_verifycode);
+        //获取验证码按钮
+        Button mVerifyCodeButton = findViewById(R.id.btn_verifycode);
+        mVerifyCodeButton.setOnClickListener(v -> getVerifyCode());
     }
 
     @Override
@@ -66,4 +63,8 @@ public class VerifyUserActivity extends BaseMvvmActivity<ActivityVerifyUserBindi
         return R.layout.activity_verify_user;
     }
 
+    @Override
+    public void initData() {
+
+    }
 }

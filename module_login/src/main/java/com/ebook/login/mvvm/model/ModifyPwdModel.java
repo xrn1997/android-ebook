@@ -7,12 +7,12 @@ import com.ebook.api.dto.RespDTO;
 import com.ebook.api.entity.User;
 import com.ebook.api.http.RxAdapter;
 import com.ebook.api.service.UserService;
-import com.ebook.common.mvvm.model.BaseModel;
+import com.xrn1997.common.mvvm.model.BaseModel;
 
 import io.reactivex.Observable;
 
 public class ModifyPwdModel extends BaseModel {
-    private UserService mUserService;
+    private final UserService mUserService;
 
     public ModifyPwdModel(Application application) {
         super(application);

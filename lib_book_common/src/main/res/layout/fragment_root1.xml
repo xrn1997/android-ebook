@@ -29,19 +29,19 @@
             android:id="@+id/view_stub_trans_loading"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout="@layout/stub_trans_loading" />
+            android:layout="@layout/stub_trans_loading_old" />
 
         <ViewStub
             android:id="@+id/view_stub_nodata"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout="@layout/stub_no_data" />
+            android:layout="@layout/stub_no_data_old" />
 
         <ViewStub
             android:id="@+id/view_stub_error"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout="@layout/stub_net_error" />
+            android:layout="@layout/stub_net_error_old" />
 
     </RelativeLayout>
 </RelativeLayout>

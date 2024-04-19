@@ -1,15 +1,15 @@
 package com.ebook.login;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.ebook.common.event.KeyCode;
-import com.ebook.common.mvvm.BaseMvvmActivity;
 import com.ebook.login.databinding.ActivityRegisterBinding;
 import com.ebook.login.mvvm.factory.LoginViewModelFactory;
 import com.ebook.login.mvvm.viewmodel.RegisterViewModel;
 import com.therouter.router.Route;
+import com.xrn1997.common.mvvm.view.BaseMvvmActivity;
 
-;
 
 @Route(path = KeyCode.Login.REGISTER_PATH)
 public class RegisterActivity extends BaseMvvmActivity<ActivityRegisterBinding, RegisterViewModel> {
@@ -19,14 +19,16 @@ public class RegisterActivity extends BaseMvvmActivity<ActivityRegisterBinding, 
         return R.layout.activity_register;
     }
 
+    @NonNull
     @Override
     public Class<RegisterViewModel> onBindViewModel() {
         return RegisterViewModel.class;
     }
 
+    @NonNull
     @Override
     public ViewModelProvider.Factory onBindViewModelFactory() {
-        return LoginViewModelFactory.getInstance(getApplication());
+        return LoginViewModelFactory.INSTANCE;
     }
 
     @Override
@@ -46,5 +48,9 @@ public class RegisterActivity extends BaseMvvmActivity<ActivityRegisterBinding, 
     @Override
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+    }
+
+    @Override
+    public void initData() {
     }
 }

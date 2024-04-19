@@ -13,21 +13,21 @@ import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.ExceptionHandler;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.common.event.SingleLiveEvent;
-import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.login.ModifyPwdActivity;
 import com.ebook.login.mvvm.model.ModifyPwdModel;
 import com.hwangjr.rxbus.RxBus;
 import com.therouter.TheRouter;
+import com.xrn1997.common.event.SingleLiveEvent;
+import com.xrn1997.common.mvvm.viewmodel.BaseViewModel;
 
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 
 public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
-    private static String TAG = ModifyPwdViewModel.class.getSimpleName();
+    private static final String TAG = ModifyPwdViewModel.class.getSimpleName();
     public ObservableField<String> username = new ObservableField<>();
-    public ObservableField<String> verifycode = new ObservableField<>();
+    public ObservableField<String> verifyCode = new ObservableField<>();
     public ObservableField<String> password_1 = new ObservableField<>();
     public ObservableField<String> password_2 = new ObservableField<>();
     public String mVerifyCode; // 验证码
@@ -45,7 +45,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
             ToastUtil.showToast("请输入正确的手机号");
             return;
         }
-        if (!TextUtils.equals(verifycode.get(), mVerifyCode)) {
+        if (!TextUtils.equals(verifyCode.get(), mVerifyCode)) {
             ToastUtil.showToast("请输入正确的验证码");
             return;
         }
@@ -90,7 +90,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
                     TheRouter.build(KeyCode.Login.LOGIN_PATH)
                             .with(bundle)
                             .navigation();
-                    //    Log.d(TAG, "修改密码onNext: finsh");
+                    //    Log.d(TAG, "修改密码onNext: finish");
                 } else {
                     Log.v(TAG, "修改密码error:" + loginDTORespDTO.error);
                 }
@@ -98,22 +98,22 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
 
             @Override
             public void onError(Throwable e) {
-                getmVoidSingleLiveEvent().call();
+                getMVoidSingleLiveEvent().call();
             }
 
             @Override
             public void onComplete() {
                 //   Log.d(TAG, "修改密码onComplete: start");
-                getmVoidSingleLiveEvent().call();
+                getMVoidSingleLiveEvent().call();
                 postFinishActivityEvent();
             }
         });
     }
 
-    private SingleLiveEvent<Void> getmVoidSingleLiveEvent() {
-        // Log.d(TAG, "getmVoidSingleLiveEvent: start");
+    private SingleLiveEvent<Void> getMVoidSingleLiveEvent() {
+        // Log.d(TAG, "getMVoidSingleLiveEvent: start");
         mVoidSingleLiveEvent = createLiveData(mVoidSingleLiveEvent);
-        // Log.d(TAG, "getmVoidSingleLiveEvent: end");
+        // Log.d(TAG, "getMVoidSingleLiveEvent: end");
         return mVoidSingleLiveEvent;
     }
 }

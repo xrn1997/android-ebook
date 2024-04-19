@@ -17,8 +17,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingLeft="7dp"
-            android:paddingRight="7dp">
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp">
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
@@ -44,8 +44,8 @@
                 android:layout_height="18dp"
                 android:layout_gravity="center_horizontal|bottom"
                 android:gravity="center"
-                android:paddingLeft="2dp"
-                android:paddingRight="2dp"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
                 android:singleLine="true"
                 android:text="@{searchbook.name}"
                 android:textColor="@color/tv_btn_black"
@@ -59,8 +59,8 @@
                 android:layout_gravity="center_horizontal|bottom"
                 android:layout_marginBottom="3dp"
                 android:gravity="center"
-                android:paddingLeft="2dp"
-                android:paddingRight="2dp"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
                 android:singleLine="true"
                 android:text="@{searchbook.author}"
                 android:textColor="@color/tv_btn_normal_black"

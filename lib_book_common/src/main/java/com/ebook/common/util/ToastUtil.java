@@ -10,11 +10,11 @@ import com.ebook.common.BaseApplication;
 public class ToastUtil {
 
     public static void showToast(String message) {
-        Toast.makeText(BaseApplication.getInstance(), message, Toast.LENGTH_SHORT).show();
+        Toast.makeText(BaseApplication.context, message, Toast.LENGTH_SHORT).show();
     }
 
     public static void showToast(int resid) {
-        Toast.makeText(BaseApplication.getInstance(), BaseApplication.getInstance().getString(resid), Toast.LENGTH_SHORT)
+        Toast.makeText(BaseApplication.context, BaseApplication.context.getString(resid), Toast.LENGTH_SHORT)
                 .show();
     }
 }

@@ -6,13 +6,12 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:supportsRtl="true">
         <activity
             android:name="com.ebook.common.view.profilePhoto.ClipImageActivity"
             android:label="修改头像"
 
-            android:theme="@style/AppTheme.BackBar" />
+            android:theme="@style/ToolbarTheme.BackBar" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.ebook.common"

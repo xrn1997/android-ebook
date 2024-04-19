@@ -16,23 +16,21 @@ import com.ebook.api.entity.User;
 import com.ebook.api.http.ExceptionHandler;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.common.event.SingleLiveEvent;
-import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.login.mvvm.model.LoginModel;
 import com.hwangjr.rxbus.RxBus;
 import com.therouter.TheRouter;
+import com.xrn1997.common.mvvm.viewmodel.BaseViewModel;
 
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 
 public class LoginViewModel extends BaseViewModel<LoginModel> {
-    private static String TAG = LoginViewModel.class.getSimpleName();
+    private static final String TAG = LoginViewModel.class.getSimpleName();
     public ObservableField<String> username = new ObservableField<>();
     public ObservableField<String> password = new ObservableField<>();
     public String path;//被拦截的路径
     public Bundle bundle;//被拦截的信息
-    private SingleLiveEvent<Void> mVoidSingleLiveEvent;
 
     public LoginViewModel(@NonNull Application application, LoginModel model) {
         super(application, model);
@@ -58,7 +56,7 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
             return;
         }
 
-        mModel.login(username, password).subscribe(new Observer<RespDTO<LoginDTO>>() {
+        mModel.login(username, password).subscribe(new Observer<>() {
             @Override
             public void onSubscribe(Disposable d) {
                 //  postShowInitLoadViewEvent(true);
@@ -105,7 +103,7 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
             spUtils.put(KeyCode.Login.SP_NICKNAME, user.getNickname());
             spUtils.put(KeyCode.Login.SP_USER_ID, user.getId());
             spUtils.put(KeyCode.Login.SP_IMAGE, user.getImage());
-            postShowTransLoadingViewEvent(false);
+            postShowLoadingViewEvent(false);
             toAimActivity();
             postFinishActivityEvent();
             ToastUtil.showToast("登录成功");
@@ -115,11 +113,10 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
 
     private void toAimActivity() {
         if (!TextUtils.isEmpty(path)) {
-            TheRouter router = TheRouter.INSTANCE;
             if (!bundle.isEmpty()) {
-                router.build(path).with(bundle).navigation();
+                TheRouter.build(path).with(bundle).navigation();
             } else {
-                router.build(path).navigation();
+                TheRouter.build(path).navigation();
             }
         }
     }

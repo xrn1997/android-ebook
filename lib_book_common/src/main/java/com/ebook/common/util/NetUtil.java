@@ -20,7 +20,7 @@ public class NetUtil {
 
 
     public static boolean checkNet() {
-        Context context = BaseApplication.getInstance();
+        Context context = BaseApplication.context;
         return isWifiConnection(context) || isStationConnection(context);
     }
 

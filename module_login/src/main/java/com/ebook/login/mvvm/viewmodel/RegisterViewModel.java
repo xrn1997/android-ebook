@@ -10,16 +10,16 @@ import androidx.databinding.ObservableField;
 import com.ebook.api.dto.RespDTO;
 import com.ebook.api.entity.LoginDTO;
 import com.ebook.api.http.ExceptionHandler;
-import com.ebook.common.event.SingleLiveEvent;
-import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.login.mvvm.model.RegisterModel;
+import com.xrn1997.common.event.SingleLiveEvent;
+import com.xrn1997.common.mvvm.viewmodel.BaseViewModel;
 
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 
 public class RegisterViewModel extends BaseViewModel<RegisterModel> {
-    private static String TAG = RegisterViewModel.class.getSimpleName();
+    private static final String TAG = RegisterViewModel.class.getSimpleName();
     public ObservableField<String> username = new ObservableField<>();
     public ObservableField<String> password_1 = new ObservableField<>();
     public ObservableField<String> password_2 = new ObservableField<>();
@@ -47,9 +47,7 @@ public class RegisterViewModel extends BaseViewModel<RegisterModel> {
             ToastUtil.showToast("两次密码不一致");
             return;
         }
-        //Log.d(TAG, password_1.get());
-        //Log.d(TAG, password_2.get());
-        mModel.register(username.get(), password_1.get()).subscribe(new Observer<RespDTO<LoginDTO>>() {
+        mModel.register(username.get(), password_1.get()).subscribe(new Observer<>() {
             @Override
             public void onSubscribe(Disposable d) {
 

@@ -2,22 +2,26 @@ package com.ebook.login;
 
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.ebook.common.mvvm.BaseMvvmActivity;
 import com.ebook.login.databinding.ActivityModifyPwdBinding;
 import com.ebook.login.mvvm.factory.LoginViewModelFactory;
 import com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel;
+import com.xrn1997.common.mvvm.view.BaseMvvmActivity;
+
 
 public class ModifyPwdActivity extends BaseMvvmActivity<ActivityModifyPwdBinding, ModifyPwdViewModel> {
+    @NonNull
     @Override
     public Class<ModifyPwdViewModel> onBindViewModel() {
         return ModifyPwdViewModel.class;
     }
 
+    @NonNull
     @Override
     public ViewModelProvider.Factory onBindViewModelFactory() {
-        return LoginViewModelFactory.getInstance(getApplication());
+        return LoginViewModelFactory.INSTANCE;
     }
 
     @Override
@@ -27,7 +31,6 @@ public class ModifyPwdActivity extends BaseMvvmActivity<ActivityModifyPwdBinding
 
     @Override
     public void initData() {
-        super.initData();
         Bundle bundle = this.getIntent().getExtras();
         if (bundle != null) {
             String username = (String) bundle.get("username");
@@ -43,5 +46,10 @@ public class ModifyPwdActivity extends BaseMvvmActivity<ActivityModifyPwdBinding
     @Override
     public int onBindLayout() {
         return R.layout.activity_modify_pwd;
+    }
+
+    @Override
+    public void initView() {
+
     }
 }
