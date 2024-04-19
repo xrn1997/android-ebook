@@ -11,13 +11,13 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.ebook.api.config.API;
 import com.ebook.api.entity.Comment;
-import com.ebook.common.adapter.BaseBindAdapter;
 import com.ebook.common.view.profilePhoto.CircleImageView;
 import com.ebook.me.R;
 import com.ebook.me.databinding.AdapterCommentListItemBinding;
+import com.xrn1997.common.adapter.BaseBindAdapter;
 
 public class CommentListAdapter extends BaseBindAdapter<Comment, AdapterCommentListItemBinding> {
-    public CommentListAdapter(Context context, ObservableArrayList items) {
+    public CommentListAdapter(Context context, ObservableArrayList<Comment> items) {
         super(context, items);
     }
 

@@ -21,7 +21,7 @@ abstract class BaseMvvmFragment<V : ViewDataBinding, VM : BaseViewModel<*>> : Ba
      * MVVM中的V，负责视图显示。
      * 此属性仅在onCreateView及之后的生命周期有效。
      */
-    override val mBinding get() = _binding
+    override val binding get() = _binding
     /**
      * MVVM中的VM，负责处理视图的操作功能，与M进行数据交互。
      * 在onCreateView之前的生命周期中不得使用。
@@ -49,7 +49,7 @@ abstract class BaseMvvmFragment<V : ViewDataBinding, VM : BaseViewModel<*>> : Ba
         container: ViewGroup?,
         attachToParent: Boolean
     ): V {
-        return mBinding
+        return binding
     }
 
     open fun createViewModel(): VM {

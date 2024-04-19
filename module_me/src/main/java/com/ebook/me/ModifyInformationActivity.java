@@ -3,8 +3,8 @@ package com.ebook.me;
 import static com.ebook.common.util.FileUtil.getRealFilePathFromUri;
 
 import android.content.Intent;
-import android.net.Uri;
 
+import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.databinding.ViewDataBinding;
 import androidx.lifecycle.ViewModelProvider;
@@ -15,7 +15,6 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.ebook.api.config.API;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.common.mvvm.BaseMvvmActivity;
 import com.ebook.common.view.SettingBarView;
 import com.ebook.common.view.profilePhoto.CircleImageView;
 import com.ebook.common.view.profilePhoto.PhotoCutDialog;
@@ -26,12 +25,10 @@ import com.hwangjr.rxbus.annotation.Tag;
 import com.hwangjr.rxbus.thread.EventThread;
 import com.therouter.TheRouter;
 import com.therouter.router.Route;
+import com.xrn1997.common.mvvm.view.BaseMvvmActivity;
 
 @Route(path = KeyCode.Me.MODIFY_PATH, params = {"needLogin", "true"})
 public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding, ModifyViewModel> {
-    private SettingBarView mSetModifyPwd;
-    private SettingBarView mSetModifyImage;
-    private SettingBarView mSetModifyNickname;
     private CircleImageView imageView;
 
     @Override
@@ -39,14 +36,16 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
         return R.layout.activity_modify_information;
     }
 
+    @NonNull
     @Override
     public Class<ModifyViewModel> onBindViewModel() {
         return ModifyViewModel.class;
     }
 
+    @NonNull
     @Override
     public ViewModelProvider.Factory onBindViewModelFactory() {
-        return MeViewModelFactory.getInstance(getApplication());
+        return MeViewModelFactory.INSTANCE;
     }
 
     @Override
@@ -61,16 +60,11 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
 
     @Override
     public void initView() {
-        mSetModifyImage = findViewById(R.id.view_modify_profile_photo);
-        mSetModifyNickname = findViewById(R.id.view_modify_nickname);
-        mSetModifyPwd = findViewById((R.id.view_modify_pwd));
+        SettingBarView mSetModifyImage = findViewById(R.id.view_modify_profile_photo);
+        SettingBarView mSetModifyNickname = findViewById(R.id.view_modify_nickname);
+        SettingBarView mSetModifyPwd = findViewById((R.id.view_modify_pwd));
         imageView = findViewById(R.id.view_profile_photo);
-    }
-
-    @Override
-    public void initListener() {
-        super.initListener();
-        mSetModifyImage.setOnClickSettingBarViewListener(() -> uploadHeadImage());
+        mSetModifyImage.setOnClickSettingBarViewListener(this::uploadHeadImage);
         mSetModifyPwd.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Login.MODIFY_PATH)
                 .navigation());
         mSetModifyNickname.setOnClickSettingBarViewListener(() -> startActivity(new Intent(ModifyInformationActivity.this, ModifyNicknameActivity.class)));
@@ -93,13 +87,10 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
      */
     public void uploadHeadImage() {
         PhotoCutDialog photoCutDialog = PhotoCutDialog.newInstance();
-        photoCutDialog.setOnClickLisener(new PhotoCutDialog.OnPhotoClickLisener() {
-            @Override
-            public void onScreenPhotoClick(Uri uri) {
-                String cropImagePath = getRealFilePathFromUri(getApplicationContext(), uri);
-                mViewModel.modifyProfiePhoto(cropImagePath);
-                // Bitmap bitMap = BitmapFactory.decodeFile(cropImagePath);
-            }
+        photoCutDialog.setOnClickLisener(uri -> {
+            String cropImagePath = getRealFilePathFromUri(getApplicationContext(), uri);
+            mViewModel.modifyProfilePhoto(cropImagePath);
+            // Bitmap bitMap = BitmapFactory.decodeFile(cropImagePath);
         });
         photoCutDialog.show(getSupportFragmentManager(), "photoDialog");
     }
@@ -109,7 +100,7 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
                     @Tag(RxBusTag.MODIFY_PROFIE_PICTURE)
             }
     )
-    public void setProfiePicture(String path) {
+    public void setProfilePicture(String path) {
         Glide.with(ModifyInformationActivity.this)
                 .load(API.URL_HOST_USER + "user/image/" + path)
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)

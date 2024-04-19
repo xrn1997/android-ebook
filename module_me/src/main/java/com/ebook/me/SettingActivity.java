@@ -1,28 +1,28 @@
 package com.ebook.me;
 
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
 import android.widget.Button;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.blankj.utilcode.util.SPUtils;
 import com.ebook.api.RetrofitManager;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.common.mvvm.BaseActivity;
 import com.ebook.common.util.ToastUtil;
+import com.ebook.me.databinding.ActivitySettingBinding;
 import com.hwangjr.rxbus.RxBus;
 import com.therouter.router.Route;
+import com.xrn1997.common.mvvm.view.BaseActivity;
 
 @Route(path = KeyCode.Me.SETTING_PATH, params = {"needLogin", "true"})
-public class SettingActivity extends BaseActivity {
-    private Button mExitButton;
+public class SettingActivity extends BaseActivity<ActivitySettingBinding> {
 
     @Override
-    public int onBindLayout() {
-        return R.layout.activity_setting;
-    }
-
-    @Override
-    public void initListener() {
-        super.initListener();
+    public void initView() {
+        Button mExitButton = findViewById(R.id.btn_exit);
         mExitButton.setOnClickListener(v -> {
             SPUtils.getInstance().clear();
             RetrofitManager.getInstance().TOKEN = "";
@@ -33,12 +33,12 @@ public class SettingActivity extends BaseActivity {
     }
 
     @Override
-    public void initView() {
-        mExitButton = findViewById(R.id.btn_exit);
+    public void initData() {
     }
 
+    @NonNull
     @Override
-    public void initData() {
-
+    public ActivitySettingBinding onBindViewBinding(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, boolean attachToParent) {
+        return ActivitySettingBinding.inflate(inflater, container, attachToParent);
     }
 }

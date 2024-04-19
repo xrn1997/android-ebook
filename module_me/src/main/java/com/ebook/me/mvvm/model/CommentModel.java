@@ -9,14 +9,14 @@ import com.ebook.api.entity.Comment;
 import com.ebook.api.http.RxAdapter;
 import com.ebook.api.service.CommentService;
 import com.ebook.common.event.KeyCode;
-import com.ebook.common.mvvm.model.BaseModel;
+import com.xrn1997.common.mvvm.model.BaseModel;
 
 import java.util.List;
 
 import io.reactivex.Observable;
 
 public class CommentModel extends BaseModel {
-    private CommentService commentService;
+    private final CommentService commentService;
 
     public CommentModel(Application application) {
         super(application);

@@ -16,8 +16,7 @@ import io.reactivex.rxjava3.functions.Consumer
 @Suppress("unused")
 open class BaseViewModel<M : IBaseModel>(
     application: Application,
-    @JvmField
-    val mModel: M
+    @JvmField val mModel: M
 ) : AndroidViewModel(application), IBaseViewModel, Consumer<Disposable> {
 
     private var defaultUIChangeLiveData: UIChangeLiveData? = null

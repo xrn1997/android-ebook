@@ -1,9 +1,13 @@
 package com.ebook.me.fragment;
 
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import com.blankj.utilcode.util.SPUtils;
@@ -12,22 +16,20 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.ebook.api.config.API;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.common.mvvm.BaseFragment;
 import com.ebook.common.view.SettingBarView;
 import com.ebook.common.view.profilePhoto.CircleImageView;
 import com.ebook.me.R;
+import com.ebook.me.databinding.FragmentMeMainBinding;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
 import com.hwangjr.rxbus.thread.EventThread;
 import com.therouter.TheRouter;
+import com.xrn1997.common.mvvm.view.BaseFragment;
 
 
-public class MainMeFragment extends BaseFragment {
+public class MainMeFragment extends BaseFragment<FragmentMeMainBinding> {
 
-    private SettingBarView mSetting;
     private Button mButton;
-    private SettingBarView mSetComment;
-    private SettingBarView mSetInform;
     private CircleImageView mCircleImageView;
     private TextView mTextView;
 
@@ -35,42 +37,14 @@ public class MainMeFragment extends BaseFragment {
         return new MainMeFragment();
     }
 
-
-    @Override
-    public int onBindLayout() {
-        return R.layout.fragment_me_main;
-    }
-
-    @Override
-    public void initView(View view) {
-        mSetComment = view.findViewById(R.id.view_my_comment);
-        mSetInform = view.findViewById(R.id.view_my_inform);
-        mButton = view.findViewById(R.id.btn_login);
-        mSetting = view.findViewById(R.id.view_setting);
-        mCircleImageView = view.findViewById(R.id.view_user_image);
-        mTextView = view.findViewById(R.id.view_user_name);
-
-    }
-
-    @Override
-    public void initListener() {
-        mSetComment.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.COMMENT_PATH)
-                .navigation(getActivity()));
-        mSetInform.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.MODIFY_PATH)
-                .navigation(getActivity()));
-        mButton.setOnClickListener(v -> TheRouter.build(KeyCode.Login.LOGIN_PATH)
-                .navigation());
-        mSetting.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.SETTING_PATH)
-                .navigation(getActivity()));
-    }
-
     @Override
     public void initData() {
         updateView(new Object());
     }
 
+    @NonNull
     @Override
-    public String getToolbarTitle() {
+    public String getToolBarTitle() {
         return "我的";
     }
 
@@ -107,5 +81,29 @@ public class MainMeFragment extends BaseFragment {
             setProfilePicture(SPUtils.getInstance().getString(KeyCode.Login.SP_IMAGE));
             mTextView.setText(SPUtils.getInstance().getString(KeyCode.Login.SP_NICKNAME));
         }
+    }
+
+    @Override
+    public void initView() {
+        SettingBarView mSetComment = getBinding().viewMyComment;
+        SettingBarView mSetInform = getBinding().viewMyInform;
+        mButton = getBinding().btnLogin;
+        SettingBarView mSetting = getBinding().viewSetting;
+        mCircleImageView = getBinding().viewUserImage;
+        mTextView = getBinding().viewUserName;
+        mSetComment.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.COMMENT_PATH)
+                .navigation(getActivity()));
+        mSetInform.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.MODIFY_PATH)
+                .navigation(getActivity()));
+        mButton.setOnClickListener(v -> TheRouter.build(KeyCode.Login.LOGIN_PATH)
+                .navigation());
+        mSetting.setOnClickSettingBarViewListener(() -> TheRouter.build(KeyCode.Me.SETTING_PATH)
+                .navigation(getActivity()));
+    }
+
+    @NonNull
+    @Override
+    public FragmentMeMainBinding onBindViewBinding(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, boolean attachToParent) {
+        return FragmentMeMainBinding.inflate(inflater, container, attachToParent);
     }
 }

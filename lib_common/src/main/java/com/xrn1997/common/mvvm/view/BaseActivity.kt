@@ -53,7 +53,7 @@ abstract class BaseActivity<V : ViewBinding> : RxAppCompatActivity(), IBaseView 
     /**
      * 该binding仅用于取代findViewById
      */
-    protected open val mBinding get() = _binding!!
+    protected open val binding get() = _binding!!
 
     /**
      * 默认toolBarTitle，并且设置完成后，通过setTitle是无法修改的。
@@ -111,7 +111,7 @@ abstract class BaseActivity<V : ViewBinding> : RxAppCompatActivity(), IBaseView 
         mViewStubContent?.id = android.R.id.content
         mContentView.id = View.NO_ID
         mViewStubContent?.removeAllViews()
-        mViewStubContent?.addView(mBinding.root)
+        mViewStubContent?.addView(binding.root)
     }
 
     private fun initContentView(@LayoutRes layoutResID: Int) {

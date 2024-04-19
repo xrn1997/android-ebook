@@ -61,7 +61,7 @@ public abstract class BaseFragment extends Fragment implements BaseView {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        mView = inflater.inflate(R.layout.fragment_root, container, false);
+        mView = inflater.inflate(R.layout.fragment_root_old, container, false);
         initCommonView(mView);
         initView(mView);
         initListener();

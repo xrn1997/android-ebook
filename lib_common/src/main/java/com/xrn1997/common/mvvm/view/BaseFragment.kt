@@ -49,7 +49,7 @@ abstract class BaseFragment<V : ViewBinding> : RxFragment(), IBaseView {
      * 此属性仅在onCreateView及之后的生命周期有效。
      * 请注意不要随便覆写。
      */
-    protected open val mBinding get() = _binding
+    protected open val binding get() = _binding
 
     /**
      * 默认toolBarTitle

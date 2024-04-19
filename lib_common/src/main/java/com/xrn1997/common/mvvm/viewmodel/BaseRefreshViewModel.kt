@@ -18,11 +18,16 @@ abstract class BaseRefreshViewModel<T, M : BaseModel>(
     application: Application,
     model: M
 ) : BaseViewModel<M>(application, model) {
-    private var list: ObservableArrayList<T> = ObservableArrayList()
-    val mList: ObservableArrayList<T>
-        get() = list
+    @JvmField
+    val mList: ObservableArrayList<T> = ObservableArrayList()
+
+    @JvmField
     var orientation: MutableLiveData<Boolean> = MutableLiveData()
+
+    @JvmField
     var enableLoadMore: MutableLiveData<Boolean> = MutableLiveData()
+
+    @JvmField
     var enableRefresh: MutableLiveData<Boolean> = MutableLiveData()
     protected var defaultUIChangeRefreshLiveData: UIChangeRefreshLiveData? = null
     val mUIChangeRefreshLiveData: UIChangeRefreshLiveData

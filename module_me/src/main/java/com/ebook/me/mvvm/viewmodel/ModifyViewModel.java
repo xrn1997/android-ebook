@@ -11,16 +11,16 @@ import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.ExceptionHandler;
 import com.ebook.common.event.KeyCode;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.common.mvvm.viewmodel.BaseViewModel;
 import com.ebook.common.util.ToastUtil;
 import com.ebook.me.mvvm.model.ModifyModel;
 import com.hwangjr.rxbus.RxBus;
+import com.xrn1997.common.mvvm.viewmodel.BaseViewModel;
 
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 
 public class ModifyViewModel extends BaseViewModel<ModifyModel> {
-    private static String TAG = ModifyViewModel.class.getSimpleName();
+    private static final String TAG = ModifyViewModel.class.getSimpleName();
 
     public ObservableField<String> nickname = new ObservableField<>();
 
@@ -68,7 +68,7 @@ public class ModifyViewModel extends BaseViewModel<ModifyModel> {
      *
      * @param path 图片路径
      */
-    public void modifyProfiePhoto(String path) {
+    public void modifyProfilePhoto(String path) {
 
         mModel.modifyProfiePhoto(path).subscribe(new Observer<>() {
             @Override

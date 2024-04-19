@@ -8,7 +8,7 @@ import com.ebook.api.dto.RespDTO;
 import com.ebook.api.http.RxAdapter;
 import com.ebook.api.service.UserService;
 import com.ebook.common.event.KeyCode;
-import com.ebook.common.mvvm.model.BaseModel;
+import com.xrn1997.common.mvvm.model.BaseModel;
 
 import java.io.File;
 
@@ -18,7 +18,7 @@ import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 
 public class ModifyModel extends BaseModel {
-    private UserService userService;
+    private final UserService userService;
 
     public ModifyModel(Application application) {
         super(application);

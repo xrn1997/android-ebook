@@ -20,7 +20,11 @@ abstract class BaseBindAdapter<T, B : ViewDataBinding>(
     items: ObservableArrayList<T>
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     protected var items: ObservableArrayList<T>? = items
+
+    @JvmField
     protected var mItemClickListener: OnItemClickListener<T>? = null
+
+    @JvmField
     protected var mOnItemLongClickListener: OnItemLongClickListener<T>? = null
     override fun getItemCount(): Int {
         return if (items != null && items!!.size > 0) items!!.size else 0

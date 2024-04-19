@@ -18,9 +18,8 @@ abstract class BaseMvvmActivity<V : ViewDataBinding, VM : BaseViewModel<*>> : Ba
     private lateinit var _binding: V
     /**
      * MVVM中的V，负责视图显示。
-     * 此属性仅在onCreateView及之后的生命周期有效。
      */
-    override val mBinding get() = _binding
+    override val binding get() = _binding
 
     /**
      * MVVM中的VM，负责处理视图的操作功能，与M进行数据交互。
@@ -47,7 +46,7 @@ abstract class BaseMvvmActivity<V : ViewDataBinding, VM : BaseViewModel<*>> : Ba
         container: ViewGroup?,
         attachToParent: Boolean
     ): V {
-        return mBinding
+        return binding
     }
 
     open fun createViewModel(): VM {
@@ -98,6 +97,6 @@ abstract class BaseMvvmActivity<V : ViewDataBinding, VM : BaseViewModel<*>> : Ba
 
     override fun onDestroy() {
         super.onDestroy()
-        mBinding.unbind()
+        binding.unbind()
     }
 }

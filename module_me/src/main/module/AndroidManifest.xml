@@ -9,7 +9,7 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
+        android:theme="@style/Theme.Common"
         android:name="debug.MeApplication"
         tools:targetApi="n">
         <activity android:name="debug.MainActivity"
@@ -22,19 +22,19 @@
         <activity
             android:name="com.ebook.me.SettingActivity"
             android:label="设置"
-            android:theme="@style/AppTheme.BackBar" />
+            android:theme="@style/ToolbarTheme.BackBar" />
         <activity
             android:name=".MyCommentActivity"
             android:label="我的评论"
-            android:theme="@style/AppTheme.BackBar" />
+            android:theme="@style/ToolbarTheme.BackBar" />
         <activity
             android:name=".ModifyInformationActivity"
             android:label="编辑资料"
-            android:theme="@style/AppTheme.BackBar" />
+            android:theme="@style/ToolbarTheme.BackBar" />
         <activity
             android:name=".ModifyNicknameActivity"
             android:label="修改昵称"
-            android:theme="@style/AppTheme.BackBar" />
+            android:theme="@style/ToolbarTheme.BackBar" />
     </application>
 
 </manifest>
