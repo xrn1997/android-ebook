@@ -14,7 +14,7 @@ android {
 }
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    api project(':lib_common')
+    api project(':lib_book_common')
     implementation libs.core.ktx
     implementation libs.androidx.lifecycle.viewmodel.ktx
 

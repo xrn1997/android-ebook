@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <declare-styleable name="SettingBarView">
+        <attr name="set_left_icon_visible" format="boolean" />
+        <attr name="set_left_icon" format="reference" />
+        <attr name="set_title" format="string" />
+        <attr name="set_content" format="string" />
+        <attr name="set_right_icon" format="reference" />
+        <attr name="set_right_icon_visible" format="boolean" />
+    </declare-styleable>
     <declare-styleable name="MagicTextView">
         <attr name="innerShadowColor" format="color" />
         <attr name="innerShadowRadius" format="dimension" />
@@ -39,16 +47,6 @@
         <attr name="expandCollapseToggleId" format="reference" />
         <attr name="expandToggleOnTextClick" format="boolean" />
     </declare-styleable>
-    <declare-styleable name="SettingBarView">
-        <attr name="set_left_icon_visable" format="boolean" />
-        <attr name="set_left_icon" format="reference" />
-        <attr name="set_title" format="string" />
-        <attr name="set_content" format="string" />
-        <attr name="set_content_hint" format="string" />
-        <attr name="set_right_icon_visable" format="boolean" />
-        <attr name="set_right_icon" format="reference" />
-    </declare-styleable>
-
     <declare-styleable name="DaisyRefreshLayout">
         <attr name="onRefreshCommand" format="reference" />
         <attr name="onLoadMoreCommand" format="reference" />
@@ -74,5 +72,10 @@
         <attr name="civ_border_color" format="color" />
         <attr name="civ_border_overlay" format="boolean" />
         <attr name="civ_fill_color" format="color" />
+    </declare-styleable>
+    <declare-styleable name="CameraVideoButton">
+        <attr name="cvb_recording_color" format="color" />
+        <attr name="cvb_innerCirclePaint_color" format="color" />
+        <attr name="cvb_text_content" format="string" />
     </declare-styleable>
 </resources>

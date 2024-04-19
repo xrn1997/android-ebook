@@ -1,4 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Strings used for test -->
+    <string name="previous">返回</string>
+    <string name="todo">TODO</string>
+    <string name="test">test</string>
+
     <string name="app_name">lib_common</string>
-    <string name="ebook">eBook</string>
+    <string name="init_loading">init_loading</string>
+    <string name="head_title">标题</string>
+    <string name="delete">删除</string>
+    <string name="cancel">取消</string>
+    <string name="refresh">刷新</string>
+    <string name="no_data">没有数据</string>
+    <string name="take_picture">拍照</string>
+    <string name="select_from_album">从手机相册选择</string>
+    <string name="no_network">没有网络</string>
+    <string name="custom">自定义</string>
+    <string name="value">值</string>
+    <string name="next">下一步</string>
+    <string name="head_portrait">头像</string>
+    <string name="left_icon">左icon</string>
+    <string name="right_icon">右icon</string>
+    <string name="unset">未设置</string>
+    <string name="version">当前版本</string>
+    <string name="help_use">功能介绍</string>
+    <string name="email">联系邮箱</string>
+
+
+
+    <string name="notification_icon_title">通知</string>
+    <string name="user_icon_title">我的</string>
+
+    <string name="phone_hint">请输入手机号</string>
+    <string name="verify_code_hint">请输入验证码</string>
+    <string name="get_verify_code">获取验证码</string>
+    <string name="phone">电话</string>
+    <string name="gender">性别</string>
+    <string name="username">用户名</string>
+    <string name="name">姓名</string>
+    <string name="password">密码</string>
+    <string name="check_password">确认密码</string>
+    <string name="current_password_hint">请输入当前密码</string>
+    <string name="update_pwd">修改密码</string>
+    <string name="please_input_phone_completely">请输入完整的手机号：</string>
+    <string name="current_pwd">当前密码</string>
+    <string name="account">账号</string>
+    <string name="user_details">个人信息</string>
+    <string name="user_id">用户id</string>
+
+    <string name="software_help">软件服务</string>
+    <string name="hint_text_name">输入姓名</string>
+    <string name="hint_text_user_name">输入用户名</string>
+    <string name="hint_text_phone_num">输入电话号码</string>
+    <string name="hint_text_description_event">输入事件描述</string>
+
+    <string name="positive_button">确认</string>
+    <string name="negative_button">取消</string>
+    <string name="dialog_name_title">修改姓名</string>
+    <string name="dialog_user_name_title">修改用户名</string>
+    <string name="dialog_phone_num_title">修改电话号码</string>
+    <string name="notification_setting">通知管理</string>
+    <string name="loading">正在加载</string>
+
 </resources>

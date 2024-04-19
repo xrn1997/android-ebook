@@ -29,7 +29,7 @@ dependencyResolutionManagement {
 
 rootProject.name="android-ebook"
 include ':module_app'
-include ':lib_common'
+include ':lib_book_common'
 include ':module_main'
 include ':module_book'
 include ':module_find'
@@ -39,3 +39,4 @@ include ':lib_ebook_api'
 include ':module_login'
 include ':lib_ebook_db'
 include ':lib_book'
+include ':lib_common'

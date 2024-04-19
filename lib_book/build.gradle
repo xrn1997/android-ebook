@@ -39,7 +39,7 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    api project(':lib_common')
+    api project(':lib_book_common')
     api libs.appcompat
     implementation libs.core.ktx
     implementation libs.androidx.lifecycle.viewmodel.ktx
