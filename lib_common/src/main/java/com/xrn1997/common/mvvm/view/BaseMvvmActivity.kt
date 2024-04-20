@@ -15,6 +15,9 @@ import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
  * @author xrn1997
  */
 abstract class BaseMvvmActivity<V : ViewDataBinding, VM : BaseViewModel<*>> : BaseActivity<V>() {
+    companion object {
+        private const val TAG = "BaseMvvmActivity"
+    }
     private lateinit var _binding: V
     /**
      * MVVM中的V，负责视图显示。

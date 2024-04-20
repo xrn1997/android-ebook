@@ -16,7 +16,7 @@ public class NetworkUtil {
     public static final int ERROR_CODE_OUTTIME = 10002;
     public static final int ERROR_CODE_ANALY = 10003;
     private static final Map<Integer, String> errorMap = new HashMap<>();
-    private static final Context context = BaseApplication.getInstance();
+    private static final Context context = BaseApplication.context;
 
     static {
         errorMap.put(ERROR_CODE_NONET, context.getString(R.string.net_error_10001));

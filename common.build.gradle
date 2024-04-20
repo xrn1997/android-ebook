@@ -23,7 +23,11 @@ android {
     buildFeatures {
         dataBinding true
         viewBinding true
+        compose true
         buildConfig true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.8"
     }
     kotlinOptions {
         jvmTarget = '17'

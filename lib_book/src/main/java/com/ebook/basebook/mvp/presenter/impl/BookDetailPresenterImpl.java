@@ -160,14 +160,14 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                             if (value) {
                                 RxBus.get().post(RxBusTag.HAD_ADD_BOOK, mBookShelf);
                             } else {
-                                Toast.makeText(BaseApplication.getInstance(), "放入书架失败!", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(BaseApplication.context, "放入书架失败!", Toast.LENGTH_SHORT).show();
                             }
                         }
 
                         @Override
                         public void onError(@NotNull Throwable e) {
                             e.printStackTrace();
-                            Toast.makeText(BaseApplication.getInstance(), "放入书架失败!", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(BaseApplication.context, "放入书架失败!", Toast.LENGTH_SHORT).show();
                         }
                     });
         }
@@ -198,14 +198,14 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                             if (value) {
                                 RxBus.get().post(RxBusTag.HAD_REMOVE_BOOK, mBookShelf);
                             } else {
-                                Toast.makeText(BaseApplication.getInstance(), "移出书架失败!", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(BaseApplication.context, "移出书架失败!", Toast.LENGTH_SHORT).show();
                             }
                         }
 
                         @Override
                         public void onError(Throwable e) {
                             e.printStackTrace();
-                            Toast.makeText(BaseApplication.getInstance(), "移出书架失败!", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(BaseApplication.context, "移出书架失败!", Toast.LENGTH_SHORT).show();
                         }
                     });
         }

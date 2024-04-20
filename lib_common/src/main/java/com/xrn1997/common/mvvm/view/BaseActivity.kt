@@ -35,7 +35,7 @@ import org.greenrobot.eventbus.ThreadMode
 @Suppress("unused")
 abstract class BaseActivity<V : ViewBinding> : RxAppCompatActivity(), IBaseView {
     private lateinit var mContentView: ViewGroup
-    private var mViewStubContent: RelativeLayout? = null
+    private lateinit var mViewStubContent: RelativeLayout
     private var mToolBarTitle: TextView? = null
 
     protected var mNetErrorView: NetErrorView? = null
@@ -78,9 +78,7 @@ abstract class BaseActivity<V : ViewBinding> : RxAppCompatActivity(), IBaseView 
      * @param layoutResID Int
      */
     final override fun setContentView(@LayoutRes layoutResID: Int) {
-        if (mViewStubContent != null) {
-            initContentView(layoutResID)
-        }
+        initContentView(layoutResID)
     }
 
     private fun initCommonView(binding: ActivityRootBinding) {
@@ -108,18 +106,18 @@ abstract class BaseActivity<V : ViewBinding> : RxAppCompatActivity(), IBaseView 
     open fun initContentView() {
         _binding = onBindViewBinding(LayoutInflater.from(this), mViewStubContent, false)
         initView()
-        mViewStubContent?.id = android.R.id.content
+        mViewStubContent.id = android.R.id.content
         mContentView.id = View.NO_ID
-        mViewStubContent?.removeAllViews()
-        mViewStubContent?.addView(binding.root)
+        mViewStubContent.removeAllViews()
+        mViewStubContent.addView(binding.root)
     }
 
     private fun initContentView(@LayoutRes layoutResID: Int) {
         val view: View = LayoutInflater.from(this).inflate(layoutResID, mViewStubContent, false)
-        mViewStubContent?.id = android.R.id.content
+        mViewStubContent.id = android.R.id.content
         mContentView.id = View.NO_ID
-        mViewStubContent?.removeAllViews()
-        mViewStubContent?.addView(view)
+        mViewStubContent.removeAllViews()
+        mViewStubContent.addView(view)
     }
 
     /**
