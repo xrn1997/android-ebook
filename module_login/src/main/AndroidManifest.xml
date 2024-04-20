@@ -6,8 +6,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:supportsRtl="true">
         <activity
             android:name=".LoginActivity"
             android:launchMode="singleTask"
@@ -15,15 +14,15 @@
         <activity
             android:name=".RegisterActivity"
             android:label="注册"
-            android:theme="@style/AppTheme.BackBar" />
+            android:theme="@style/ToolbarTheme.BackBar" />
         <activity
             android:name=".VerifyUserActivity"
             android:label="验证用户"
-            android:theme="@style/AppTheme.BackBar" />
+            android:theme="@style/ToolbarTheme.BackBar" />
         <activity
             android:name=".ModifyPwdActivity"
             android:label="修改密码"
-            android:theme="@style/AppTheme.BackBar" />
+            android:theme="@style/ToolbarTheme.BackBar" />
     </application>
 
 </manifest>

@@ -15,6 +15,9 @@ android {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     api project(':lib_book_common')
+    if (!isLoginModule.toBoolean()) {
+        implementation project(":module_login")
+    }
     implementation libs.core.ktx
     implementation libs.androidx.lifecycle.viewmodel.ktx
 
