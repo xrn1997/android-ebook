@@ -11,18 +11,17 @@ import androidx.databinding.ObservableArrayList;
 
 import com.ebook.basebook.mvp.presenter.impl.BookDetailPresenterImpl;
 import com.ebook.basebook.mvp.view.impl.BookDetailActivity;
-import com.ebook.common.adapter.BaseBindAdapter;
+
 import com.ebook.common.util.ObservableListUtil;
 import com.ebook.db.entity.LibraryKindBookList;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.find.R;
 import com.ebook.find.databinding.ViewLibraryKindbookBinding;
 import com.ebook.find.mvp.view.impl.ChoiceBookActivity;
+import com.xrn1997.common.adapter.BaseBindAdapter;
 
 
 public class LibraryBookListAdapter extends BaseBindAdapter<LibraryKindBookList, ViewLibraryKindbookBinding> {
-    private LibraryBookAdapter libraryBookAdapter;
-    private ObservableArrayList<SearchBook> searchBooks;
 
     public LibraryBookListAdapter(Context context, ObservableArrayList<LibraryKindBookList> items) {
         super(context, items);
@@ -36,9 +35,9 @@ public class LibraryBookListAdapter extends BaseBindAdapter<LibraryKindBookList,
     @Override
     protected void onBindItem(ViewLibraryKindbookBinding binding, LibraryKindBookList item, int position) {
         binding.setLibraryKindBookList(item);
-        searchBooks = new ObservableArrayList<>();
+        ObservableArrayList<SearchBook> searchBooks = new ObservableArrayList<>();
         searchBooks.addAll(item.getBooks());
-        libraryBookAdapter = new LibraryBookAdapter(context, searchBooks);
+        LibraryBookAdapter libraryBookAdapter = new LibraryBookAdapter(context, searchBooks);
 
         searchBooks.addOnListChangedCallback(ObservableListUtil.getListChangedCallback(libraryBookAdapter));
         if (item.getKindUrl() != null) {
@@ -48,7 +47,7 @@ public class LibraryBookListAdapter extends BaseBindAdapter<LibraryKindBookList,
             binding.tvMore.setVisibility(GONE);
             binding.tvMore.setOnClickListener(null);
         }
-        libraryBookAdapter.setItemClickListener((searchBook, position1) -> {
+        libraryBookAdapter.setOnItemClickListener((searchBook, position1) -> {
             Intent intent = new Intent(context, BookDetailActivity.class);
             intent.putExtra("from", BookDetailPresenterImpl.FROM_SEARCH);
             intent.putExtra("data", searchBook);

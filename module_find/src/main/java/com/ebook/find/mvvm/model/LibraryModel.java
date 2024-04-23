@@ -5,13 +5,14 @@ import android.app.Application;
 import com.ebook.basebook.cache.ACache;
 import com.ebook.basebook.constant.Url;
 import com.ebook.basebook.mvp.model.impl.WebBookModelImpl;
-import com.ebook.common.mvvm.model.BaseModel;
+
 import com.ebook.db.GreenDaoManager;
 import com.ebook.db.entity.BookShelf;
 import com.ebook.db.entity.Library;
 import com.ebook.db.entity.SearchHistory;
 import com.ebook.db.entity.SearchHistoryDao;
 import com.ebook.find.entity.BookType;
+import com.xrn1997.common.mvvm.model.BaseModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,14 +35,11 @@ public class LibraryModel extends BaseModel {
 
     //获得书库信息
     public Observable<Library> getLibraryData(ACache mCache) {
-        return Observable.create(new ObservableOnSubscribe<String>() {
-                    @Override
-                    public void subscribe(ObservableEmitter<String> e) throws Exception {
-                        String cache = mCache.getAsString(LIBRARY_CACHE_KEY);
-                        e.onNext(cache);
-                        e.onComplete();
-                    }
-                }).flatMap((Function<String, ObservableSource<Library>>) s -> WebBookModelImpl.getInstance().analyzeLibraryData(s))
+        return Observable.create((ObservableOnSubscribe<String>) e -> {
+            String cache = mCache.getAsString(LIBRARY_CACHE_KEY);
+            e.onNext(cache);
+            e.onComplete();
+        }).flatMap((Function<String, ObservableSource<Library>>) s -> WebBookModelImpl.getInstance().analyzeLibraryData(s))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread());
     }

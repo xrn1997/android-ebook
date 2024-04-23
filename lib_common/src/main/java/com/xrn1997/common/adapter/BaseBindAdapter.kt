@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView
  */
 @Suppress("unused")
 abstract class BaseBindAdapter<T, B : ViewDataBinding>(
+    @JvmField
     protected var context: Context,
     items: ObservableArrayList<T>
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {

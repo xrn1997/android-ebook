@@ -25,9 +25,9 @@
             android:paddingEnd="10dp"
             android:paddingTop="5dp"
             android:paddingBottom="5dp"
-            android:background="@color/tv_text_addshelf_pre"
+            android:background="?attr/colorPrimary"
             android:lines="1"
-            android:textColor="@color/selector_kind_tv_color"
+            android:textColor="?attr/colorOnPrimary"
             android:text="@{booktype.bookType}" />
 
     </androidx.cardview.widget.CardView>

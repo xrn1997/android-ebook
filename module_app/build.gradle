@@ -46,6 +46,8 @@ dependencies {
         implementation project(':module_me')
         implementation project(':module_book')
         implementation project(":module_login")
+    } else if (!isLoginModule.toBoolean()) {
+        implementation project(":module_login")
     }
 
     testImplementation libs.junit

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="CAppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="CAppTheme" parent="Theme.Material3.Light.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">#ffffff</item>
         <item name="colorPrimaryDark">#767676</item>

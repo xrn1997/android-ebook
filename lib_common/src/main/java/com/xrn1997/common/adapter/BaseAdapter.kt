@@ -16,13 +16,9 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
     protected var mContext: Context
 ) :
     RecyclerView.Adapter<VH>() {
-    protected var mList: MutableList<E>
+    protected var mList: MutableList<E> = ArrayList()
     protected var mItemClickListener: OnItemClickListener<E>? = null
     protected var mOnItemLongClickListener: OnItemLongClickListener<E>? = null
-
-    init {
-        mList = ArrayList()
-    }
 
     /**
      * 创建并且返回ViewHolder
@@ -147,13 +143,6 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
      */
     fun setOnItemLongClickListener(onItemLongClickListener: OnItemLongClickListener<E>?) {
         mOnItemLongClickListener = onItemLongClickListener
-    }
-
-    /**
-     * 根据位置获得item类型
-     */
-    override fun getItemViewType(position: Int): Int {
-        return super.getItemViewType(position)
     }
 
     /**

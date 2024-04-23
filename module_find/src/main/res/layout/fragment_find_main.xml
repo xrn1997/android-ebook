@@ -14,32 +14,15 @@
         android:id="@+id/ll_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/bg_library"
+        android:background="?colorSurface"
         android:orientation="vertical">
 
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:background="#ffffff">
-
-            <TextView
-                android:id="@+id/tv_title"
-                android:layout_height="wrap_content"
-                android:layout_width="wrap_content"
-                android:layout_centerInParent="true"
-                android:singleLine="true"
-                android:text="@string/library"
-                android:textColor="#343434"
-                android:textSize="16sp" />
-        </RelativeLayout>
-
-        <com.refresh.lib.DaisyRefreshLayout
+        <com.scwang.smart.refresh.layout.SmartRefreshLayout
             android:id="@+id/refview_library"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:enableLoadMore="@{viewModel.enableLoadMore}"
-            app:enableRefresh="@{viewModel.enableRefresh}"
-            app:onAutoRefreshCommand="@{viewModel.onAutoRefreshCommand}"
+            app:srlEnableLoadMore="@{viewModel.enableLoadMore}"
+            app:srlEnableRefresh="@{viewModel.enableRefresh}"
             app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
             app:onRefreshCommand="@{viewModel.onRefreshCommand}">
 
@@ -56,6 +39,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:background="?attr/colorSurfaceVariant"
                         android:orientation="horizontal">
 
                         <TextView
@@ -65,8 +49,9 @@
                             android:paddingTop="5dp"
                             android:paddingBottom="5dp"
                             android:text="@string/book_type"
-                            android:textColor="#616161"
-                            android:textSize="14sp" />
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textSize="14sp" /> <!-- 使用表面上的文本颜色 -->
+
                     </LinearLayout>
 
                     <androidx.recyclerview.widget.RecyclerView
@@ -75,19 +60,18 @@
                         android:paddingBottom="2dp"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@color/tv_text_addshelf_nor"
                         android:overScrollMode="never"
                         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
                         app:spanCount="4" />
 
                     <View
                         android:layout_width="match_parent"
-                        android:layout_height="10dp" />
+                        android:layout_height="10dp"
+                        android:background="?attr/colorSurfaceVariant" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="#ffffff"
                         android:paddingStart="40dp"
                         android:paddingTop="15dp"
                         android:paddingEnd="40dp"
@@ -106,7 +90,7 @@
                                 android:background="@drawable/bg_search_content"
                                 android:gravity="center"
                                 android:hint="@string/search_book_or_author"
-                                android:textColorHint="#616161"
+                                android:textColorHint="?attr/colorOnSurfaceVariant"
                                 android:textSize="13sp" />
 
                             <ImageView
@@ -121,19 +105,20 @@
 
                     <View
                         android:layout_width="match_parent"
-                        android:layout_height="5dp" />
+                        android:layout_height="5dp"
+                        android:background="?attr/colorSurfaceVariant" />
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/lkbv_kindbooklist"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="1dp"
-                        android:background="#ffffff"
                         android:focusable="true"
                         android:focusableInTouchMode="true"
                         android:paddingBottom="10dp" />
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>
-        </com.refresh.lib.DaisyRefreshLayout>
+        </com.scwang.smart.refresh.layout.SmartRefreshLayout>
     </LinearLayout>
+
 </layout>

@@ -1,20 +1,21 @@
 package com.ebook.find;
 
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
 
-import com.ebook.common.mvvm.BaseActivity;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.ebook.common.util.ToastUtil;
+import com.ebook.find.databinding.ActivityMainBinding;
 import com.ebook.find.fragment.MainFindFragment;
+import com.xrn1997.common.mvvm.view.BaseActivity;
 
-public class MainActivity extends BaseActivity {
+public class MainActivity extends BaseActivity<ActivityMainBinding> {
 
 
     private long exitTime = 0;
-
-    @Override
-    public int onBindLayout() {
-        return R.layout.activity_main;
-    }
 
     @Override
     public void initView() {
@@ -48,5 +49,11 @@ public class MainActivity extends BaseActivity {
             finish();
             System.exit(0);
         }
+    }
+
+    @NonNull
+    @Override
+    public ActivityMainBinding onBindViewBinding(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, boolean attachToParent) {
+        return ActivityMainBinding.inflate(inflater, container, attachToParent);
     }
 }
