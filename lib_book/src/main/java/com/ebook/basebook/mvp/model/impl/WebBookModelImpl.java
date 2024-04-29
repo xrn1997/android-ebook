@@ -1,6 +1,8 @@
 package com.ebook.basebook.mvp.model.impl;
 
 
+import android.content.Context;
+
 import com.ebook.basebook.cache.ACache;
 import com.ebook.basebook.mvp.model.StationBookModel;
 import com.ebook.basebook.mvp.model.WebBookModel;
@@ -27,7 +29,7 @@ public class WebBookModelImpl implements WebBookModel {
             synchronized (WebBookModelImpl.class) {
                 if (bookModel == null) {
                     //更换书源只需要修改这一行
-                    bookModel = new WebBookModelImpl(ZeroBookModelImpl.getInstance());
+                    bookModel = new WebBookModelImpl(TXTDownloadBookModelImpl.getInstance());
                 }
             }
         }
@@ -50,8 +52,8 @@ public class WebBookModelImpl implements WebBookModel {
     }
 
     @Override
-    public Observable<List<SearchBook>> getKindBook(String url, int page) {
-        return stationBookModel.getKindBook(url, page);
+    public Observable<List<SearchBook>> getKindBook(Context context, String url, int page) {
+        return stationBookModel.getKindBook(context, url, page);
     }
 
     @Override

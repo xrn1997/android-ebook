@@ -18,6 +18,10 @@
         app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
         app:onRefreshCommand="@{viewModel.onRefreshCommand}">
 
+        <com.scwang.smart.refresh.header.ClassicsHeader
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/view_my_comment_list"
             android:layout_width="match_parent"

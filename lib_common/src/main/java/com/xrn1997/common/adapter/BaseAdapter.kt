@@ -13,9 +13,10 @@ import androidx.recyclerview.widget.RecyclerView
  */
 @Suppress("unused")
 abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
-    protected var mContext: Context
-) :
-    RecyclerView.Adapter<VH>() {
+    @JvmField
+    protected val mContext: Context
+) : RecyclerView.Adapter<VH>() {
+    @JvmField
     protected var mList: MutableList<E> = ArrayList()
     protected var mItemClickListener: OnItemClickListener<E>? = null
     protected var mOnItemLongClickListener: OnItemLongClickListener<E>? = null

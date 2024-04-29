@@ -126,7 +126,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                             @Override
                             public void onError(Throwable e) {
                                 mBookShelf = null;
-                                Log.e("错误信息", "onError: " + e);
+                                Log.e("错误信息", "getChapterList onError: " + e);
                                 mView.getBookShelfError();
                             }
                         });
@@ -135,7 +135,7 @@ public class BookDetailPresenterImpl extends BasePresenterImpl<IBookDetailView> 
                     @Override
                     public void onError(@NotNull Throwable e) {
                         mBookShelf = null;
-                        Log.e("错误信息", "onError: " + e);
+                        Log.e("错误信息", "subscribe onError: " + e);
                         mView.getBookShelfError();
                     }
                 });

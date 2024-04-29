@@ -26,6 +26,10 @@
             app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
             app:onRefreshCommand="@{viewModel.onRefreshCommand}">
 
+            <com.scwang.smart.refresh.header.ClassicsHeader
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
             <androidx.core.widget.NestedScrollView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"

@@ -54,7 +54,6 @@ public class EncodingInterceptor implements Interceptor {
     private void setBodyContentType(Response response) throws IOException {
         ResponseBody body = response.body();
         // setting body contentTypeString using reflect
-        assert body != null;
         Class<? extends ResponseBody> aClass = body.getClass();
         try {
             Field field = aClass.getDeclaredField("contentTypeString");
