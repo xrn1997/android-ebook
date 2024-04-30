@@ -1,10 +1,12 @@
 package com.ebook.book.fragment;
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.ImageButton;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.ebook.basebook.base.manager.BitIntentDataManager;
@@ -22,37 +24,45 @@ import com.ebook.book.mvvm.factory.BookViewModelFactory;
 import com.ebook.book.mvvm.viewmodel.BookListViewModel;
 import com.ebook.book.service.DownloadService;
 import com.ebook.common.event.RxBusTag;
-import com.ebook.common.mvvm.BaseMvvmRefreshFragment;
-import com.ebook.common.util.ObservableListUtil;
 import com.ebook.db.entity.BookShelf;
 import com.ebook.db.entity.DownloadChapterList;
 import com.hwangjr.rxbus.RxBus;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
 import com.hwangjr.rxbus.thread.EventThread;
-import com.refresh.lib.DaisyRefreshLayout;
+import com.scwang.smart.refresh.layout.api.RefreshLayout;
+import com.xrn1997.common.mvvm.view.BaseMvvmRefreshFragment;
+import com.xrn1997.common.util.ObservableListUtil;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
+@SuppressWarnings("unused")
 public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBinding, BookListViewModel> {
-    private BookListAdapter mBookListAdatper;
-    private ImageButton ibAdd;
+    public static final String TAG = "MainBookFragment";
     private ImageButton ibDownload;
     private DownloadListPop downloadListPop;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        RxBus.get().register(this);
+    }
 
     public static MainBookFragment newInstance() {
         return new MainBookFragment();
     }
 
+    @NonNull
     @Override
     public Class<BookListViewModel> onBindViewModel() {
         return BookListViewModel.class;
     }
 
+    @NonNull
     @Override
     public ViewModelProvider.Factory onBindViewModelFactory() {
-        return BookViewModelFactory.getInstance(mActivity.getApplication());
+        return BookViewModelFactory.INSTANCE;
     }
 
     @Override
@@ -71,31 +81,20 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
     }
 
     @Override
-    public void initView(View view) {
+    public void initView() {
         downloadListPop = new DownloadListPop(mActivity);
-        ibAdd = view.findViewById(R.id.ib_add);
-        ibDownload = view.findViewById(R.id.ib_download);
-        mBookListAdatper = new BookListAdapter(mActivity, mViewModel.getList());
-        mViewModel.getList().addOnListChangedCallback(ObservableListUtil.getListChangedCallback(mBookListAdatper));
-        mBinding.recview.setAdapter(mBookListAdatper);
-    }
-
-    @Override
-    public void initData() {
-        mViewModel.refreshData();
-
-    }
-
-    @Override
-    public void initListener() {
-        super.initListener();
+        ImageButton ibAdd = getBinding().ibAdd;
+        ibDownload = getBinding().ibDownload;
+        BookListAdapter mBookListAdapter = new BookListAdapter(mActivity, mViewModel.mList);
+        mViewModel.mList.addOnListChangedCallback(ObservableListUtil.getListChangedCallback(mBookListAdapter));
+        getBinding().recview.setAdapter(mBookListAdapter);
         ibDownload.setOnClickListener(v -> downloadListPop.showAsDropDown(ibDownload));
 
         ibAdd.setOnClickListener(v -> {
             //点击更多
             startActivity(new Intent(mActivity, ImportBookActivity.class));
         });
-        mBookListAdatper.setItemClickListener((bookShelf, position) -> {
+        mBookListAdapter.setOnItemClickListener((bookShelf, position) -> {
             Intent intent = new Intent(mActivity, ReadBookActivity.class);
             intent.putExtra("from", ReadBookPresenterImpl.OPEN_FROM_APP);
             String key = String.valueOf(System.currentTimeMillis());
@@ -104,11 +103,11 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
                 BitIntentDataManager.getInstance().putData(key, bookShelf.clone());
             } catch (CloneNotSupportedException e) {
                 BitIntentDataManager.getInstance().putData(key, bookShelf);
-                e.printStackTrace();
+                Log.e(TAG, "initView: ", e);
             }
             startActivity(intent);
         });
-        mBookListAdatper.setOnItemLongClickListener((bookShelf, postion) -> {
+        mBookListAdapter.setOnItemLongClickListener((bookShelf, position) -> {
             Intent intent = new Intent(mActivity, BookDetailActivity.class);
             intent.putExtra("from", BookDetailPresenterImpl.FROM_BOOKSHELF);
             String key = String.valueOf(System.currentTimeMillis());
@@ -117,19 +116,32 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
             startActivity(intent);
             return true;
         });
-
     }
 
     @Override
-    public String getToolbarTitle() {
+    public void initData() {
+        mViewModel.refreshData();
+
+    }
+
+    @NonNull
+    @Override
+    public String getToolBarTitle() {
         return "我的书架";
     }
 
+    @NonNull
     @Override
-    public DaisyRefreshLayout getRefreshLayout() {
-        return mBinding.refviewBookList;
+    public RefreshLayout getRefreshLayout() {
+        return getBinding().refviewBookList;
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        RxBus.get().unregister(this);
+        downloadListPop.onDestroy();
+    }
 
     @Subscribe(thread = EventThread.MAIN_THREAD,
             tags = {
@@ -139,6 +151,7 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
             }
     )
     public void hadAddOrRemoveBook(BookShelf bookShelf) {
+        Log.e(TAG, "hadAddOrRemoveBook: " + bookShelf.getBookInfo().getName());
         mViewModel.refreshData();
         //autoLoadData();
     }

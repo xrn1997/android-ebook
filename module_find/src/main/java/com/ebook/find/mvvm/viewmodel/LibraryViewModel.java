@@ -77,12 +77,13 @@ public class LibraryViewModel extends BaseRefreshViewModel<Library, LibraryModel
                         //     Log.d(TAG, "refreshdata onNext: " + value.getKindBooks().get(0).getKindName());
                         libraryKindBookLists.clear();
                         libraryKindBookLists.addAll(value.getKindBooks());
-                        postStopRefreshEvent(false);
+                        postStopRefreshEvent(true);
                         //   Log.d(TAG, "refreshdata onNext: finish");
                     }
 
                     @Override
                     public void onError(Throwable e) {
+                        postStopRefreshEvent(false);
                         Log.e(TAG, "onError: ", e);
                     }
                 });

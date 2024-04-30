@@ -11,14 +11,13 @@ import androidx.databinding.ObservableArrayList;
 
 import com.ebook.basebook.mvp.presenter.impl.BookDetailPresenterImpl;
 import com.ebook.basebook.mvp.view.impl.BookDetailActivity;
-
-import com.ebook.common.util.ObservableListUtil;
 import com.ebook.db.entity.LibraryKindBookList;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.find.R;
 import com.ebook.find.databinding.ViewLibraryKindbookBinding;
 import com.ebook.find.mvp.view.impl.ChoiceBookActivity;
 import com.xrn1997.common.adapter.BaseBindAdapter;
+import com.xrn1997.common.util.ObservableListUtil;
 
 
 public class LibraryBookListAdapter extends BaseBindAdapter<LibraryKindBookList, ViewLibraryKindbookBinding> {

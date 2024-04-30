@@ -7,14 +7,14 @@ import com.ebook.api.dto.RespDTO;
 import com.ebook.api.entity.Comment;
 import com.ebook.api.http.RxAdapter;
 import com.ebook.api.service.CommentService;
-import com.ebook.common.mvvm.model.BaseModel;
+import com.xrn1997.common.mvvm.model.BaseModel;
 
 import java.util.List;
 
 import io.reactivex.Observable;
 
 public class BookCommentsModel extends BaseModel {
-    private CommentService commentService;
+    private final CommentService commentService;
 
     public BookCommentsModel(Application application) {
         super(application);

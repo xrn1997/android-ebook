@@ -1,5 +1,6 @@
 package com.ebook.me;
 
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -19,7 +20,17 @@ import com.xrn1997.common.mvvm.view.BaseActivity;
 
 @Route(path = KeyCode.Me.SETTING_PATH, params = {"needLogin", "true"})
 public class SettingActivity extends BaseActivity<ActivitySettingBinding> {
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        RxBus.get().register(this);
+    }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        RxBus.get().unregister(this);
+    }
     @Override
     public void initView() {
         Button mExitButton = findViewById(R.id.btn_exit);
@@ -27,7 +38,7 @@ public class SettingActivity extends BaseActivity<ActivitySettingBinding> {
             SPUtils.getInstance().clear();
             RetrofitManager.getInstance().TOKEN = "";
             ToastUtil.showToast("退出登录成功");
-            RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME, new Object());//更新UI
+            RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, new Object());//更新UI
             finish();
         });
     }

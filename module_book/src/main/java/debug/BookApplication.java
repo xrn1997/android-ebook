@@ -4,8 +4,8 @@ import android.content.Intent;
 
 import com.ebook.api.RetrofitManager;
 import com.ebook.book.service.DownloadService;
-import com.ebook.common.BaseApplication;
 import com.ebook.db.GreenDaoManager;
+import com.xrn1997.common.BaseApplication;
 
 
 public class BookApplication extends BaseApplication {

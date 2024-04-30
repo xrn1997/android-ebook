@@ -83,7 +83,7 @@ public class ModifyPwdViewModel extends BaseViewModel<ModifyPwdModel> {
                 if (loginDTORespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     ToastUtil.showToast("修改成功");
                     SPUtils.getInstance().clear();
-                    RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME);
+                    RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME);
                     Bundle bundle = new Bundle();
                     bundle.putString("username", username.get());
                     bundle.putString("password", password_1.get());

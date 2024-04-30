@@ -8,7 +8,6 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.ebook.common.util.ObservableListUtil;
 import com.ebook.find.BR;
 import com.ebook.find.R;
 import com.ebook.find.adapter.BookTypeShowAdapter;
@@ -20,6 +19,7 @@ import com.ebook.find.mvvm.factory.FindViewModelFactory;
 import com.ebook.find.mvvm.viewmodel.LibraryViewModel;
 import com.scwang.smart.refresh.layout.api.RefreshLayout;
 import com.xrn1997.common.mvvm.view.BaseMvvmRefreshFragment;
+import com.xrn1997.common.util.ObservableListUtil;
 
 
 public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBinding, LibraryViewModel> {

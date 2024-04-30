@@ -7,7 +7,6 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.ebook.common.event.KeyCode;
-import com.ebook.common.util.ObservableListUtil;
 import com.ebook.common.view.DeleteDialog;
 import com.ebook.me.adapter.CommentListAdapter;
 import com.ebook.me.databinding.ActivityCommentBinding;
@@ -17,6 +16,7 @@ import com.scwang.smart.refresh.layout.api.RefreshLayout;
 import com.therouter.TheRouter;
 import com.therouter.router.Route;
 import com.xrn1997.common.mvvm.view.BaseMvvmRefreshActivity;
+import com.xrn1997.common.util.ObservableListUtil;
 
 @Route(path = KeyCode.Me.COMMENT_PATH, params = {"needLogin", "true"})
 public class MyCommentActivity extends BaseMvvmRefreshActivity<ActivityCommentBinding, CommentViewModel> {

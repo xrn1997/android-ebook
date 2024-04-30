@@ -1,6 +1,7 @@
 package com.ebook.basebook.view.popupwindow;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,8 +35,9 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 
 public class DownloadListPop extends PopupWindow {
-    private Context mContext;
-    private View view;
+    public static final String TAG = "DownloadListPop";
+    private final Context mContext;
+    private final View view;
 
     private TextView tvNone;
     private LinearLayout llDownload;
@@ -88,23 +90,20 @@ public class DownloadListPop extends PopupWindow {
     private void initWait() {
         Observable.create((ObservableOnSubscribe<DownloadChapter>) e -> {
                     List<BookShelf> bookShelfList = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().orderDesc(BookShelfDao.Properties.FinalDate).list();
-                    if (bookShelfList != null && bookShelfList.size() > 0) {
+                    if (bookShelfList != null && !bookShelfList.isEmpty()) {
                         for (BookShelf bookItem : bookShelfList) {
                             if (!bookItem.getTag().equals(BookShelf.LOCAL_TAG)) {
                                 List<DownloadChapter> downloadChapterList = GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().queryBuilder().where(DownloadChapterDao.Properties.NoteUrl.eq(bookItem.getNoteUrl())).orderAsc(DownloadChapterDao.Properties.DurChapterIndex).limit(1).list();
-                                if (downloadChapterList != null && downloadChapterList.size() > 0) {
+                                if (downloadChapterList != null && !downloadChapterList.isEmpty()) {
                                     e.onNext(downloadChapterList.get(0));
                                     e.onComplete();
                                     return;
                                 }
                             }
                         }
-                        GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().deleteAll();
-                        e.onNext(new DownloadChapter());
-                    } else {
-                        GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().deleteAll();
-                        e.onNext(new DownloadChapter());
                     }
+                    GreenDaoManager.getInstance().getmDaoSession().getDownloadChapterDao().deleteAll();
+                    e.onNext(new DownloadChapter());
                     e.onComplete();
                 })
                 .subscribeOn(Schedulers.io())
@@ -112,7 +111,7 @@ public class DownloadListPop extends PopupWindow {
                 .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(DownloadChapter value) {
-                        if (value.getNoteUrl() != null && value.getNoteUrl().length() > 0) {
+                        if (value.getNoteUrl() != null && !value.getNoteUrl().isEmpty()) {
                             llDownload.setVisibility(View.GONE);
                             tvNone.setVisibility(View.GONE);
                             tvDownload.setText("开始下载");
@@ -123,7 +122,7 @@ public class DownloadListPop extends PopupWindow {
 
                     @Override
                     public void onError(Throwable e) {
-                        e.printStackTrace();
+                        Log.e(TAG, "onError: ", e);
                         tvNone.setVisibility(View.VISIBLE);
                     }
                 });

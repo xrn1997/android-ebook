@@ -57,7 +57,7 @@ public class ImportBookModelImpl extends MBaseModelImpl implements ImportBookMod
             BookShelf bookShelf;
             List<BookShelf> temp = GreenDaoManager.getInstance().getmDaoSession().getBookShelfDao().queryBuilder().where(BookShelfDao.Properties.NoteUrl.eq(md5)).build().list();
             boolean isNew = true;
-            if (temp != null && temp.size() > 0) {
+            if (temp != null && !temp.isEmpty()) {
                 isNew = false;
                 bookShelf = temp.get(0);
                 bookShelf.setBookInfo(GreenDaoManager.getInstance().getmDaoSession().getBookInfoDao().queryBuilder().where(BookInfoDao.Properties.NoteUrl.eq(bookShelf.getNoteUrl())).build().list().get(0));
@@ -88,7 +88,7 @@ public class ImportBookModelImpl extends MBaseModelImpl implements ImportBookMod
 
     @SuppressWarnings("unused")
     private Boolean isAdded(BookShelf temp, List<BookShelf> shelf) {
-        if (shelf == null || shelf.size() == 0) {
+        if (shelf == null || shelf.isEmpty()) {
             return false;
         } else {
             int a = 0;
@@ -117,7 +117,7 @@ public class ImportBookModelImpl extends MBaseModelImpl implements ImportBookMod
         }
         detector.dataEnd();
         encoding = detector.getDetectedCharset();
-        if (encoding == null || encoding.length() == 0)
+        if (encoding == null || encoding.isEmpty())
             encoding = "utf-8";
         fis.close();
 
@@ -133,11 +133,11 @@ public class ImportBookModelImpl extends MBaseModelImpl implements ImportBookMod
             Matcher m = p.matcher(line);
             if (m.find()) {
                 String temp = line.trim().substring(0, line.trim().indexOf("第"));
-                if (temp.trim().length() > 0) {
+                if (!temp.trim().isEmpty()) {
                     contentBuilder.append(temp);
                 }
-                if (contentBuilder.toString().length() > 0) {
-                    if (contentBuilder.toString().replaceAll(" ", "").replaceAll("\\s*", "").trim().length() > 0) {
+                if (!contentBuilder.toString().isEmpty()) {
+                    if (!contentBuilder.toString().replaceAll(" ", "").replaceAll("\\s*", "").trim().isEmpty()) {
                         saveDurChapterContent(md5, chapterPageIndex, title, contentBuilder.toString());
                         chapterPageIndex++;
                     }
@@ -146,7 +146,7 @@ public class ImportBookModelImpl extends MBaseModelImpl implements ImportBookMod
                 title = line.trim().substring(line.trim().indexOf("第"));
             } else {
                 String temp = line.trim().replaceAll(" ", "").replaceAll(" ", "").replaceAll("\\s*", "");
-                if (temp.length() == 0) {
+                if (temp.isEmpty()) {
                     if (contentBuilder.length() > 0) {
                         contentBuilder.append("\r\n\u3000\u3000");
                     } else {

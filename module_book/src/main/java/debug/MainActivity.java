@@ -1,25 +1,28 @@
 package debug;
 
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.ebook.book.R;
+import com.ebook.book.databinding.ActivityMainBinding;
 import com.ebook.book.fragment.MainBookFragment;
-import com.ebook.common.mvvm.BaseActivity;
 import com.ebook.common.util.ToastUtil;
+import com.xrn1997.common.mvvm.view.BaseActivity;
 
-public class MainActivity extends BaseActivity {
+public class MainActivity extends BaseActivity<ActivityMainBinding> {
 
 
     private long exitTime = 0;
 
-    @Override
-    public int onBindLayout() {
-        return R.layout.activity_main;
-    }
 
     @Override
     public void initView() {
-        getSupportFragmentManager().beginTransaction().replace(R.id.frame_content, MainBookFragment.newInstance()).commit();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.frame_content, MainBookFragment.newInstance()).commit();
     }
 
     @Override
@@ -52,4 +55,9 @@ public class MainActivity extends BaseActivity {
     }
 
 
+    @NonNull
+    @Override
+    public ActivityMainBinding onBindViewBinding(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, boolean attachToParent) {
+        return ActivityMainBinding.inflate(inflater, container, attachToParent);
+    }
 }

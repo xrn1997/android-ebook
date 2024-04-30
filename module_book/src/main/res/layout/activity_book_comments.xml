@@ -22,28 +22,34 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <com.refresh.lib.DaisyRefreshLayout
+            <com.scwang.smart.refresh.layout.SmartRefreshLayout
                 android:id="@+id/refview_book_comments_list"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="12"
-                app:enableLoadMore="@{viewModel.enableLoadMore}"
-                app:enableRefresh="@{viewModel.enableRefresh}"
-                app:onAutoRefreshCommand="@{viewModel.onAutoRefreshCommand}"
                 app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
-                app:onRefreshCommand="@{viewModel.onRefreshCommand}">
+                app:onRefreshCommand="@{viewModel.onRefreshCommand}"
+                app:srlEnableLoadMore="@{viewModel.enableLoadMore}"
+                app:srlEnableRefresh="@{viewModel.enableRefresh}">
+
+                <com.scwang.smart.refresh.header.ClassicsHeader
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/view_book_comments"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:linearLayoutManager="@{viewModel.orientation}" />
-            </com.refresh.lib.DaisyRefreshLayout>
+            </com.scwang.smart.refresh.layout.SmartRefreshLayout>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_gravity="bottom"
                 android:layout_weight="1" />
         </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="50dp"

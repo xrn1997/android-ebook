@@ -1,5 +1,6 @@
 package com.ebook.me.fragment;
 
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,6 +21,7 @@ import com.ebook.common.view.SettingBarView;
 import com.ebook.common.view.profilePhoto.CircleImageView;
 import com.ebook.me.R;
 import com.ebook.me.databinding.FragmentMeMainBinding;
+import com.hwangjr.rxbus.RxBus;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
 import com.hwangjr.rxbus.thread.EventThread;
@@ -38,6 +40,18 @@ public class MainMeFragment extends BaseFragment<FragmentMeMainBinding> {
     }
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        RxBus.get().register(this);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        RxBus.get().unregister(this);
+    }
+
+    @Override
     public void initData() {
         updateView(new Object());
     }
@@ -50,7 +64,7 @@ public class MainMeFragment extends BaseFragment<FragmentMeMainBinding> {
 
     @Subscribe(thread = EventThread.MAIN_THREAD,
             tags = {
-                    @Tag(RxBusTag.MODIFY_PROFIE_PICTURE)
+                    @Tag(RxBusTag.MODIFY_PROFILE_PICTURE)
             }
     )
     public void setProfilePicture(String path) {
@@ -65,7 +79,7 @@ public class MainMeFragment extends BaseFragment<FragmentMeMainBinding> {
 
     @Subscribe(thread = EventThread.MAIN_THREAD,
             tags = {
-                    @Tag(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME)
+                    @Tag(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME)
             }
     )
     public void updateView(Object o) {

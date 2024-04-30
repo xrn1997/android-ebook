@@ -66,23 +66,26 @@
                     android:src="@drawable/selector_icon_donwload_main" />
             </LinearLayout>
 
-            <com.refresh.lib.DaisyRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            <com.scwang.smart.refresh.layout.SmartRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
                 xmlns:app="http://schemas.android.com/apk/res-auto"
                 android:id="@+id/refview_book_list"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                app:enableLoadMore="@{viewModel.enableLoadMore}"
-                app:enableRefresh="@{viewModel.enableRefresh}"
-                app:onAutoRefreshCommand="@{viewModel.onAutoRefreshCommand}"
                 app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
-                app:onRefreshCommand="@{viewModel.onRefreshCommand}">
+                app:onRefreshCommand="@{viewModel.onRefreshCommand}"
+                app:srlEnableLoadMore="@{viewModel.enableLoadMore}"
+                app:srlEnableRefresh="@{viewModel.enableRefresh}">
+
+                <com.scwang.smart.refresh.header.ClassicsHeader
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/recview"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     app:linearLayoutManager="@{viewModel.orientation}" />
-            </com.refresh.lib.DaisyRefreshLayout>
+            </com.scwang.smart.refresh.layout.SmartRefreshLayout>
         </LinearLayout>
     </LinearLayout>
 </layout>

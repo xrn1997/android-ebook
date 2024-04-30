@@ -33,8 +33,8 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 
 public class ChoiceBookPresenterImpl extends BasePresenterImpl<IChoiceBookView> implements IChoiceBookPresenter {
-    private String url = "";
-    private String title;
+    private final String url;
+    private final String title;
 
     private int page = 1;
     private long startThisSearchTime;

@@ -10,6 +10,7 @@ import com.ebook.common.event.KeyCode
 import com.ebook.login.databinding.ActivityLoginBinding
 import com.ebook.login.mvvm.factory.LoginViewModelFactory
 import com.ebook.login.mvvm.viewmodel.LoginViewModel
+import com.hwangjr.rxbus.RxBus
 import com.therouter.router.Autowired
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.view.BaseMvvmActivity
@@ -20,6 +21,16 @@ class LoginActivity : BaseMvvmActivity<ActivityLoginBinding, LoginViewModel>() {
     @JvmField
     var path: String? = null
     private var mBundle: Bundle? = null //储存被拦截的信息
+
+    public override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        RxBus.get().register(this)
+    }
+
+    public override fun onDestroy() {
+        super.onDestroy()
+        RxBus.get().unregister(this)
+    }
     override fun onBindLayout(): Int {
         return R.layout.activity_login
     }

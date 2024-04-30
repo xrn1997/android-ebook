@@ -29,10 +29,6 @@ import com.ebook.basebook.mvp.presenter.impl.ImportBookPresenterImpl;
 import com.ebook.basebook.mvp.view.IImportBookView;
 import com.ebook.basebook.mvp.view.adapter.ImportBookAdapter;
 import com.ebook.basebook.view.modialog.MoProgressHUD;
-import com.ebook.common.event.RxBusTag;
-import com.hwangjr.rxbus.annotation.Subscribe;
-import com.hwangjr.rxbus.annotation.Tag;
-import com.hwangjr.rxbus.thread.EventThread;
 import com.permissionx.guolindev.PermissionX;
 import com.victor.loading.rotate.RotateLoading;
 
@@ -45,7 +41,6 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
     private LinearLayout llContent;
     private ImageButton ivReturn;
     private TextView tvScan;
-    private TextView tvPath;
     private FrameLayout flScan;
     private RotateLoading rlLoading;
     private TextView tvCount;
@@ -71,7 +66,7 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
         ActivityResultLauncher<Intent> requestPermission = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
                     !Environment.isExternalStorageManager()) {
-                onBackPressed();
+                getOnBackPressedDispatcher().onBackPressed();
             }
         });
         PermissionX
@@ -81,18 +76,14 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
                 .onForwardToSettings((scope, deniedList) -> scope.showForwardToSettingsDialog(deniedList, "您需要去应用程序设置当中手动开启权限", "我已明白", "取消"))
                 .request((allGranted, grantedList, deniedList) -> {
                     if (!allGranted) {
-                        onBackPressed();
+                        getOnBackPressedDispatcher().onBackPressed();
                     } else {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
                                 !Environment.isExternalStorageManager()) {
                             AlertDialog.Builder builder = new AlertDialog.Builder(this)
                                     .setMessage("在Android11及以上的版本中，本程序还需要您同意允许访问所有文件权限，不然无法打开和扫描本地文件")
-                                    .setPositiveButton("确定", (dialog, which) -> {
-                                        requestPermission.launch(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
-                                    })
-                                    .setNegativeButton("取消", ((dialog, which) -> {
-                                        onBackPressed();
-                                    }));
+                                    .setPositiveButton("确定", (dialog, which) -> requestPermission.launch(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)))
+                                    .setNegativeButton("取消", ((dialog, which) -> getOnBackPressedDispatcher().onBackPressed()));
                             AlertDialog dialog = builder.create();
                             //点击dialog之外的空白处，dialog不能消失
                             dialog.setCanceledOnTouchOutside(false);
@@ -128,7 +119,6 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
         llContent = findViewById(R.id.ll_content);
         ivReturn = findViewById(R.id.iv_return);
         tvScan = findViewById(R.id.tv_scan);
-        tvPath = findViewById(R.id.tv_path);
         rlLoading = findViewById(R.id.rl_loading);
         tvCount = findViewById(R.id.tv_count);
         flScan = findViewById(R.id.fl_scan);
@@ -172,7 +162,7 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
         });
         ivReturn.setOnClickListener(v -> {
             mPresenter.ScanCancel();
-            onBackPressed();
+            getOnBackPressedDispatcher().onBackPressed();
         });
 
         tvAddShelf.setOnClickListener(v -> {
@@ -207,7 +197,7 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
     public void searchFinish() {
         rlLoading.stop();
         rlLoading.setVisibility(View.INVISIBLE);
-        if (importBookAdapter.getFileList().size() == 0) {
+        if (importBookAdapter.getFileList().isEmpty()) {
             tvScan.setVisibility(View.VISIBLE);
             ToastUtils.showShort("未发现本地书籍");
         } else {
@@ -226,19 +216,6 @@ public class ImportBookActivity extends BaseActivity<IImportBookPresenter> imple
     @Override
     public void addError() {
         moProgressHUD.showInfo("放入书架失败!");
-    }
-
-    @Subscribe(thread = EventThread.MAIN_THREAD,
-            tags = {
-                    @Tag(RxBusTag.SHOW_SCAN_PATH)
-            }
-    )
-    /**
-     * 扫描时实时显示路径，给用户扫描反馈。
-     */
-    @SuppressWarnings("unused")
-    public void showScanPath(String absolutePath) {
-        tvPath.setText(absolutePath);
     }
 
     @Override

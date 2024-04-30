@@ -70,9 +70,9 @@ public class LoginViewModel extends BaseViewModel<LoginModel> {
                     User user = loginDTORespDTO.data.getUser();
                     user.setPassword(password);//返回的是加密过的密码，不能使用，需要记住本地输入的密码。
                     loginOnNext(user);//非自动登录
-                    RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME, new Object());//通知其更新UI
+                    RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, new Object());//通知其更新UI
                 } else if (loginDTORespDTO.code == ExceptionHandler.SYSTEM_ERROR.UNAUTHORIZED) {
-                    RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME, new Object());
+                    RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, new Object());
                     SPUtils.getInstance().clear();
                     //   Log.d(TAG, "登录失效 is login 状态：" + SPUtils.getInstance().getString(KeyCode.Login.SP_IS_LOGIN));
                     Log.v(TAG, "error:" + loginDTORespDTO.error);

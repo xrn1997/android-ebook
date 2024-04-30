@@ -1,11 +1,9 @@
 package com.ebook.book.mvvm.viewmodel;
 
 import android.app.Application;
-import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.databinding.ObservableField;
 
 import com.blankj.utilcode.util.SPUtils;
@@ -16,10 +14,10 @@ import com.ebook.api.entity.User;
 import com.ebook.api.http.ExceptionHandler;
 import com.ebook.book.mvvm.model.BookCommentsModel;
 import com.ebook.common.event.KeyCode;
-import com.ebook.common.event.SingleLiveEvent;
-import com.ebook.common.mvvm.viewmodel.BaseRefreshViewModel;
 import com.ebook.common.util.DateUtil;
 import com.ebook.common.util.ToastUtil;
+import com.xrn1997.common.event.SingleLiveEvent;
+import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel;
 
 import java.util.List;
 
@@ -28,7 +26,7 @@ import io.reactivex.disposables.Disposable;
 
 
 public class BookCommentsViewModel extends BaseRefreshViewModel<Comment, BookCommentsModel> {
-    private static String TAG = BookCommentsViewModel.class.getSimpleName();
+    private static final String TAG = BookCommentsViewModel.class.getSimpleName();
     public ObservableField<String> comments = new ObservableField<>();
     public Comment comment = new Comment();
     private SingleLiveEvent<Void> mVoidSingleLiveEvent;
@@ -39,31 +37,32 @@ public class BookCommentsViewModel extends BaseRefreshViewModel<Comment, BookCom
 
     @Override
     public void refreshData() {
-        mModel.getChapterComments(comment.getChapterUrl()).subscribe(new Observer<RespDTO<List<Comment>>>() {
+        mModel.getChapterComments(comment.getChapterUrl()).subscribe(new Observer<>() {
             @Override
             public void onSubscribe(Disposable d) {
 
             }
 
-            @RequiresApi(api = Build.VERSION_CODES.N)
             @Override
             public void onNext(RespDTO<List<Comment>> listRespDTO) {
                 if (listRespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     List<Comment> comments = listRespDTO.data;
                     comments.sort((x, y) -> DateUtil.parseTime(y.getAddtime(), DateUtil.FormatType.yyyyMMddHHmm).compareTo(DateUtil.parseTime(x.getAddtime(), DateUtil.FormatType.yyyyMMddHHmm)));
                     mList.clear();
-                    if (comments.size() > 0) {
+                    if (!comments.isEmpty()) {
                         mList.addAll(comments);
                     }
+                    postStopRefreshEvent(true);
                 } else {
                     Log.e(TAG, "error: " + listRespDTO.error);
+                    postStopRefreshEvent(false);
                 }
-                postStopRefreshEvent();
+
             }
 
             @Override
             public void onError(Throwable e) {
-
+                postStopRefreshEvent(false);
             }
 
             @Override
@@ -92,7 +91,7 @@ public class BookCommentsViewModel extends BaseRefreshViewModel<Comment, BookCom
             user.setId(SPUtils.getInstance().getLong(KeyCode.Login.SP_USER_ID));
             comment.setUser(user);
             comment.setComment(comments.get());
-            mModel.addComment(comment).subscribe(new Observer<RespDTO<Comment>>() {
+            mModel.addComment(comment).subscribe(new Observer<>() {
                 @Override
                 public void onSubscribe(Disposable d) {
 
@@ -125,7 +124,7 @@ public class BookCommentsViewModel extends BaseRefreshViewModel<Comment, BookCom
     }
 
     public void deleteComment(Long id) {
-        mModel.deleteComment(id).subscribe(new Observer<RespDTO<Integer>>() {
+        mModel.deleteComment(id).subscribe(new Observer<>() {
             @Override
             public void onSubscribe(Disposable d) {
 

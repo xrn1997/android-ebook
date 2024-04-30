@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -29,11 +28,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:requestLegacyExternalStorage="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/Theme.Common">
         <service android:name="com.ebook.book.service.DownloadService" />
         <activity
             android:name=".BookCommentsActivity"
             android:label="本章评论"
-            android:theme="@style/AppTheme.BackBar" />
+            android:theme="@style/ToolbarTheme.BackBar" />
     </application>
 </manifest>

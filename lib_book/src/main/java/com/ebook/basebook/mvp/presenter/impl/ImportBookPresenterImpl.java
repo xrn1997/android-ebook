@@ -1,6 +1,7 @@
 package com.ebook.basebook.mvp.presenter.impl;
 
 import android.os.Environment;
+import android.util.Log;
 
 import com.ebook.basebook.base.impl.BasePresenterImpl;
 import com.ebook.basebook.mvp.model.impl.ImportBookModelImpl;
@@ -26,6 +27,7 @@ import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
 public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> implements IImportBookPresenter {
+    public static final String TAG = "ImportBookPresenterImpl";
     //停止扫描
     boolean isCancel = false;
 
@@ -57,7 +59,7 @@ public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> 
 
                     @Override
                     public void onError(@NotNull Throwable e) {
-                        e.printStackTrace();
+                        Log.e(TAG, "onError: ", e);
                     }
                 });
     }
@@ -71,10 +73,6 @@ public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> 
             File[] childFiles = parentFile.listFiles();
             if (childFiles != null) {
                 for (File childFile : childFiles) {
-                    if (!isCancel)
-                        RxBus.get().post(RxBusTag.SHOW_SCAN_PATH, childFile.getAbsolutePath());
-                    else
-                        RxBus.get().post(RxBusTag.SHOW_SCAN_PATH, "");
                     if (childFile.isFile() && childFile.getName().substring(childFile.getName().lastIndexOf(".") + 1).equalsIgnoreCase("txt")
                             && childFile.length() > 100 * 1024) {   //100kb
                         e.onNext(childFile);
@@ -103,6 +101,7 @@ public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> 
                 .subscribe(new SimpleObserver<>() {
                     @Override
                     public void onNext(@NotNull LocBookShelf value) {
+                        Log.e(TAG, "onNext: " + value.getNew());
                         if (value.getNew()) {
                             RxBus.get().post(RxBusTag.HAD_ADD_BOOK, value.getBookShelf());
                         }
@@ -110,7 +109,7 @@ public class ImportBookPresenterImpl extends BasePresenterImpl<IImportBookView> 
 
                     @Override
                     public void onError(Throwable e) {
-                        e.printStackTrace();
+                        Log.e(TAG, "onError: ", e);
                         mView.addError();
                     }
 

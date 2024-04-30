@@ -44,7 +44,7 @@ public class ModifyViewModel extends BaseViewModel<ModifyModel> {
                 if (integerRespDTO.code == ExceptionHandler.APP_ERROR.SUCC) {
                     ToastUtil.showToast("修改成功");
                     SPUtils.getInstance().put(KeyCode.Login.SP_NICKNAME, nickname.get());
-                    RxBus.get().post(RxBusTag.SET_PROFIE_PICTURE_AND_NICKNAME, new Object());
+                    RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, new Object());
                     postFinishActivityEvent();
                 } else {
                     Log.e(TAG, "error: " + integerRespDTO.error);
@@ -83,7 +83,7 @@ public class ModifyViewModel extends BaseViewModel<ModifyModel> {
                     String url = stringRespDTO.data;
                     SPUtils.getInstance().put(KeyCode.Login.SP_IMAGE, url);
                     Log.e(TAG, "url: " + url);
-                    RxBus.get().post(RxBusTag.MODIFY_PROFIE_PICTURE, url);
+                    RxBus.get().post(RxBusTag.MODIFY_PROFILE_PICTURE, url);
                 } else {
                     Log.e(TAG, "error: " + stringRespDTO.error);
                 }

@@ -5,8 +5,8 @@ import android.app.Application;
 import androidx.annotation.NonNull;
 
 import com.ebook.book.mvvm.model.BookListModel;
-import com.ebook.common.mvvm.viewmodel.BaseRefreshViewModel;
 import com.ebook.db.entity.BookShelf;
+import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel;
 
 import java.util.List;
 
@@ -22,7 +22,7 @@ public class BookListViewModel extends BaseRefreshViewModel<BookShelf, BookListM
 
     @Override
     public void refreshData() {
-        mModel.getBookShelfList().subscribe(new Observer<List<BookShelf>>() {
+        mModel.getBookShelfList().subscribe(new Observer<>() {
             @Override
             public void onSubscribe(Disposable d) {
 
@@ -31,14 +31,15 @@ public class BookListViewModel extends BaseRefreshViewModel<BookShelf, BookListM
             @Override
             public void onNext(List<BookShelf> value) {
                 mList.clear();
-                if (value != null && value.size() > 0) {
+                if (value != null && !value.isEmpty()) {
                     mList.addAll(value);
                 }
-                postStopRefreshEvent();
+                postStopRefreshEvent(true);
             }
 
             @Override
             public void onError(Throwable e) {
+                postStopRefreshEvent(false);
             }
 
             @Override

@@ -2,11 +2,16 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+    <!-- Devices running Android 12L (API level 32) or lower  -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 
     <application
         android:allowBackup="true"
@@ -16,7 +21,7 @@
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.BookDetailActivity"
 
-            android:theme="@style/CAppTransparentTheme" />
+            android:theme="@style/Theme.Common" />
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.ReadBookActivity"
             android:exported="true"
@@ -40,6 +45,6 @@
         <activity
             android:name="com.ebook.basebook.mvp.view.impl.ImportBookActivity"
 
-            android:theme="@style/CAppTransparentTheme" />
+            android:theme="@style/Theme.Common" />
     </application>
 </manifest>

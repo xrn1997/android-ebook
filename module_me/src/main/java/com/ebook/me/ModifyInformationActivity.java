@@ -3,8 +3,10 @@ package com.ebook.me;
 import static com.ebook.common.util.FileUtil.getRealFilePathFromUri;
 
 import android.content.Intent;
+import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.databinding.ViewDataBinding;
 import androidx.lifecycle.ViewModelProvider;
@@ -20,6 +22,7 @@ import com.ebook.common.view.profilePhoto.CircleImageView;
 import com.ebook.common.view.profilePhoto.PhotoCutDialog;
 import com.ebook.me.mvvm.factory.MeViewModelFactory;
 import com.ebook.me.mvvm.viewmodel.ModifyViewModel;
+import com.hwangjr.rxbus.RxBus;
 import com.hwangjr.rxbus.annotation.Subscribe;
 import com.hwangjr.rxbus.annotation.Tag;
 import com.hwangjr.rxbus.thread.EventThread;
@@ -31,6 +34,17 @@ import com.xrn1997.common.mvvm.view.BaseMvvmActivity;
 public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding, ModifyViewModel> {
     private CircleImageView imageView;
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        RxBus.get().register(this);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        RxBus.get().unregister(this);
+    }
     @Override
     public int onBindLayout() {
         return R.layout.activity_modify_information;
@@ -97,7 +111,7 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
 
     @Subscribe(thread = EventThread.MAIN_THREAD,
             tags = {
-                    @Tag(RxBusTag.MODIFY_PROFIE_PICTURE)
+                    @Tag(RxBusTag.MODIFY_PROFILE_PICTURE)
             }
     )
     public void setProfilePicture(String path) {

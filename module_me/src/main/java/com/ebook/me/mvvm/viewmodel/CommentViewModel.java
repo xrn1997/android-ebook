@@ -50,7 +50,7 @@ public class CommentViewModel extends BaseRefreshViewModel<Comment, CommentModel
 
             @Override
             public void onError(Throwable e) {
-
+                postStopRefreshEvent(false);
             }
 
             @Override

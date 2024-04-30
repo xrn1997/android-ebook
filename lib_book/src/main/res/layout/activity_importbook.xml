@@ -68,12 +68,6 @@
             android:background="@drawable/bg_shadow"
             android:layout_gravity="top" />
 
-        <TextView
-            android:id="@+id/tv_path"
-            android:layout_width="match_parent"
-            android:layout_height="20dp"
-            android:background="@drawable/bg_shadow2"
-            android:layout_gravity="bottom" />
     </FrameLayout>
 
     <FrameLayout

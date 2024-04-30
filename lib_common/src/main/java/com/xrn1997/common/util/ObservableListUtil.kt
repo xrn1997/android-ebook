@@ -22,6 +22,7 @@ object ObservableListUtil {
      * @param adapter Adapter<*>
      * @return OnListChangedCallback<T>
      */
+    @JvmStatic
     fun <T : ObservableList<Any>> getListChangedCallback(adapter: RecyclerView.Adapter<*>): OnListChangedCallback<T> {
         return object : OnListChangedCallback<T>() {
             @SuppressLint("NotifyDataSetChanged")

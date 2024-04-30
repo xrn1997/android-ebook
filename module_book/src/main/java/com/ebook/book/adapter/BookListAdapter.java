@@ -11,8 +11,8 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.ebook.book.R;
 import com.ebook.book.databinding.AdapterBookListItemBinding;
-import com.ebook.common.adapter.BaseBindAdapter;
 import com.ebook.db.entity.BookShelf;
+import com.xrn1997.common.adapter.BaseBindAdapter;
 
 public class BookListAdapter extends BaseBindAdapter<BookShelf, AdapterBookListItemBinding> {
 
