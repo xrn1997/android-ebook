@@ -78,13 +78,13 @@ public class DownloadListPop extends PopupWindow {
     }
 
     private void bindView() {
-        tvNone = (TextView) view.findViewById(R.id.tv_none);
-        llDownload = (LinearLayout) view.findViewById(R.id.ll_download);
-        ivCover = (ImageView) view.findViewById(R.id.iv_cover);
-        tvName = (TextView) view.findViewById(R.id.tv_name);
-        tvChapterName = (TextView) view.findViewById(R.id.tv_chapter_name);
-        tvCancel = (TextView) view.findViewById(R.id.tv_cancel);
-        tvDownload = (TextView) view.findViewById(R.id.tv_download);
+        tvNone = view.findViewById(R.id.tv_none);
+        llDownload = view.findViewById(R.id.ll_download);
+        ivCover = view.findViewById(R.id.iv_cover);
+        tvName = view.findViewById(R.id.tv_name);
+        tvChapterName = view.findViewById(R.id.tv_chapter_name);
+        tvCancel = view.findViewById(R.id.tv_cancel);
+        tvDownload = view.findViewById(R.id.tv_download);
     }
 
     private void initWait() {

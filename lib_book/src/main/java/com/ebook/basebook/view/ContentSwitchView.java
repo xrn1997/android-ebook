@@ -3,10 +3,8 @@ package com.ebook.basebook.view;
 import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Paint;
-import android.os.Build;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -14,6 +12,8 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 
 import com.ebook.common.util.DisplayUtil;
 import com.ebook.common.util.ScreenUtils;
@@ -70,7 +70,6 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         init();
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public ContentSwitchView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         init();
@@ -143,9 +142,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
                             viewContents.get(0).layout(tempX, viewContents.get(0).getTop(), tempX + getWidth(), viewContents.get(0).getBottom());
                         } else if (durX < 0 && (state == PREANDNEXT || state == ONLYNEXT)) {
                             int tempX = durX;
-                            if (tempX > 0)
-                                tempX = 0;
-                            else if (tempX < -getWidth())
+                            if (tempX < -getWidth())
                                 tempX = -getWidth();
                             int tempIndex = (state == PREANDNEXT ? 1 : 0);
                             viewContents.get(tempIndex).layout(tempX, viewContents.get(tempIndex).getTop(), tempX + getWidth(), viewContents.get(tempIndex).getBottom());
@@ -185,14 +182,14 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
                         }
                     } else {
                         //点击事件
-                        if (readBookControl.getCanClickTurn() && event.getX() <= getWidth() / 3) {
+                        if (readBookControl.getCanClickTurn() && event.getX() <= (float) getWidth() / 3) {
                             //点击向前翻页
                             if (state == PREANDNEXT || state == ONLYPRE) {
                                 initMoveSuccessAnim(viewContents.get(0), 0);
                             } else {
                                 noPre();
                             }
-                        } else if (readBookControl.getCanClickTurn() && event.getX() >= getWidth() / 3 * 2) {
+                        } else if (readBookControl.getCanClickTurn() && event.getX() >= (float) getWidth() / 3 * 2) {
                             //点击向后翻页
                             if (state == PREANDNEXT || state == ONLYNEXT) {
                                 int tempIndex = (state == PREANDNEXT ? 1 : 0);
@@ -217,8 +214,8 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
 
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        if (viewContents.size() > 0) {
-            if (state == NONE && viewContents.size() >= 1) {
+        if (!viewContents.isEmpty()) {
+            if (state == NONE) {
                 viewContents.get(0).layout(0, top, getWidth(), bottom);
             } else if (state == PREANDNEXT && viewContents.size() >= 3) {
                 viewContents.get(0).layout(-getWidth(), top, 0, bottom);
@@ -240,23 +237,18 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         if (null != view) {
             long temp = Math.abs(view.getLeft() - orderX) / (getWidth() / animDuration);
             ValueAnimator tempAnim = ValueAnimator.ofInt(view.getLeft(), orderX).setDuration(temp);
-            tempAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                @Override
-                public void onAnimationUpdate(ValueAnimator animation) {
-                    if (null != view) {
-                        int value = (int) animation.getAnimatedValue();
-                        view.layout(value, view.getTop(), value + getWidth(), view.getBottom());
-                    }
-                }
+            tempAnim.addUpdateListener(animation -> {
+                int value = (int) animation.getAnimatedValue();
+                view.layout(value, view.getTop(), value + getWidth(), view.getBottom());
             });
             tempAnim.addListener(new Animator.AnimatorListener() {
                 @Override
-                public void onAnimationStart(Animator animation) {
+                public void onAnimationStart(@NonNull Animator animation) {
                     isMoving = true;
                 }
 
                 @Override
-                public void onAnimationEnd(Animator animation) {
+                public void onAnimationEnd(@NonNull Animator animation) {
                     isMoving = false;
                     if (orderX == 0) {
                         //翻向前一页
@@ -294,12 +286,12 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
                 }
 
                 @Override
-                public void onAnimationCancel(Animator animation) {
+                public void onAnimationCancel(@NonNull Animator animation) {
 
                 }
 
                 @Override
-                public void onAnimationRepeat(Animator animation) {
+                public void onAnimationRepeat(@NonNull Animator animation) {
 
                 }
             });
@@ -311,14 +303,9 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
         if (null != view) {
             long temp = Math.abs(view.getLeft() - orderX) / (getWidth() / animDuration);
             ValueAnimator tempAnim = ValueAnimator.ofInt(view.getLeft(), orderX).setDuration(temp);
-            tempAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                @Override
-                public void onAnimationUpdate(ValueAnimator animation) {
-                    if (null != view) {
-                        int value = (int) animation.getAnimatedValue();
-                        view.layout(value, view.getTop(), value + getWidth(), view.getBottom());
-                    }
-                }
+            tempAnim.addUpdateListener(animation -> {
+                int value = (int) animation.getAnimatedValue();
+                view.layout(value, view.getTop(), value + getWidth(), view.getBottom());
             });
             tempAnim.start();
         }
@@ -335,7 +322,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
 
     private void updateOtherPage(int durChapterIndex, int chapterAll, int durPageIndex, int pageAll) {
         if (chapterAll > 1 || pageAll > 1) {
-            if ((durChapterIndex == 0 && pageAll == -1) || (durChapterIndex == 0 && durPageIndex == 0 && pageAll != -1)) {
+            if (durChapterIndex == 0 && pageAll == -1 || durChapterIndex == 0 && durPageIndex == 0) {
                 //ONLYNEXT
                 addNextPage(durChapterIndex, chapterAll, durPageIndex, pageAll);
                 if (state == ONLYPRE || state == PREANDNEXT) {
@@ -400,14 +387,14 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             BookContentView pre = new BookContentView(getContext());
             pre.setReadBookControl(readBookControl);
             pre.setLoadDataListener(loadDataListener, this);
-            if (pageAll > 0 && durPageIndex >= 0 && durPageIndex > 0)
+            if (pageAll > 0 && durPageIndex > 0)
                 pre.loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex) : "", durChapterIndex, chapterAll, durPageIndex - 1);
             else
                 pre.loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex - 1) : "", durChapterIndex - 1, chapterAll, DBCode.BookContentView.DURPAGEINDEXEND);
             viewContents.add(0, pre);
             this.addView(pre);
         } else if (state == ONLYPRE || state == PREANDNEXT) {
-            if (pageAll > 0 && durPageIndex >= 0 && durPageIndex > 0)
+            if (pageAll > 0 && durPageIndex > 0)
                 viewContents.get(0).loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex) : "", durChapterIndex, chapterAll, durPageIndex - 1);
             else
                 viewContents.get(0).loadData(null != loadDataListener ? loadDataListener.getChapterTitle(durChapterIndex - 1) : "", durChapterIndex - 1, chapterAll, DBCode.BookContentView.DURPAGEINDEXEND);
@@ -515,7 +502,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
     }
 
     public interface LoadDataListener {
-        void loaddata(BookContentView bookContentView, long tag, int chapterIndex, int pageIndex);
+        void loadData(BookContentView bookContentView, long tag, int chapterIndex, int pageIndex);
 
         void updateProgress(int chapterIndex, int pageIndex);
 

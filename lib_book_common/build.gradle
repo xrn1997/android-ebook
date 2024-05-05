@@ -109,5 +109,5 @@ dependencies {
     api libs.juniversalchardet
     api libs.rxpermissions
 
-    debugApi(libs.leakcanary.android)
+//    debugApi(libs.leakcanary.android)
 }

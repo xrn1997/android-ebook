@@ -44,6 +44,7 @@ import com.ebook.db.entity.DownloadChapter;
 import com.ebook.db.entity.DownloadChapterList;
 import com.ebook.db.event.DBCode;
 import com.hwangjr.rxbus.RxBus;
+import com.permissionx.guolindev.PermissionX;
 import com.therouter.TheRouter;
 
 import java.util.ArrayList;
@@ -99,7 +100,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
         requestPermission = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
                     !Environment.isExternalStorageManager()) {
-                onBackPressed();
+                getOnBackPressedDispatcher().onBackPressed();
             } else {
                 mPresenter.openBookFromOther(this);
             }
@@ -186,6 +187,14 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
         csvBook.bookReadInit(() -> mPresenter.initData(ReadBookActivity.this));
     }
 
+    /**
+     * 所有需要的权限
+     */
+    public List<String> allNeedPermissions() {
+        List<String> permissions = new ArrayList<>();
+        permissions.add(PermissionX.permission.POST_NOTIFICATIONS);
+        return permissions;
+    }
     @Override
     public void initPop() {
         checkAddShelfPop = new CheckAddShelfPop(this, mPresenter.getBookShelf().getBookInfo().getName(), new CheckAddShelfPop.OnItemClickListener() {
@@ -219,39 +228,43 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
 
         readBookMenuMorePop = new ReadBookMenuMorePop(this);
         readBookMenuMorePop.setOnClickDownload(v -> {
-            readBookMenuMorePop.dismiss();
-            if (flMenu.getVisibility() == View.VISIBLE) {
-                llMenuTop.startAnimation(menuTopOut);
-                llMenuBottom.startAnimation(menuBottomOut);
-            }
-            //弹出离线下载界面
-            int endIndex = mPresenter.getBookShelf().getDurChapter() + 50;
-            if (endIndex >= mPresenter.getBookShelf().getBookInfo().getChapterlist().size()) {
-                endIndex = mPresenter.getBookShelf().getBookInfo().getChapterlist().size() - 1;
-            }
-            moProgressHUD.showDownloadList(mPresenter.getBookShelf().getDurChapter(), endIndex, mPresenter.getBookShelf().getBookInfo().getChapterlist().size(), new MoProgressHUD.OnClickDownload() {
-                @Override
-                public void download(final int start, final int end) {
-                    moProgressHUD.dismiss();
-                    mPresenter.addToShelf(() -> {
+            //检查通知权限
+            PermissionX
+                    .init(this)
+                    .permissions(allNeedPermissions())
+                    .request((allGranted, grantedList, deniedList) -> {
+                        if (allGranted) {
+                            readBookMenuMorePop.dismiss();
+                            if (flMenu.getVisibility() == View.VISIBLE) {
+                                llMenuTop.startAnimation(menuTopOut);
+                                llMenuBottom.startAnimation(menuBottomOut);
+                            }
+                            //弹出离线下载界面
+                            int endIndex = mPresenter.getBookShelf().getDurChapter() + 50;
+                            if (endIndex >= mPresenter.getBookShelf().getBookInfo().getChapterlist().size()) {
+                                endIndex = mPresenter.getBookShelf().getBookInfo().getChapterlist().size() - 1;
+                            }
+                            moProgressHUD.showDownloadList(mPresenter.getBookShelf().getDurChapter(), endIndex, mPresenter.getBookShelf().getBookInfo().getChapterlist().size(), (start, end) -> {
+                                moProgressHUD.dismiss();
+                                mPresenter.addToShelf(() -> {
 
-                        List<DownloadChapter> result = new ArrayList<>();
-                        for (int i = start; i <= end; i++) {
-                            DownloadChapter item = new DownloadChapter();
-                            item.setNoteUrl(mPresenter.getBookShelf().getNoteUrl());
-                            item.setDurChapterIndex(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterIndex());
-                            item.setDurChapterName(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterName());
-                            item.setDurChapterUrl(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterUrl());
-                            item.setTag(mPresenter.getBookShelf().getTag());
-                            item.setBookName(mPresenter.getBookShelf().getBookInfo().getName());
-                            item.setCoverUrl(mPresenter.getBookShelf().getBookInfo().getCoverUrl());
-                            result.add(item);
+                                    List<DownloadChapter> result = new ArrayList<>();
+                                    for (int i = start; i <= end; i++) {
+                                        DownloadChapter item = new DownloadChapter();
+                                        item.setNoteUrl(mPresenter.getBookShelf().getNoteUrl());
+                                        item.setDurChapterIndex(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterIndex());
+                                        item.setDurChapterName(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterName());
+                                        item.setDurChapterUrl(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(i).getDurChapterUrl());
+                                        item.setTag(mPresenter.getBookShelf().getTag());
+                                        item.setBookName(mPresenter.getBookShelf().getBookInfo().getName());
+                                        item.setCoverUrl(mPresenter.getBookShelf().getBookInfo().getCoverUrl());
+                                        result.add(item);
+                                    }
+                                    RxBus.get().post(RxBusTag.START_DOWNLOAD_SERVICE, new DownloadChapterList(result));
+                                });
+                            });
                         }
-                        RxBus.get().post(RxBusTag.START_DOWNLOAD_SERVICE, new DownloadChapterList(result));
                     });
-
-                }
-            });
         });
         readBookMenuMorePop.setOnClickComment(v -> {
             readBookMenuMorePop.dismiss();
@@ -315,20 +328,20 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
         });
         ivReturn.setOnClickListener(v -> {
             // finish();
-            onBackPressed();
+            getOnBackPressedDispatcher().onBackPressed();
         });
         ivMenuMore.setOnClickListener(v -> readBookMenuMorePop.showAsDropDown(ivMenuMore, 0, DisplayUtil.dip2px(-3.5f)));
         csvBook.setLoadDataListener(new ContentSwitchView.LoadDataListener() {
             @Override
-            public void loaddata(BookContentView bookContentView, long qtag, int chapterIndex, int pageIndex) {
-                mPresenter.loadContent(bookContentView, qtag, chapterIndex, pageIndex);
+            public void loadData(BookContentView bookContentView, long tag, int chapterIndex, int pageIndex) {
+                mPresenter.loadContent(bookContentView, tag, chapterIndex, pageIndex);
             }
 
             @Override
             public void updateProgress(int chapterIndex, int pageIndex) {
                 mPresenter.updateProgress(chapterIndex, pageIndex);
 
-                if (mPresenter.getBookShelf().getBookInfo().getChapterlist().size() > 0)
+                if (!mPresenter.getBookShelf().getBookInfo().getChapterlist().isEmpty())
                     atvTitle.setText(mPresenter.getBookShelf().getBookInfo().getChapterlist().get(mPresenter.getBookShelf().getDurChapter()).getDurChapterName());
                 else
                     atvTitle.setText("无章节");
@@ -355,18 +368,14 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
             }
         });
 
-        tvPre.setOnClickListener(v -> {
-            csvBook.setInitData(
-                    mPresenter.getBookShelf().getDurChapter() - 1,
-                    mPresenter.getBookShelf().getBookInfo().getChapterlist().size(),
-                    DBCode.BookContentView.DURPAGEINDEXBEGIN);
-        });
-        tvNext.setOnClickListener(v -> {
-            csvBook.setInitData(
-                    mPresenter.getBookShelf().getDurChapter() + 1,
-                    mPresenter.getBookShelf().getBookInfo().getChapterlist().size(),
-                    DBCode.BookContentView.DURPAGEINDEXBEGIN);
-        });
+        tvPre.setOnClickListener(v -> csvBook.setInitData(
+                mPresenter.getBookShelf().getDurChapter() - 1,
+                mPresenter.getBookShelf().getBookInfo().getChapterlist().size(),
+                DBCode.BookContentView.DURPAGEINDEXBEGIN));
+        tvNext.setOnClickListener(v -> csvBook.setInitData(
+                mPresenter.getBookShelf().getDurChapter() + 1,
+                mPresenter.getBookShelf().getBookInfo().getChapterlist().size(),
+                DBCode.BookContentView.DURPAGEINDEXBEGIN));
 
         llCatalog.setOnClickListener(v -> {
             llMenuTop.startAnimation(menuTopOut);
@@ -423,7 +432,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         Boolean mo = moProgressHUD.onKeyDown(keyCode, event);
         if (mo)
-            return mo;
+            return true;
         else {
             if (keyCode == KeyEvent.KEYCODE_BACK) {
                 if (flMenu.getVisibility() == View.VISIBLE) {
@@ -435,12 +444,10 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
                     return true;
                 } else {
                     Boolean temp2 = chapterListView.dimissChapterList();
-                    if (temp2)
-                        return true;
-                    else {
+                    if (!temp2) {
                         finish();
-                        return true;
                     }
+                    return true;
                 }
             } else {
                 boolean temp = csvBook.onKeyDown(keyCode, event);

@@ -88,7 +88,7 @@ public class BookContentView extends FrameLayout {
         qTag = System.currentTimeMillis();
         //执行请求操作
         if (loadDataListener != null) {
-            loadDataListener.loaddata(this, qTag, durChapterIndex, durPageIndex);
+            loadDataListener.loadData(this, qTag, durChapterIndex, durPageIndex);
         }
     }
 
