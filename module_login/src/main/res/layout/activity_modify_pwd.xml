@@ -11,7 +11,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#F3F5F7"
+        android:background="?colorSurface"
         android:orientation="vertical">
 
         <EditText
@@ -22,8 +22,7 @@
             android:background="@drawable/editext_selector"
             android:hint="@string/print_new_pwd"
             android:inputType="textWebPassword"
-            android:text="@={viewModel.password_1}"
-            android:textColorHint="#000000" />
+            android:text="@={viewModel.password_1}" />
 
         <EditText
             android:id="@+id/id_et_reg_2nd_pwd"
@@ -33,8 +32,7 @@
             android:background="@drawable/editext_selector"
             android:hint="@string/print_new_pwd_again"
             android:inputType="textWebPassword"
-            android:text="@={viewModel.password_2}"
-            android:textColorHint="#000000" />
+            android:text="@={viewModel.password_2}" />
 
 
         <Button
@@ -47,7 +45,7 @@
             android:layout_marginEnd="30dp"
             android:onClick="@{() -> viewModel.modify()}"
             android:text="@string/define"
-            android:textColor="@color/color_white" />
+            android:textColor="?colorOnPrimary" />
 
 
     </LinearLayout>

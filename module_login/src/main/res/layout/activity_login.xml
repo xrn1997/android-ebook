@@ -37,8 +37,7 @@
             android:hint="@string/print_tel"
             android:inputType="number"
             android:maxLength="11"
-            android:text="@={viewModel.username}"
-            android:textColorHint="@color/color_grey" />
+            android:text="@={viewModel.username}" />
 
         <EditText
             android:id="@+id/id_et_password"
@@ -49,8 +48,7 @@
             android:background="@drawable/editext_selector"
             android:hint="@string/print_pwd"
             android:inputType="textWebPassword"
-            android:text="@={viewModel.password}"
-            android:textColorHint="@color/color_grey" />
+            android:text="@={viewModel.password}" />
 
 
         <Button
@@ -63,8 +61,8 @@
             android:layout_marginTop="50dp"
             android:onClick="@{() -> viewModel.login()}"
             android:text="@string/login"
+            android:textColor="@color/white"
             android:background="@drawable/btn_selector"
-            android:textColor="@color/color_white"
             android:textStyle="bold" />
 
         <LinearLayout
@@ -80,7 +78,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="100dp"
                 android:text="@string/tel_register"
-                android:textColor="#ffffff"
+                android:textColor="@color/white"
                 android:textStyle="bold" />
 
             <TextView
@@ -88,7 +86,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/fgt_pwd"
-                android:textColor="#ffffff"
+                android:textColor="@color/white"
                 android:textStyle="bold" />
         </LinearLayout>
     </RelativeLayout>

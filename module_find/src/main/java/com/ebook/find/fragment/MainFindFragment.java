@@ -6,7 +6,6 @@ import android.content.Intent;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.ebook.find.BR;
 import com.ebook.find.R;
@@ -70,7 +69,6 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
         mViewModel.getLibraryKindBookLists().addOnListChangedCallback(ObservableListUtil.getListChangedCallback(mLibraryKindBookAdapter));
         MyRecyclerviewManager myRecyclerviewManager = new MyRecyclerviewManager(mActivity);
         myRecyclerviewManager.setScrollEnabled(false);
-        myRecyclerviewManager.setOrientation(RecyclerView.VERTICAL);
         getBinding().lkbvKindbooklist.setLayoutManager(myRecyclerviewManager);
         getBinding().lkbvKindbooklist.setAdapter(mLibraryKindBookAdapter);
         getBinding().kindLl.setAdapter(mBookTypeShowAdapter);
@@ -104,6 +102,7 @@ public class MainFindFragment extends BaseMvvmRefreshFragment<FragmentFindMainBi
 
         public MyRecyclerviewManager(Context context) {
             super(context);
+            this.setOrientation(VERTICAL);
         }
 
         public void setScrollEnabled(boolean flag) {

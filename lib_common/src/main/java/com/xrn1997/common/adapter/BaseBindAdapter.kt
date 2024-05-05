@@ -18,17 +18,16 @@ import androidx.recyclerview.widget.RecyclerView
 abstract class BaseBindAdapter<T, B : ViewDataBinding>(
     @JvmField
     protected var context: Context,
-    items: ObservableArrayList<T>
+    protected var items: ObservableArrayList<T>
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-    protected var items: ObservableArrayList<T>? = items
 
     @JvmField
-    protected var mItemClickListener: OnItemClickListener<T>? = null
+    protected var mOnItemClickListener: OnItemClickListener<T>? = null
 
     @JvmField
     protected var mOnItemLongClickListener: OnItemLongClickListener<T>? = null
     override fun getItemCount(): Int {
-        return if (items != null && items!!.size > 0) items!!.size else 0
+        return if (items.size > 0) items.size else 0
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -42,7 +41,7 @@ abstract class BaseBindAdapter<T, B : ViewDataBinding>(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val binding: B? = DataBindingUtil.getBinding(holder.itemView)
-        items?.get(position)?.let { onBindItem(binding!!, it, position) }
+        items[position]?.let { onBindItem(binding!!, it, position) }
     }
 
     class BaseBindingViewHolder internal constructor(itemView: View?) : RecyclerView.ViewHolder(
@@ -61,7 +60,7 @@ abstract class BaseBindAdapter<T, B : ViewDataBinding>(
      * item监听
      */
     open fun setOnItemClickListener(itemClickListener: OnItemClickListener<T>) {
-        mItemClickListener = itemClickListener
+        mOnItemClickListener = itemClickListener
     }
 
     /**

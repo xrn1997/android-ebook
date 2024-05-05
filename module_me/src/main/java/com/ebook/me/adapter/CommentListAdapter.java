@@ -42,8 +42,8 @@ public class CommentListAdapter extends BaseBindAdapter<Comment, AdapterCommentL
     protected void onBindItem(AdapterCommentListItemBinding binding, Comment item, int position) {
         binding.setComment(item);
         binding.layoutCommentItem.setOnClickListener(v -> {
-            if (mItemClickListener != null) {
-                mItemClickListener.onItemClick(item, position);
+            if (mOnItemClickListener != null) {
+                mOnItemClickListener.onItemClick(item, position);
             }
         });
         binding.layoutCommentItem.setOnLongClickListener(v -> {

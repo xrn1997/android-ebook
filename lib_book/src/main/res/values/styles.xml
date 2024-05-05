@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="CAppTheme" parent="Theme.Material3.Light.NoActionBar">
-        <!-- Customize your theme here. -->
-        <item name="colorPrimary">#ffffff</item>
-        <item name="colorPrimaryDark">#767676</item>
-        <item name="colorAccent">@color/colorAccent</item>
-    </style>
 
-    <style name="CAppTransparentTheme" parent="CAppTheme">
+    <style name="CAppTransparentTheme" parent="Theme.Common">
         <!-- Customize your theme here. -->
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>

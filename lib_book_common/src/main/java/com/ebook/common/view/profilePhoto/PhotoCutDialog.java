@@ -26,17 +26,15 @@ public class PhotoCutDialog extends BottomSheetDialogFragment implements View.On
     public static final String TAG = PhotoCutDialog.class.getSimpleName();
     //请求截图
     private static final int REQUEST_CROP_PHOTO = 102;
-    private OnPhotoClickLisener mOnClickLisener;
+    private OnPhotoClickListener mOnClickListener;
     private String mPhotoPath;
-    // 1: 圆形 2: 正方形
-    private int type = 1;
 
     public static PhotoCutDialog newInstance() {
         return new PhotoCutDialog();
     }
 
-    public void setOnClickLisener(OnPhotoClickLisener onPhotoClickLisener) {
-        mOnClickLisener = onPhotoClickLisener;
+    public void setOnClickListener(OnPhotoClickListener onPhotoClickListener) {
+        mOnClickListener = onPhotoClickListener;
     }
 
     @Override
@@ -48,12 +46,12 @@ public class PhotoCutDialog extends BottomSheetDialogFragment implements View.On
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_photo_select, container, false);
-        Button btnSelectPhoto = (Button) view.findViewById(R.id.btn_select_photo);
-        Button btnTakephoto = (Button) view.findViewById(R.id.btn_take_photo);
-        Button btnCancel = (Button) view.findViewById(R.id.btn_cancel);
+        Button btnSelectPhoto = view.findViewById(R.id.btn_select_photo);
+        Button btnTakePhoto = view.findViewById(R.id.btn_take_photo);
+        Button btnCancel = view.findViewById(R.id.btn_cancel);
 
         btnSelectPhoto.setOnClickListener(this);
-        btnTakephoto.setOnClickListener(this);
+        btnTakePhoto.setOnClickListener(this);
         btnCancel.setOnClickListener(this);
         return view;
     }
@@ -62,7 +60,7 @@ public class PhotoCutDialog extends BottomSheetDialogFragment implements View.On
     public void onClick(View v) {
         int i = v.getId();
         if (i == R.id.btn_take_photo) {
-            mPhotoPath = MultiMediaUtil.getPhotoPath((AppCompatActivity) getActivity());
+            mPhotoPath = MultiMediaUtil.getPhotoPath((AppCompatActivity) requireActivity());
             // Log.e(TAG, "onClick: 照相:  "+mPhotoPath);
             MultiMediaUtil.takePhoto(this, mPhotoPath, MultiMediaUtil.TAKE_PHONE);
 
@@ -97,8 +95,8 @@ public class PhotoCutDialog extends BottomSheetDialogFragment implements View.On
             case REQUEST_CROP_PHOTO:
                 if (resultCode == Activity.RESULT_OK) {
                     final Uri uri = data.getData();
-                    if (mOnClickLisener != null) {
-                        mOnClickLisener.onScreenPhotoClick(uri);
+                    if (mOnClickListener != null) {
+                        mOnClickListener.onScreenPhotoClick(uri);
                     }
                     dismiss();
                 }
@@ -115,13 +113,15 @@ public class PhotoCutDialog extends BottomSheetDialogFragment implements View.On
             return;
         }
         Intent intent = new Intent();
-        intent.setClass(getActivity(), ClipImageActivity.class);
-        intent.putExtra("type", type);
+        intent.setClass(requireActivity(), ClipImageActivity.class);
+        // 1: 圆形 2: 正方形
+        int cutType = 1;
+        intent.putExtra("type", cutType);
         intent.setData(uri);
         startActivityForResult(intent, REQUEST_CROP_PHOTO);
     }
 
-    public interface OnPhotoClickLisener {
+    public interface OnPhotoClickListener {
         void onScreenPhotoClick(Uri uri);
 
     }

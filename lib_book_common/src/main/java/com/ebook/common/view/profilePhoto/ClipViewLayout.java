@@ -12,15 +12,17 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.media.ExifInterface;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+
+import androidx.exifinterface.media.ExifInterface;
 
 import com.ebook.common.R;
 
@@ -30,6 +32,7 @@ import java.io.IOException;
  * 头像上传原图裁剪容器
  */
 public class ClipViewLayout extends RelativeLayout {
+    public static final String TAG = "ClipViewLayout";
     //动作标志：无
     private static final int NONE = 0;
     //动作标志：拖动
@@ -53,14 +56,14 @@ public class ClipViewLayout extends RelativeLayout {
     //初始化动作标志
     private int mode = NONE;
     //记录起始坐标
-    private PointF start = new PointF();
+    private final PointF start = new PointF();
     //记录缩放时两指中间点坐标
-    private PointF mid = new PointF();
+    private final PointF mid = new PointF();
     private float oldDist = 1f;
     //最小缩放比例
     private float minScale;
     //最大缩放比例
-    private float maxScale = 4;
+    private final float maxScale = 4;
 
 
     public ClipViewLayout(Context context) {
@@ -85,22 +88,17 @@ public class ClipViewLayout extends RelativeLayout {
         try {
             exif = new ExifInterface(filepath);
         } catch (IOException ex) {
-            ex.printStackTrace();
+            Log.e(TAG, "getExifOrientation: ", ex);
         }
         if (exif != null) {
             int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, -1);
             if (orientation != -1) {
-                switch (orientation) {
-                    case ExifInterface.ORIENTATION_ROTATE_90:
-                        degree = 90;
-                        break;
-                    case ExifInterface.ORIENTATION_ROTATE_180:
-                        degree = 180;
-                        break;
-                    case ExifInterface.ORIENTATION_ROTATE_270:
-                        degree = 270;
-                        break;
-                }
+                degree = switch (orientation) {
+                    case ExifInterface.ORIENTATION_ROTATE_90 -> 90;
+                    case ExifInterface.ORIENTATION_ROTATE_180 -> 180;
+                    case ExifInterface.ORIENTATION_ROTATE_270 -> 270;
+                    default -> degree;
+                };
 
             }
         }
@@ -110,10 +108,10 @@ public class ClipViewLayout extends RelativeLayout {
     /**
      * 图片等比例压缩
      *
-     * @param filePath
+     * @param filePath 文件路径
      * @param reqWidth  期望的宽
      * @param reqHeight 期望的高
-     * @return
+     * @return bitmap
      */
     public static Bitmap decodeSampledBitmap(String filePath, int reqWidth,
                                              int reqHeight) {
@@ -122,8 +120,6 @@ public class ClipViewLayout extends RelativeLayout {
         final BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
         options.inPreferredConfig = Bitmap.Config.RGB_565;
-        //bitmap is null
-        Bitmap bitmap = BitmapFactory.decodeFile(filePath, options);
 
         // Calculate inSampleSize
         options.inSampleSize = calculateInSampleSize(options, reqWidth,
@@ -139,10 +135,6 @@ public class ClipViewLayout extends RelativeLayout {
      * 宽的压缩比和高的压缩比的较小值  取接近的2的次幂的值
      * 比如宽的压缩比是3 高的压缩比是5 取较小值3  而InSampleSize必须是2的次幂，取接近的2的次幂4
      *
-     * @param options
-     * @param reqWidth
-     * @param reqHeight
-     * @return
      */
     public static int calculateInSampleSize(BitmapFactory.Options options,
                                             int reqWidth, int reqHeight) {
@@ -163,16 +155,13 @@ public class ClipViewLayout extends RelativeLayout {
             // guarantee
             // a final image with both dimensions larger than or equal to the
             // requested height and width.
-            int ratio = heightRatio < widthRatio ? heightRatio : widthRatio;
+            int ratio = Math.min(heightRatio, widthRatio);
             // inSampleSize只能是2的次幂  将ratio就近取2的次幂的值
             if (ratio < 3)
                 inSampleSize = ratio;
             else if (ratio < 6.5)
                 inSampleSize = 4;
-            else if (ratio < 8)
-                inSampleSize = 8;
-            else
-                inSampleSize = ratio;
+            else inSampleSize = Math.max(ratio, 8);
         }
 
         return inSampleSize;
@@ -195,8 +184,7 @@ public class ClipViewLayout extends RelativeLayout {
         float scaleWidth = ((float) w / width);
         float scaleHeight = ((float) h / height);
         matrix.postScale(scaleWidth, scaleHeight);
-        Bitmap newBmp = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, false);
-        return newBmp;
+        return Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, false);
     }
 
     //初始化控件自定义的属性
@@ -220,7 +208,7 @@ public class ClipViewLayout extends RelativeLayout {
         //设置剪切框边框
         clipView.setClipBorderWidth(clipBorderWidth);
         //设置剪切框水平间距
-        clipView.setmHorizontalPadding(mHorizontalPadding);
+        clipView.setHorizontalPadding(mHorizontalPadding);
         imageView = new ImageView(context);
         //相对布局布局参数
         android.view.ViewGroup.LayoutParams lp = new LayoutParams(
@@ -280,9 +268,6 @@ public class ClipViewLayout extends RelativeLayout {
             Rect rect = clipView.getClipRect();
             //高的最小缩放比
             minScale = rect.height() / (float) bitmap.getHeight();
-            if (scale < minScale) {
-                scale = minScale;
-            }
         } else {//高图
             //高的缩放比
             scale = (float) imageView.getHeight() / bitmap.getHeight();
@@ -290,9 +275,9 @@ public class ClipViewLayout extends RelativeLayout {
             Rect rect = clipView.getClipRect();
             //宽的最小缩放比
             minScale = rect.width() / (float) bitmap.getWidth();
-            if (scale < minScale) {
-                scale = minScale;
-            }
+        }
+        if (scale < minScale) {
+            scale = minScale;
         }
         // 缩放
         matrix.postScale(scale, scale);
@@ -460,7 +445,7 @@ public class ClipViewLayout extends RelativeLayout {
             cropBitmap = Bitmap.createBitmap(imageView.getDrawingCache(), rect.left, rect.top, rect.width(), rect.height());
             zoomedCropBitmap = zoomBitmap(cropBitmap, 200, 200);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "clip: ", e);
         }
         if (cropBitmap != null) {
             cropBitmap.recycle();

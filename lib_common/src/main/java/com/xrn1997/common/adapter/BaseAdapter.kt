@@ -16,9 +16,13 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
     @JvmField
     protected val mContext: Context
 ) : RecyclerView.Adapter<VH>() {
-    @JvmField
-    protected var mList: MutableList<E> = ArrayList()
-    protected var mItemClickListener: OnItemClickListener<E>? = null
+    protected val list: MutableList<E> = ArrayList()
+
+    /**
+     * 获取数据列表
+     */
+    val mList get() = list
+    protected var mOnItemClickListener: OnItemClickListener<E>? = null
     protected var mOnItemLongClickListener: OnItemLongClickListener<E>? = null
 
     /**
@@ -34,9 +38,9 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
      * ViewHolder 绑定数据
      */
     override fun onBindViewHolder(holder: VH, position: Int) {
-        val e = mList[position]
-        if (mItemClickListener != null) {
-            holder.itemView.setOnClickListener { mItemClickListener!!.onItemClick(e, position) }
+        val e = list[position]
+        if (mOnItemClickListener != null) {
+            holder.itemView.setOnClickListener { mOnItemClickListener!!.onItemClick(e, position) }
         }
         if (mOnItemLongClickListener != null) {
             holder.itemView.setOnLongClickListener {
@@ -50,7 +54,7 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
      * 返回数据数量
      */
     override fun getItemCount(): Int {
-        return mList.size
+        return list.size
     }
 
     /**
@@ -59,7 +63,7 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
     @SuppressLint("NotifyDataSetChanged")
     fun addAll(list: List<E>?) {
         if (!list.isNullOrEmpty()) {
-            mList.addAll(list)
+            this.list.addAll(list)
             notifyDataSetChanged()
         }
     }
@@ -69,9 +73,9 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
      */
     @SuppressLint("NotifyDataSetChanged")
     fun refresh(list: List<E>?) {
-        mList.clear()
+        this.list.clear()
         if (!list.isNullOrEmpty()) {
-            mList.addAll(list)
+            this.list.addAll(list)
         }
         notifyDataSetChanged()
     }
@@ -80,7 +84,7 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
      * 根据位置删除数据
      */
     fun remove(position: Int) {
-        mList.removeAt(position)
+        list.removeAt(position)
         notifyItemRemoved(position)
     }
 
@@ -88,8 +92,8 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
      * 根据对象删除数据
      */
     fun remove(e: E) {
-        val p = mList.indexOf(e)
-        mList.remove(e)
+        val p = list.indexOf(e)
+        list.remove(e)
         notifyItemRemoved(p)
     }
 
@@ -97,7 +101,7 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
      * 根据对象添加数据
      */
     fun add(e: E, position: Int) {
-        mList.add(position, e)
+        list.add(position, e)
         notifyItemInserted(position)
     }
 
@@ -105,7 +109,7 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
      * 根据对象添加数据（加在最后）
      */
     fun addLast(e: E) {
-        add(e, mList.size)
+        add(e, list.size)
     }
 
     /**
@@ -120,23 +124,15 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
      */
     @SuppressLint("NotifyDataSetChanged")
     fun clear() {
-        mList.clear()
+        list.clear()
         notifyDataSetChanged()
     }
-
-    val dataList: List<E>
-        /**
-         * 获取数据列表
-         */
-        get() = mList
-    val listData: List<E>
-        get() = mList
 
     /**
      * item监听
      */
     fun setItemClickListener(itemClickListener: OnItemClickListener<E>?) {
-        mItemClickListener = itemClickListener
+        mOnItemClickListener = itemClickListener
     }
 
     /**

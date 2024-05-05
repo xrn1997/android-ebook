@@ -16,7 +16,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:set_right_icon="@drawable/ic_angle_brackets"
-        app:set_right_icon_visable="true"
+        app:set_right_icon_visible="true"
         app:set_title="修改头像">
 
         <com.ebook.common.view.profilePhoto.CircleImageView
@@ -43,7 +43,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:set_right_icon="@drawable/ic_angle_brackets"
-        app:set_right_icon_visable="true"
+        app:set_right_icon_visible="true"
         app:set_title="修改昵称" />
 
     <View
@@ -57,7 +57,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:set_right_icon="@drawable/ic_angle_brackets"
-        app:set_right_icon_visable="true"
+        app:set_right_icon_visible="true"
         app:set_title="修改密码" />
 
 </LinearLayout>

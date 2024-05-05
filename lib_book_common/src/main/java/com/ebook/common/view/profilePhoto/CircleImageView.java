@@ -40,7 +40,7 @@ import androidx.annotation.DrawableRes;
 import com.ebook.common.R;
 
 /**
- * https://github.com/hdodenhof/CircleImageView
+ * <a href="https://github.com/hdodenhof/CircleImageView">CircleImageView</a>
  */
 public class CircleImageView extends androidx.appcompat.widget.AppCompatImageView {
 

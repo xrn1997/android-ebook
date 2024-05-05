@@ -101,7 +101,7 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
      */
     public void uploadHeadImage() {
         PhotoCutDialog photoCutDialog = PhotoCutDialog.newInstance();
-        photoCutDialog.setOnClickLisener(uri -> {
+        photoCutDialog.setOnClickListener(uri -> {
             String cropImagePath = getRealFilePathFromUri(getApplicationContext(), uri);
             mViewModel.modifyProfilePhoto(cropImagePath);
             // Bitmap bitMap = BitmapFactory.decodeFile(cropImagePath);

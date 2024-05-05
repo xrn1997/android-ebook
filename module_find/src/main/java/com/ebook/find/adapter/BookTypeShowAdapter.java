@@ -4,7 +4,6 @@ import android.content.Context;
 
 import androidx.databinding.ObservableArrayList;
 
-
 import com.ebook.find.R;
 import com.ebook.find.databinding.AdpaterBookTypeItemBinding;
 import com.ebook.find.entity.BookType;
@@ -25,8 +24,8 @@ public class BookTypeShowAdapter extends BaseBindAdapter<BookType, AdpaterBookTy
     protected void onBindItem(AdpaterBookTypeItemBinding binding, BookType item, int position) {
         binding.setBooktype(item);
         binding.viewBooktype.setOnClickListener(v -> {
-            if (mItemClickListener != null) {
-                mItemClickListener.onItemClick(item, position);
+            if (mOnItemClickListener != null) {
+                mOnItemClickListener.onItemClick(item, position);
             }
         });
     }

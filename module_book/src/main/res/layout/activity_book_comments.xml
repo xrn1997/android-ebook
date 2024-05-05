@@ -80,7 +80,7 @@
                 android:background="@drawable/btn_selector"
                 android:onClick="@{()->viewModel.addComment()}"
                 android:text="发送"
-                android:textColor="@color/color_white" />
+                android:textColor="?colorOnPrimary" />
         </LinearLayout>
     </FrameLayout>
 </layout>

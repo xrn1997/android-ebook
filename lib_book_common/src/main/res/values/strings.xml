@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">lib_common</string>
+    <string name="app_name">lib_book_common</string>
     <string name="ebook">eBook</string>
 </resources>

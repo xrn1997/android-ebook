@@ -50,8 +50,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:gravity="center"
-                            android:paddingTop="5dp"
-                            android:paddingBottom="5dp"
+                            android:layout_marginStart="8dp"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp"
                             android:text="@string/book_type"
                             android:textColor="?attr/colorOnSurfaceVariant"
                             android:textSize="14sp" /> <!-- 使用表面上的文本颜色 -->
@@ -60,17 +61,16 @@
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/kind_ll"
-                        android:paddingTop="2dp"
-                        android:paddingBottom="2dp"
+                        android:layout_height="match_parent"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:paddingTop="8dp"
                         android:overScrollMode="never"
                         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
                         app:spanCount="4" />
 
                     <View
                         android:layout_width="match_parent"
-                        android:layout_height="10dp"
+                        android:layout_height="2dp"
                         android:background="?attr/colorSurfaceVariant" />
 
                     <LinearLayout
@@ -106,11 +106,6 @@
                                 android:contentDescription="@string/search_book_or_author" />
                         </FrameLayout>
                     </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="5dp"
-                        android:background="?attr/colorSurfaceVariant" />
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/lkbv_kindbooklist"

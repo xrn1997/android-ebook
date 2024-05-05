@@ -25,19 +25,12 @@ public class DeleteDialog extends BottomSheetDialogFragment implements View.OnCl
         mOnClickListener = onDeleteClickListener;
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        // getDialog().getWindow().setLayout(getResources().getDisplayMetrics().widthPixels - DisplayUtil.dip2px(16) * 2, ViewGroup.LayoutParams.WRAP_CONTENT);
-        //  getDialog().getWindow().findViewById(R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
-    }
-
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_delete_dialog, container, false);
-        Button btnDelete = (Button) view.findViewById(R.id.btn_delete);
-        Button btnCancel = (Button) view.findViewById(R.id.btn_cancel);
+        Button btnDelete = view.findViewById(R.id.btn_delete);
+        Button btnCancel = view.findViewById(R.id.btn_cancel);
         btnDelete.setOnClickListener(this);
         btnCancel.setOnClickListener(this);
         return view;

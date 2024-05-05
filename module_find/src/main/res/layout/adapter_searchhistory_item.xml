@@ -7,7 +7,7 @@
     android:layout_marginStart="7dp"
     android:layout_marginEnd="3dp"
     android:layout_marginBottom="4dp"
-    android:textColor="#ffffff"
+    android:focusable="true"
     android:textSize="15sp"
     android:clickable="true"
-    android:focusable="true"></TextView>
+    android:textColor="?colorOnSurface" />

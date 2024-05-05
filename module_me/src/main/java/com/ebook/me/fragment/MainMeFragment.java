@@ -46,6 +46,11 @@ public class MainMeFragment extends BaseFragment<FragmentMeMainBinding> {
     }
 
     @Override
+    public boolean enableToolbar() {
+        return true;
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
         RxBus.get().unregister(this);

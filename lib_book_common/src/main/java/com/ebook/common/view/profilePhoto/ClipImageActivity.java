@@ -4,11 +4,17 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.ebook.common.R;
-import com.ebook.common.mvvm.BaseActivity;
+import com.ebook.common.databinding.ActivityClipImageBinding;
+import com.xrn1997.common.mvvm.view.BaseActivity;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,31 +24,26 @@ import java.io.OutputStream;
 /**
  * 头像裁剪Activity
  */
-public class ClipImageActivity extends BaseActivity {
+public class ClipImageActivity extends BaseActivity<ActivityClipImageBinding> {
     private static final String TAG = "ClipImageActivity";
     private ClipViewLayout clipViewLayout1;
     private ClipViewLayout clipViewLayout2;
-    private TextView btnCancel;
-    private TextView btnOk;
     //类别 1: 圆形, 2: 正方形
     private int type;
 
-
-    @Override
-    public int onBindLayout() {
-        return R.layout.activity_clip_image;
-    }
 
     /**
      * 初始化组件
      */
     @Override
     public void initView() {
-        clipViewLayout1 = (ClipViewLayout) findViewById(R.id.clipViewLayout1);
-        clipViewLayout2 = (ClipViewLayout) findViewById(R.id.clipViewLayout2);
-        btnCancel = (TextView) findViewById(R.id.btn_cancel);
-        btnOk = (TextView) findViewById(R.id.bt_ok);
-
+        clipViewLayout1 = findViewById(R.id.clipViewLayout1);
+        clipViewLayout2 = findViewById(R.id.clipViewLayout2);
+        TextView btnCancel = findViewById(R.id.btn_cancel);
+        TextView btnOk = findViewById(R.id.bt_ok);
+        //设置点击事件监听器
+        btnCancel.setOnClickListener(v -> finish());
+        btnOk.setOnClickListener(v -> generateUriAndReturn());
     }
 
     @Override
@@ -66,16 +67,9 @@ public class ClipImageActivity extends BaseActivity {
         }
     }
 
+    @NonNull
     @Override
-    public void initListener() {
-        super.initListener();
-        //设置点击事件监听器
-        btnCancel.setOnClickListener(v -> finish());
-        btnOk.setOnClickListener(v -> generateUriAndReturn());
-    }
-
-    @Override
-    public String getTootBarTitle() {
+    public String getToolBarTitle() {
         return "截取";
     }
 
@@ -114,7 +108,7 @@ public class ClipImageActivity extends BaseActivity {
                     try {
                         outputStream.close();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Log.e(TAG, "generateUriAndReturn: ", e);
                     }
                 }
             }
@@ -123,5 +117,11 @@ public class ClipImageActivity extends BaseActivity {
             setResult(RESULT_OK, intent);
             finish();
         }
+    }
+
+    @NonNull
+    @Override
+    public ActivityClipImageBinding onBindViewBinding(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, boolean attachToParent) {
+        return ActivityClipImageBinding.inflate(inflater, container, attachToParent);
     }
 }

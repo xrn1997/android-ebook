@@ -1,5 +1,6 @@
 package com.ebook.common.view;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.text.Editable;
@@ -19,15 +20,14 @@ import androidx.databinding.InverseBindingAdapter;
 import androidx.databinding.InverseBindingListener;
 
 import com.ebook.common.R;
-import com.ebook.common.binding.command.BindingCommand;
+import com.xrn1997.common.adapter.binding.BindingCommand;
 
 
 public class SettingBarView extends RelativeLayout {
-    private ImageView imgLeftIcon;
-    private TextView txtSetTitle;
-    private EditText txtSetContent;
-    private ImageView imgRightIcon;
-    private RelativeLayout layoutSettingBar;
+    public static final String TAG = "SettingBarView";
+    private final ImageView imgLeftIcon;
+    private final EditText txtSetContent;
+    private final RelativeLayout layoutSettingBar;
     private OnClickSettingBarViewListener mOnClickSettingBarViewListener;
     private OnClickRightImgListener mOnClickRightImgListener;
     private boolean isEdit = false;//是否需要编辑
@@ -37,46 +37,38 @@ public class SettingBarView extends RelativeLayout {
         super(context, attrs);
         inflate(context, R.layout.view_setting_bar, this);
         layoutSettingBar = findViewById(R.id.layout_setting_bar);
-        imgLeftIcon = findViewById(R.id.img_left_icon);
-        txtSetTitle = findViewById(R.id.txt_set_title);
+        imgLeftIcon = findViewById(R.id.img_start_icon);
+        TextView txtSetTitle = findViewById(R.id.txt_set_title);
         txtSetContent = findViewById(R.id.txt_set_content);
-        imgRightIcon = findViewById(R.id.img_right_icon);
+        ImageView imgRightIcon = findViewById(R.id.img_end_icon);
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.SettingBarView);
-        boolean isVisableLeftIcon = typedArray.getBoolean(R.styleable.SettingBarView_set_left_icon_visable, false);
-        boolean isVisableRightIcon = typedArray.getBoolean(R.styleable.SettingBarView_set_right_icon_visable, false);
+        boolean isVisibleLeftIcon = typedArray.getBoolean(R.styleable.SettingBarView_set_left_icon_visible, false);
+        boolean isVisibleRightIcon = typedArray.getBoolean(R.styleable.SettingBarView_set_right_icon_visible, false);
         String title = typedArray.getString(R.styleable.SettingBarView_set_title);
         String hint = typedArray.getString(R.styleable.SettingBarView_set_content_hint);
         String content = typedArray.getString(R.styleable.SettingBarView_set_content);
         int rightIcon = typedArray.getResourceId(R.styleable.SettingBarView_set_right_icon, 0);
         int leftIcon = typedArray.getResourceId(R.styleable.SettingBarView_set_left_icon, 0);
 
-        imgLeftIcon.setVisibility(isVisableLeftIcon ? View.VISIBLE : View.GONE);
+        imgLeftIcon.setVisibility(isVisibleLeftIcon ? View.VISIBLE : View.GONE);
         txtSetTitle.setText(title);
         txtSetContent.setHint(hint);
         txtSetContent.setText(content);
-        imgRightIcon.setVisibility(isVisableRightIcon ? View.VISIBLE : View.GONE);
+        imgRightIcon.setVisibility(isVisibleRightIcon ? View.VISIBLE : View.GONE);
         if (leftIcon > 0) {
             imgLeftIcon.setImageResource(leftIcon);
         }
         if (rightIcon > 0) {
             imgRightIcon.setImageResource(rightIcon);
         }
-        imgRightIcon.setOnClickListener(new OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                if (mOnClickRightImgListener != null) {
-                    mOnClickRightImgListener.onClick();
-                }
+        imgRightIcon.setOnClickListener(v -> {
+            if (mOnClickRightImgListener != null) {
+                mOnClickRightImgListener.onClick();
             }
         });
-        layoutSettingBar.setOnClickListener(new OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                if (mOnClickSettingBarViewListener != null) {
-                    mOnClickSettingBarViewListener.onClick();
-                }
+        layoutSettingBar.setOnClickListener(v -> {
+            if (mOnClickSettingBarViewListener != null) {
+                mOnClickSettingBarViewListener.onClick();
             }
         });
         txtSetContent.addTextChangedListener(new TextWatcher() {
@@ -87,7 +79,7 @@ public class SettingBarView extends RelativeLayout {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                Log.v("MYTAG", "onTextChanged start....");
+                Log.v(TAG, "onTextChanged start....");
                 if (mOnViewChangeListener != null) {
                     mOnViewChangeListener.onChange();
                 }
@@ -117,19 +109,15 @@ public class SettingBarView extends RelativeLayout {
 
     @BindingAdapter(value = {"contentAttrChanged"}, requireAll = false)
     public static void setDisplayAttrChanged(SettingBarView view, final InverseBindingListener inverseBindingListener) {
-        Log.d("MYTAG", "setDisplayAttrChanged");
+        Log.d(TAG, "setDisplayAttrChanged");
 
         if (inverseBindingListener == null) {
             view.setViewChangeListener(null);
-            Log.d("MYTAG", "setViewChangeListener(null)");
+            Log.d(TAG, "setViewChangeListener(null)");
         } else {
-            view.setViewChangeListener(new OnViewChangeListener() {
-
-                @Override
-                public void onChange() {
-                    Log.d("MYTAG", "setDisplayAttrChanged -> onChange");
-                    inverseBindingListener.onChange();
-                }
+            view.setViewChangeListener(() -> {
+                Log.d(TAG, "setDisplayAttrChanged -> onChange");
+                inverseBindingListener.onChange();
             });
         }
     }
@@ -186,6 +174,7 @@ public class SettingBarView extends RelativeLayout {
         return !isEdit;
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         return layoutSettingBar.onTouchEvent(event);

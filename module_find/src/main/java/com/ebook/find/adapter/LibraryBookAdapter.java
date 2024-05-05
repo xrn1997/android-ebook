@@ -9,7 +9,6 @@ import androidx.databinding.ObservableArrayList;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-
 import com.ebook.db.entity.BookShelf;
 import com.ebook.db.entity.SearchBook;
 import com.ebook.find.R;
@@ -47,8 +46,8 @@ public class LibraryBookAdapter extends BaseBindAdapter<SearchBook, AdapterLibra
         BookShelf bookShelf = new BookShelf();
         bookShelf.setNoteUrl(item.getNoteUrl());
         binding.ibContent.setOnClickListener(v -> {
-            if (mItemClickListener != null) {
-                mItemClickListener.onItemClick(item, position);
+            if (mOnItemClickListener != null) {
+                mOnItemClickListener.onItemClick(item, position);
             }
         });
     }

@@ -5,6 +5,7 @@ import static com.bumptech.glide.request.RequestOptions.bitmapTransform;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -26,6 +27,7 @@ import com.ebook.db.entity.BookShelf;
 import jp.wasabeef.glide.transformations.BlurTransformation;
 
 public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> implements IBookDetailView {
+    public static final String TAG = "BookDetailActivity";
     private FrameLayout iflContent;
     private ImageView ivBlurCover;
     private ImageView ivCover;
@@ -246,7 +248,7 @@ public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> imple
                 BitIntentDataManager.getInstance().putData(key, mPresenter.getBookShelf().clone());
             } catch (CloneNotSupportedException e) {
                 BitIntentDataManager.getInstance().putData(key, mPresenter.getBookShelf());
-                e.printStackTrace();
+                Log.e(TAG, "bindEvent: ", e);
             }
             startActivityByAnim(intent, android.R.anim.fade_in, android.R.anim.fade_out);
 

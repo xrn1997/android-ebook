@@ -3,6 +3,8 @@ package com.xrn1997.common.adapter
 import android.graphics.drawable.Drawable
 import android.widget.ImageView
 import androidx.databinding.BindingAdapter
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.scwang.smart.refresh.layout.SmartRefreshLayout
@@ -68,5 +70,17 @@ object ViewAdapter {
     ) {
         refreshLayout.setEnableRefresh(srlEnableRefresh)
         refreshLayout.setEnableLoadMore(srlEnableLoadMore)
+    }
+
+    /**
+     * recyclerView的
+     */
+    @BindingAdapter("linearLayoutManager")
+    @JvmStatic
+    fun setLinearLayoutManager(recyclerView: RecyclerView, b: Boolean) {
+        val layoutManager = LinearLayoutManager(recyclerView.context)
+        layoutManager.orientation =
+            if (b) LinearLayoutManager.HORIZONTAL else LinearLayoutManager.VERTICAL
+        recyclerView.layoutManager = layoutManager
     }
 }

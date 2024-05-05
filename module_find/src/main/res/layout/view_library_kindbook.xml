@@ -16,9 +16,8 @@
 
         <View
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="5dp"
-            android:background="@color/bg_library" />
+            android:layout_height="2dp"
+            android:background="?attr/colorSurfaceVariant" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -30,9 +29,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:paddingTop="5dp"
+                android:layout_marginStart="8dp"
                 android:singleLine="true"
-                android:paddingBottom="5dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
                 android:text="@{libraryKindBookList.kindName}"
                 android:textColor="@color/tv_btn_normal_black"
                 android:textSize="14sp" />
@@ -46,7 +46,7 @@
                 android:id="@+id/tv_more"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="10dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/bg_ib_pre"
                 android:padding="5dp"
                 android:text="@string/more"
