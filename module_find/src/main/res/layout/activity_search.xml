@@ -8,7 +8,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#ffffff"
+        android:background="?colorSurface"
         android:paddingBottom="13dp"
         android:paddingTop="13dp"
         android:orientation="horizontal">
@@ -35,8 +35,7 @@
                 android:lines="1"
                 android:paddingStart="28dp"
                 android:paddingEnd="28dp"
-                android:textColor="#767676"
-                android:textColorHint="#616161"
+                android:textColorHint="?colorOnSurfaceVariant"
                 android:textCursorDrawable="@drawable/shape_text_cursor"
                 android:textSize="13sp" />
 
@@ -72,7 +71,7 @@
             android:id="@+id/rfRv_search_books"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#f1f1f1"
+            android:background="?attr/colorSurfaceVariant"
             app:bg_color="#00000000"
             app:font_color="#767676"
             app:second_color="#c1c1c1"
@@ -86,7 +85,7 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:visibility="invisible"
-            android:background="#ffffff">
+            android:background="?attr/colorSurfaceVariant">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -98,7 +97,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="16sp"
-                    android:textColor="#767676"
+                    android:textColor="?colorOnSurfaceVariant"
                     android:text="@string/str_search_history"
                     android:layout_gravity="center_vertical"
                     android:layout_marginStart="18dp"
