@@ -133,8 +133,8 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
     /**
      * item监听
      */
-    fun setOnItemClickListener(itemClickListener: OnItemClickListener<E>?) {
-        mOnItemClickListener = itemClickListener
+    fun setOnItemClickListener(onItemClickListener: OnItemClickListener<E>?) {
+        mOnItemClickListener = onItemClickListener
     }
 
     /**

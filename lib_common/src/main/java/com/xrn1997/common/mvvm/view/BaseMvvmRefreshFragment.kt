@@ -15,7 +15,9 @@ import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel
 abstract class BaseMvvmRefreshFragment<V : ViewDataBinding, VM : BaseRefreshViewModel<*, *>> :
     BaseMvvmFragment<V, VM>() {
     protected lateinit var mRefreshLayout: RefreshLayout
-    protected var mItemClickListener: BaseAdapter.OnItemClickListener<V>? = null
+    @JvmField
+    protected var mOnItemClickListener: BaseAdapter.OnItemClickListener<V>? = null
+    @JvmField
     protected var mOnItemLongClickListener: BaseAdapter.OnItemLongClickListener<V>? = null
     override fun initCommonView(binding: FragmentRootBinding) {
         super.initCommonView(binding)
@@ -67,8 +69,8 @@ abstract class BaseMvvmRefreshFragment<V : ViewDataBinding, VM : BaseRefreshView
         mRefreshLayout.autoRefresh()
     }
 
-    open fun setItemClickListener(itemClickListener: BaseAdapter.OnItemClickListener<V>) {
-        mItemClickListener = itemClickListener
+    open fun setOnItemClickListener(onItemClickListener: BaseAdapter.OnItemClickListener<V>) {
+        mOnItemClickListener = onItemClickListener
     }
 
     open fun setOnItemLongClickListener(onItemLongClickListener: BaseAdapter.OnItemLongClickListener<V>) {
