@@ -22,7 +22,9 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
      * 获取数据列表
      */
     val mList get() = list
+    @JvmField
     protected var mOnItemClickListener: OnItemClickListener<E>? = null
+    @JvmField
     protected var mOnItemLongClickListener: OnItemLongClickListener<E>? = null
 
     /**
@@ -131,7 +133,7 @@ abstract class BaseAdapter<E, VH : RecyclerView.ViewHolder>(
     /**
      * item监听
      */
-    fun setItemClickListener(itemClickListener: OnItemClickListener<E>?) {
+    fun setOnItemClickListener(itemClickListener: OnItemClickListener<E>?) {
         mOnItemClickListener = itemClickListener
     }
 
