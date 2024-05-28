@@ -7,9 +7,9 @@ import android.content.Intent;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -28,7 +28,7 @@ import jp.wasabeef.glide.transformations.BlurTransformation;
 
 public class BookDetailActivity extends BaseActivity<IBookDetailPresenter> implements IBookDetailView {
     public static final String TAG = "BookDetailActivity";
-    private FrameLayout iflContent;
+    private ViewGroup iflContent;
     private ImageView ivBlurCover;
     private ImageView ivCover;
     private TextView tvName;

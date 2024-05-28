@@ -76,8 +76,8 @@ abstract class BaseActivity<V : ViewBinding> : RxAppCompatActivity(), IBaseView 
         super.setContentView(rootView)
         //沉浸式状态栏
         window.statusBarColor = Color.TRANSPARENT
-//        mBinding.baseLayout.systemUiVisibility =
-//            View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        mBinding.baseLayout.systemUiVisibility =
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
         setStatusBarColor()
         mContentView = findViewById(android.R.id.content)
         EventBus.getDefault().register(this)
