@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
@@ -125,7 +126,6 @@ abstract class BaseMvvmRefreshActivity<VM : BaseRefreshViewModel<*, *>> : BaseMv
     ) {
         val enableLoadMore by viewModel.enableLoadMore.observeAsState(false)
         val enableRefresh by viewModel.enableRefresh.observeAsState(false)
-
         val curContext = LocalContext.current
 
         // 使用ComposeView将Compose布局渲染为Android View
@@ -139,7 +139,25 @@ abstract class BaseMvvmRefreshActivity<VM : BaseRefreshViewModel<*, *>> : BaseMv
                 NetworkErrorView(Modifier.matchParentSize())
             }
         }
-
+        val canRefresh by remember {
+            derivedStateOf {
+                state?.firstVisibleItemScrollOffset == 0
+            }
+        }
+        val canLoadMore by remember {
+            derivedStateOf {
+                return@derivedStateOf if (state != null) {
+                    val isLastIndex =
+                        (state.layoutInfo.visibleItemsInfo.last().index == state.layoutInfo.totalItemsCount - 1)
+                    val isLastItemCompleteVisible =
+                        (state.layoutInfo.visibleItemsInfo.last().offset * state.layoutInfo.visibleItemsInfo.size + state.firstVisibleItemScrollOffset
+                                == state.layoutInfo.viewportEndOffset * (state.layoutInfo.visibleItemsInfo.size - 1))
+                    isLastIndex && isLastItemCompleteVisible
+                } else {
+                    false
+                }
+            }
+        }
         // 使用AndroidView将SmartRefreshLayout添加到Compose布局中
         AndroidView(modifier = modifier.fillMaxSize(), factory = { context ->
             SmartRefreshLayout(context).apply {
@@ -150,25 +168,8 @@ abstract class BaseMvvmRefreshActivity<VM : BaseRefreshViewModel<*, *>> : BaseMv
                 setRefreshContent(bodyView)
 
                 setScrollBoundaryDecider(object : ScrollBoundaryDecider {
-                    override fun canRefresh(content: View?): Boolean {
-                        if (state != null) {
-                            return state.firstVisibleItemScrollOffset == 0
-                        }
-                        return true
-                    }
-
-                    override fun canLoadMore(content: View?): Boolean {
-                        if (state != null) {
-                            val isLastIndex =
-                                (state.layoutInfo.visibleItemsInfo.last().index == state.layoutInfo.totalItemsCount - 1)
-                            val isLastItemCompleteVisible =
-                                (state.layoutInfo.visibleItemsInfo.last().offset * state.layoutInfo.visibleItemsInfo.size + state.firstVisibleItemScrollOffset
-                                        == state.layoutInfo.viewportEndOffset * (state.layoutInfo.visibleItemsInfo.size - 1))
-                            return isLastIndex && isLastItemCompleteVisible
-                        }
-                        return true
-                    }
-
+                    override fun canRefresh(content: View?): Boolean = canRefresh
+                    override fun canLoadMore(content: View?): Boolean = canLoadMore
                 })
             }
         }, update = { view ->
