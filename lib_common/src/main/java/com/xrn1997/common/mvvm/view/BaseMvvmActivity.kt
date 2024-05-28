@@ -18,7 +18,9 @@ abstract class BaseMvvmActivity<V : ViewDataBinding, VM : BaseViewModel<*>> : Ba
     companion object {
         private const val TAG = "BaseMvvmActivity"
     }
+
     private lateinit var _binding: V
+
     /**
      * MVVM中的V，负责视图显示。
      */
@@ -86,7 +88,8 @@ abstract class BaseMvvmActivity<V : ViewDataBinding, VM : BaseViewModel<*>> : Ba
             ActivityManager.finishActivity(this@BaseMvvmActivity)
         }
         mViewModel.mUIChangeLiveData.mOnBackPressedEvent.observe(this) {
-            onBackPressedDispatcher.onBackPressed() }
+            onBackPressedDispatcher.onBackPressed()
+        }
     }
 
 

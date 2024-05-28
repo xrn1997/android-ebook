@@ -45,6 +45,7 @@ public class ModifyInformationActivity extends BaseMvvmActivity<ViewDataBinding,
         super.onDestroy();
         RxBus.get().unregister(this);
     }
+
     @Override
     public int onBindLayout() {
         return R.layout.activity_modify_information;

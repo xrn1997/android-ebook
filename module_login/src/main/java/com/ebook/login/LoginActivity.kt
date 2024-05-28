@@ -31,6 +31,7 @@ class LoginActivity : BaseMvvmActivity<ActivityLoginBinding, LoginViewModel>() {
         super.onDestroy()
         RxBus.get().unregister(this)
     }
+
     override fun onBindLayout(): Int {
         return R.layout.activity_login
     }
@@ -51,6 +52,10 @@ class LoginActivity : BaseMvvmActivity<ActivityLoginBinding, LoginViewModel>() {
      * 禁止显示Toolbar，默认为true
      */
     override fun enableToolbar(): Boolean {
+        return false
+    }
+
+    override fun enableFitsSystemWindows(): Boolean {
         return false
     }
 

@@ -17,10 +17,10 @@ dependencies {
     implementation project(':lib_book')
     implementation libs.core.ktx
     implementation libs.androidx.lifecycle.viewmodel.ktx
-    kapt libs.apt
+    ksp libs.apt
     implementation libs.router
     //Dagger
-    kapt libs.dagger.compiler
+    ksp libs.dagger.compiler
 
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit

@@ -1,7 +1,8 @@
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.kapt")
+    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.kotlinKapt)
+    alias(libs.plugins.kotlinKsp)
 }
 
 android {
@@ -77,7 +78,7 @@ dependencies {
     api(libs.utilcodex)
     //Glide https://muyangmin.github.io/glide-docs-cn/
     api(libs.glide)
-    kapt(libs.compiler)
+    ksp(libs.compiler)
     //刷新加载控件 https://github.com/scwang90/SmartRefreshLayout/tree/main
     api(libs.refresh.layout.kernel)      //核心必须依赖
     api(libs.refresh.header.classics)    //经典刷新头
@@ -126,7 +127,8 @@ dependencies {
     api(libs.androidx.navi.fragment.ktx)
     api(libs.androidx.navi.ui.ktx)
     api(libs.androidx.navi.dynamic.features.fragment)
-
+    //Palette
+    api(libs.androidx.palette)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     testImplementation(libs.junit)

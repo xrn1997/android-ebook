@@ -14,8 +14,10 @@ import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel
 abstract class BaseMvvmRefreshActivity<V : ViewDataBinding, VM : BaseRefreshViewModel<*, *>> :
     BaseMvvmActivity<V, VM>() {
     protected lateinit var mRefreshLayout: RefreshLayout
+
     @JvmField
     protected var mOnItemClickListener: BaseAdapter.OnItemClickListener<V>? = null
+
     @JvmField
     protected var mOnItemLongClickListener: BaseAdapter.OnItemLongClickListener<V>? = null
     override fun initContentView() {

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="wrap_content"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical">
 
     <View
@@ -13,25 +13,25 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:background="#ffffff"
+        android:orientation="vertical"
         android:paddingTop="15dp"
         android:paddingBottom="15dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="35dp"
-            android:orientation="horizontal"
-            android:layout_gravity="center">
+            android:layout_gravity="center"
+            android:orientation="horizontal">
 
             <TextView
                 android:layout_width="80dp"
                 android:layout_height="match_parent"
-                android:textSize="14sp"
-                android:textColor="#adadad"
+                android:layout_gravity="center_vertical"
                 android:gravity="center"
                 android:text="字号"
-                android:layout_gravity="center_vertical" />
+                android:textColor="#adadad"
+                android:textSize="14sp" />
 
             <FrameLayout
                 android:id="@+id/fl_smaller"
@@ -43,8 +43,8 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="-"
                     android:layout_gravity="center"
+                    android:text="-"
                     android:textColor="#767676"
                     android:textSize="22sp" />
             </FrameLayout>
@@ -53,12 +53,12 @@
                 android:id="@+id/tv_dur_textsize"
                 android:layout_width="50dp"
                 android:layout_height="match_parent"
-                android:textSize="14sp"
-                android:textColor="#767676"
-                android:text="18"
+                android:layout_gravity="center"
                 android:gravity="center"
                 android:singleLine="true"
-                android:layout_gravity="center" />
+                android:text="18"
+                android:textColor="#767676"
+                android:textSize="14sp" />
 
             <FrameLayout
                 android:id="@+id/fl_bigger"
@@ -70,8 +70,8 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="+"
                     android:layout_gravity="center"
+                    android:text="+"
                     android:textColor="#767676"
                     android:textSize="22sp" />
             </FrameLayout>
@@ -80,38 +80,38 @@
                 android:id="@+id/tv_textsize_default"
                 android:layout_width="70dp"
                 android:layout_height="match_parent"
-                android:textSize="14sp"
-                android:textColor="@drawable/selector_pop_font_color"
+                android:layout_gravity="center_vertical"
                 android:gravity="center"
                 android:text="默认"
-                android:layout_gravity="center_vertical" />
+                android:textColor="@drawable/selector_pop_font_color"
+                android:textSize="14sp" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="45dp"
-            android:orientation="horizontal"
             android:layout_gravity="center"
-            android:layout_marginTop="15dp">
+            android:layout_marginTop="15dp"
+            android:orientation="horizontal">
 
             <TextView
                 android:layout_width="80dp"
                 android:layout_height="match_parent"
-                android:textSize="14sp"
-                android:textColor="#adadad"
-                android:gravity="center"
-                android:text="背景"
                 android:layout_gravity="center_vertical"
+                android:gravity="center"
                 android:paddingLeft="20dp"
-                android:paddingRight="20dp" />
+                android:paddingRight="20dp"
+                android:text="背景"
+                android:textColor="#adadad"
+                android:textSize="14sp" />
 
             <de.hdodenhof.circleimageview.CircleImageView
                 android:id="@+id/civ_bg_white"
                 android:layout_width="45dp"
                 android:layout_height="45dp"
                 android:src="@drawable/icon_readbook_white"
-                app:civ_border_width="1dp"
-                app:civ_border_color="#00000000" />
+                app:civ_border_color="#00000000"
+                app:civ_border_width="1dp" />
 
             <View
                 android:layout_width="0dp"
@@ -123,8 +123,8 @@
                 android:layout_width="45dp"
                 android:layout_height="45dp"
                 android:src="@drawable/icon_readbook_yellow"
-                app:civ_border_width="1dp"
-                app:civ_border_color="#F3B63F" />
+                app:civ_border_color="#F3B63F"
+                app:civ_border_width="1dp" />
 
             <View
                 android:layout_width="0dp"
@@ -136,8 +136,8 @@
                 android:layout_width="45dp"
                 android:layout_height="45dp"
                 android:src="@drawable/icon_readbook_green"
-                app:civ_border_width="1dp"
-                app:civ_border_color="#00000000" />
+                app:civ_border_color="#00000000"
+                app:civ_border_width="1dp" />
 
             <View
                 android:layout_width="0dp"
@@ -149,8 +149,8 @@
                 android:layout_width="45dp"
                 android:layout_height="45dp"
                 android:src="@drawable/icon_readbook_black"
-                app:civ_border_width="1dp"
-                app:civ_border_color="#00000000" />
+                app:civ_border_color="#00000000"
+                app:civ_border_width="1dp" />
 
             <View
                 android:layout_width="50dp"

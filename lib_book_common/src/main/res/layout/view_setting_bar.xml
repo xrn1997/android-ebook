@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:app="http://schemas.android.com/apk/res-auto"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/layout_setting_bar"
     android:layout_width="match_parent"
     android:layout_height="44dp"
-    xmlns:android="http://schemas.android.com/apk/res/android"
     android:background="?colorSurfaceVariant"
     android:paddingStart="5dp"
     android:paddingEnd="10dp">
@@ -19,33 +19,33 @@
         android:id="@+id/txt_set_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="17sp"
+        android:layout_centerVertical="true"
         android:layout_marginStart="10dp"
         android:layout_toEndOf="@+id/img_start_icon"
-        android:layout_centerVertical="true"
-        android:textColor="?colorOnSurfaceVariant" />
+        android:textColor="?colorOnSurfaceVariant"
+        android:textSize="17sp" />
 
     <EditText
         android:id="@+id/txt_set_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="15sp"
+        android:layout_centerVertical="true"
         android:layout_marginStart="14dp"
         android:layout_marginEnd="14dp"
         android:layout_toStartOf="@+id/img_end_icon"
-        android:layout_centerVertical="true"
         android:layout_toEndOf="@+id/txt_set_title"
-        android:textColor="?colorOnSurfaceVariant"
-        android:enabled="false"
         android:background="@null"
+        android:ellipsize="end"
+        android:enabled="false"
         android:singleLine="true"
-        android:ellipsize="end" />
+        android:textColor="?colorOnSurfaceVariant"
+        android:textSize="15sp" />
 
     <ImageView
         android:id="@+id/img_end_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:srcCompat="@drawable/usecar_list_icon_into"
         android:layout_alignParentEnd="true"
-        android:layout_centerVertical="true" />
+        android:layout_centerVertical="true"
+        app:srcCompat="@drawable/usecar_list_icon_into" />
 </RelativeLayout>

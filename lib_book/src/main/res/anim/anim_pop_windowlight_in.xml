@@ -5,9 +5,9 @@
     <!--android:fromYDelta="100%"-->
     <!--android:toYDelta="0" />-->
     <scale
-        android:fromYScale="0"
-        android:toYScale="1"
         android:fromXScale="1"
+        android:fromYScale="0"
+        android:pivotY="100%"
         android:toXScale="1"
-        android:pivotY="100%" />
+        android:toYScale="1" />
 </set>

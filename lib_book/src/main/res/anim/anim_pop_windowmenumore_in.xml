@@ -5,12 +5,12 @@
     <!--android:fromYDelta="100%"-->
     <!--android:toYDelta="0" />-->
     <scale
-        android:fromYScale="0.4"
-        android:toYScale="1"
         android:fromXScale="0.4"
-        android:toXScale="1"
+        android:fromYScale="0.4"
+        android:pivotX="100%"
         android:pivotY="0%"
-        android:pivotX="100%" />
+        android:toXScale="1"
+        android:toYScale="1" />
     <alpha
         android:fromAlpha="0.5"
         android:toAlpha="1" />

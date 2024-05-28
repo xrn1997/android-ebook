@@ -13,10 +13,10 @@
         android:id="@+id/refresh_comment_list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:srlEnableLoadMore="@{viewModel.enableLoadMore}"
-        app:srlEnableRefresh="@{viewModel.enableRefresh}"
         app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
-        app:onRefreshCommand="@{viewModel.onRefreshCommand}">
+        app:onRefreshCommand="@{viewModel.onRefreshCommand}"
+        app:srlEnableLoadMore="@{viewModel.enableLoadMore}"
+        app:srlEnableRefresh="@{viewModel.enableRefresh}">
 
         <com.scwang.smart.refresh.header.ClassicsHeader
             android:layout_width="match_parent"

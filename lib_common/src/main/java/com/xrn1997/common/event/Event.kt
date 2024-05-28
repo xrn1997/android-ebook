@@ -17,6 +17,7 @@ class BaseActivityEvent<T>(msg: String) : BaseEvent<T>(msg)
  * @author xrn1997
  */
 class BaseComposeActivityEvent<T>(msg: String) : BaseEvent<T>(msg)
+
 /**
  * EventBus BaseFragmentEvent
  * @author xrn1997

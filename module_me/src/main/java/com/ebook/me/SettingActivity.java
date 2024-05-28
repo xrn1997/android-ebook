@@ -31,6 +31,7 @@ public class SettingActivity extends BaseActivity<ActivitySettingBinding> {
         super.onDestroy();
         RxBus.get().unregister(this);
     }
+
     @Override
     public void initView() {
         Button mExitButton = findViewById(R.id.btn_exit);

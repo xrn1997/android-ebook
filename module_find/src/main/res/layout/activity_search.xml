@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.ebook.basebook.view.ImmerseView.layout.ImmerseLinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?colorSurface"
-        android:paddingBottom="13dp"
+        android:orientation="horizontal"
         android:paddingTop="13dp"
-        android:orientation="horizontal">
+        android:paddingBottom="13dp">
 
         <FrameLayout
             android:id="@+id/fl_search_content"
             android:layout_width="0dp"
-            android:layout_weight="1"
             android:layout_height="48dp"
-            android:transitionName="to_search"
-            android:layout_marginStart="10dp">
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:transitionName="to_search">
 
             <EditText
                 android:id="@+id/edt_content"
@@ -44,23 +44,23 @@
                 android:layout_height="15dp"
                 android:layout_gravity="center_vertical|start"
                 android:layout_marginStart="8dp"
-                android:src="@drawable/icon_search_nor"
-                android:contentDescription="@string/please_input_author_or_work" />
+                android:contentDescription="@string/please_input_author_or_work"
+                android:src="@drawable/icon_search_nor" />
         </FrameLayout>
 
         <TextView
             android:id="@+id/tv_to_search"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:background="@drawable/bg_ib_pre"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
             android:paddingStart="10dp"
             android:paddingEnd="15dp"
             android:text="@string/str_return"
-            android:textSize="16sp"
             android:textColor="@drawable/selector_tv_black"
-            android:gravity="center"
-            android:clickable="true"
-            android:background="@drawable/bg_ib_pre"
-            android:focusable="true" />
+            android:textSize="16sp" />
     </LinearLayout>
 
     <FrameLayout
@@ -72,37 +72,37 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="?attr/colorSurfaceVariant"
+            android:visibility="invisible"
             app:bg_color="#00000000"
             app:font_color="#767676"
             app:second_color="#c1c1c1"
             app:second_max_progress="80dp"
-            app:speed="2dp"
-            android:visibility="invisible" />
+            app:speed="2dp" />
 
         <LinearLayout
             android:id="@+id/ll_search_history"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="?attr/colorSurfaceVariant"
             android:orientation="vertical"
-            android:visibility="invisible"
-            android:background="?attr/colorSurfaceVariant">
+            android:visibility="invisible">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="15dp">
+                android:layout_marginTop="15dp"
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="16sp"
-                    android:textColor="?colorOnSurfaceVariant"
-                    android:text="@string/str_search_history"
                     android:layout_gravity="center_vertical"
                     android:layout_marginStart="18dp"
                     android:layout_marginTop="5dp"
-                    android:layout_marginBottom="5dp" />
+                    android:layout_marginBottom="5dp"
+                    android:text="@string/str_search_history"
+                    android:textColor="?colorOnSurfaceVariant"
+                    android:textSize="16sp" />
 
                 <View
                     android:layout_width="0dp"
@@ -116,23 +116,23 @@
                     android:layout_gravity="center_vertical"
                     android:background="@drawable/bg_ib_pre"
                     android:clickable="true"
+                    android:focusable="true"
                     android:gravity="center"
-                    android:paddingBottom="5dp"
                     android:paddingStart="15dp"
-                    android:paddingEnd="15dp"
                     android:paddingTop="5dp"
+                    android:paddingEnd="15dp"
+                    android:paddingBottom="5dp"
                     android:text="@string/str_clean"
                     android:textColor="@drawable/selector_tv_black"
-                    android:textSize="16sp"
-                    android:focusable="true" />
+                    android:textSize="16sp" />
             </LinearLayout>
 
             <com.ebook.basebook.view.flowlayout.TagFlowLayout
                 android:id="@+id/tfl_search_history"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
                 android:layout_marginStart="3dp"
+                android:layout_marginTop="10dp"
                 android:layout_marginEnd="3dp"
                 android:clickable="false" />
         </LinearLayout>
@@ -140,7 +140,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="20dp"
-            android:background="@drawable/bg_shadow"
-            android:layout_gravity="top" />
+            android:layout_gravity="top"
+            android:background="@drawable/bg_shadow" />
     </FrameLayout>
 </com.ebook.basebook.view.ImmerseView.layout.ImmerseLinearLayout>

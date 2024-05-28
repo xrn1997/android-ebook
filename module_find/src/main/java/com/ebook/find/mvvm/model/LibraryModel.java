@@ -35,10 +35,10 @@ public class LibraryModel extends BaseModel {
     //获得书库信息
     public Observable<Library> getLibraryData(ACache mCache) {
         return Observable.create((ObservableOnSubscribe<String>) e -> {
-            String cache = mCache.getAsString(LIBRARY_CACHE_KEY);
-            e.onNext(cache);
-            e.onComplete();
-        }).flatMap((Function<String, ObservableSource<Library>>) s -> WebBookModelImpl.getInstance().analyzeLibraryData(s))
+                    String cache = mCache.getAsString(LIBRARY_CACHE_KEY);
+                    e.onNext(cache);
+                    e.onComplete();
+                }).flatMap((Function<String, ObservableSource<Library>>) s -> WebBookModelImpl.getInstance().analyzeLibraryData(s))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread());
     }

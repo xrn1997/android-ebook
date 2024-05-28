@@ -3,6 +3,6 @@
     android:shape="rectangle">
     <corners android:radius="25dp" />
     <stroke
-        android:color="@color/tv_text_addshelf_deep_pre"
-        android:width="1.5dp" />
+        android:width="1.5dp"
+        android:color="@color/tv_text_addshelf_deep_pre" />
 </shape>

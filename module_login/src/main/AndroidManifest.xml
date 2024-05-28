@@ -9,8 +9,8 @@
         android:supportsRtl="true">
         <activity
             android:name=".LoginActivity"
-            android:launchMode="singleTask"
-            android:label="登录" />
+            android:label="登录"
+            android:launchMode="singleTask" />
         <activity
             android:name=".RegisterActivity"
             android:label="注册"

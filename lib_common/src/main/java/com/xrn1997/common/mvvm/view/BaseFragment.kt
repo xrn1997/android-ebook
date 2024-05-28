@@ -83,12 +83,20 @@ abstract class BaseFragment<V : ViewBinding> : RxFragment(), IBaseView {
         mViewStubLoading = binding.vsLoading
         mViewStubError = binding.vsError
         mViewStubNoData = binding.vsNoData
+        binding.parentLayout.fitsSystemWindows = enableFitsSystemWindows()
         if (enableToolbar()) {
             mViewStubToolbar.layoutResource = onBindToolbarLayout()
             val view = mViewStubToolbar.inflate()
             initToolbar(view)
         }
         initContentView(mViewStubContent)
+    }
+
+    /**
+     * 给根布局设置fitsSystemWindows，默认false
+     */
+    open fun enableFitsSystemWindows(): Boolean {
+        return false
     }
 
     /**

@@ -2,13 +2,13 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="260dp"
     android:layout_height="140dp"
-    android:orientation="vertical"
-    android:paddingTop="3.5dp"
-    android:paddingLeft="10.5dp"
-    android:paddingRight="10.5dp"
-    android:paddingBottom="16.5dp"
     android:background="@drawable/bg_search"
-    android:gravity="center_horizontal">
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingLeft="10.5dp"
+    android:paddingTop="3.5dp"
+    android:paddingRight="10.5dp"
+    android:paddingBottom="16.5dp">
 
     <View
         android:layout_width="0dp"
@@ -24,14 +24,14 @@
             android:id="@+id/msg_tv"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="30dp"
-            android:textSize="16sp"
-            android:textColor="#767676"
-            android:gravity="center"
-            android:layout_marginBottom="20dp"
-            android:layout_marginTop="10dp"
             android:layout_marginLeft="20dp"
-            android:layout_marginRight="20dp" />
+            android:layout_marginTop="10dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="20dp"
+            android:gravity="center"
+            android:minHeight="30dp"
+            android:textColor="#767676"
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/tv_close"
@@ -41,11 +41,11 @@
             android:layout_marginLeft="10dp"
             android:layout_marginRight="10dp"
             android:background="@drawable/selector_tv_addshelf"
-            android:text="确定"
             android:gravity="center"
-            android:textSize="14sp"
             android:lines="1"
-            android:textColor="@drawable/selector_tv_addshelf_text" />
+            android:text="确定"
+            android:textColor="@drawable/selector_tv_addshelf_text"
+            android:textSize="14sp" />
     </LinearLayout>
 
     <View

@@ -195,6 +195,7 @@ public class ReadBookActivity extends BaseActivity<IBookReadPresenter> implement
         permissions.add(PermissionX.permission.POST_NOTIFICATIONS);
         return permissions;
     }
+
     @Override
     public void initPop() {
         checkAddShelfPop = new CheckAddShelfPop(this, mPresenter.getBookShelf().getBookInfo().getName(), new CheckAddShelfPop.OnItemClickListener() {

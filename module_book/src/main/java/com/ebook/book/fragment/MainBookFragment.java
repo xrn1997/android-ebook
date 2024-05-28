@@ -43,14 +43,14 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
     private ImageButton ibDownload;
     private DownloadListPop downloadListPop;
 
+    public static MainBookFragment newInstance() {
+        return new MainBookFragment();
+    }
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         RxBus.get().register(this);
-    }
-
-    public static MainBookFragment newInstance() {
-        return new MainBookFragment();
     }
 
     @NonNull
@@ -122,12 +122,6 @@ public class MainBookFragment extends BaseMvvmRefreshFragment<FragmentBookMainBi
     public void initData() {
         mViewModel.refreshData();
 
-    }
-
-    @NonNull
-    @Override
-    public String getToolBarTitle() {
-        return "我的书架";
     }
 
     @NonNull

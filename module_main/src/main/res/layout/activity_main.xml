@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout android:layout_width="match_parent"
-    android:layout_height="match_parent"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
     <FrameLayout
         android:id="@+id/frame_content"
@@ -14,12 +14,12 @@
         android:id="@+id/navigation_main"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
         android:layout_marginStart="0dp"
         android:layout_marginEnd="0dp"
         android:background="?android:attr/windowBackground"
-        app:menu="@menu/menu_navigation"
-        app:labelVisibilityMode="labeled"
-        app:itemTextColor="@color/color_state_menu_navi"
         app:itemIconTint="@color/color_state_menu_navi"
-        android:layout_alignParentBottom="true" />
+        app:itemTextColor="@color/color_state_menu_navi"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/menu_navigation" />
 </RelativeLayout>

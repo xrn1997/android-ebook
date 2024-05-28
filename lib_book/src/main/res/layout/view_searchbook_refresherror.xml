@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#ffffff"
     android:clickable="true"
-    android:gravity="center">
+    android:gravity="center"
+    android:orientation="vertical">
 
     <TextView
         android:layout_width="wrap_content"
@@ -19,15 +19,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:paddingLeft="18dp"
-        android:paddingRight="18dp"
-        android:paddingTop="7dp"
-        android:paddingBottom="7dp"
         android:layout_marginTop="20dp"
         android:background="@drawable/selector_tv_addshelf"
-        android:text="重试"
         android:gravity="center"
-        android:textSize="16sp"
         android:lines="1"
-        android:textColor="@drawable/selector_tv_addshelf_text" />
+        android:paddingLeft="18dp"
+        android:paddingTop="7dp"
+        android:paddingRight="18dp"
+        android:paddingBottom="7dp"
+        android:text="重试"
+        android:textColor="@drawable/selector_tv_addshelf_text"
+        android:textSize="16sp" />
 </LinearLayout>

@@ -75,16 +75,16 @@ abstract class BaseMvvmRefreshActivity<VM : BaseRefreshViewModel<*, *>> : BaseMv
     @Composable
     override fun HomePage(modifier: Modifier) {
         val state = rememberLazyListState()
-            RefreshLayout(
-                viewModel = mViewModel,
-                header = { setHeaderView() },
-                body = {
-                    InitView(state)
-                },
-                footer = { setRooterView() },
-                modifier = modifier,
-                state = state
-            )
+        RefreshLayout(
+            viewModel = mViewModel,
+            header = { setHeaderView() },
+            body = {
+                InitView(state)
+            },
+            footer = { setRooterView() },
+            modifier = modifier,
+            state = state
+        )
     }
 
     /**

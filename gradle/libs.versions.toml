@@ -8,14 +8,14 @@ converterScalars = "2.11.0"
 coreKtx = "1.13.1"
 dagger = "2.51"
 explosionfield = "1.0.1"
-fastjson2 = "2.0.49"
+fastjson2 = "2.0.50"
 foundation = "1.6.7"
-fragmentKtx = "1.7.0"
+fragmentKtx = "1.7.1"
 glide = "4.16.0"
 glideTransformations = "4.3.0"
 greendao = "3.3.0"
 greendaoGradlePluginVersion = "3.3.1"
-gson = "2.10.1"
+gson = "2.11.0"
 input = "3.3.0"
 jsoup = "1.17.2"
 junit = "4.13.2"
@@ -23,8 +23,8 @@ junitVersion = "1.1.5"
 espressoCore = "3.5.1"
 appcompat = "1.6.1"
 juniversalchardet = "1.0.3"
-kotlinReflect = "1.9.23"
-kotlinxCoroutinesCore = "1.8.0"
+kotlinReflect = "1.9.24"
+kotlinxCoroutinesCore = "1.8.1"
 kyleduoLibrary = "2.1.0"
 leakcanaryAndroid = "2.14"
 legacySupportV4 = "1.0.0"
@@ -32,17 +32,19 @@ lib = "1.0.4"
 library = "2.4"
 libraryVersion = "2.4"
 lifecycleExtensions = "2.2.0"
-lifecycleRuntimeKtx = "2.7.0"
-lifecycleViewmodelSavedstate = "2.7.0"
+lifecycleRuntimeKtx = "2.8.0"
+lifecycleViewmodelSavedstate = "2.8.0"
 loggingInterceptor = "5.0.0-alpha.12"
 logginginterceptorVersion = "3.1.0"
 material = "1.12.0"
 activity = "1.9.0"
 constraintlayout = "2.1.4"
-kotlin="1.9.22"
+kotlin = "1.9.22"
+ksp = "1.9.22-1.0.17"
 material3 = "1.2.1"
 multiimageselector = "1.2"
 navigationCompose = "2.7.7"
+paletteVersion = "1.0.0"
 permissionx = "1.7.1"
 plugin = "1.2.2"
 recyclerview = "1.3.2"
@@ -82,6 +84,7 @@ androidx-navi-dynamic-features-fragment = { module = "androidx.navigation:naviga
 androidx-navi-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigationCompose" }
 androidx-navi-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigationCompose" }
 androidx-navigation-testing = { module = "androidx.navigation:navigation-testing", version.ref = "navigationCompose" }
+androidx-palette = { module = "androidx.palette:palette", version.ref = "paletteVersion" }
 androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
 androidx-ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
 androidx-ui-graphics = { module = "androidx.compose.ui:ui-graphics", version.ref = "ui" }
@@ -94,7 +97,7 @@ apt = { module = "cn.therouter:apt", version.ref = "plugin" }
 autofittextview = { module = "me.grantland:autofittextview", version.ref = "autofittextview" }
 bottomsheets = { module = "com.afollestad.material-dialogs:bottomsheets", version.ref = "input" }
 circleimageview = { module = "de.hdodenhof:circleimageview", version.ref = "circleimageview" }
-compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
+compiler = { module = "com.github.bumptech.glide:ksp", version.ref = "glide" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterScalars" }
 converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "converterScalars" }
 core = { module = "com.afollestad.material-dialogs:core", version.ref = "input" }
@@ -167,6 +170,9 @@ utilcodex = { module = "com.blankj:utilcodex", version.ref = "utilcodex" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
-kotlinAndroid={id="org.jetbrains.kotlin.android",version.ref="kotlin"}
+kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-theRouter={id="cn.therouter.agp8",version.ref="plugin"}
+theRouter = { id = "cn.therouter.agp8", version.ref = "plugin" }
+kotlinKsp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
+kotlinKapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }

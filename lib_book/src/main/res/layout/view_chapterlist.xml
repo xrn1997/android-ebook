@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/fl_bg"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
-    android:id="@+id/fl_bg"
-    android:clickable="true">
+    android:clickable="true"
+    android:orientation="vertical">
 
     <com.ebook.basebook.view.ImmerseView.layout.ImmerseLinearLayout
         android:id="@+id/ll_content"
         android:layout_width="260dp"
         android:layout_height="match_parent"
-        android:orientation="vertical"
         android:background="#ffffff"
+        android:orientation="vertical"
         android:paddingTop="15dp"
         android:visibility="invisible">
 
@@ -20,25 +20,25 @@
             android:id="@+id/tv_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:singleLine="true"
             android:layout_gravity="center"
             android:layout_marginLeft="15dp"
             android:layout_marginRight="15dp"
-            android:textSize="16sp"
-            android:textColor="#343434" />
+            android:singleLine="true"
+            android:textColor="#343434"
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/tv_listcount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:singleLine="true"
             android:layout_gravity="center"
             android:layout_marginLeft="15dp"
-            android:layout_marginRight="15dp"
-            android:textSize="13sp"
-            android:textColor="#767676"
             android:layout_marginTop="5dp"
-            android:layout_marginBottom="5dp" />
+            android:layout_marginRight="15dp"
+            android:layout_marginBottom="5dp"
+            android:singleLine="true"
+            android:textColor="#767676"
+            android:textSize="13sp" />
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -56,8 +56,8 @@
                 android:layout_width="35dp"
                 android:layout_height="match_parent"
                 android:layout_gravity="right"
-                app:slider_paddingLeft="7dp"
-                app:slider_height="32dp" />
+                app:slider_height="32dp"
+                app:slider_paddingLeft="7dp" />
         </FrameLayout>
     </com.ebook.basebook.view.ImmerseView.layout.ImmerseLinearLayout>
 </FrameLayout>

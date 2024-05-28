@@ -23,6 +23,7 @@ public class ClipView extends View {
     private final Paint paint = new Paint();
     //画裁剪区域边框的画笔
     private final Paint borderPaint = new Paint();
+    private final Xfermode xfermode;
     //裁剪框水平方向间距
     private float mHorizontalPadding;
     //裁剪框边框宽度
@@ -33,7 +34,6 @@ public class ClipView extends View {
     private int clipWidth;
     //裁剪框类别，（圆形、矩形），默认为圆形
     private ClipType clipType = ClipType.CIRCLE;
-    private final Xfermode xfermode;
 
     public ClipView(Context context) {
         this(context, null);
@@ -56,7 +56,6 @@ public class ClipView extends View {
 
     /**
      * 获得屏幕高度
-     *
      */
     public static int getScreenWidth(Context context) {
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);

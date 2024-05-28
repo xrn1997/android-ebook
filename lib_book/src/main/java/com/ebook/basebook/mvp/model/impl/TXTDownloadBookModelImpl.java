@@ -40,8 +40,8 @@ import io.reactivex.schedulers.Schedulers;
  * @author xrn1997
  */
 public class TXTDownloadBookModelImpl extends MBaseModelImpl implements StationBookModel {
-    private final String TAG = "shuangliusc.com";
     private volatile static TXTDownloadBookModelImpl bookModel;
+    private final String TAG = "shuangliusc.com";
 
     public static TXTDownloadBookModelImpl getInstance() {
         if (bookModel == null) {

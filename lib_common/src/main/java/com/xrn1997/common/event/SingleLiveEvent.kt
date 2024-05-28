@@ -42,6 +42,7 @@ open class SingleLiveEvent<T> : MutableLiveData<T?>() {
     companion object {
         private const val TAG = "SingleLiveEvent"
     }
+
     @MainThread
     override fun observe(owner: LifecycleOwner, observer: Observer<in T?>) {
         if (hasActiveObservers()) {

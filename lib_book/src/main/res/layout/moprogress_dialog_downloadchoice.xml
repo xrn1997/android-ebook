@@ -3,21 +3,21 @@
     android:layout_width="260dp"
     android:layout_height="185dp"
     android:background="@drawable/bg_search"
+    android:clickable="true"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    android:paddingBottom="16.5dp"
     android:paddingLeft="10.5dp"
-    android:paddingRight="10.5dp"
     android:paddingTop="3.5dp"
-    android:clickable="true">
+    android:paddingRight="10.5dp"
+    android:paddingBottom="16.5dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:paddingBottom="10dp"
-        android:paddingTop="15dp">
+        android:paddingTop="15dp"
+        android:paddingBottom="10dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -52,17 +52,17 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
                 android:background="@drawable/bg_edit"
+                android:inputType="number"
                 android:lines="1"
                 android:maxLength="4"
-                android:textCursorDrawable="@drawable/shape_text_cursor"
-                android:paddingBottom="4dp"
-                android:paddingLeft="5dp"
-                android:paddingRight="5dp"
-                android:paddingTop="4dp"
                 android:numeric="integer"
-                android:inputType="number"
-                android:textSize="14sp"
-                android:textColor="@color/tv_btn_black" />
+                android:paddingLeft="5dp"
+                android:paddingTop="4dp"
+                android:paddingRight="5dp"
+                android:paddingBottom="4dp"
+                android:textColor="@color/tv_btn_black"
+                android:textCursorDrawable="@drawable/shape_text_cursor"
+                android:textSize="14sp" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -80,17 +80,17 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
                 android:background="@drawable/bg_edit"
-                android:lines="1"
-                android:textCursorDrawable="@drawable/shape_text_cursor"
-                android:maxLength="4"
-                android:paddingBottom="4dp"
-                android:paddingLeft="5dp"
-                android:paddingRight="5dp"
-                android:paddingTop="4dp"
-                android:numeric="integer"
                 android:inputType="number"
-                android:textSize="14sp"
-                android:textColor="@color/tv_btn_black" />
+                android:lines="1"
+                android:maxLength="4"
+                android:numeric="integer"
+                android:paddingLeft="5dp"
+                android:paddingTop="4dp"
+                android:paddingRight="5dp"
+                android:paddingBottom="4dp"
+                android:textColor="@color/tv_btn_black"
+                android:textCursorDrawable="@drawable/shape_text_cursor"
+                android:textSize="14sp" />
 
             <TextView
                 android:layout_width="wrap_content"

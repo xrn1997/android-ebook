@@ -25,6 +25,7 @@ public class ModifyPwdActivity extends BaseMvvmActivity<ActivityModifyPwdBinding
         super.onDestroy();
         RxBus.get().unregister(this);
     }
+
     @NonNull
     @Override
     public Class<ModifyPwdViewModel> onBindViewModel() {

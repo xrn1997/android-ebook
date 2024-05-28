@@ -1,6 +1,6 @@
 plugins {
-    id 'org.jetbrains.kotlin.android'
-    id 'org.jetbrains.kotlin.kapt'
+    alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.kotlinKapt)
 }
 if (isLoginModule.toBoolean()) {
     apply plugin: 'com.android.application'
@@ -8,6 +8,7 @@ if (isLoginModule.toBoolean()) {
 } else {
     apply plugin: 'com.android.library'
 }
+apply plugin: 'com.google.devtools.ksp'
 android {
 
     defaultConfig {
@@ -63,10 +64,10 @@ dependencies {
     api project(':lib_book_common')
     implementation libs.core.ktx
     implementation libs.androidx.lifecycle.viewmodel.ktx
-    kapt libs.apt
+    ksp libs.apt
     implementation libs.router
     //Dagger
-    kapt libs.dagger.compiler
+    ksp libs.dagger.compiler
 
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit

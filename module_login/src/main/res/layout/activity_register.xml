@@ -50,15 +50,15 @@
         <Button
             android:id="@+id/id_btn_register"
             android:layout_width="match_parent"
-            android:background="@drawable/btn_selector"
             android:layout_height="56dp"
             android:layout_marginStart="30dp"
-            android:layout_marginEnd="30dp"
             android:layout_marginTop="50dp"
+            android:layout_marginEnd="30dp"
+            android:background="@drawable/btn_selector"
             android:onClick="@{() -> viewModel.register()}"
             android:text="@string/register"
-            android:textStyle="bold"
-            android:textColor="?colorOnPrimary" />
+            android:textColor="?colorOnPrimary"
+            android:textStyle="bold" />
 
 
     </LinearLayout>

@@ -32,6 +32,7 @@ class NoDataView(context: Context, attrs: AttributeSet) : ConstraintLayout(conte
 
     /** 显示的图片资源ID*/
     private var imageState = mutableIntStateOf(R.drawable.no_data)
+
     init {
         val root = View.inflate(context, R.layout.view_compose, this)
         val binding = ViewComposeBinding.bind(root)

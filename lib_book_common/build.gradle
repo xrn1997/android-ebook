@@ -1,7 +1,8 @@
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.kapt")
+    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.kotlinKapt)
+    alias(libs.plugins.kotlinKsp)
 }
 android {
 
@@ -52,7 +53,7 @@ dependencies {
 
     implementation libs.core.ktx
     implementation libs.androidx.lifecycle.viewmodel.ktx
-    kapt libs.apt
+    ksp libs.apt
     api libs.router
     //rxjava
     api libs.rxjava
@@ -67,13 +68,13 @@ dependencies {
     api(libs.glide) {
         exclude group: 'com.android.support'
     }
-    kapt libs.compiler
+    ksp libs.compiler
 
     api libs.androidx.lifecycle.extensions
     kapt libs.androidx.lifecycle.common.java8
 
     api libs.dagger
-    kapt libs.dagger.compiler
+    ksp libs.dagger.compiler
 
     api libs.stetho
 

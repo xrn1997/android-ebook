@@ -1,5 +1,6 @@
 apply plugin: 'org.jetbrains.kotlin.android'
 apply plugin: 'org.jetbrains.kotlin.kapt'
+apply plugin: 'com.google.devtools.ksp'
 android {
     compileSdk 34
     defaultConfig {
@@ -78,7 +79,7 @@ dependencies {
 
     //Glide https://muyangmin.github.io/glide-docs-cn/
     implementation libs.glide
-    kapt libs.compiler
+    ksp libs.compiler
 
     //Android 工具类 https://github.com/Blankj/AndroidUtilCode
     implementation libs.utilcodex

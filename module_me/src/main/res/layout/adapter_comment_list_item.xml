@@ -69,14 +69,14 @@
                 android:textSize="12sp" />
 
             <TextView
-                android:layout_below="@+id/view_comment_address"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@{DateUtil.formatDate(comment.addtime,DateUtil.FormatType.yyyyMMddHHmm)}"
+                android:layout_below="@+id/view_comment_address"
+                android:layout_alignParentEnd="true"
                 android:layout_marginTop="5dp"
                 android:layout_marginEnd="10dp"
-                android:textSize="12sp"
-                android:layout_alignParentEnd="true" />
+                android:text="@{DateUtil.formatDate(comment.addtime,DateUtil.FormatType.yyyyMMddHHmm)}"
+                android:textSize="12sp" />
         </RelativeLayout>
 
         <View

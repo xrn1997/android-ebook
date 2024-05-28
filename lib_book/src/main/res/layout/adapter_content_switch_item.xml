@@ -17,20 +17,20 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingBottom="5dp"
         android:paddingLeft="15dp"
+        android:paddingTop="5dp"
         android:paddingRight="15dp"
-        android:paddingTop="5dp">
+        android:paddingBottom="5dp">
 
         <TextView
             android:id="@+id/tv_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="left"
+            android:alpha="0.7"
             android:lines="1"
             android:textColor="#ffffff"
-            android:textSize="14sp"
-            android:alpha="0.7" />
+            android:textSize="14sp" />
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -59,8 +59,8 @@
                     android:id="@+id/v_bottom"
                     android:layout_width="match_parent"
                     android:layout_height="0.3dp"
-                    android:layout_marginBottom="5dp"
                     android:layout_marginTop="5dp"
+                    android:layout_marginBottom="5dp"
                     android:background="#ffffff" />
 
                 <TextView
@@ -110,10 +110,10 @@
                     android:background="@drawable/selector_tv_addshelf"
                     android:gravity="center"
                     android:lines="1"
-                    android:paddingBottom="7dp"
                     android:paddingLeft="18dp"
-                    android:paddingRight="18dp"
                     android:paddingTop="7dp"
+                    android:paddingRight="18dp"
+                    android:paddingBottom="7dp"
                     android:text="重试"
                     android:textColor="@drawable/selector_tv_addshelf_text"
                     android:textSize="16sp" />

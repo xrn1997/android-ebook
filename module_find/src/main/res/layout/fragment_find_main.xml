@@ -21,10 +21,10 @@
             android:id="@+id/refview_library"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:srlEnableLoadMore="@{viewModel.enableLoadMore}"
-            app:srlEnableRefresh="@{viewModel.enableRefresh}"
             app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
-            app:onRefreshCommand="@{viewModel.onRefreshCommand}">
+            app:onRefreshCommand="@{viewModel.onRefreshCommand}"
+            app:srlEnableLoadMore="@{viewModel.enableLoadMore}"
+            app:srlEnableRefresh="@{viewModel.enableRefresh}">
 
             <com.scwang.smart.refresh.header.ClassicsHeader
                 android:layout_width="match_parent"
@@ -49,8 +49,8 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:gravity="center"
                             android:layout_marginStart="8dp"
+                            android:gravity="center"
                             android:paddingTop="8dp"
                             android:paddingBottom="8dp"
                             android:text="@string/book_type"
@@ -61,10 +61,10 @@
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/kind_ll"
-                        android:layout_height="match_parent"
                         android:layout_width="match_parent"
-                        android:paddingTop="8dp"
+                        android:layout_height="match_parent"
                         android:overScrollMode="never"
+                        android:paddingTop="8dp"
                         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
                         app:spanCount="4" />
 
@@ -102,8 +102,8 @@
                                 android:layout_height="13dp"
                                 android:layout_gravity="center_vertical|start"
                                 android:layout_marginStart="10dp"
-                                android:src="@drawable/icon_search_nor"
-                                android:contentDescription="@string/search_book_or_author" />
+                                android:contentDescription="@string/search_book_or_author"
+                                android:src="@drawable/icon_search_nor" />
                         </FrameLayout>
                     </LinearLayout>
 

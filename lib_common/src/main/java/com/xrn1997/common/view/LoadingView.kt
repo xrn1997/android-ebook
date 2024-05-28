@@ -24,6 +24,7 @@ class LoadingView(context: Context, attrs: AttributeSet) : ConstraintLayout(cont
 
     /**加载页面状态*/
     private var visibleState = mutableStateOf(false)
+
     init {
         val root = View.inflate(context, R.layout.view_compose, this)
         val binding = ViewComposeBinding.bind(root)

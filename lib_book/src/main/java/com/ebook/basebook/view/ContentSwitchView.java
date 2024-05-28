@@ -467,15 +467,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
             return true;
         }
         return false;
-    }    private final ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
-        @Override
-        public void onGlobalLayout() {
-            if (bookReadInitListener != null) {
-                bookReadInitListener.success();
-            }
-            durPageView.getTvContent().getViewTreeObserver().removeOnGlobalLayoutListener(layoutInitListener);
-        }
-    };
+    }
 
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (readBookControl.getCanKeyTurn() && keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
@@ -486,6 +478,16 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
     public OnBookReadInitListener getBookReadInitListener() {
         return bookReadInitListener;
     }
+
+    private final ViewTreeObserver.OnGlobalLayoutListener layoutInitListener = new ViewTreeObserver.OnGlobalLayoutListener() {
+        @Override
+        public void onGlobalLayout() {
+            if (bookReadInitListener != null) {
+                bookReadInitListener.success();
+            }
+            durPageView.getTvContent().getViewTreeObserver().removeOnGlobalLayoutListener(layoutInitListener);
+        }
+    };
 
     public void setBookReadInitListener(OnBookReadInitListener bookReadInitListener) {
         this.bookReadInitListener = bookReadInitListener;

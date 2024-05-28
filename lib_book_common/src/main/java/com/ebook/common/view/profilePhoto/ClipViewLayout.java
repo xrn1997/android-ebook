@@ -45,6 +45,12 @@ public class ClipViewLayout extends RelativeLayout {
     private final Matrix savedMatrix = new Matrix();
     //用于存放矩阵的9个值
     private final float[] matrixValues = new float[9];
+    //记录起始坐标
+    private final PointF start = new PointF();
+    //记录缩放时两指中间点坐标
+    private final PointF mid = new PointF();
+    //最大缩放比例
+    private final float maxScale = 4;
     //裁剪原图
     private ImageView imageView;
     //裁剪框
@@ -55,15 +61,9 @@ public class ClipViewLayout extends RelativeLayout {
     private float mVerticalPadding;
     //初始化动作标志
     private int mode = NONE;
-    //记录起始坐标
-    private final PointF start = new PointF();
-    //记录缩放时两指中间点坐标
-    private final PointF mid = new PointF();
     private float oldDist = 1f;
     //最小缩放比例
     private float minScale;
-    //最大缩放比例
-    private final float maxScale = 4;
 
 
     public ClipViewLayout(Context context) {
@@ -108,7 +108,7 @@ public class ClipViewLayout extends RelativeLayout {
     /**
      * 图片等比例压缩
      *
-     * @param filePath 文件路径
+     * @param filePath  文件路径
      * @param reqWidth  期望的宽
      * @param reqHeight 期望的高
      * @return bitmap
@@ -134,7 +134,6 @@ public class ClipViewLayout extends RelativeLayout {
      * 计算InSampleSize
      * 宽的压缩比和高的压缩比的较小值  取接近的2的次幂的值
      * 比如宽的压缩比是3 高的压缩比是5 取较小值3  而InSampleSize必须是2的次幂，取接近的2的次幂4
-     *
      */
     public static int calculateInSampleSize(BitmapFactory.Options options,
                                             int reqWidth, int reqHeight) {

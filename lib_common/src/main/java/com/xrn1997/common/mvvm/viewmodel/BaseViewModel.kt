@@ -62,6 +62,7 @@ open class BaseViewModel<M : IBaseModel>(
         val mOnBackPressedEvent
             get() = createLiveData(onBackPressedEvent).also { onBackPressedEvent = it }
     }
+
     /**
      * 显示无数据视图
      * @param show Boolean true为显示，false为隐藏

@@ -1,5 +1,7 @@
-apply plugin: 'com.android.library'
-apply plugin: 'org.jetbrains.kotlin.android'
+plugins {
+    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.kotlinAndroid)
+}
 
 android {
 
@@ -11,8 +13,7 @@ android {
     sourceSets {
         main {
             jniLibs.srcDirs = ['libs']
-            if (isModule.toBoolean()) {
-            } else {
+            if (!isModule.toBoolean()) {
                 resources {
                     //正式版本时，排除debug文件夹下所有调试文件
                     exclude 'src/debug/*'

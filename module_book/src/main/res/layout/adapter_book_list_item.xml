@@ -36,10 +36,10 @@
                     android:id="@+id/iv_cover"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:contentDescription="@string/cover"
                     android:scaleType="centerCrop"
                     app:imageUrl="@{String.valueOf(bookshelf.bookInfo.coverUrl)}"
-                    app:placeHolder="@{@drawable/img_cover_default}"
-                    android:contentDescription="@string/cover" />
+                    app:placeHolder="@{@drawable/img_cover_default}" />
             </androidx.cardview.widget.CardView>
 
             <RelativeLayout
@@ -50,11 +50,11 @@
                     android:id="@+id/txt_book_name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:singleLine="true"
-                    android:ellipsize="end"
                     android:layout_marginTop="8dp"
-                    android:text="@{String.valueOf(bookshelf.bookInfo.name)}"
+                    android:ellipsize="end"
                     android:fontFamily="monospace"
+                    android:singleLine="true"
+                    android:text="@{String.valueOf(bookshelf.bookInfo.name)}"
                     android:textSize="16sp" />
 
                 <TextView
