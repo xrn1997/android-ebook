@@ -208,7 +208,7 @@ abstract class BaseActivity<V : ViewBinding> : RxAppCompatActivity(), IBaseView 
     override fun onDestroy() {
         super.onDestroy()
         EventBus.getDefault().unregister(this)
-        ActivityManager.finishActivity(this)
+        ActivityManager.removeActivity(this)
     }
 
     override fun getContext(): Context? {
