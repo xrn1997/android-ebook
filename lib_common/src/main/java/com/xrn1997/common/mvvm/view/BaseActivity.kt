@@ -2,33 +2,28 @@ package com.xrn1997.common.mvvm.view
 
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewStub
-import android.view.WindowInsetsController
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.appcompat.widget.Toolbar
-import androidx.core.graphics.ColorUtils
 import androidx.databinding.DataBindingUtil
-import androidx.palette.graphics.Palette
 import androidx.viewbinding.ViewBinding
-import com.blankj.utilcode.util.BarUtils.getStatusBarHeight
 import com.blankj.utilcode.util.NetworkUtils
-import com.blankj.utilcode.util.ScreenUtils.getScreenWidth
 import com.trello.rxlifecycle4.components.support.RxAppCompatActivity
 import com.xrn1997.common.R
 import com.xrn1997.common.databinding.ActivityRootBinding
 import com.xrn1997.common.event.BaseActivityEvent
 import com.xrn1997.common.manager.ActivityManager
 import com.xrn1997.common.mvvm.IBaseView
+import com.xrn1997.common.util.setAndroidNativeLightStatusBar
+import com.xrn1997.common.util.setStatusBarWithBitmap
+import com.xrn1997.common.util.transparentStatusBar
 import com.xrn1997.common.view.LoadingView
 import com.xrn1997.common.view.NetErrorView
 import com.xrn1997.common.view.NoDataView
@@ -75,9 +70,8 @@ abstract class BaseActivity<V : ViewBinding> : RxAppCompatActivity(), IBaseView 
         val rootView: View = mBinding.root
         super.setContentView(rootView)
         //沉浸式状态栏
-        window.statusBarColor = Color.TRANSPARENT
-        mBinding.baseLayout.systemUiVisibility =
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        transparentStatusBar()
+        //状态栏字体颜色自适应
         setStatusBarColor()
         mContentView = findViewById(android.R.id.content)
         EventBus.getDefault().register(this)
@@ -87,10 +81,12 @@ abstract class BaseActivity<V : ViewBinding> : RxAppCompatActivity(), IBaseView 
     }
 
     /**
-     * 设置系统状态栏颜色,默认浅色模式下是白底黑色
+     * 设置系统状态栏颜色,默认状态栏颜色自适应浅/深色模式。
+     *
+     * 如需适配背景图片，请重写该方法并使用[setStatusBarWithBitmap]。
      */
     open fun setStatusBarColor() {
-        setLightStatusBar()
+        setAndroidNativeLightStatusBar()
     }
 
     /**
@@ -254,76 +250,6 @@ abstract class BaseActivity<V : ViewBinding> : RxAppCompatActivity(), IBaseView 
         }
         mNetErrorView?.show(show)
     }
-
-    /**
-     * 解析Bitmap，设置状态栏颜色（亮、暗）。
-     */
-    protected fun detectBitmapColor(bitmap: Bitmap) {
-        val colorCount = 5
-        val left = 0
-        val top = 0
-        val right = getScreenWidth()
-        val bottom = getStatusBarHeight()
-
-        Palette
-            .from(bitmap)
-            .maximumColorCount(colorCount)
-            .setRegion(left, top, right, bottom)
-            .generate {
-                it?.let { palette ->
-                    var mostPopularSwatch: Palette.Swatch? = null
-                    for (swatch in palette.swatches) {
-                        if (mostPopularSwatch == null
-                            || swatch.population > mostPopularSwatch.population
-                        ) {
-                            mostPopularSwatch = swatch
-                        }
-                    }
-                    mostPopularSwatch?.let { swatch ->
-                        val luminance = ColorUtils.calculateLuminance(swatch.rgb)
-                        // If the luminance value is lower than 0.5, we consider it as dark.
-                        if (luminance < 0.5) {
-                            setDarkStatusBar()
-                        } else {
-                            setLightStatusBar()
-                        }
-                    }
-                }
-            }
-    }
-
-    /**
-     * 系统状态栏设置为亮色(黑字)
-     */
-    protected fun setLightStatusBar() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.setSystemBarsAppearance(
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility =
-                window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-        }
-    }
-
-    /**
-     * 系统状态栏设置为暗色(白字)
-     */
-    protected fun setDarkStatusBar() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.setSystemBarsAppearance(
-                0,
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility =
-                window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
-        }
-    }
-
 
     /**
      * 如有必要，可以用EventBus传值调用BaseActivity中的方法
