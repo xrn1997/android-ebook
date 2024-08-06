@@ -62,7 +62,7 @@ object ActivityManager {
     }
 
     /**
-     * 移除指定的Activity，但不结束该activity
+     * 移除指定的Activity,但不结束该activity
      */
     fun removeActivity(activity: Activity?) {
         activityStack.remove(activity)
@@ -146,7 +146,7 @@ object ActivityManager {
         } catch (_: Exception) {
 
         } finally {
-            // 注意，如果您有后台程序运行，请不要支持此句子
+            // 注意,如果您有后台程序运行,请不要支持此句子
             if ((!isBackground!!)) {
                 exitProcess(0)
             }

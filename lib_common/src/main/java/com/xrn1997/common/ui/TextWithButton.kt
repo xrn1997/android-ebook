@@ -10,7 +10,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 
 /**
- * 上面一个显示用的Text，下面一个Button
+ * 上面一个显示用的Text,下面一个Button
  * @param text 显示的内容
  * @param buttonText 按钮上的文字
  */

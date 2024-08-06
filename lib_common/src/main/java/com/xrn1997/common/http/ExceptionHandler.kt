@@ -103,11 +103,11 @@ object ExceptionHandler {
 
     interface AppError {
         companion object {
-            const val SUCCESS = 0 //    处理成功，无错误
+            const val SUCCESS = 0 //    处理成功,无错误
             const val INTERFACE_PROCESSING_TIMEOUT = 1 //    接口处理超时
             const val INTERFACE_INTERNAL_ERROR = 2 //    接口内部错误
             const val PARAMETERS_EMPTY = 3 //    必需的参数为空
-            const val AUTHENTICATION_FAILED = 4 //   鉴权失败，用户没有使用该项功能（服务）的权限。
+            const val AUTHENTICATION_FAILED = 4 //   鉴权失败,用户没有使用该项功能（服务）的权限.
             const val PARAMETERS_ERROR = 5 //    参数错误
         }
     }

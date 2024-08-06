@@ -27,17 +27,17 @@ object FileUtil {
     private const val TAG = "FileUtil"
 
     /**
-     * 需要附加类型，如[IMAGE_TYPE]+"jpeg"
+     * 需要附加类型,如[IMAGE_TYPE]+"jpeg"
      */
     const val IMAGE_TYPE = "image/"
 
     /**
-     * 需要附加类型，如[VIDEO_TYPE]+"mp4"
+     * 需要附加类型,如[VIDEO_TYPE]+"mp4"
      */
     const val VIDEO_TYPE = "video/"
 
     /**
-     * 需要附加类型，如[AUDIO_TYPE]+"mpeg"
+     * 需要附加类型,如[AUDIO_TYPE]+"mpeg"
      */
     const val AUDIO_TYPE = "audio/"
 
@@ -129,7 +129,7 @@ object FileUtil {
     /**
      * 删除单个文件
      * @param filePath 被删除文件的文件名
-     * @return 文件删除成功返回true，否则返回false
+     * @return 文件删除成功返回true,否则返回false
      */
     fun deleteFile(filePath: String): Boolean {
         val file = File(filePath)
@@ -141,12 +141,12 @@ object FileUtil {
     /**
      * 删除文件夹以及目录下的文件
      * @param filePath 被删除目录的文件路径
-     * @return 目录删除成功返回true，否则返回false
+     * @return 目录删除成功返回true,否则返回false
      */
     fun deleteDirectory(filePath: String): Boolean {
 
         var flag: Boolean
-        //如果filePath不以文件分隔符结尾，自动添加文件分隔符
+        //如果filePath不以文件分隔符结尾,自动添加文件分隔符
 
         val dirFile = File(
             if (!filePath.endsWith(File.separator)) {

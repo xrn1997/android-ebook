@@ -12,7 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 /**
- * 上面一个显示用的Image，下面一个Button
+ * 上面一个显示用的Image,下面一个Button
  * @param res: 图片资源ID
  * @param des: 图片内容描述
  * @param onClick: 单击事件

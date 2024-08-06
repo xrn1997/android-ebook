@@ -7,24 +7,24 @@ package com.xrn1997.common.constant
  * 2. A代表用户端错误
  * 3. B代表当前系统异常
  * 4. C代表第三方服务异常
- * 4. 若无法确定具体错误，选择宏观错误
+ * 4. 若无法确定具体错误,选择宏观错误
  * 6. 大的错误类间的步长间距预留100
  * @author xrn1997
  */
 @Suppress("unused")
 enum class ErrorCode(val code: String, val description: String) {
     /**
-     * 成功。
+     * 成功.
      */
     SUCCESS("00000", "一切 ok"),
 
     /**
-     * 用户端错误。
+     * 用户端错误.
      */
     USER_ERROR_0001("A0001", "用户端错误"),
 
     /**
-     * 用户注册错误。
+     * 用户注册错误.
      */
     USER_ERROR_A0100("A0100", "用户注册错误"),
     USER_ERROR_A0101("A0101", "用户未同意隐私协议"),
@@ -32,7 +32,7 @@ enum class ErrorCode(val code: String, val description: String) {
     USER_ERROR_A0110("A0110", "用户名校验失败"),
 
     /**
-     * 用户名已存在。
+     * 用户名已存在.
      */
     USER_ERROR_A0111("A0111", "用户名已存在"),
     USER_ERROR_A0112("A0112", "用户名包含敏感词"),
@@ -55,19 +55,19 @@ enum class ErrorCode(val code: String, val description: String) {
     USER_ERROR_A0153("A0153", "邮箱格式校验失败"),
 
     /**
-     * 用户登录异常。
+     * 用户登录异常.
      */
     USER_ERROR_A0200("A0200", "用户登录异常"),
 
     /**
-     * 用户不存在。
+     * 用户不存在.
      */
     USER_ERROR_A0201("A0201", "用户账户不存在"),
     USER_ERROR_A0202("A0202", "用户账户被冻结"),
     USER_ERROR_A0203("A0203", "用户账户已作废"),
 
     /**
-     * 用户密码错误。
+     * 用户密码错误.
      */
     USER_ERROR_A0210("A0210", "用户密码错误"),
     USER_ERROR_A0211("A0211", "用户输入密码错误次数超限"),
@@ -80,7 +80,7 @@ enum class ErrorCode(val code: String, val description: String) {
     USER_ERROR_A0241("A0241", "用户验证码尝试次数超限"),
 
     /**
-     * 访问权限异常。
+     * 访问权限异常.
      */
     USER_ERROR_A0300("A0300", "访问权限异常"),
     USER_ERROR_A0301("A0301", "访问未授权"),
@@ -100,7 +100,7 @@ enum class ErrorCode(val code: String, val description: String) {
     USER_ERROR_A0341("A0341", "RSA 签名错误"),
 
     /**
-     * 用户请求参数错误。
+     * 用户请求参数错误.
      */
     USER_ERROR_A0400("A0400", "用户请求参数错误"),
     USER_ERROR_A0401("A0401", "包含非法恶意跳转链接"),
@@ -128,7 +128,7 @@ enum class ErrorCode(val code: String, val description: String) {
     USER_ERROR_A0443("A0443", "订单已关闭"),
 
     /**
-     * 用户请求服务异常。
+     * 用户请求服务异常.
      */
     USER_ERROR_A0500("A0500", "用户请求服务异常"),
     USER_ERROR_A0501("A0501", "请求次数超出限制"),
@@ -139,7 +139,7 @@ enum class ErrorCode(val code: String, val description: String) {
     USER_ERROR_A0506("A0506", "用户重复请求"),
 
     /**
-     * 用户资源异常。
+     * 用户资源异常.
      */
     USER_ERROR_A0600("A0600", "用户资源异常"),
     USER_ERROR_A0601("A0601", "账户余额不足"),
@@ -148,12 +148,12 @@ enum class ErrorCode(val code: String, val description: String) {
     USER_ERROR_A0604("A0604", "用户 OSS 容量不足"),
 
     /**
-     * 用户配额已用光。
+     * 用户配额已用光.
      */
     USER_ERROR_A0605("A0605", "用户配额已用光"),
 
     /**
-     * 用户上传文件异常。
+     * 用户上传文件异常.
      */
     USER_ERROR_A0700("A0700", "用户上传文件异常"),
     USER_ERROR_A0701("A0701", "用户上传文件类型不匹配"),
@@ -163,7 +163,7 @@ enum class ErrorCode(val code: String, val description: String) {
     USER_ERROR_A0705("A0705", "用户上传压缩文件太大"),
 
     /**
-     * 用户当前版本异常。
+     * 用户当前版本异常.
      */
     USER_ERROR_A0800("A0800", "用户当前版本异常"),
     USER_ERROR_A0801("A0801", "用户安装版本与系统不匹配"),
@@ -175,7 +175,7 @@ enum class ErrorCode(val code: String, val description: String) {
     USER_ERROR_A0807("A0807", "用户 API 请求版本过低"),
 
     /**
-     * 用户隐私未授权。
+     * 用户隐私未授权.
      */
     USER_ERROR_A0900("A0900", "用户隐私未授权"),
     USER_ERROR_A0901("A0901", "用户隐私未签署"),
@@ -187,7 +187,7 @@ enum class ErrorCode(val code: String, val description: String) {
     USER_ERROR_A0907("A0907", "用户通讯录未授权"),
 
     /**
-     * 用户设备异常。
+     * 用户设备异常.
      */
     USER_ERROR_A1000("A1000", "用户设备异常"),
     USER_ERROR_A1001("A1001", "用户相机异常"),
@@ -201,28 +201,28 @@ enum class ErrorCode(val code: String, val description: String) {
      */
     USER_ERROR_A1100("A1100", "用户尚未在该地图标点"),
     USER_ERROR_A1101("A1101", "此医院无处于此状态安全中心"),
-    USER_ERROR_A1102("A1102", "包含数据父结构不存在，无法完成操作"),
+    USER_ERROR_A1102("A1102", "包含数据父结构不存在,无法完成操作"),
 
     /**
-     * 系统执行出错。
+     * 系统执行出错.
      */
     SYSTEM_ERROR_B0001("B0001", "系统执行出错"),
 
     /**
-     * 系统执行超时。
+     * 系统执行超时.
      */
     SYSTEM_ERROR_B0100("B0100", "系统执行超时"),
     SYSTEM_ERROR_B0101("B0101", "系统订单处理超时"),
 
     /**
-     * 系统容灾功能被触发。
+     * 系统容灾功能被触发.
      */
     SYSTEM_ERROR_B0200("B0200", "系统容灾功能被触发"),
     SYSTEM_ERROR_B0210("B0210", "系统限流"),
     SYSTEM_ERROR_B0220("B0220", "系统功能降级"),
 
     /**
-     * 系统资源异常。
+     * 系统资源异常.
      */
     SYSTEM_ERROR_B0300("B0300", "系统资源异常"),
     SYSTEM_ERROR_B0310("B0310", "系统资源耗尽"),
@@ -242,12 +242,12 @@ enum class ErrorCode(val code: String, val description: String) {
     SYSTEM_ERROR_B0402("B0402", "服务接口已被降级"),
 
     /**
-     * 调用第三方服务出错。
+     * 调用第三方服务出错.
      */
     SERVICE_ERROR_C0001("C0001", "调用第三方服务出错"),
 
     /**
-     * 中间件服务出错。
+     * 中间件服务出错.
      */
     SERVICE_ERROR_C0100("C0100", "中间件服务出错"),
     SERVICE_ERROR_C0110("C0110", "RPC 服务出错"),
@@ -272,7 +272,7 @@ enum class ErrorCode(val code: String, val description: String) {
     SERVICE_ERROR_C0154("C0154", "网关服务出错"),
 
     /**
-     * 第三方系统执行超时。
+     * 第三方系统执行超时.
      */
     SERVICE_ERROR_C0200("C0200", "第三方系统执行超时"),
     SERVICE_ERROR_C0210("C0210", "RPC 执行超时"),
@@ -282,7 +282,7 @@ enum class ErrorCode(val code: String, val description: String) {
     SERVICE_ERROR_C0250("C0250", "数据库服务超时"),
 
     /**
-     * 数据库服务出错。
+     * 数据库服务出错.
      */
     SERVICE_ERROR_C0300("C0300", "数据库服务出错"),
     SERVICE_ERROR_C0311("C0311", "表不存在"),
@@ -292,14 +292,14 @@ enum class ErrorCode(val code: String, val description: String) {
     SERVICE_ERROR_C0341("C0341", "主键冲突"),
 
     /**
-     * 第三方容灾系统被触发。
+     * 第三方容灾系统被触发.
      */
     SERVICE_ERROR_C0400("C0400", "第三方容灾系统被触发"),
     SERVICE_ERROR_C0401("C0401", "第三方系统限流"),
     SERVICE_ERROR_C0402("C0402", "第三方功能降级"),
 
     /**
-     * 通知服务出错。
+     * 通知服务出错.
      */
     SERVICE_ERROR_C0500("C0500", "通知服务出错"),
     SERVICE_ERROR_C0501("C0501", "短信提醒服务失败"),

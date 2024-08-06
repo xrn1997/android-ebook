@@ -44,8 +44,8 @@ object RetrofitManager {
         PathUtils.getInternalAppFilesPath() + File.separator + "cache" + File.separator
 
     /**
-     * 创建 Service接口动态代理对象。
-     * 在调用create创建服务之前需要设置mHttpUrl，即http地址。
+     * 创建 Service接口动态代理对象.
+     * 在调用create创建服务之前需要设置mHttpUrl,即http地址.
      * @see RetrofitManager.mHttpUrl
      * @see HttpUrlUtil
      */
@@ -84,7 +84,7 @@ object RetrofitManager {
             .addNetworkInterceptor { chain ->
                 val request = chain.request()
                 val response = chain.proceed(request)
-                //在线的时候的缓存过期时间，如果想要不缓存，直接时间设置为0
+                //在线的时候的缓存过期时间,如果想要不缓存,直接时间设置为0
                 val onlineCacheTime = 60
                 response.newBuilder()
                     .header("Cache-Control", "public, max-age=$onlineCacheTime")

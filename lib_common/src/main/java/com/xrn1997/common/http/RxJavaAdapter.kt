@@ -21,7 +21,7 @@ object RxJavaAdapter {
     private const val TAG = "RxJavaAdapter"
 
     /**
-     * 线程调度器，以上代码均在IO线程中执行，以下代码均在主线程中执行
+     * 线程调度器,以上代码均在IO线程中执行,以下代码均在主线程中执行
      */
     fun <T : Any> schedulersTransformer(): ObservableTransformer<T, T> {
         return ObservableTransformer { upstream ->

@@ -12,7 +12,7 @@ import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
  */
 abstract class BaseMvvmActivity<VM : BaseViewModel<*>> : BaseActivity() {
     /**
-     * MVVM中的VM，负责处理视图的操作功能，与M进行数据交互。
+     * MVVM中的VM,负责处理视图的操作功能,与M进行数据交互.
      */
     protected lateinit var mViewModel: VM
 
@@ -56,12 +56,12 @@ abstract class BaseMvvmActivity<VM : BaseViewModel<*>> : BaseActivity() {
     }
 
     /**
-     * 初始化观察者，onCreate中执行，在initView之后，initData之前。
+     * 初始化观察者,onCreate中执行,在initView之后,initData之前.
      */
     abstract fun initViewObservable()
 
     /**
-     * 绑定ViewModel，通常情况返回class即可
+     * 绑定ViewModel,通常情况返回class即可
      */
     abstract fun onBindViewModel(): Class<VM>
 

@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +15,6 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -39,7 +39,7 @@ import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 
 /**
- * 基于Compose的Activity基类。'
+ * 基于Compose的Activity基类.'
  * @author xrn1997
  */
 abstract class BaseActivity : RxAppCompatActivity(), IBaseView {
@@ -60,12 +60,13 @@ abstract class BaseActivity : RxAppCompatActivity(), IBaseView {
     private var noNetworkErrorImage = mutableIntStateOf(R.drawable.no_network)
 
     /**
-     * 默认toolBarTitle，并且设置完成后，通过setTitle是无法修改的。
+     * 默认toolBarTitle,并且设置完成后,通过setTitle是无法修改的.
      * @see setTitle
      */
     open var toolBarTitle: String = ""
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         EventBus.getDefault().register(this)
         setContent {
             InitCommonView()
@@ -76,7 +77,7 @@ abstract class BaseActivity : RxAppCompatActivity(), IBaseView {
     }
 
     /**
-     * 在onCreate中调用，不强制覆盖。
+     * 在onCreate中调用,不强制覆盖.
      */
     override fun initView() {}
 
@@ -88,7 +89,7 @@ abstract class BaseActivity : RxAppCompatActivity(), IBaseView {
     }
 
     /**
-     * 是否启用toolbar，默认true
+     * 是否启用toolbar,默认true
      * @return Boolean
      */
     open fun enableToolbar(): Boolean {
@@ -141,7 +142,7 @@ abstract class BaseActivity : RxAppCompatActivity(), IBaseView {
     }
 
     /**
-     * 如有必要，可以用EventBus传值调用BaseActivity中的方法
+     * 如有必要,可以用EventBus传值调用BaseActivity中的方法
      * @param event BaseComposeActivityEvent<T>?
      */
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -150,7 +151,7 @@ abstract class BaseActivity : RxAppCompatActivity(), IBaseView {
     }
 
     /**
-     * Compose Body，不含头，不含尾
+     * Compose Body,不含头,不含尾
      */
     @Composable
     abstract fun InitView()
@@ -161,27 +162,20 @@ abstract class BaseActivity : RxAppCompatActivity(), IBaseView {
     @Composable
     open fun InitCommonView() {
         MyApplicationTheme {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
-            ) {
-                Scaffold(
-                    topBar = {
-                        if (enableToolbar()) {
-                            OnBindToolbarLayout()
-                        }
-                    },
-                    bottomBar = {
-                        OnBindBottomBarLayout()
+            Scaffold(
+                topBar = {
+                    if (enableToolbar()) {
+                        OnBindToolbarLayout()
                     }
-                ) { innerPadding ->
-                    HomePage(
-                        Modifier
-                            .padding(innerPadding)
-                            .fillMaxSize()
-                    )
-                }
-
+                },
+                bottomBar = { OnBindBottomBarLayout() },
+                modifier = Modifier.fillMaxSize()
+            ) { innerPadding ->
+                HomePage(
+                    Modifier
+                        .padding(innerPadding)
+                        .fillMaxSize()
+                )
             }
         }
     }

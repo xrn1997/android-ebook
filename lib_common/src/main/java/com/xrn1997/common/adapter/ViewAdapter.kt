@@ -17,8 +17,8 @@ import com.xrn1997.common.adapter.binding.BindingCommand
 object ViewAdapter {
     /**
      * Glide与DataBindingAdapter结合使用
-     * @param imageView 对应的图片的上下文，一般不必主动传参（自动传参）
-     * @param url 对应的是xml中的app:imageUrl属性，可以绑定网路图片的网址
+     * @param imageView 对应的图片的上下文,一般不必主动传参（自动传参）
+     * @param url 对应的是xml中的app:imageUrl属性,可以绑定网路图片的网址
      * @param holderDrawable 对应的是xml中的app:placeHolder属性可以绑定占位图
      */
     @BindingAdapter(value = ["imageUrl", "placeHolder"], requireAll = false)

@@ -17,7 +17,7 @@ import java.io.IOException
 object BitmapUtil {
     /**
      * 将Bitmap以指定格式保存到指定路径(应用私有目录)
-     * 注意，如果路径重复，就会覆盖
+     * 注意,如果路径重复,就会覆盖
      * @param bitmap Bitmap
      * @param name String 文件名（需要后缀）
      * @param dir String 文件夹名称

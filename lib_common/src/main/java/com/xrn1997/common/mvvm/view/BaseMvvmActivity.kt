@@ -22,12 +22,12 @@ abstract class BaseMvvmActivity<V : ViewDataBinding, VM : BaseViewModel<*>> : Ba
     private lateinit var _binding: V
 
     /**
-     * MVVM中的V，负责视图显示。
+     * MVVM中的V,负责视图显示.
      */
     override val binding get() = _binding
 
     /**
-     * MVVM中的VM，负责处理视图的操作功能，与M进行数据交互。
+     * MVVM中的VM,负责处理视图的操作功能,与M进行数据交互.
      */
     protected lateinit var mViewModel: VM
 

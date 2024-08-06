@@ -65,7 +65,7 @@ open class BaseViewModel<M : IBaseModel>(
 
     /**
      * 显示无数据视图
-     * @param show Boolean true为显示，false为隐藏
+     * @param show Boolean true为显示,false为隐藏
      */
     fun postShowNoDataViewEvent(show: Boolean) {
         mUIChangeLiveData.mShowNoDataViewEvent.postValue(show)
@@ -73,7 +73,7 @@ open class BaseViewModel<M : IBaseModel>(
 
     /**
      * 显示加载视图（半透明背景）
-     * @param show Boolean true为显示，false为隐藏
+     * @param show Boolean true为显示,false为隐藏
      */
     fun postShowLoadingViewEvent(show: Boolean) {
         mUIChangeLiveData.mShowLoadingViewEvent.postValue(show)
@@ -81,7 +81,7 @@ open class BaseViewModel<M : IBaseModel>(
 
     /**
      * 显示网络错误视图
-     * @param show Boolean true为显示，false为隐藏
+     * @param show Boolean true为显示,false为隐藏
      */
     fun postShowNetWorkErrViewEvent(show: Boolean) {
         mUIChangeLiveData.mShowNetWorkErrViewEvent.postValue(show)

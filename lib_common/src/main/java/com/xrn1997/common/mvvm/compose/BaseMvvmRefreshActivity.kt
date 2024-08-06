@@ -89,7 +89,7 @@ abstract class BaseMvvmRefreshActivity<VM : BaseRefreshViewModel<*, *>> : BaseMv
     }
 
     /**
-     * 此抽象方法在[HomePage]中执行。
+     * 此抽象方法在[HomePage]中执行.
      */
     @Composable
     abstract fun InitView(state: LazyListState)
@@ -109,11 +109,11 @@ abstract class BaseMvvmRefreshActivity<VM : BaseRefreshViewModel<*, *>> : BaseMv
     /**
      * 基于SmartRefreshLayout的Compose调用
      * @param viewModel 刷新视图模型
-     * @param header Compose函数，用于头部视图
-     * @param body Compose函数，用于主体视图
-     * @param footer Compose函数，用于底部视图
+     * @param header Compose函数,用于头部视图
+     * @param body Compose函数,用于主体视图
+     * @param footer Compose函数,用于底部视图
      * @param modifier Modifier
-     * @param state  使用LazyListState的控件必须要传，不然会出现嵌套冲突
+     * @param state  使用LazyListState的控件必须要传,不然会出现嵌套冲突
      */
     @Composable
     fun RefreshLayout(

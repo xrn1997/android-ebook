@@ -46,8 +46,8 @@ abstract class BaseFragment<V : ViewBinding> : RxFragment(), IBaseView {
     private lateinit var _binding: V
 
     /**
-     * 此属性仅在onCreateView及之后的生命周期有效。
-     * 请注意不要随便覆写。
+     * 此属性仅在onCreateView及之后的生命周期有效.
+     * 请注意不要随便覆写.
      */
     protected open val binding get() = _binding
 
@@ -93,7 +93,7 @@ abstract class BaseFragment<V : ViewBinding> : RxFragment(), IBaseView {
     }
 
     /**
-     * 给根布局设置fitsSystemWindows，默认false
+     * 给根布局设置fitsSystemWindows,默认false
      */
     open fun enableFitsSystemWindows(): Boolean {
         return false
@@ -113,8 +113,8 @@ abstract class BaseFragment<V : ViewBinding> : RxFragment(), IBaseView {
     }
 
     /**
-     * 初始化toolbar，可重写，如果enableToolbar()返回false，则该
-     * 项不起作用。
+     * 初始化toolbar,可重写,如果enableToolbar()返回false,则该
+     * 项不起作用.
      * @see BaseActivity.enableToolbar
      */
     open fun initToolbar(view: View) {
@@ -131,7 +131,7 @@ abstract class BaseFragment<V : ViewBinding> : RxFragment(), IBaseView {
     }
 
     /**
-     * 是否启用toolbar，默认false
+     * 是否启用toolbar,默认false
      * @return Boolean
      */
     open fun enableToolbar(): Boolean {
@@ -204,7 +204,7 @@ abstract class BaseFragment<V : ViewBinding> : RxFragment(), IBaseView {
     }
 
     /**
-     * 如有必要，可以用EventBus传值调用BaseActivity中的方法
+     * 如有必要,可以用EventBus传值调用BaseActivity中的方法
      * @param event BaseFragmentEvent<T>?
      */
     @Subscribe(threadMode = ThreadMode.MAIN)
