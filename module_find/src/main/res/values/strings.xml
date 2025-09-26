@@ -14,4 +14,5 @@
     <string name="please_input_author_or_work">请输入作品名或作者名</string>
     <string name="book">书籍</string>
     <string name="type_books">类型书籍</string>
+    <string name="latest_note">最新小说</string>
 </resources>

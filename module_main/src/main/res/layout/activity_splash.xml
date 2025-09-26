@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <FrameLayout
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/splash_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -10,14 +8,15 @@
         <ImageView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/welcome" />
+            android:background="@drawable/welcome"
+            android:contentDescription="@string/start_background" />
 
-        <Button
+    <android.widget.Button
             android:id="@+id/id_btn_skip"
             android:layout_width="50dp"
             android:layout_height="50dp"
-            android:layout_gravity="end"
-            android:layout_marginTop="32dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="64dp"
             android:layout_marginEnd="32dp"
             android:background="@drawable/btn_bg_skip"
             android:minWidth="0dp"
@@ -27,9 +26,8 @@
             android:paddingEnd="12dp"
             android:paddingBottom="4dp"
             android:text="@string/skip"
-            android:textColor="?colorOnPrimaryContainer"
+        android:textColor="@color/white"
             android:textSize="11sp"
             tools:ignore="SmallSp" />
 
-    </FrameLayout>
-</layout>
+</FrameLayout>

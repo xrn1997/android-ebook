@@ -1,0 +1,9 @@
+<resources>
+
+    <style name="SplashTheme" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/lib_common_light_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_welcome</item>
+        <item name="postSplashScreenTheme">@style/Theme.Common</item>
+    </style>
+
+</resources>

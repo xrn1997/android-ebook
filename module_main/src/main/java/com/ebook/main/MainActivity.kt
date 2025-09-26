@@ -1,21 +1,22 @@
 package com.ebook.main
 
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.ViewGroup
+import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import com.ebook.common.provider.IBookProvider
 import com.ebook.common.provider.IFindProvider
 import com.ebook.common.provider.IMeProvider
-import com.ebook.common.util.ToastUtil
 import com.ebook.main.databinding.ActivityMainBinding
 import com.ebook.main.entity.MainChannel
 import com.therouter.TheRouter
 import com.xrn1997.common.mvvm.view.BaseActivity
+import com.xrn1997.common.util.ToastUtil
+import dagger.hilt.android.AndroidEntryPoint
 import kotlin.system.exitProcess
 
-
+@AndroidEntryPoint
 class MainActivity : BaseActivity<ActivityMainBinding>() {
     private var mBookFragment: Fragment? = null
     private var mFindFragment: Fragment? = null
@@ -52,23 +53,26 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                 else -> false
             }
         }
-        mBookFragment = TheRouter.get(IBookProvider::class.java)?.getMainBookFragment()
-        mFindFragment = TheRouter.get(IFindProvider::class.java)?.getMainFindFragment()
-        mMeFragment = TheRouter.get(IMeProvider::class.java)?.getMainMeFragment()
+        mBookFragment = TheRouter.get(IBookProvider::class.java)?.mainBookFragment
+        mFindFragment = TheRouter.get(IFindProvider::class.java)?.mainFindFragment
+        mMeFragment = TheRouter.get(IMeProvider::class.java)?.mainMeFragment
         mCurrFragment = mBookFragment
-        if (mBookFragment != null) {
+        mCurrFragment?.let {
             supportFragmentManager.beginTransaction()
-                .replace(R.id.frame_content, mBookFragment!!, MainChannel.BOOKSHELF.name).commit()
+                .replace(R.id.frame_content, it, MainChannel.BOOKSHELF.name).commit()
+        }
+        onBackPressedDispatcher.addCallback(this) {
+            exit()
         }
     }
 
     override fun initData() {}
     override fun onBindViewBinding(
         inflater: LayoutInflater,
-        container: ViewGroup?,
+        parent: ViewGroup?,
         attachToParent: Boolean
     ): ActivityMainBinding {
-        return ActivityMainBinding.inflate(inflater, container, attachToParent)
+        return ActivityMainBinding.inflate(inflater, parent, attachToParent)
     }
 
     private fun switchContent(from: Fragment?, to: Fragment?, tag: String?) {
@@ -83,17 +87,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            exit()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
-
     private fun exit() {
         if (System.currentTimeMillis() - exitTime > 2000) {
-            ToastUtil.showToast("再按一次退出程序")
+            ToastUtil.showShort(this, "再按一次退出程序")
             exitTime = System.currentTimeMillis()
         } else {
             finish()

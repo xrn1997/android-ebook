@@ -1,19 +1,5 @@
 <resources>
 
-    <style name="AppTheme_NoTitleBar" parent="Theme.Common" />
-
-    <style name="AppTheme_FullScreen" parent="AppTheme_NoTitleBar">
-        <item name="android:windowFullscreen">true</item>
-    </style>
-
-    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.Material3.Dark.ActionBar" />
-
-    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.Material3.Light" />
-
-    <style name="AppTheme_NoTitleBar.AppBarOverlay" parent="ThemeOverlay.Material3.Dark.ActionBar" />
-
-    <style name="AppTheme_NoTitleBar.PopupOverlay" parent="ThemeOverlay.Material3.Light" />
-
     <style name="EditText">
         <item name="android:layout_height">56dp</item>
         <item name="android:paddingStart">8dp</item>

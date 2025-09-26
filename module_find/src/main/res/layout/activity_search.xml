@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.ebook.basebook.view.ImmerseView.layout.ImmerseLinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
     <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?colorSurface"
+        android:background="?attr/colorSurface"
         android:orientation="horizontal"
         android:paddingTop="13dp"
-        android:paddingBottom="13dp">
+        android:paddingBottom="13dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <FrameLayout
             android:id="@+id/fl_search_content"
@@ -35,7 +38,7 @@
                 android:lines="1"
                 android:paddingStart="28dp"
                 android:paddingEnd="28dp"
-                android:textColorHint="?colorOnSurfaceVariant"
+                android:textColorHint="?attr/colorOnSurfaceVariant"
                 android:textCursorDrawable="@drawable/shape_text_cursor"
                 android:textSize="13sp" />
 
@@ -59,25 +62,33 @@
             android:paddingStart="10dp"
             android:paddingEnd="15dp"
             android:text="@string/str_return"
-            android:textColor="@drawable/selector_tv_black"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="16sp" />
     </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/linearLayout">
 
-        <com.ebook.basebook.view.refreshview.RefreshRecyclerView
-            android:id="@+id/rfRv_search_books"
+        <com.scwang.smart.refresh.layout.SmartRefreshLayout
+            android:id="@+id/rfRv_smart_refresh_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="?attr/colorSurfaceVariant"
-            android:visibility="invisible"
-            app:bg_color="#00000000"
-            app:font_color="#767676"
-            app:second_color="#c1c1c1"
-            app:second_max_progress="80dp"
-            app:speed="2dp" />
+            android:background="?attr/colorSurfaceVariant">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rfRv_search_books"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <com.scwang.smart.refresh.footer.ClassicsFooter
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.scwang.smart.refresh.layout.SmartRefreshLayout>
 
         <LinearLayout
             android:id="@+id/ll_search_history"
@@ -101,7 +112,7 @@
                     android:layout_marginTop="5dp"
                     android:layout_marginBottom="5dp"
                     android:text="@string/str_search_history"
-                    android:textColor="?colorOnSurfaceVariant"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="16sp" />
 
                 <View
@@ -127,7 +138,7 @@
                     android:textSize="16sp" />
             </LinearLayout>
 
-            <com.ebook.basebook.view.flowlayout.TagFlowLayout
+            <com.ebook.common.view.flowlayout.TagFlowLayout
                 android:id="@+id/tfl_search_history"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -143,4 +154,4 @@
             android:layout_gravity="top"
             android:background="@drawable/bg_shadow" />
     </FrameLayout>
-</com.ebook.basebook.view.ImmerseView.layout.ImmerseLinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,88 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/layout_comment_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
 
-    <data>
-
-        <import type="com.ebook.common.util.DateUtil" />
-
-        <variable
-            name="comment"
-            type="com.ebook.api.entity.Comment" />
-    </data>
-
-    <LinearLayout
-        android:id="@+id/layout_comment_item"
+    <RelativeLayout
+        android:id="@+id/layout_comment_list"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="40dp"
+        android:layout_marginTop="10dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
-        <RelativeLayout
-            android:id="@+id/layout_comment_list"
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:layout_marginTop="10dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp">
-
-            <com.ebook.common.view.profilePhoto.CircleImageView
-                android:id="@+id/view_profile_photo"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_centerVertical="true"
-                android:background="@drawable/bg_shape"
-                android:padding="1dp"
-                app:imageUrl="@{comment.user.image}"
-                app:placeHolder="@{@drawable/image_default}" />
-
-            <TextView
-                android:id="@+id/txt_me_news_type_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerVertical="true"
-                android:layout_marginStart="10dp"
-                android:layout_toEndOf="@+id/view_profile_photo"
-                android:text="@{String.valueOf(comment.user.nickname)}"
-                android:textColor="@color/black" />
-        </RelativeLayout>
+        <com.ebook.common.view.profilePhoto.CircleImageView
+            android:id="@+id/view_profile_photo"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_shape"
+            android:padding="1dp" />
 
         <TextView
-            android:layout_width="match_parent"
+            android:id="@+id/txt_me_news_type_title"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="52dp"
-            android:text="@{String.valueOf(comment.comment)}"
-            android:textColor="@color/black"
-            android:textSize="15sp" />
+            android:layout_centerVertical="true"
+            android:layout_marginStart="10dp"
+            android:layout_toEndOf="@+id/view_profile_photo"
+            android:textColor="@color/black" />
+    </RelativeLayout>
 
-        <RelativeLayout
-            android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/tv_comment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="52dp"
+        android:textColor="@color/black"
+        android:textSize="15sp" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp">
+
+        <TextView
+            android:id="@+id/view_comment_address"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp">
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="5dp"
+            android:textSize="12sp" />
 
-            <TextView
-                android:id="@+id/view_comment_address"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_marginTop="5dp"
-                android:text="@{@string/comment+comment.bookName+@string/shu_ming_hao+comment.chapterName}"
-                android:textSize="12sp" />
+        <TextView
+            android:id="@+id/tv_add_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/view_comment_address"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="10dp"
+            android:textSize="12sp" />
+    </RelativeLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@+id/view_comment_address"
-                android:layout_alignParentEnd="true"
-                android:layout_marginTop="5dp"
-                android:layout_marginEnd="10dp"
-                android:text="@{DateUtil.formatDate(comment.addtime,DateUtil.FormatType.yyyyMMddHHmm)}"
-                android:textSize="12sp" />
-        </RelativeLayout>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="32dp"
+        android:background="#ededed" />
+</LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="32dp"
-            android:background="#ededed" />
-    </LinearLayout>
-</layout>

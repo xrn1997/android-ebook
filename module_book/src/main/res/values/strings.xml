@@ -7,4 +7,6 @@
     <string name="my_book_shelf">我的书架</string>
     <string name="read_to">读至：</string>
     <string name="cover">封面</string>
+    <string name="send">发送</string>
+    <string name="say_something">说点什么吧！</string>
 </resources>

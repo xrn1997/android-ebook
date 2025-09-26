@@ -1,123 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/ll_content"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/colorSurface"
+    android:orientation="vertical">
 
-    <data>
-
-        <variable
-            name="viewModel"
-            type="com.ebook.find.mvvm.viewmodel.LibraryViewModel" />
-    </data>
-
-    <LinearLayout
-        android:id="@+id/ll_content"
+    <com.scwang.smart.refresh.layout.SmartRefreshLayout
+        android:id="@+id/refview_library"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?colorSurface"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
-        <com.scwang.smart.refresh.layout.SmartRefreshLayout
-            android:id="@+id/refview_library"
+        <com.ebook.common.view.MyMaterialHeader
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
-            app:onRefreshCommand="@{viewModel.onRefreshCommand}"
-            app:srlEnableLoadMore="@{viewModel.enableLoadMore}"
-            app:srlEnableRefresh="@{viewModel.enableRefresh}">
+            android:fillViewport="true">
 
-            <com.scwang.smart.refresh.header.ClassicsHeader
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-
-            <androidx.core.widget.NestedScrollView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:fillViewport="true">
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:background="?attr/colorSurfaceVariant"
+                    android:orientation="horizontal">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="?attr/colorSurfaceVariant"
-                        android:orientation="horizontal">
+                        android:layout_marginStart="8dp"
+                        android:gravity="center"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp"
+                        android:text="@string/book_type"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="14sp" /> <!-- 使用表面上的文本颜色 -->
+
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/kind_ll"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:overScrollMode="never"
+                    android:paddingTop="8dp"
+                    app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                    app:spanCount="4" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="2dp"
+                    android:background="?attr/colorSurfaceVariant" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="40dp"
+                    android:paddingTop="15dp"
+                    android:paddingEnd="40dp"
+                    android:paddingBottom="15dp">
+
+                    <FrameLayout
+                        android:id="@+id/fl_search"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:transitionName="to_search"
+                        tools:ignore="UselessParent">
 
                         <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:gravity="center"
-                            android:paddingTop="8dp"
-                            android:paddingBottom="8dp"
-                            android:text="@string/book_type"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="14sp" /> <!-- 使用表面上的文本颜色 -->
-
-                    </LinearLayout>
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/kind_ll"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:overScrollMode="never"
-                        android:paddingTop="8dp"
-                        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-                        app:spanCount="4" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="2dp"
-                        android:background="?attr/colorSurfaceVariant" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:paddingStart="40dp"
-                        android:paddingTop="15dp"
-                        android:paddingEnd="40dp"
-                        android:paddingBottom="15dp">
-
-                        <FrameLayout
-                            android:id="@+id/fl_search"
                             android:layout_width="match_parent"
-                            android:layout_height="48dp"
-                            android:transitionName="to_search"
-                            tools:ignore="UselessParent">
+                            android:layout_height="match_parent"
+                            android:background="@drawable/bg_search_content"
+                            android:gravity="center"
+                            android:hint="@string/search_book_or_author"
+                            android:textColorHint="?attr/colorOnSurfaceVariant"
+                            android:textSize="13sp" />
 
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_search_content"
-                                android:gravity="center"
-                                android:hint="@string/search_book_or_author"
-                                android:textColorHint="?attr/colorOnSurfaceVariant"
-                                android:textSize="13sp" />
-
-                            <ImageView
-                                android:layout_width="13dp"
-                                android:layout_height="13dp"
-                                android:layout_gravity="center_vertical|start"
-                                android:layout_marginStart="10dp"
-                                android:contentDescription="@string/search_book_or_author"
-                                android:src="@drawable/icon_search_nor" />
-                        </FrameLayout>
-                    </LinearLayout>
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/lkbv_kindbooklist"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="1dp"
-                        android:focusable="true"
-                        android:focusableInTouchMode="true"
-                        android:paddingBottom="10dp" />
+                        <ImageView
+                            android:layout_width="13dp"
+                            android:layout_height="13dp"
+                            android:layout_gravity="center_vertical|start"
+                            android:layout_marginStart="10dp"
+                            android:contentDescription="@string/search_book_or_author"
+                            android:src="@drawable/icon_search_nor" />
+                    </FrameLayout>
                 </LinearLayout>
-            </androidx.core.widget.NestedScrollView>
-        </com.scwang.smart.refresh.layout.SmartRefreshLayout>
-    </LinearLayout>
 
-</layout>
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/lkbv_kindbooklist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:paddingBottom="10dp" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </com.scwang.smart.refresh.layout.SmartRefreshLayout>
+</LinearLayout>

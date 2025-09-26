@@ -28,9 +28,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Common">
-        <activity android:name=".mvp.view.impl.ChoiceBookActivity" />
+        <activity android:name=".ChoiceBookActivity" />
         <activity
-            android:name=".mvp.view.impl.SearchActivity"
+            android:name=".SearchActivity"
             android:configChanges="locale|keyboardHidden|orientation|screenSize"
             android:theme="@style/CAppTransparentTheme"
             android:windowSoftInputMode="stateHidden|adjustPan" />

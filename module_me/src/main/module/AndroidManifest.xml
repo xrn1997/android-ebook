@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Devices running Android 12L (API level 32) or lower  -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 
+    <!-- Devices running Android 13 (API level 33) or higher -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+
+    <!-- To handle the reselection within the app on Android 14 (API level 34) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
     <application
         android:name="debug.MeApplication"
         android:allowBackup="true"
@@ -34,6 +44,8 @@
             android:name=".ModifyNicknameActivity"
             android:label="修改昵称"
             android:theme="@style/ToolbarTheme.BackBar" />
+
+        <activity android:name="debug.LoginActivity" />
     </application>
 
 </manifest>

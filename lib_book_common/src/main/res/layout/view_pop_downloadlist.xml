@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:background="@drawable/bg_search"
+        android:paddingStart="9.5dp"
+        android:paddingTop="3.5dp"
+        android:paddingEnd="10.5dp"
+        android:paddingBottom="16.5dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="?attr/colorSurface"
+            android:layout_gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="0dp"
+            android:paddingEnd="10dp">
+
+            <LinearLayout
+                android:id="@+id/ll_download"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="999"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/iv_cover"
+                    android:layout_width="45dp"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/img_cover_default" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp">
+
+                    <TextView
+                        android:id="@+id/tv_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="2dp"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textColor="@color/tv_btn_black"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tv_chapter_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="3dp"
+                        android:ellipsize="end"
+                        android:maxLines="2"
+                        android:textColor="@color/tv_btn_normal_black"
+                        android:textSize="11sp" />
+
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tv_download"
+                android:layout_width="70dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="8dp"
+                android:background="?colorPrimary"
+                android:clickable="true"
+                android:gravity="center"
+                android:text="开始下载"
+                android:textColor="?attr/colorOnPrimary"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tv_cancel"
+                android:layout_width="70dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="2dp"
+                android:background="?attr/colorPrimaryContainer"
+                android:clickable="true"
+                android:gravity="center"
+                android:text="取消下载"
+                android:textColor="?attr/colorOnPrimaryContainer"
+                android:textSize="12sp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_none"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="?attr/colorSurfaceContainer"
+            android:clickable="true"
+            android:gravity="center"
+            android:text="暂无任务"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.7dp"
+            android:layout_gravity="bottom"
+            android:background="?attr/colorSurfaceContainer" />
+    </FrameLayout>
+</FrameLayout>

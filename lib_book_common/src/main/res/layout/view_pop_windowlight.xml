@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:background="@drawable/bg_shadow2" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:background="#ffffff"
+        android:orientation="horizontal"
+        android:paddingLeft="15dp"
+        android:paddingRight="15dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="7dp"
+            android:layout_marginRight="7dp"
+            android:text="亮度"
+            android:textColor="#767676"
+            android:textSize="14sp" />
+
+        <com.ebook.common.view.mprogressbar.MHorProgressBar
+            android:id="@+id/hpb_light"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="1"
+            app:bgdrawable="#e7eced"
+            app:cantouch="true"
+            app:cursordrawable="@drawable/shape_progress_cursor_read"
+            app:cursordrawable_height="13dp"
+            app:cursordrawable_width="13dp"
+            app:fontdrawable="#767676"
+            app:maxprogress="255"
+            app:progresswidth="2dp" />
+
+        <LinearLayout
+            android:id="@+id/ll_follow_sys"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginLeft="7dp"
+                android:layout_marginRight="7dp"
+                android:text="跟随系统"
+                android:textColor="#767676"
+                android:textSize="14sp" />
+
+            <com.ebook.common.view.checkbox.SmoothCheckBox
+                android:id="@+id/scb_follow_sys"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:layout_gravity="center_vertical"
+                android:clickable="false"
+                app:color_checked="#767676"
+                app:color_tick="#ffffff"
+                app:color_unchecked="#ffffff"
+                app:color_unchecked_stroke="#c1c1c1"
+                app:duration="150" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

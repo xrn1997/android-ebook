@@ -1,31 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout>
+<com.scwang.smart.refresh.layout.SmartRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/refresh_comment_list"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
-    <data>
-
-        <variable
-            name="viewModel"
-            type="com.ebook.me.mvvm.viewmodel.CommentViewModel" />
-    </data>
-
-    <com.scwang.smart.refresh.layout.SmartRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/refresh_comment_list"
+    <com.ebook.common.view.MyMaterialHeader
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:onLoadMoreCommand="@{viewModel.onLoadMoreCommand}"
-        app:onRefreshCommand="@{viewModel.onRefreshCommand}"
-        app:srlEnableLoadMore="@{viewModel.enableLoadMore}"
-        app:srlEnableRefresh="@{viewModel.enableRefresh}">
+        android:layout_height="wrap_content" />
 
-        <com.scwang.smart.refresh.header.ClassicsHeader
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/view_my_comment_list"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:linearLayoutManager="@{viewModel.orientation}" />
-    </com.scwang.smart.refresh.layout.SmartRefreshLayout>
-</layout>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/view_my_comment_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+</com.scwang.smart.refresh.layout.SmartRefreshLayout>

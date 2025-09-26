@@ -1,28 +1,1 @@
-这是一个时不时维护一下的安卓小说阅读器。
-
-这东西曾经是我的本科毕设（2020届），非常感谢各种开源项目，不然我肯定做不出来的。
-
-因为我还是挺喜欢这东西的，所以偶尔会维护维护，现在已经升级到JDK 17了，并且能够在Android14上运行。
-
-该项目是在[ZhangQinhao/MONKOVEL (github.com)](https://github.com/ZhangQinhao/MONKOVEL) 和[mxdldev/android-mvp-mvvm-flytour (github.com)](https://github.com/mxdldev/android-mvp-mvvm-flytour) 的基础上编写的，并没有整合的非常好（属于MVVM和MVP的混搭），很多地方仍需要改进。
-
-项目后续的维护和更新方向：
-
-1.kotlin化；
-
-2.compose化；
-
-3.书源维护（找到书源不稳定，经常挂）；
-
-4.也许会重新维护一下服务器端（20年年初写的，太老了），然后开源；
-
-5.增加一些奇奇怪怪的功能（小概率）。
-
-如果有什么问题，可以联系我，联系方式如下：
-
-QQ:572249217
-
-Email: 572249217@qq.com
-
-
-文档最后更新时间：2024年4月13日。
+安卓小说阅读器---[![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](https://www.apache.org/licenses/LICENSE-2.0)[![Language](https://img.shields.io/badge/Language-Kotlin-green)](https://kotlinlang.org/)### 简介这是一个安卓小说阅读器，最初作为我的本科毕设项目（2020届）,感谢各类开源项目的支持，让我顺利”毕业“。由于我是个实用主义者，该APP本质还是自编自用，所以会不定时维护。目前，该项目已经升级到JDK 17，并且能够在 Android 15 上运行。该项目的开发基于以下开源项目：- [ZhangQinhao/MONKOVEL](https://github.com/ZhangQinhao/MONKOVEL)- [mxdldev/android-mvp-mvvm-flytour](https://github.com/mxdldev/android-mvp-mvvm-flytour)项目当前使用的是 MVVM 架构，仍有许多地方需要改进。### 近期重大更新- #### 1. 架构与模块调整   - 彻底 Kotlin 化，移除所有非必要的 Java 代码。   - common 模块打包成依赖，上传到 Maven 仓库，便于维护。   - 增加 build-logic 模块，自定义 Gradle 插件，实现 KTS 版本的模块 lib 和 app 的相互转换。   - 利用 the-router 解耦 login 模块与其他模块，尤其是测试解耦。   - 删除 MVP 框架，项目仅支持 MVVM，移除数据绑定，仅支持 View Binding 和 Compose。  ------  #### 2. UI 与功能优化   - 头像裁剪功能修复，图片选择从使用文件真实路径改为全程使用 URI。   - 使用BlankJ 的 ToastUtils 时退出界面可能闪退，已替换为原生实现。   - 登录界面使用 Compose 替换 View。   - 沉浸式状态栏基本适配完毕，适配深色模式。  ------  #### 3. 数据与存储   - 使用 ObjectBox 替换 GreenDao，当前实现问题较多，后期可能尝试 Room。  ------  #### 4. 服务与后台   - 下载服务改为前台服务。  ------  #### 5. 构建与依赖升级   - Gradle 升级到 8.13，Kotlin 版本升级到 2.2.0，目标设备 API 36，兼容到 Android 16。   - 使用 KSP 全面替代 KAPT。  ------  #### 6. 其他功能/优化   - 使用 Hilt 初始化 ViewModel，放弃传统工厂模式。   - 换源(www.shuangliusc.com)，优化章节加载逻辑（分页异常仍需处理）。### 项目维护与更新方向- [ ] 1.持续修复已知和未知的 bug;- [ ] 2.全面迁移至 Jetpack Compose ；- [ ] 3.维护书源（目前部分书源不稳定，时常失效）；- [ ] 6.重写服务器端程序，并将其开源；- [ ] 5.增加一些有趣的小功能（概率较小）。### 已知问题1. 从 GreenDAO 迁移到 ObjectBox 时引发了以下两个问题：   （1）打开书籍时，书籍会自动写入数据库；   （2）书架的删除逻辑存在问题：由于从数据库中删除了书籍对象，如果想再次写入同一对象，ObjectBox   由于自身的限制，ID 相同的对象无法生效(手动改ID也试过了QAQ)。2. 当前书源的问题，每一章都需要扒好几个网页，过于缓慢，同时应用的加载逻辑也有问题，分页处衔接不对；3. 当前没有服务器端，之前写的服务器程序过于老旧且自费部署的腾讯云服务器早在2022年就到期了(;4. 部分界面UI显示异常：   （1）部分页面未完全适配夜间模式；   （2）部分页面的状态栏过于"沉浸"；### 联系方式如果遇到任何问题，欢迎通过以下方式联系我：- QQ: 572249217- Email: 572249217@qq.com**文档最后更新时间：2025年2月6日**

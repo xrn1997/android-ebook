@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/layout_setting_bar"
     android:layout_width="match_parent"
     android:layout_height="44dp"
-    android:background="?colorSurfaceVariant"
+    android:background="?attr/colorSurfaceVariant"
     android:paddingStart="5dp"
     android:paddingEnd="10dp">
 
     <ImageView
-        android:id="@+id/img_start_icon"
+        android:id="@+id/img_left_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
@@ -21,8 +20,8 @@
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
         android:layout_marginStart="10dp"
-        android:layout_toEndOf="@+id/img_start_icon"
-        android:textColor="?colorOnSurfaceVariant"
+        android:layout_toEndOf="@+id/img_left_icon"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="17sp" />
 
     <EditText
@@ -32,20 +31,20 @@
         android:layout_centerVertical="true"
         android:layout_marginStart="14dp"
         android:layout_marginEnd="14dp"
-        android:layout_toStartOf="@+id/img_end_icon"
+        android:layout_toStartOf="@+id/img_right_icon"
         android:layout_toEndOf="@+id/txt_set_title"
         android:background="@null"
         android:ellipsize="end"
         android:enabled="false"
         android:singleLine="true"
-        android:textColor="?colorOnSurfaceVariant"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="15sp" />
 
     <ImageView
-        android:id="@+id/img_end_icon"
+        android:id="@+id/img_right_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_centerVertical="true"
-        app:srcCompat="@drawable/usecar_list_icon_into" />
+        app:srcCompat="@drawable/icon_into" />
 </RelativeLayout>

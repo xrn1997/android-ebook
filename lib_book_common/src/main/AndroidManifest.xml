@@ -14,7 +14,7 @@
             android:theme="@style/ToolbarTheme.BackBar" />
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.ebook.common"
+            android:authorities="${applicationId}.provider.apk"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

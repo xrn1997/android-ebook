@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?colorSurface"
+    android:background="?attr/colorSurface"
     android:orientation="vertical">
 
     <androidx.cardview.widget.CardView
@@ -20,7 +20,7 @@
             android:id="@+id/view_user_layout"
             android:layout_width="match_parent"
             android:layout_height="200dp"
-            android:background="?colorSurfaceVariant">
+            android:background="?attr/colorSurfaceVariant">
 
             <com.ebook.common.view.profilePhoto.CircleImageView
                 android:id="@+id/view_user_image"
@@ -41,8 +41,8 @@
                 android:layout_marginTop="10dp"
                 android:layout_marginEnd="30dp"
                 android:background="@drawable/btn_selector"
-                android:text="点击登录"
-                android:textColor="?colorOnPrimary" />
+                android:text="@string/click_to_login"
+                android:textColor="?attr/colorOnPrimary" />
 
             <TextView
                 android:id="@+id/view_user_name"
@@ -52,7 +52,7 @@
                 android:layout_centerHorizontal="true"
                 android:layout_marginTop="8dp"
                 android:text="@string/xiaoming"
-                android:textColor="@color/black"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="18sp"
                 android:visibility="gone" />
         </RelativeLayout>
@@ -66,29 +66,23 @@
         android:id="@+id/view_my_comment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:set_left_icon="@drawable/me_icon_comment"
+        android:layout_marginBottom="2dp"
+        app:set_left_icon="@drawable/icon_comment"
         app:set_left_icon_visible="true"
         app:set_right_icon="@drawable/ic_angle_brackets"
         app:set_right_icon_visible="true"
         app:set_title="我的评论" />
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="2dp" />
-
     <com.ebook.common.view.SettingBarView
         android:id="@+id/view_my_inform"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="2dp"
         app:set_left_icon="@drawable/me_icon_inform"
         app:set_left_icon_visible="true"
         app:set_right_icon="@drawable/ic_angle_brackets"
         app:set_right_icon_visible="true"
         app:set_title="编辑资料" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="2dp" />
 
     <com.ebook.common.view.SettingBarView
         android:id="@+id/view_setting"

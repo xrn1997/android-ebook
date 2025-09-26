@@ -5,16 +5,12 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="32dp"
-        android:background="#ededed" />
-
     <com.ebook.common.view.SettingBarView
         android:id="@+id/view_modify_profile_photo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="2dp"
         app:set_right_icon="@drawable/ic_angle_brackets"
         app:set_right_icon_visible="true"
         app:set_title="修改头像">
@@ -32,30 +28,21 @@
             android:src="@drawable/image_default" />
     </com.ebook.common.view.SettingBarView>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="32dp"
-        android:background="#ededed" />
 
     <com.ebook.common.view.SettingBarView
         android:id="@+id/view_modify_nickname"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="2dp"
         app:set_right_icon="@drawable/ic_angle_brackets"
         app:set_right_icon_visible="true"
         app:set_title="修改昵称" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="32dp"
-        android:background="#ededed" />
 
     <com.ebook.common.view.SettingBarView
         android:id="@+id/view_modify_pwd"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="2dp"
         app:set_right_icon="@drawable/ic_angle_brackets"
         app:set_right_icon_visible="true"
         app:set_title="修改密码" />

@@ -1,52 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:orientation="vertical">
 
-    <data>
-
-        <variable
-            name="viewModel"
-            type="com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel" />
-    </data>
-
-    <LinearLayout
+    <EditText
+        android:id="@+id/id_et_reg_1st_pwd"
+        style="@style/EditText"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="?colorSurface"
-        android:orientation="vertical">
+        android:layout_marginTop="8dp"
+        android:background="@drawable/editext_selector"
+        android:hint="@string/print_new_pwd"
+        android:inputType="textWebPassword"
+        android:text="@={viewModel.firstPwd}" />
 
-        <EditText
-            android:id="@+id/id_et_reg_1st_pwd"
-            style="@style/EditText"
-            android:layout_width="match_parent"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/editext_selector"
-            android:hint="@string/print_new_pwd"
-            android:inputType="textWebPassword"
-            android:text="@={viewModel.password_1}" />
-
-        <EditText
-            android:id="@+id/id_et_reg_2nd_pwd"
-            style="@style/EditText"
-            android:layout_width="match_parent"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/editext_selector"
-            android:hint="@string/print_new_pwd_again"
-            android:inputType="textWebPassword"
-            android:text="@={viewModel.password_2}" />
+    <EditText
+        android:id="@+id/id_et_reg_2nd_pwd"
+        style="@style/EditText"
+        android:layout_width="match_parent"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/editext_selector"
+        android:hint="@string/print_new_pwd_again"
+        android:inputType="textWebPassword"
+        android:text="@={viewModel.secondPwd}" />
 
 
-        <Button
-            android:id="@+id/id_btn_register"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginStart="30dp"
-            android:layout_marginTop="50dp"
-            android:layout_marginEnd="30dp"
-            android:background="@drawable/btn_selector"
-            android:onClick="@{() -> viewModel.modify()}"
-            android:text="@string/define"
-            android:textColor="?colorOnPrimary" />
+    <Button
+        android:id="@+id/id_btn_register"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginStart="30dp"
+        android:layout_marginTop="50dp"
+        android:layout_marginEnd="30dp"
+        android:background="@drawable/btn_selector"
+        android:text="@string/define"
+        android:textColor="?attr/colorOnPrimary" />
 
 
-    </LinearLayout>
-</layout>
+</LinearLayout>

@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/book_choice_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#f1f1f1"
-    android:orientation="vertical">
+    android:background="?attr/colorSurface">
 
     <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:background="#ffffff"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
             android:id="@+id/iv_return"
@@ -33,27 +36,42 @@
             android:gravity="center|start"
             android:singleLine="true"
             android:text="@string/type_books"
-            android:textColor="#343434"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="16sp" />
     </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/linearLayout">
 
-        <com.ebook.basebook.view.refreshview.RefreshRecyclerView
-            android:id="@+id/rfRv_search_books"
+        <com.scwang.smart.refresh.layout.SmartRefreshLayout
+            android:id="@+id/rfRv_smart_refresh_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:font_color="#767676"
-            app:second_color="#c1c1c1"
-            app:second_max_progress="80dp"
-            app:speed="2dp" />
+            android:background="?attr/colorSurfaceVariant">
 
+            <com.ebook.common.view.MyMaterialHeader
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rfRv_search_books"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+            <com.scwang.smart.refresh.footer.ClassicsFooter
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.scwang.smart.refresh.layout.SmartRefreshLayout>
         <View
             android:layout_width="match_parent"
             android:layout_height="20dp"
             android:layout_gravity="top"
             android:background="@drawable/bg_shadow" />
     </FrameLayout>
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

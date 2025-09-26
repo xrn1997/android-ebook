@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/ll_content"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="?attr/colorSurface"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/iv_return"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_vertical"
+            android:background="@drawable/bg_ib_pre"
+            android:clickable="true"
+            android:contentDescription="@string/back"
+            android:focusable="true"
+            android:src="@drawable/selector_icon_return" />
+
+        <TextView
+            android:id="@+id/atv_title"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="45dp"
+            android:layout_weight="1"
+            android:gravity="center|start"
+            android:singleLine="true"
+            android:text="@string/local_file"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tv_addshelf"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:background="@drawable/bg_ib_pre"
+            android:padding="15dp"
+            android:text="@string/add_book"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="14sp"
+            android:visibility="invisible" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="?attr/colorSurfaceContainer">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rcv_books"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbarStyle="outsideOverlay"
+            android:scrollbars="vertical" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:layout_gravity="top"
+            android:background="@drawable/bg_shadow" />
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/fl_scan"
+        android:layout_width="match_parent"
+        android:layout_height="48dp">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="?colorSecondary">
+
+            <com.victor.loading.rotate.RotateLoading
+                android:id="@+id/rl_loading"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="10dp"
+                app:loading_color="?colorSurface"
+                app:loading_width="2dp" />
+
+            <TextView
+                android:id="@+id/tv_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="?colorOnSecondary"
+                android:textSize="16sp" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tv_scan"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="?colorSurfaceVariant"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/scan"
+            android:textColor="?colorOnSurfaceVariant"
+            android:textSize="16sp" />
+    </FrameLayout>
+</LinearLayout>

@@ -9,5 +9,5 @@
     android:clickable="true"
     android:focusable="true"
     android:padding="7dp"
-    android:textColor="?colorOnSurface"
+    android:textColor="?attr/colorOnPrimary"
     android:textSize="15sp" />

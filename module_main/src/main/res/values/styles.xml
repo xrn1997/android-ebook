@@ -1,7 +1,0 @@
-<resources>
-
-    <style name="SplashTheme" parent="Theme.Common">
-        <!-- 欢迎页背景引用刚才写好的 -->
-        <item name="android:windowBackground">@drawable/splash</item>
-    </style>
-</resources>
