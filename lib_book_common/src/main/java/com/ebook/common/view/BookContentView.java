@@ -59,6 +59,14 @@ public class BookContentView extends FrameLayout {
         init();
     }
 
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        // 强制让系统重新分发 insets
+        ViewCompat.requestApplyInsets(this);
+    }
+
+
     private void init() {
         View view = LayoutInflater.from(getContext()).inflate(R.layout.adapter_content_switch_item, this, false);
         addView(view);
