@@ -1,6 +1,7 @@
 package com.ebook.common.analyze.impl
 
 import android.content.Context
+import android.text.TextUtils
 import android.util.Log
 import com.ebook.api.RetrofitBuilder
 import com.ebook.api.cache.ACache
@@ -381,14 +382,20 @@ object TXTDownloadBookModelImpl : StationBookModel {
                             break // 停止解析，退出循环
                         }
 
-                        // 对于文本节点进行处理 todo 分页处段落七零八落。
+                        // 对于文本节点进行处理
                         if (node is org.jsoup.nodes.TextNode) {
                             val temp = node.text().replace("[\\u00A0\\s]+".toRegex(), "").trim()
-
-                            // 只添加非空文本
+                            if (temp.isEmpty()) {
+                                continue
+                            }
+                            if (node.wholeText.contains("\u00A0\u00A0\u00A0\u00A0")) {
+                                if (content.isNotEmpty()) {
+                                    content.append("\r\n")
+                                }
+                                content.append("\u3000\u3000")
+                            }
                             if (temp.isNotEmpty()) {
-                                content.append("\u3000\u3000").append(temp)
-                                content.append("\r\n")
+                                content.append(temp)
                             }
                         }
                     }
