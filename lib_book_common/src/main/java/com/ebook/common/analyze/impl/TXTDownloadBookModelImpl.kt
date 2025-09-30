@@ -411,7 +411,7 @@ object TXTDownloadBookModelImpl : StationBookModel {
             } catch (ex: Exception) {
                 Log.e(TAG, "analyzeBookContent: ", ex)
 
-                ErrorAnalyzeContentManager.getInstance().writeNewErrorUrl(context, durChapterUrl)
+                ErrorAnalyzeContentManager.writeNewErrorUrl(context, durChapterUrl)
                 bookContent.durChapterContent =
                     durChapterUrl.substring(0, durChapterUrl.indexOf('/', 8)) + "站点暂时不支持解析"
                 bookContent.right = false

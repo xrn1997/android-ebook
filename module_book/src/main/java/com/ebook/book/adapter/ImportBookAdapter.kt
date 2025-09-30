@@ -36,7 +36,7 @@ class ImportBookAdapter(context: Context) :
             "存储空间"
         )
 
-        binding.scbSelect.setOnCheckedChangeListener { _: SmoothCheckBox?, isChecked: Boolean ->
+        binding.scbSelect.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 selectFileList.add(item)
             } else {

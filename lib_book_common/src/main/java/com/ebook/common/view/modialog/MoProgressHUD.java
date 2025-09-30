@@ -14,9 +14,6 @@ import android.widget.FrameLayout;
 
 import com.ebook.common.R;
 
-;
-
-
 public class MoProgressHUD {
     private final Context context;
     private Boolean isFinishing = false;
@@ -95,7 +92,7 @@ public class MoProgressHUD {
     }
 
     private void initMarRightTop() {
-        mSharedView.setGravity(Gravity.RIGHT | Gravity.TOP);
+        mSharedView.setGravity(Gravity.END | Gravity.TOP);
         if (mSharedView != null) {
             FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) mSharedView.getLayoutParams();
             if (layoutParams != null) {
@@ -153,8 +150,7 @@ public class MoProgressHUD {
     }
 
     public Boolean isShow() {
-        if (mSharedView != null && mSharedView.getParent() != null) return true;
-        return false;
+        return mSharedView != null && mSharedView.getParent() != null;
     }
 
     public void dismissImmediately() {
@@ -266,6 +262,6 @@ public class MoProgressHUD {
 
     ////////////////////离线章节选择////////////////////////////
     public interface OnClickDownload {
-        public void download(int start, int end);
+        void download(int start, int end);
     }
 }

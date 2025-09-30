@@ -292,7 +292,7 @@ public class MVerProgressBar extends View {
     }
 
     private Bitmap toBgBitmap(RectF rectF) {
-        Bitmap bitmap = null;
+        Bitmap bitmap;
         if (bgDrawable.getIntrinsicWidth() > 0 && bgDrawable.getIntrinsicHeight() > 0) {
             bitmap = Bitmap.createBitmap(getMeasuredWidth(), (int) (rectF.width() * (bgDrawable.getIntrinsicHeight() / bgDrawable.getIntrinsicWidth())), Bitmap.Config.ARGB_8888);
         } else {
@@ -309,7 +309,7 @@ public class MVerProgressBar extends View {
     }
 
     private Bitmap toBgBitmapNormal(RectF rectF) {
-        Bitmap bitmap = null;
+        Bitmap bitmap;
         if (bgDrawable.getIntrinsicWidth() > 0 && bgDrawable.getIntrinsicHeight() > 0) {
             bitmap = Bitmap.createBitmap((int) rectF.width(), (int) (rectF.width() * 1.0f * bgDrawable.getIntrinsicHeight() / bgDrawable.getIntrinsicWidth()), Bitmap.Config.ARGB_8888);
         } else {
@@ -327,7 +327,7 @@ public class MVerProgressBar extends View {
     }
 
     private Bitmap toFontBitmap(RectF rectF) {
-        Bitmap bitmap = null;
+        Bitmap bitmap;
         if (fontDrawable.getIntrinsicWidth() > 0 && fontDrawable.getIntrinsicHeight() > 0) {
             bitmap = Bitmap.createBitmap(getMeasuredWidth(), (int) (rectF.width() * 1.0f * fontDrawable.getIntrinsicHeight() / fontDrawable.getIntrinsicWidth()), Bitmap.Config.ARGB_8888);
         } else {
@@ -348,7 +348,7 @@ public class MVerProgressBar extends View {
     }
 
     private Bitmap toFontBitmapCover(RectF rectF) {
-        Bitmap bitmap = null;
+        Bitmap bitmap;
         if (fontDrawable.getIntrinsicWidth() > 0 && fontDrawable.getIntrinsicHeight() > 0) {
             bitmap = Bitmap.createBitmap(fontDrawable.getIntrinsicWidth(), fontDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
         } else {
@@ -360,7 +360,7 @@ public class MVerProgressBar extends View {
 
         Bitmap result = Bitmap.createBitmap(getMeasuredWidth(), getMeasuredHeight(), Bitmap.Config.ARGB_8888);
         Canvas resultCanvas = new Canvas(result);
-        Rect a = null;
+        Rect a;
         if (0 == startbottom) {
             a = new Rect(0, (int) (bitmap.getHeight() * (maxProgress - durProgress) / maxProgress), bitmap.getWidth(), bitmap.getHeight());
         } else {
@@ -386,7 +386,7 @@ public class MVerProgressBar extends View {
         if (canTouch) {
             int action = event.getAction();
             float y = event.getY();
-            y = y - (null == cursorDrawable ? 0 : cursorDrawableHeight / 2);
+            y = y - (null == cursorDrawable ? 0 : (float) cursorDrawableHeight / 2);
             int progressWidth = null == cursorDrawable ? getMeasuredHeight() : getMeasuredHeight() - cursorDrawableHeight;
 
             if (y < 0) {
@@ -480,12 +480,7 @@ public class MVerProgressBar extends View {
         refreshDurProgress(durProgress);
         if (progressListener != null) {
             final float finalDurProgress = dur;
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    progressListener.setDurProgress(finalDurProgress);
-                }
-            });
+            handler.post(() -> progressListener.setDurProgress(finalDurProgress));
         }
     }
 
@@ -499,12 +494,7 @@ public class MVerProgressBar extends View {
         refreshDurProgress(durProgress);
         if (progressListener != null) {
             final float finalDurProgress = dur;
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    progressListener.setDurProgress(finalDurProgress);
-                }
-            });
+            handler.post(() -> progressListener.setDurProgress(finalDurProgress));
         }
     }
 
