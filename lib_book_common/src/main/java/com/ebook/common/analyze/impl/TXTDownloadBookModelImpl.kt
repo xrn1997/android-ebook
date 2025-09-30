@@ -4,9 +4,10 @@ import android.content.Context
 import android.util.Log
 import com.ebook.api.RetrofitBuilder
 import com.ebook.api.cache.ACache
-import com.ebook.api.config.Url
+import com.ebook.api.config.URL
 import com.ebook.api.service.TXTDownloadBookService
 import com.ebook.common.analyze.StationBookModel
+import com.ebook.common.event.LIBRARY_CACHE_KEY
 import com.ebook.common.manager.ErrorAnalyzeContentManager
 import com.ebook.db.entity.BookContent
 import com.ebook.db.entity.BookInfo
@@ -37,13 +38,13 @@ object TXTDownloadBookModelImpl : StationBookModel {
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     override fun getKindBook(url: String, page: Int): Observable<List<SearchBook>> {
         val type = when (url) {
-            Url.xh -> 1
-            Url.xz -> 2
-            Url.ds -> 3
-            Url.ls -> 4
-            Url.wy -> 5
-            Url.kh -> 6
-            Url.qt -> 8
+            URL.xh -> 1
+            URL.xz -> 2
+            URL.ds -> 3
+            URL.ls -> 4
+            URL.wy -> 5
+            URL.kh -> 6
+            URL.qt -> 8
             else -> -1
         }
         if (type == -1) {
@@ -92,7 +93,7 @@ object TXTDownloadBookModelImpl : StationBookModel {
     override fun getLibraryData(aCache: ACache): Observable<Library> {
         return mBookService.getLibraryData("").flatMap { s: String ->
             if (s.isNotEmpty()) {
-                aCache.put("cache_library", s)
+                aCache.put(LIBRARY_CACHE_KEY, s)
             }
             analyzeLibraryData(s)
         }

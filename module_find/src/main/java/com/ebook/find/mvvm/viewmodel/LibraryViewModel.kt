@@ -4,10 +4,11 @@ import android.app.Application
 import android.util.Log
 import com.ebook.api.cache.ACache
 import com.ebook.common.analyze.impl.WebBookModelImpl
+import com.ebook.common.event.LIBRARY_CACHE_KEY
 import com.ebook.db.entity.Library
 import com.ebook.db.entity.LibraryKindBookList
 import com.ebook.find.mvvm.model.LibraryModel
-import com.ebook.find.mvvm.model.LibraryModel.Companion.getLibraryData
+import com.ebook.find.mvvm.model.LibraryModel.Companion.getLibraryCacheData
 import com.xrn1997.common.event.SimpleObserver
 import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,13 +23,12 @@ class LibraryViewModel @Inject constructor(
 ) : BaseRefreshViewModel<LibraryKindBookList, LibraryModel>(application, model) {
     val bookTypeList = mModel.getBookTypeList()
     private val mCache: ACache = ACache.get(application.applicationContext)
-    private var isFirst = true
 
     override fun refreshData() {
         //   Log.d(TAG, "refreshData: start");
-        if (isFirst) {
-            isFirst = false
-            getLibraryData(mCache)
+        val cache = mCache.getAsString(LIBRARY_CACHE_KEY)
+        if (cache != null) {
+            getLibraryCacheData(cache)
                 .doOnSubscribe(this)
                 .subscribe(object : SimpleObserver<Library>() {
                     override fun onNext(value: Library) {
@@ -78,6 +78,5 @@ class LibraryViewModel @Inject constructor(
 
     companion object {
         val TAG: String = LibraryViewModel::class.java.simpleName
-        const val LIBRARY_CACHE_KEY: String = "cache_library"
     }
 }

@@ -240,12 +240,15 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
             openFrom = intent.getIntExtra("from", OPEN_FROM_OTHER)
             if (openFrom == OPEN_FROM_APP) {
                 val key = intent.getStringExtra("data_key")
-                mViewModel.bookShelf = BitIntentDataManager.getInstance().getData(key) as BookShelf
-                Log.e(TAG, "initData: " + mViewModel.bookShelf!!.bookInfo.target.chapterList.size)
+                if (key == null) {
+                    Log.e(TAG, "initCsvBook: key is null")
+                    return@bookReadInit
+                }
+                mViewModel.bookShelf = BitIntentDataManager.getData(key) as BookShelf
                 if (mViewModel.bookShelf!!.tag != BookShelf.LOCAL_TAG) {
                     showDownloadMenu()
                 }
-                BitIntentDataManager.getInstance().cleanData(key)
+                BitIntentDataManager.cleanData(key)
                 mViewModel.checkInShelf()
             } else {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&

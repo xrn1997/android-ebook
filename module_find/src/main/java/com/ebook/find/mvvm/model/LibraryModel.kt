@@ -1,8 +1,7 @@
 package com.ebook.find.mvvm.model
 
 import android.app.Application
-import com.ebook.api.cache.ACache
-import com.ebook.api.config.Url
+import com.ebook.api.config.URL
 import com.ebook.common.analyze.impl.WebBookModelImpl
 import com.ebook.db.ObjectBoxManager.bookShelfBox
 import com.ebook.db.entity.BookShelf
@@ -16,6 +15,7 @@ import io.reactivex.rxjava3.core.ObservableEmitter
 import io.reactivex.rxjava3.schedulers.Schedulers
 import javax.inject.Inject
 import javax.inject.Singleton
+
 @Suppress("unused")
 @Singleton
 class LibraryModel @Inject constructor(
@@ -24,25 +24,23 @@ class LibraryModel @Inject constructor(
     //获取书籍类型信息，此处用本地数据。
     fun getBookTypeList(): List<BookType> {
         return mutableListOf(
-            BookType("玄幻小说", Url.xh),
-            BookType("修真小说", Url.xz),
-            BookType("都市小说", Url.ds),
-            BookType("历史小说", Url.ls),
-            BookType("网游小说", Url.wy),
-            BookType("科幻小说", Url.kh),
-            BookType("其他小说", Url.qt)
+            BookType("玄幻小说", URL.xh),
+            BookType("修真小说", URL.xz),
+            BookType("都市小说", URL.ds),
+            BookType("历史小说", URL.ls),
+            BookType("网游小说", URL.wy),
+            BookType("科幻小说", URL.kh),
+            BookType("其他小说", URL.qt)
         )
         }
 
     companion object {
-        private const val LIBRARY_CACHE_KEY: String = "cache_library"
 
         //获得书库信息
         @JvmStatic
-        fun getLibraryData(mCache: ACache): Observable<Library> {
+        fun getLibraryCacheData(mCache: String): Observable<Library> {
             return Observable.create { e: ObservableEmitter<String> ->
-                val cache = mCache.getAsString(LIBRARY_CACHE_KEY)
-                e.onNext(cache)
+                e.onNext(mCache)
                 e.onComplete()
             }.flatMap { s: String ->
                 WebBookModelImpl.analyzeLibraryData(s)

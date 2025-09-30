@@ -64,12 +64,12 @@ class MainBookFragment :
             intent.putExtra("from", OPEN_FROM_APP)
             val key = System.currentTimeMillis().toString()
             intent.putExtra("data_key", key)
-            BitIntentDataManager.getInstance().putData(key, bookShelf.clone())
+            BitIntentDataManager.putData(key, bookShelf.clone())
             startActivity(intent)
         }
         mBookListAdapter.setOnItemLongClickListener { bookShelf: BookShelf, _: Int ->
             val key = System.currentTimeMillis().toString()
-            BitIntentDataManager.getInstance().putData(key, bookShelf)
+            BitIntentDataManager.putData(key, bookShelf)
             TheRouter.build(KeyCode.Book.DETAIL_PATH)
                 .withInt("from", FROM_BOOKSHELF)
                 .withString("data_key", key)

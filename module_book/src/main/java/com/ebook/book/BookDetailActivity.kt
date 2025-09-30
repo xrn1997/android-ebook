@@ -99,7 +99,7 @@ class BookDetailActivity : BaseMvvmActivity<ActivityDetailBinding, BookDetailVie
             intent.putExtra("from", OPEN_FROM_APP)
             val key = System.currentTimeMillis().toString()
             intent.putExtra("data_key", key)
-            BitIntentDataManager.getInstance().putData(key, mViewModel.mBookShelf?.clone())
+            BitIntentDataManager.putData(key, mViewModel.mBookShelf?.clone())
             startActivity(intent)
             finishActivity()
         }
@@ -108,8 +108,8 @@ class BookDetailActivity : BaseMvvmActivity<ActivityDetailBinding, BookDetailVie
     override fun initData() {
         if (openFrom == FROM_BOOKSHELF) {
             dataKey?.let {
-                mViewModel.mBookShelf = BitIntentDataManager.getInstance().getData(it) as BookShelf
-                BitIntentDataManager.getInstance().cleanData(it)
+                mViewModel.mBookShelf = BitIntentDataManager.getData(it) as BookShelf
+                BitIntentDataManager.cleanData(it)
                 mViewModel.inBookShelf = true
             }
         } else {
