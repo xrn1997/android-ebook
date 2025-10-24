@@ -96,79 +96,78 @@ object BookImportUtil {
 
     @Throws(IOException::class)
     private fun saveChapter(book: File, md5: String) {
-        val regex = "第.{1,7}章.*"
+        val chapterRegex = Pattern.compile("第.{1,7}章.*")
 
-        var encoding: String
-
-        var fis = FileInputStream(book)
-        val buf = ByteArray(4096)
-        val detector = UniversalDetector(null)
-        var nRead: Int
-        while ((fis.read(buf).also { nRead = it }) > 0 && !detector.isDone) {
-            detector.handleData(buf, 0, nRead)
+        // ---------- 自动检测编码 ----------
+        val encoding = FileInputStream(book).use { fis ->
+            val buf = ByteArray(4096)
+            val detector = UniversalDetector(null)
+            var nRead: Int
+            while (fis.read(buf).also { nRead = it } > 0 && !detector.isDone) {
+                detector.handleData(buf, 0, nRead)
+            }
+            detector.dataEnd()
+            detector.detectedCharset ?: "utf-8"
         }
-        detector.dataEnd()
-        encoding = detector.detectedCharset
-        if (encoding.isEmpty()) encoding = "utf-8"
-        fis.close()
 
-        var chapterPageIndex = 0
+        var chapterIndex = 0
         var title: String? = null
         val contentBuilder = StringBuilder()
-        fis = FileInputStream(book)
-        val inputReader = InputStreamReader(fis, encoding)
-        val buffReader = BufferedReader(inputReader)
-        var line: String
-        while ((buffReader.readLine().also { line = it }) != null) {
-            val p = Pattern.compile(regex)
-            val m = p.matcher(line)
-            if (m.find()) {
-                val temp =
-                    line.trim { it <= ' ' }.substring(0, line.trim { it <= ' ' }.indexOf("第"))
-                if (temp.trim { it <= ' ' }.isNotEmpty()) {
-                    contentBuilder.append(temp)
-                }
-                if (contentBuilder.toString().isNotEmpty()) {
-                    if (contentBuilder.toString().replace(" ".toRegex(), "")
-                            .replace("\\s*".toRegex(), "").trim { it <= ' ' }.isNotEmpty()
-                    ) {
-                        saveDurChapterContent(
-                            md5,
-                            chapterPageIndex,
-                            title!!,
-                            contentBuilder.toString()
-                        )
-                        chapterPageIndex++
-                    }
-                    contentBuilder.delete(0, contentBuilder.length)
-                }
-                title = line.trim { it <= ' ' }.substring(line.trim { it <= ' ' }.indexOf("第"))
-            } else {
-                val temp =
-                    line.trim { it <= ' ' }.replace(" ".toRegex(), "").replace(" ".toRegex(), "")
-                        .replace("\\s*".toRegex(), "")
-                if (temp.isEmpty()) {
-                    if (contentBuilder.isNotEmpty()) {
-                        contentBuilder.append("\r\n\u3000\u3000")
-                    } else {
-                        contentBuilder.append("\r\u3000\u3000")
-                    }
-                } else {
-                    contentBuilder.append(temp)
-                    if (title == null) {
-                        title = line.trim { it <= ' ' }
+
+        // ---------- 读取并解析章节 ----------
+        FileInputStream(book).use { fis ->
+            InputStreamReader(fis, encoding).use { reader ->
+                BufferedReader(reader).use { br ->
+                    br.lineSequence().forEach { rawLine ->
+                        val line = rawLine.trim()
+                        val matcher = chapterRegex.matcher(line)
+
+                        if (matcher.find()) {
+                            // 当前行匹配“第X章”
+                            val prefix = line.substringBefore("第").trim()
+                            if (prefix.isNotEmpty()) contentBuilder.append(prefix)
+
+                            if (contentBuilder.isNotEmpty()) {
+                                val cleanContent = contentBuilder.toString()
+                                    .replace(" ", "")
+                                    .replace("\\s*".toRegex(), "")
+                                    .trim()
+                                if (cleanContent.isNotEmpty()) {
+                                    saveDurChapterContent(md5, chapterIndex, title ?: "", contentBuilder.toString())
+                                    chapterIndex++
+                                }
+                                contentBuilder.clear()
+                            }
+
+                            title = line.substring(line.indexOf("第"))
+                        } else {
+                            // 非章节标题行，拼接正文内容
+                            val cleanLine = line
+                                .replace(" ", "")
+                                .replace(" ", "")
+                                .replace("\\s*".toRegex(), "")
+
+                            if (cleanLine.isEmpty()) {
+                                // 段落空行：添加段首空格
+                                contentBuilder.append(
+                                    if (contentBuilder.isNotEmpty()) "\r\n\u3000\u3000" else "\r\u3000\u3000"
+                                )
+                            } else {
+                                contentBuilder.append(cleanLine)
+                                if (title == null) title = line
+                            }
+                        }
                     }
                 }
             }
         }
+
+        // ---------- 保存最后一章 ----------
         if (contentBuilder.isNotEmpty()) {
-            saveDurChapterContent(md5, chapterPageIndex, title!!, contentBuilder.toString())
-            contentBuilder.delete(0, contentBuilder.length)
+            saveDurChapterContent(md5, chapterIndex, title ?: "", contentBuilder.toString())
         }
-        buffReader.close()
-        inputReader.close()
-        fis.close()
     }
+
 
     private fun saveDurChapterContent(
         md5: String,
