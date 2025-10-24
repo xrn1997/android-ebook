@@ -82,16 +82,16 @@ public class FontPop extends PopupWindow {
     }
 
     private void bindView() {
-        flSmaller = (FrameLayout) view.findViewById(R.id.fl_smaller);
-        flBigger = (FrameLayout) view.findViewById(R.id.fl_bigger);
-        tvTextSizedDefault = (TextView) view.findViewById(R.id.tv_textsize_default);
-        tvTextSize = (TextView) view.findViewById(R.id.tv_dur_textsize);
+        flSmaller = view.findViewById(R.id.fl_smaller);
+        flBigger = view.findViewById(R.id.fl_bigger);
+        tvTextSizedDefault = view.findViewById(R.id.tv_textsize_default);
+        tvTextSize = view.findViewById(R.id.tv_dur_textsize);
         updateText(readBookControl.getTextKindIndex());
 
-        civBgWhite = (CircleImageView) view.findViewById(R.id.civ_bg_white);
-        civBgYellow = (CircleImageView) view.findViewById(R.id.civ_bg_yellow);
-        civBgGreen = (CircleImageView) view.findViewById(R.id.civ_bg_green);
-        civBgBlack = (CircleImageView) view.findViewById(R.id.civ_bg_black);
+        civBgWhite = view.findViewById(R.id.civ_bg_white);
+        civBgYellow = view.findViewById(R.id.civ_bg_yellow);
+        civBgGreen = view.findViewById(R.id.civ_bg_green);
+        civBgBlack = view.findViewById(R.id.civ_bg_black);
         updateBg(readBookControl.getTextDrawableIndex());
     }
 
@@ -107,11 +107,7 @@ public class FontPop extends PopupWindow {
             flBigger.setEnabled(true);
 
         }
-        if (textKindIndex == ReadBookControl.DEFAULT_TEXT) {
-            tvTextSizedDefault.setEnabled(false);
-        } else {
-            tvTextSizedDefault.setEnabled(true);
-        }
+        tvTextSizedDefault.setEnabled(textKindIndex != ReadBookControl.DEFAULT_TEXT);
         tvTextSize.setText(String.valueOf(readBookControl.getTextKind().get(textKindIndex).get("textSize")));
         readBookControl.setTextKindIndex(textKindIndex);
     }
@@ -143,8 +139,8 @@ public class FontPop extends PopupWindow {
     }
 
     public interface OnChangeProListener {
-        public void textChange(int index);
+        void textChange(int index);
 
-        public void bgChange(int index);
+        void bgChange(int index);
     }
 }

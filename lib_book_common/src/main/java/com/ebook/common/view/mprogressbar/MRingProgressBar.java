@@ -17,11 +17,15 @@ import android.graphics.drawable.StateListDrawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
+
+import androidx.annotation.NonNull;
 
 import com.ebook.common.R;
 
 public class MRingProgressBar extends View {
+    public static final String TAG="MRingProgressBar";
     private int speed = 1;   //如果设置当前进度使用动画  动画速度
 
     private float maxProgress = 100;
@@ -103,7 +107,7 @@ public class MRingProgressBar extends View {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "init: ", e);
         }
 
         cursorDrawableWidth = a.getDimensionPixelSize(R.styleable.MProgressBar_cursordrawable_width, cursorDrawableWidth);
@@ -112,7 +116,7 @@ public class MRingProgressBar extends View {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
+    protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
         if (progressWidth - bgBorderWidth * 2 <= 0) {
             throw new RuntimeException("bgBorderWidth超过绘制限度");
@@ -158,7 +162,7 @@ public class MRingProgressBar extends View {
 
         paint.setStyle(Paint.Style.STROKE);
         this.paint.setStrokeWidth(progressWidth - bgBorderWidth * 2);
-        int r = (getMeasuredHeight() < getMeasuredWidth() ? getMeasuredHeight() : getMeasuredWidth()) / 2 - progressWidth / 2 - abc;
+        int r = (Math.min(getMeasuredHeight(), getMeasuredWidth())) / 2 - progressWidth / 2 - abc;
         float sweepAngle = (startLeft == 1 ? 1 : -1) * (durProgress / maxProgress * 360);
         Bitmap durBitmap = Bitmap.createBitmap(getMeasuredWidth(), getMeasuredHeight(), Bitmap.Config.ARGB_8888);
         Canvas durCanvas = new Canvas(durBitmap);

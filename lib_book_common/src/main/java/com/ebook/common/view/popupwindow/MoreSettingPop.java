@@ -40,30 +40,16 @@ public class MoreSettingPop extends PopupWindow {
     }
 
     private void bindEvent() {
-        sbKey.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                readBookControl.setCanKeyTurn(isChecked);
-            }
-        });
-        sbClick.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                readBookControl.setCanClickTurn(isChecked);
-            }
-        });
+        sbKey.setOnCheckedChangeListener((buttonView, isChecked) -> readBookControl.setCanKeyTurn(isChecked));
+        sbClick.setOnCheckedChangeListener((buttonView, isChecked) -> readBookControl.setCanClickTurn(isChecked));
     }
 
     private void bindView() {
-        sbKey = (SwitchButton) view.findViewById(R.id.sb_key);
-        sbClick = (SwitchButton) view.findViewById(R.id.sb_click);
+        sbKey = view.findViewById(R.id.sb_key);
+        sbClick = view.findViewById(R.id.sb_click);
 
-        if (readBookControl.getCanKeyTurn())
-            sbKey.setCheckedImmediatelyNoEvent(true);
-        else sbKey.setCheckedImmediatelyNoEvent(false);
-        if (readBookControl.getCanClickTurn())
-            sbClick.setCheckedImmediatelyNoEvent(true);
-        else sbClick.setCheckedImmediatelyNoEvent(false);
+        sbKey.setCheckedImmediatelyNoEvent(readBookControl.getCanKeyTurn());
+        sbClick.setCheckedImmediatelyNoEvent(readBookControl.getCanClickTurn());
     }
 
     private void initData() {

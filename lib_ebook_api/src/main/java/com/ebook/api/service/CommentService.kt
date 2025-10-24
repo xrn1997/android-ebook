@@ -1,6 +1,5 @@
 package com.ebook.api.service
 
-import com.ebook.api.config.API
 import com.ebook.api.dto.RespDTO
 import com.ebook.api.entity.Comment
 import io.reactivex.rxjava3.core.Observable

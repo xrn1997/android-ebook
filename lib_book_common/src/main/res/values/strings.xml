@@ -13,4 +13,5 @@
     <string name="add_book">添加书籍</string>
     <string name="local_file">本地文件</string>
     <string name="back">返回</string>
+    <string name="chapter_number">%d</string>
 </resources>

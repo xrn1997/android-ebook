@@ -22,7 +22,7 @@ object RetrofitBuilder {
         if (log) {
             val logging = HttpLoggingInterceptor()
             logging.setLevel(HttpLoggingInterceptor.Level.BODY)
-            clientBuilder.interceptors().add(logging);
+            clientBuilder.interceptors().add(logging)
         }
         return Retrofit.Builder().baseUrl(url) //增加返回值为字符串的支持(以实体类返回)
             .addConverterFactory(ScalarsConverterFactory.create()) //增加返回值为Observable<T>的支持

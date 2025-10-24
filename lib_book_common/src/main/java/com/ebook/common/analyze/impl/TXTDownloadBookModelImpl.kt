@@ -1,7 +1,6 @@
 package com.ebook.common.analyze.impl
 
 import android.content.Context
-import android.text.TextUtils
 import android.util.Log
 import com.ebook.api.RetrofitBuilder
 import com.ebook.api.cache.ACache

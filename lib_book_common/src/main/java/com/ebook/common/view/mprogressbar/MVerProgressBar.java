@@ -20,6 +20,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -31,6 +32,7 @@ import com.ebook.common.R;
  * Created by Monke on 2016/10/7.
  */
 public class MVerProgressBar extends View {
+    public static final String TAG = "MVerProgressBar";
     private Boolean canTouch = true;
     private float speed = 1;   //如果设置当前进度使用动画  动画速度
 
@@ -135,7 +137,7 @@ public class MVerProgressBar extends View {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "init: ", e);
         }
 
         cursorDrawableWidth = a.getDimensionPixelSize(R.styleable.MProgressBar_cursordrawable_width, cursorDrawableWidth);
@@ -149,7 +151,7 @@ public class MVerProgressBar extends View {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
+    protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
         if (0 >= progressWidth) {
             if (getMeasuredWidth() - bgBorderWidth * 2 <= 0) {
@@ -259,12 +261,12 @@ public class MVerProgressBar extends View {
         canvas.drawBitmap(durBitmap, 0, 0, null);
         ////////////////////////////////////绘制游标图标///////////////////////
         if (null != cursorDrawable) {
-            Rect cursorDrawableRect = null;
+            Rect cursorDrawableRect;
             Drawable cursorD = cursorDrawable.getCurrent();
             if (0 == startbottom) {
-                cursorDrawableRect = new Rect((int) (getMeasuredWidth() / 2 - cursorDrawableWidth / 2), (int) (fy - cursorDrawableHeight / 2), (int) (getMeasuredWidth() / 2 + cursorDrawableWidth / 2), (int) (fy + cursorDrawableHeight / 2));
+                cursorDrawableRect = new Rect( (getMeasuredWidth() / 2 - cursorDrawableWidth / 2), (int) (fy - cursorDrawableHeight / 2), (getMeasuredWidth() / 2 + cursorDrawableWidth / 2), (int) (fy + cursorDrawableHeight / 2));
             } else {
-                cursorDrawableRect = new Rect((int) (getMeasuredWidth() / 2 - cursorDrawableWidth / 2), (int) (fyf - cursorDrawableHeight / 2), (int) (getMeasuredWidth() / 2 + cursorDrawableWidth / 2), (int) (fyf + cursorDrawableHeight / 2));
+                cursorDrawableRect = new Rect( (getMeasuredWidth() / 2 - cursorDrawableWidth / 2), (int) (fyf - cursorDrawableHeight / 2),  (getMeasuredWidth() / 2 + cursorDrawableWidth / 2), (int) (fyf + cursorDrawableHeight / 2));
             }
             cursorD.setBounds(cursorDrawableRect);
             cursorD.draw(canvas);

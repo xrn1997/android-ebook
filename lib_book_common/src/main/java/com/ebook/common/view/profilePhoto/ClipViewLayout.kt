@@ -31,8 +31,7 @@ class ClipViewLayout @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) :
-    RelativeLayout(context, attrs, defStyleAttr) {
+) : RelativeLayout(context, attrs, defStyleAttr) {
     //图片缩放、移动操作矩阵
     private val matrix = Matrix()
 
@@ -103,9 +102,9 @@ class ClipViewLayout @JvmOverloads constructor(
         clipView.setHorizontalPadding(mHorizontalPadding)
         imageView = ImageView(context)
         //相对布局布局参数
-        val lp: ViewGroup.LayoutParams = LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
+        val lp = LayoutParams(
+            LayoutParams.MATCH_PARENT,
+            LayoutParams.MATCH_PARENT
         )
         this.addView(imageView, lp)
         this.addView(clipView, lp)

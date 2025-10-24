@@ -221,7 +221,7 @@ class ImportBookActivity : BaseMvvmActivity<ActivityImportbookBinding, BookImpor
 
     override fun finish() {
         if (!isExiting) {
-            if (moProgressHUD.isShow) {
+            if (moProgressHUD.isShow()) {
                 moProgressHUD.dismiss()
             }
             isExiting = true

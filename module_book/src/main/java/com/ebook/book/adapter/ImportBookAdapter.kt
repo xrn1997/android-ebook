@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import com.ebook.common.callback.FileDifferCallback
 import com.ebook.common.databinding.ViewAdapterImportbookBinding
-import com.ebook.common.view.checkbox.SmoothCheckBox
 import com.xrn1997.common.adapter.BaseBindAdapter
 import java.io.File
 import java.text.DecimalFormat
