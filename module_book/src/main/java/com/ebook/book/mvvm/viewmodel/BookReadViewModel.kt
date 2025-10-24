@@ -1,10 +1,6 @@
 package com.ebook.book.mvvm.viewmodel
 
 import android.app.Application
-import android.content.ContentResolver
-import android.content.Context
-import android.net.Uri
-import android.provider.MediaStore
 import android.util.Log
 import com.ebook.book.mvvm.model.BookReadModel
 import com.ebook.common.event.RxBusTag
@@ -127,44 +123,6 @@ class BookReadViewModel @Inject constructor(
                     override fun onError(e: Throwable) {
                     }
                 })
-        }
-    }
-
-    fun getRealFilePath(context: Context, uri: Uri): Observable<String> {
-        return Observable.create { e: ObservableEmitter<String> ->
-            var data = ""
-            val scheme = uri.scheme
-            if (scheme == null) data = uri.path.toString()
-            else if (ContentResolver.SCHEME_FILE == scheme) {
-                data = uri.path.toString()
-            } else if (ContentResolver.SCHEME_CONTENT == scheme) {
-                val cursor = context.contentResolver.query(
-                    uri,
-                    arrayOf(MediaStore.Images.ImageColumns.DATA),
-                    null,
-                    null,
-                    null
-                )
-                if (null != cursor) {
-                    if (cursor.moveToFirst()) {
-                        val index =
-                            cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
-                        if (index > -1) {
-                            data = cursor.getString(index)
-                        }
-                    }
-                    cursor.close()
-                }
-
-                if ((data.isEmpty()) && uri.path != null && uri.path!!.contains(
-                        "/storage/emulated/"
-                    )
-                ) {
-                    data = uri.path!!.substring(uri.path!!.indexOf("/storage/emulated/"))
-                }
-            }
-            e.onNext(data)
-            e.onComplete()
         }
     }
 

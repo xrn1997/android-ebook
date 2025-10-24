@@ -1,5 +1,8 @@
 package com.ebook.book.util
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import com.ebook.db.ObjectBoxManager.bookShelfBox
 import com.ebook.db.ObjectBoxManager.chapterListBox
 import com.ebook.db.entity.BookContent
@@ -18,20 +21,34 @@ import java.io.FileInputStream
 import java.io.IOException
 import java.io.InputStreamReader
 import java.math.BigInteger
+import java.net.URI
 import java.security.MessageDigest
 import java.util.regex.Pattern
 
 object BookImportUtil {
-    fun importBook(book: File): Observable<LocBookShelf> {
+    fun getFileName(context: Context, uri: Uri): String {
+        if (uri.scheme == "content") {
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (index != -1) return cursor.getString(index)
+                }
+            }
+        }
+        // fallback: file path
+        return uri.path?.substringAfterLast('/')?:"未知"
+    }
+
+    fun importBook(context: Context,uri: Uri): Observable<LocBookShelf> {
         return Observable.create { e: ObservableEmitter<LocBookShelf> ->
             val md = MessageDigest.getInstance("MD5")
-            val `in` = FileInputStream(book)
-            val buffer = ByteArray(2048)
-            var len: Int
-            while ((`in`.read(buffer, 0, 2048).also { len = it }) != -1) {
-                md.update(buffer, 0, len)
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                val buffer = ByteArray(2048)
+                var len: Int
+                while (inputStream.read(buffer).also { len = it } != -1) {
+                    md.update(buffer, 0, len)
+                }
             }
-            `in`.close()
 
             val md5 = BigInteger(1, md.digest()).toString(16)
             val bookShelfBox = bookShelfBox
@@ -54,14 +71,14 @@ object BookImportUtil {
 
                 val bookInfo = BookInfo()
                 bookInfo.author = "佚名"
-                bookInfo.name = book.name.replace(".txt", "").replace(".TXT", "")
+                bookInfo.name = getFileName(context,uri).replace(".txt", "").replace(".TXT", "")
                 bookInfo.finalRefreshData = System.currentTimeMillis()
                 bookInfo.coverUrl = ""
                 bookInfo.noteUrl = md5
                 bookInfo.tag = BookShelf.LOCAL_TAG
                 bookShelf.bookInfo.target = bookInfo
                 //保存章节
-                saveChapter(book, md5)
+                saveChapter(context,uri, md5)
                 chapterListBox
                     .query(ChapterList_.noteUrl.equal(bookShelf.noteUrl))
                     .order(ChapterList_.durChapterIndex)
@@ -95,11 +112,11 @@ object BookImportUtil {
     }
 
     @Throws(IOException::class)
-    private fun saveChapter(book: File, md5: String) {
+    private fun saveChapter(context: Context,uri: Uri, md5: String) {
         val chapterRegex = Pattern.compile("第.{1,7}章.*")
 
         // ---------- 自动检测编码 ----------
-        val encoding = FileInputStream(book).use { fis ->
+        val encoding = context.contentResolver.openInputStream(uri)?.use { fis ->
             val buf = ByteArray(4096)
             val detector = UniversalDetector(null)
             var nRead: Int
@@ -115,7 +132,7 @@ object BookImportUtil {
         val contentBuilder = StringBuilder()
 
         // ---------- 读取并解析章节 ----------
-        FileInputStream(book).use { fis ->
+        context.contentResolver.openInputStream(uri)?.use { fis ->
             InputStreamReader(fis, encoding).use { reader ->
                 BufferedReader(reader).use { br ->
                     br.lineSequence().forEach { rawLine ->

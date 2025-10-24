@@ -79,7 +79,6 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.ObservableEmitter
 import io.reactivex.rxjava3.schedulers.Schedulers
 import me.grantland.widget.AutofitTextView
-import java.io.File
 import kotlin.math.ceil
 
 @AndroidEntryPoint
@@ -282,29 +281,15 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
         //APP外部打开
         val uri = intent.data ?: return
         showLoadBook()
-        mViewModel.getRealFilePath(this, uri)
+        BookImportUtil.importBook(this, uri)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeOn(Schedulers.io())
-            .subscribe(object : SimpleObserver<String>() {
-                override fun onNext(value: String) {
-                    BookImportUtil.importBook(File(value))
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeOn(Schedulers.io())
-                        .subscribe(object : SimpleObserver<LocBookShelf>() {
-                            override fun onNext(value: LocBookShelf) {
-                                if (value.new) RxBus.get().post(RxBusTag.HAD_ADD_BOOK, value)
-                                mViewModel.bookShelf = value.bookShelf
-                                dimissLoadBook()
-                                mViewModel.checkInShelf()
-                            }
-
-                            override fun onError(e: Throwable) {
-                                Log.e(TAG, "onError: ", e)
-                                dimissLoadBook()
-                                loadLocationBookError()
-                                showShort(context, "文本打开失败！")
-                            }
-                        })
+            .subscribe(object : SimpleObserver<LocBookShelf>() {
+                override fun onNext(value: LocBookShelf) {
+                    if (value.new) RxBus.get().post(RxBusTag.HAD_ADD_BOOK, value)
+                    mViewModel.bookShelf = value.bookShelf
+                    dimissLoadBook()
+                    mViewModel.checkInShelf()
                 }
 
                 override fun onError(e: Throwable) {
