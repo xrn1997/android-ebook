@@ -183,7 +183,7 @@ class ImportBookActivity : BaseMvvmActivity<ActivityImportbookBinding, BookImpor
                         !Environment.isExternalStorageManager()
                     ) {
                         val builder = AlertDialog.Builder(this)
-                            .setMessage("在Android11及以上的版本中，本程序还需要您同意允许访问所有文件权限，不然无法打开和扫描本地文件")
+                            .setMessage("在Android11及以上的版本中，本程序还需要您同意允许访问所有文件权限，不然无法扫描本地文件")
                             .setPositiveButton(
                                 "确定"
                             ) { _: DialogInterface?, _: Int ->
@@ -200,6 +200,10 @@ class ImportBookActivity : BaseMvvmActivity<ActivityImportbookBinding, BookImpor
                         val dialog = builder.create()
                         //点击dialog之外的空白处，dialog不能消失
                         dialog.setCanceledOnTouchOutside(false)
+                        //取消就关闭activity
+                        dialog.setOnCancelListener {
+                            finish()  // 关闭当前 Activity
+                        }
                         dialog.show()
                     }
                 }

@@ -1,13 +1,8 @@
 package com.ebook.book
 
-import android.content.DialogInterface
-import android.content.Intent
-import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -24,11 +19,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -85,7 +76,6 @@ import kotlin.math.ceil
 class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewModel>() {
     override val mViewModel: BookReadViewModel by viewModels()
     private var openFrom = 0
-    private lateinit var requestPermission: ActivityResultLauncher<Intent>
     private lateinit var flContent: FrameLayout
     private val handler: Handler = Handler(Looper.getMainLooper())
     private lateinit var csvBook: ContentSwitchView
@@ -120,23 +110,6 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
     private lateinit var moreSettingPop: MoreSettingPop
 
     private lateinit var moProgressHUD: MoProgressHUD
-
-    private fun onCreateActivity() {
-        requestPermission = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result: ActivityResult ->
-            if (result.resultCode != RESULT_OK) {
-                return@registerForActivityResult
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-                !Environment.isExternalStorageManager()
-            ) {
-                onBackPressedDispatcher.onBackPressed()
-            } else {
-                openBookFromOther()
-            }
-        }
-    }
 
     override fun initData() {
         mViewModel.saveProgress()
@@ -178,7 +151,6 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
     }
 
     override fun initView() {
-        onCreateActivity()
         bindView()
         bindEvent()
         ViewCompat.setOnApplyWindowInsetsListener(binding.llMenuBar) { v, insets ->
@@ -238,43 +210,25 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
         csvBook.bookReadInit {
             openFrom = intent.getIntExtra("from", OPEN_FROM_OTHER)
             if (openFrom == OPEN_FROM_APP) {
-                val key = intent.getStringExtra("data_key")
-                if (key == null) {
-                    Log.e(TAG, "initCsvBook: key is null")
-                    return@bookReadInit
-                }
-                mViewModel.bookShelf = BitIntentDataManager.getData(key) as BookShelf
-                if (mViewModel.bookShelf!!.tag != BookShelf.LOCAL_TAG) {
-                    showDownloadMenu()
-                }
-                BitIntentDataManager.cleanData(key)
-                mViewModel.checkInShelf()
+                openBookFromApp()
             } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-                    !Environment.isExternalStorageManager()
-                ) {
-                    val builder = AlertDialog.Builder(this)
-                        .setMessage("在Android11及以上的版本中，本程序还需要您同意允许访问所有文件权限，不然无法打开和扫描本地文件")
-                        .setPositiveButton(
-                            "确定"
-                        ) { _: DialogInterface?, _: Int ->
-                            requestPermission.launch(
-                                Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                            )
-                        }
-                        .setNegativeButton(
-                            "取消",
-                            (DialogInterface.OnClickListener { _: DialogInterface?, _: Int -> finish() })
-                        )
-                    val dialog = builder.create()
-                    //点击dialog之外的空白处，dialog不能消失
-                    dialog.setCanceledOnTouchOutside(false)
-                    dialog.show()
-                } else {
-                    openBookFromOther()
-                }
+                openBookFromOther()
             }
         }
+    }
+
+    private fun openBookFromApp() {
+        val key = intent.getStringExtra("data_key")
+        if (key == null) {
+            Log.e(TAG, "initCsvBook: key is null")
+            return
+        }
+        mViewModel.bookShelf = BitIntentDataManager.getData(key) as BookShelf
+        if (mViewModel.bookShelf!!.tag != BookShelf.LOCAL_TAG) {
+            showDownloadMenu()
+        }
+        BitIntentDataManager.cleanData(key)
+        mViewModel.checkInShelf()
     }
 
     private fun openBookFromOther() {
