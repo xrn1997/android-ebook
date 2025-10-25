@@ -4,7 +4,7 @@ import android.app.Application
 import com.ebook.api.config.API
 import com.ebook.api.dto.RespDTO
 import com.ebook.api.entity.User
-import com.ebook.api.service.UserService
+import com.ebook.api.service.user.UserService
 import com.therouter.inject.Singleton
 import com.xrn1997.common.http.RxJavaAdapter.exceptionTransformer
 import com.xrn1997.common.http.RxJavaAdapter.schedulersTransformer

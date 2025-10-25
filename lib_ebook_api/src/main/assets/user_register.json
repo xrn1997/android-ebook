@@ -1,0 +1,12 @@
+{
+  "code": 0,
+  "error": "",
+  "data": {
+    "id": 2,
+    "username": "new_user",
+    "password": "$2a$10$xyz...",
+    "image": "https://example.com/images/user_2.png",
+    "nickname": "新注册用户",
+    "addtime": "2025-10-25 12:30:00"
+  }
+}
