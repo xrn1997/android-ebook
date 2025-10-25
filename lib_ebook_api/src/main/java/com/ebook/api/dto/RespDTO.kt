@@ -1,11 +1,12 @@
 package com.ebook.api.dto
 
-import java.io.Serializable
+import kotlinx.serialization.Serializable
 
 /**
  * 响应数据传输类
  * @author xrn1997
  */
+@Serializable
 data class RespDTO<T>(
     @JvmField
     var code: Int = 0,
@@ -13,7 +14,7 @@ data class RespDTO<T>(
     var error: String = "",
     @JvmField
     var data: T? = null
-) : Serializable {
+) {
     override fun toString(): String {
         return "RespDTO{code= $code, message=\'${error}\', data=$data }"
     }
