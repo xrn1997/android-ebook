@@ -5,7 +5,7 @@
     "id": 2,
     "username": "new_user",
     "password": "$2a$10$xyz...",
-    "image": "https://example.com/images/user_2.png",
+    "image": "https://raw.githubusercontent.com/xrn1997/android-ebook/refs/heads/master/module_me/src/main/res/drawable-xhdpi/image_default.jpeg",
     "nickname": "新注册用户",
     "addtime": "2025-10-25 12:30:00"
   }
