@@ -1,6 +1,6 @@
 package com.ebook.api.service.user
 
-import com.ebook.api.dto.RespDTO
+import com.xrn1997.common.dto.RespDTO
 import com.ebook.api.entity.LoginDTO
 import com.ebook.api.entity.User
 import okhttp3.MultipartBody

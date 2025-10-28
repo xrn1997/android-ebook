@@ -1,8 +1,7 @@
-package com.ebook.api.service
+package com.ebook.api.service.comment
 
-import com.ebook.api.dto.RespDTO
+import com.xrn1997.common.dto.RespDTO
 import com.ebook.api.entity.Comment
-import io.reactivex.rxjava3.core.Observable
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -15,10 +14,10 @@ interface CommentService {
     //添加评论
     @POST("/comments/save")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    fun addComment(
+    suspend fun addComment(
         @Header("Authorization") token: String?,
         @Body comment: Comment
-    ): Observable<RespDTO<Comment>>
+    ): RespDTO<Comment>
 
     //删除评论
     @POST("/comments/delete/{id}")
@@ -26,7 +25,7 @@ interface CommentService {
     fun deleteComment(
         @Header("Authorization") token: String?,
         @Path("id") id: Long
-    ): Observable<RespDTO<Int>>
+    ): RespDTO<Int>
 
     //获得用户评论
     @GET("/comments/query/name/{username}")
@@ -34,7 +33,7 @@ interface CommentService {
     fun getUserComments(
         @Header("Authorization") token: String?,
         @Path("username") username: String
-    ): Observable<RespDTO<List<Comment>>>
+    ): RespDTO<List<Comment>>
 
     //获得章节评论
     @GET("/comments/query/chapter")
@@ -42,5 +41,5 @@ interface CommentService {
     fun getChapterComments(
         @Header("Authorization") token: String?,
         @Query("chapterUrl") chapterUrl: String?
-    ): Observable<RespDTO<List<Comment>>>
+    ): RespDTO<List<Comment>>
 }

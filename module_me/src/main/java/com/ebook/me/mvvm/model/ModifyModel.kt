@@ -2,9 +2,10 @@ package com.ebook.me.mvvm.model
 
 import android.app.Application
 import android.net.Uri
-import com.blankj.utilcode.util.SPUtils
-import com.ebook.api.dto.RespDTO
+import com.ebook.common.util.SPUtils
+import com.xrn1997.common.dto.RespDTO
 import com.ebook.api.service.user.UserDataSource
+import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.event.KeyCode
 import com.xrn1997.common.manager.RetrofitManager
 import com.xrn1997.common.mvvm.model.BaseModel
@@ -19,15 +20,15 @@ import javax.inject.Singleton
 @Singleton
 class ModifyModel @Inject constructor(
     application: Application,
-    private val dataSource: UserDataSource,
+    private val dataSource: UserDataSource
 ) : BaseModel(application) {
 
     /**
      * 修改昵称
      */
-    suspend fun modifyNickname(nickname: String): RespDTO<Int> {
+    suspend fun modifyNickname(nickname: String): Result<RespDTO<Int>> {
         val username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME)
-        return dataSource.modifyNickname(RetrofitManager.TOKEN, username, nickname)
+        return CoroutineAdapter.safeApiCall { dataSource.modifyNickname(RetrofitManager.TOKEN, username, nickname)}
     }
 
     /**
@@ -37,7 +38,7 @@ class ModifyModel @Inject constructor(
      * @return 返回服务器头像名称
      */
     @Throws(IOException::class)
-    suspend fun modifyProfilePhoto(uri: Uri): RespDTO<String> {
+    suspend fun modifyProfilePhoto(uri: Uri): Result<RespDTO<String>> {
         val username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME)
 
         val inputStream = mApplication.contentResolver.openInputStream(uri)
@@ -52,9 +53,7 @@ class ModifyModel @Inject constructor(
                 FileUtil.getFileName(".jpg"),
                 requestBody
             )
-
-            // 调用 Retrofit suspend API
-            return dataSource.modifyProfilePhoto(RetrofitManager.TOKEN, username, body)
+            return CoroutineAdapter.safeApiCall { dataSource.modifyProfilePhoto(RetrofitManager.TOKEN, username, body)}
         }
     }
 

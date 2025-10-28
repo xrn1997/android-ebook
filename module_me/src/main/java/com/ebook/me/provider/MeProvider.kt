@@ -8,7 +8,8 @@ import com.therouter.inject.ServiceProvider
 
 @ServiceProvider
 class MeProvider : IMeProvider {
-    override val mainMeFragment: Fragment = MainMeFragment.newInstance()
+    override val mainMeFragment: MainMeFragment
+        get() = MainMeFragment.newInstance()  // 每次访问都新建
 }
 
 

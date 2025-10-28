@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">登录</string>
+    <string name="app_name">module_login</string>
     <string name="ebook">eBOOK</string>
     <string name="print_pwd">请输入密码</string>
     <string name="print_new_pwd">请输入新密码</string>

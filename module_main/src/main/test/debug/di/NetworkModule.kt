@@ -14,7 +14,4 @@ import dagger.hilt.components.SingletonComponent
 internal interface NetworkModule {
     @Binds
     fun bindUser(impl: UserNetworkTest): UserDataSource
-
-    @Binds
-    fun bindComment(impl: CommentNetworkTest): CommentDataSource
 }

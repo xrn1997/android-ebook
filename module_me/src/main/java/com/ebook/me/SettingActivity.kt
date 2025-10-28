@@ -3,7 +3,7 @@ package com.ebook.me
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import com.blankj.utilcode.util.SPUtils
+import com.ebook.common.util.SPUtils
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RxBusTag
 import com.ebook.me.databinding.ActivitySettingBinding

@@ -116,8 +116,4 @@ class BookImportViewModel @Inject constructor(
     fun scanCancel() {
         isCancel = true
     }
-
-    companion object {
-        const val TAG: String = "ImportBookPresenterImpl"
-    }
 }

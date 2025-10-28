@@ -1,15 +1,16 @@
 package com.ebook.api.service.user
 
 import com.ebook.api.config.API
-import com.ebook.api.dto.RespDTO
+import com.xrn1997.common.dto.RespDTO
 import com.ebook.api.entity.LoginDTO
 import com.ebook.api.entity.User
 import com.xrn1997.common.manager.RetrofitManager
 import okhttp3.MultipartBody
+import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class UserNetwork : UserDataSource {
+class UserNetwork @Inject constructor() : UserDataSource {
     init {
         // 通过反射动态修改 BaseUrl
         RetrofitManager.mHttpUrl.setHost(API.URL_HOST_USER)
@@ -17,10 +18,6 @@ class UserNetwork : UserDataSource {
     }
 
     private val networkApi = RetrofitManager.create(UserService::class.java)
-
-    override fun helloWorld(): String {
-        return "hello retrofit2"
-    }
 
     override suspend fun login(user: User): RespDTO<LoginDTO> {
         return networkApi.login(user)

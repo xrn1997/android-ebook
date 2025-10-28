@@ -1,9 +1,8 @@
 package com.ebook.common.provider
 
-import com.ebook.api.dto.RespDTO
 import com.ebook.api.entity.LoginDTO
-import io.reactivex.rxjava3.core.Observable
+import com.xrn1997.common.dto.RespDTO
 
 interface ILoginProvider {
-    fun login(username: String, password: String): Observable<RespDTO<LoginDTO>>
+    suspend fun login(username: String, password: String): Result<RespDTO<LoginDTO>>
 }

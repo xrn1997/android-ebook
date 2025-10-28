@@ -3,7 +3,7 @@ package debug
 import android.content.Intent
 import android.os.Bundle
 import androidx.compose.runtime.Composable
-import com.blankj.utilcode.util.SPUtils
+import com.ebook.common.util.SPUtils
 import com.ebook.api.entity.User
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RxBusTag

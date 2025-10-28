@@ -7,5 +7,6 @@ import com.therouter.inject.ServiceProvider
 
 @ServiceProvider
 class FindProvider : IFindProvider {
-    override val mainFindFragment: Fragment = MainFindFragment.newInstance()
+    override val mainFindFragment: MainFindFragment
+        get() = MainFindFragment.newInstance()  // 每次访问都新建
 }

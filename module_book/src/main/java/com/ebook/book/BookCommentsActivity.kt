@@ -5,7 +5,7 @@ import android.view.ViewGroup
 import android.widget.EditText
 import androidx.activity.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.blankj.utilcode.util.SPUtils
+import com.ebook.common.util.SPUtils
 import com.ebook.api.entity.Comment
 import com.ebook.book.adapter.BookCommentsAdapter
 import com.ebook.book.databinding.ActivityBookCommentsBinding

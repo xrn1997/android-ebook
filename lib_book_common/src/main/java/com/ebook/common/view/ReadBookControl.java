@@ -2,7 +2,7 @@ package com.ebook.common.view;
 
 import android.graphics.Color;
 
-import com.blankj.utilcode.util.SPUtils;
+import com.ebook.common.util.SPUtils;
 import com.ebook.common.R;
 import com.xrn1997.common.util.DisplayUtil;
 

@@ -2,7 +2,7 @@ package debug
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import com.blankj.utilcode.util.SPUtils
+import com.ebook.common.util.SPUtils
 import com.ebook.common.event.KeyCode
 import com.ebook.login.databinding.ActivityMainBinding
 import com.therouter.TheRouter.build

@@ -314,8 +314,4 @@ class BookDetailActivity : BaseMvvmActivity<ActivityDetailBinding, BookDetailVie
     fun hadRemoveBook(value: BookShelf) {
         finishActivity()
     }
-
-    companion object {
-        const val TAG: String = "BookDetailActivity"
-    }
 }

@@ -1,6 +1,6 @@
 package com.ebook.api.service.user
 
-import com.ebook.api.dto.RespDTO
+import com.xrn1997.common.dto.RespDTO
 import com.ebook.api.entity.LoginDTO
 import com.ebook.api.entity.User
 import com.ebook.api.utils.TestAssetManager
@@ -14,13 +14,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class TestUserNetwork @Inject constructor(
+class UserNetworkTest @Inject constructor(
     private val networkJson: Json,
     private val assets: TestAssetManager,
 ) : UserDataSource {
-    override fun helloWorld(): String {
-        return "hello test"
-    }
 
     override suspend fun login(user: User): RespDTO<LoginDTO> =
         getDataFromJsonFile(USER_LOGIN)

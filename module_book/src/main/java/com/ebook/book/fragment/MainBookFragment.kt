@@ -2,6 +2,7 @@ package com.ebook.book.fragment
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -28,6 +29,8 @@ import com.hwangjr.rxbus.thread.EventThread
 import com.scwang.smart.refresh.layout.api.RefreshLayout
 import com.therouter.TheRouter
 import com.xrn1997.common.mvvm.view.BaseMvvmRefreshFragment
+import com.xrn1997.common.util.isDarkMode
+import com.xrn1997.common.util.setStatusBarColor
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Timer
 import java.util.TimerTask
@@ -127,8 +130,6 @@ class MainBookFragment :
     }
 
     companion object {
-        const val TAG: String = "MainBookFragment"
-
         @JvmStatic
         fun newInstance(): MainBookFragment {
             return MainBookFragment()
