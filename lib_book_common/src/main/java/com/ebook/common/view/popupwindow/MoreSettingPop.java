@@ -4,7 +4,6 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CompoundButton;
 import android.widget.PopupWindow;
 
 import androidx.core.content.ContextCompat;
@@ -53,6 +52,6 @@ public class MoreSettingPop extends PopupWindow {
     }
 
     private void initData() {
-        readBookControl = ReadBookControl.getInstance();
+        readBookControl = ReadBookControl.INSTANCE;
     }
 }

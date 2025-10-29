@@ -9,7 +9,7 @@ import com.ebook.api.entity.User
 import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RxBusTag
-import com.ebook.common.util.SPUtils
+import com.ebook.common.util.SPUtil
 import com.ebook.login.mvvm.model.UserModel
 import com.hwangjr.rxbus.RxBus
 import com.therouter.TheRouter.build
@@ -25,7 +25,6 @@ class LoginViewModel @Inject constructor(
     application: Application,
     model: UserModel
 ) : BaseViewModel<UserModel>(application, model) {
-    var path: String? = null //被拦截的路径
     var bundle: Bundle? = null //被拦截的信息
 
     fun login(username: String, password: String) {
@@ -59,7 +58,7 @@ class LoginViewModel @Inject constructor(
                 if (exception is CoroutineAdapter.ApiException) {
                     if (exception.code == ErrorCode.USER_ERROR_A0230.code) {
                         RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, Any())
-                        SPUtils.getInstance().clear()
+                        SPUtil.clear()
                         //   Log.d(TAG, "登录失效 is login 状态：" + SPUtils.getInstance().getString(KeyCode.Login.SP_IS_LOGIN));
                     }
                     postToastEvent(exception.message())
@@ -73,18 +72,19 @@ class LoginViewModel @Inject constructor(
 
     private fun loginOnNext(user: User) {
         //不是自动登录则调用以下语句
-        val spUtils = SPUtils.getInstance()
-        if (!spUtils.getBoolean(KeyCode.Login.SP_IS_LOGIN)) {
-            spUtils.put(KeyCode.Login.SP_IS_LOGIN, true)
-            spUtils.put(KeyCode.Login.SP_USERNAME, user.username)
-            spUtils.put(KeyCode.Login.SP_PASSWORD, user.password)
-            spUtils.put(KeyCode.Login.SP_NICKNAME, user.nickname)
-            spUtils.put(KeyCode.Login.SP_USER_ID, user.id)
-            spUtils.put(KeyCode.Login.SP_IMAGE, user.image)
-            postShowLoadingViewEvent(false)
-            build(path).with(bundle).navigation()
-            postFinishActivityEvent()
-            postToastEvent("登录成功")
+        SPUtil.apply {
+            if (!get(KeyCode.Login.SP_IS_LOGIN, false)) {
+                put(KeyCode.Login.SP_IS_LOGIN, true)
+                put(KeyCode.Login.SP_USERNAME, user.username)
+                put(KeyCode.Login.SP_PASSWORD, user.password)
+                put(KeyCode.Login.SP_NICKNAME, user.nickname)
+                put(KeyCode.Login.SP_USER_ID, user.id)
+                put(KeyCode.Login.SP_IMAGE, user.image)
+                postShowLoadingViewEvent(false)
+                build(bundle?.getString(KeyCode.Login.PATH)).navigation()
+                postFinishActivityEvent()
+                postToastEvent("登录成功")
+            }
         }
     }
 }

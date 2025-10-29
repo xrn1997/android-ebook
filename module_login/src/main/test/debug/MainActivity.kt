@@ -1,9 +1,10 @@
 package debug
 
+import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import com.ebook.common.util.SPUtils
 import com.ebook.common.event.KeyCode
+import com.ebook.common.util.SPUtil
 import com.ebook.login.databinding.ActivityMainBinding
 import com.therouter.TheRouter.build
 import com.xrn1997.common.mvvm.view.BaseActivity
@@ -15,18 +16,20 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             build(KeyCode.Login.LOGIN_PATH).navigation()
         }
         binding.btnRegister.setOnClickListener {
-            build(KeyCode.Login.REGISTER_PATH)
-                .withString("msg", "TheRouter传递过来的不需要登录的参数msg")
-                .navigation()
+            build(KeyCode.Login.REGISTER_PATH).navigation()
         }
         binding.btnInterrupt.setOnClickListener {
+            val bundle = Bundle()
+            bundle.putBoolean("123", true)
             build(KeyCode.Login.TEST_INTERRUPT_PATH)
-                .withString("msg", "TheRouter传递过来的需要登录的参数msg")
+                .withString("msg", "被therouter拦截的参数：")
+                .withInt("key", 1)
+                .withBundle("bundle2", bundle)
                 .navigation()
         }
         binding.btnExit.setOnClickListener {
             showShort(this, "退出登录成功")
-            SPUtils.getInstance().remove(KeyCode.Login.SP_IS_LOGIN)
+            SPUtil.remove(KeyCode.Login.SP_IS_LOGIN)
         }
     }
 

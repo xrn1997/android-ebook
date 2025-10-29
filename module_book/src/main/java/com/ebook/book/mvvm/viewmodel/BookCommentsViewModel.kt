@@ -8,7 +8,7 @@ import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.book.mvvm.model.BookCommentsModel
 import com.ebook.common.event.KeyCode
 import com.ebook.common.util.DateUtil
-import com.ebook.common.util.SPUtils
+import com.ebook.common.util.SPUtil
 import com.xrn1997.common.event.SingleLiveEvent
 import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -58,7 +58,7 @@ class BookCommentsViewModel @Inject constructor(
     fun addComment(comments: String) {
         if (comments.isNotEmpty()) {
             val user = User()
-            user.id = SPUtils.getInstance().getLong(KeyCode.Login.SP_USER_ID)
+            user.id = SPUtil.get(KeyCode.Login.SP_USER_ID, -1L)
             comment.user = user
             comment.comment = comments
             viewModelScope.launch {

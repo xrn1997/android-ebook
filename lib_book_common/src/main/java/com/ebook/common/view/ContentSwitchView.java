@@ -76,7 +76,7 @@ public class ContentSwitchView extends FrameLayout implements BookContentView.Se
     }
 
     private void init() {
-        readBookControl = ReadBookControl.getInstance();
+        readBookControl = ReadBookControl.INSTANCE;
         scrollX = DisplayUtil.dip2px(30f);
         durPageView = new BookContentView(getContext());
         durPageView.setReadBookControl(readBookControl);

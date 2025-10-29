@@ -5,7 +5,7 @@ import com.ebook.api.entity.Comment
 import com.ebook.api.service.comment.CommentDataSource
 import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.event.KeyCode
-import com.ebook.common.util.SPUtils
+import com.ebook.common.util.SPUtil
 import com.xrn1997.common.dto.RespDTO
 import com.xrn1997.common.manager.RetrofitManager
 import com.xrn1997.common.mvvm.model.BaseModel
@@ -29,7 +29,7 @@ class CommentModel @Inject constructor(
      * 获得用户评论
      */
     suspend fun getUserComments(): Result<RespDTO<List<Comment>>> {
-        val username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME)
+        val username = SPUtil.get(KeyCode.Login.SP_USERNAME, "")
         return CoroutineAdapter.safeApiCall {
             dataSource.getUserComments(
                 RetrofitManager.TOKEN,

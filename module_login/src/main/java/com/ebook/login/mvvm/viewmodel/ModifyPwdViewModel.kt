@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RxBusTag
-import com.ebook.common.util.SPUtils
+import com.ebook.common.util.SPUtil
 import com.ebook.login.ModifyPwdActivity
 import com.ebook.login.mvvm.model.UserModel
 import com.hwangjr.rxbus.RxBus
@@ -75,7 +75,7 @@ class ModifyPwdViewModel @Inject constructor(
             result.onSuccess { resp ->
                 //  Log.d(TAG, "修改密码onNext: start");
                 postToastEvent("修改成功")
-                SPUtils.getInstance().clear()
+                SPUtil.clear()
                 RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME)
                 val bundle = Bundle()
                 bundle.putString("username", username)

@@ -12,7 +12,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.event.KeyCode
 import com.ebook.common.provider.ILoginProvider
-import com.ebook.common.util.SPUtils
+import com.ebook.common.util.SPUtil
 import com.ebook.main.databinding.ActivitySplashBinding
 import com.therouter.TheRouter
 import com.xrn1997.common.mvvm.view.BaseActivity
@@ -53,8 +53,8 @@ class SplashActivity : BaseActivity<ActivitySplashBinding>() {
     }
 
     override fun initData() {
-        val username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME)
-        val password = SPUtils.getInstance().getString(KeyCode.Login.SP_PASSWORD)
+        val username = SPUtil.get(KeyCode.Login.SP_USERNAME, "")
+        val password = SPUtil.get(KeyCode.Login.SP_PASSWORD, "")
         //  Log.d(TAG, "SplashActivity initData: username: " + username + ",password: " + password);
         if ((!TextUtils.isEmpty(username)) && (!TextUtils.isEmpty(password))) {
             activityScope.launch {

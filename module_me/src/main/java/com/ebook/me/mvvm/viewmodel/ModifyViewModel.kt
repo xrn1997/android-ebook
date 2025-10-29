@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RxBusTag
-import com.ebook.common.util.SPUtils
+import com.ebook.common.util.SPUtil
 import com.ebook.me.mvvm.model.ModifyModel
 import com.hwangjr.rxbus.RxBus
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
@@ -29,7 +29,7 @@ class ModifyViewModel @Inject constructor(
             val result = mModel.modifyNickname(name)
             result.onSuccess {
                 postToastEvent("修改成功")
-                SPUtils.getInstance().put(KeyCode.Login.SP_NICKNAME, name)
+                SPUtil.put(KeyCode.Login.SP_NICKNAME, name)
                 RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, Any())
                 postFinishActivityEvent()
             }.onFailure { exception ->
@@ -53,7 +53,7 @@ class ModifyViewModel @Inject constructor(
             result.onSuccess { resp ->
                 postToastEvent("头像修改成功")
                     val url = resp.data
-                    SPUtils.getInstance().put(KeyCode.Login.SP_IMAGE, url)
+                SPUtil.put(KeyCode.Login.SP_IMAGE, url)
                     Log.e(TAG, "url: $url")
                     RxBus.get().post(RxBusTag.MODIFY_PROFILE_PICTURE, url)
             }.onFailure { exception ->

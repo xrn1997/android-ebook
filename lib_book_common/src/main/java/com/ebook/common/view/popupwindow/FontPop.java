@@ -99,7 +99,7 @@ public class FontPop extends PopupWindow {
         if (textKindIndex == 0) {
             flSmaller.setEnabled(false);
             flBigger.setEnabled(true);
-        } else if (textKindIndex == readBookControl.getTextKind().size() - 1) {
+        } else if (textKindIndex == readBookControl.getTextKindList().size() - 1) {
             flSmaller.setEnabled(true);
             flBigger.setEnabled(false);
         } else {
@@ -108,8 +108,8 @@ public class FontPop extends PopupWindow {
 
         }
         tvTextSizedDefault.setEnabled(textKindIndex != ReadBookControl.DEFAULT_TEXT);
-        tvTextSize.setText(String.valueOf(readBookControl.getTextKind().get(textKindIndex).get("textSize")));
-        readBookControl.setTextKindIndex(textKindIndex);
+        tvTextSize.setText(String.valueOf(readBookControl.getTextKindList().get(textKindIndex).getTextSize()));
+        readBookControl.updateTextKindIndex(textKindIndex);
     }
 
     private void updateBg(int index) {
@@ -131,11 +131,11 @@ public class FontPop extends PopupWindow {
                 civBgBlack.setBorderColor(Color.parseColor("#F3B63F"));
                 break;
         }
-        readBookControl.setTextDrawableIndex(index);
+        readBookControl.updateTextDrawableIndex(index);
     }
 
     private void initData() {
-        readBookControl = ReadBookControl.getInstance();
+        readBookControl = ReadBookControl.INSTANCE;
     }
 
     public interface OnChangeProListener {

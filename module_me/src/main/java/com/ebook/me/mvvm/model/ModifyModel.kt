@@ -2,11 +2,11 @@ package com.ebook.me.mvvm.model
 
 import android.app.Application
 import android.net.Uri
-import com.ebook.common.util.SPUtils
-import com.xrn1997.common.dto.RespDTO
 import com.ebook.api.service.user.UserDataSource
 import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.event.KeyCode
+import com.ebook.common.util.SPUtil
+import com.xrn1997.common.dto.RespDTO
 import com.xrn1997.common.manager.RetrofitManager
 import com.xrn1997.common.mvvm.model.BaseModel
 import com.xrn1997.common.util.FileUtil
@@ -27,7 +27,7 @@ class ModifyModel @Inject constructor(
      * 修改昵称
      */
     suspend fun modifyNickname(nickname: String): Result<RespDTO<Int>> {
-        val username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME)
+        val username = SPUtil.get(KeyCode.Login.SP_USERNAME, "")
         return CoroutineAdapter.safeApiCall { dataSource.modifyNickname(RetrofitManager.TOKEN, username, nickname)}
     }
 
@@ -39,7 +39,7 @@ class ModifyModel @Inject constructor(
      */
     @Throws(IOException::class)
     suspend fun modifyProfilePhoto(uri: Uri): Result<RespDTO<String>> {
-        val username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME)
+        val username = SPUtil.get(KeyCode.Login.SP_USERNAME, "")
 
         val inputStream = mApplication.contentResolver.openInputStream(uri)
             ?: throw IOException("Unable to open InputStream for URI: $uri")
