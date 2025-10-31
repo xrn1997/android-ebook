@@ -37,6 +37,7 @@ import com.ebook.common.manager.BitIntentDataManager
 import com.ebook.common.view.BookContentView
 import com.ebook.common.view.ContentSwitchView
 import com.ebook.common.view.ContentSwitchView.LoadDataListener
+import com.ebook.common.view.ReadBookControl.textBackground
 import com.ebook.common.view.modialog.MoProgressHUD
 import com.ebook.common.view.mprogressbar.MHorProgressBar
 import com.ebook.common.view.mprogressbar.OnProgressListener
@@ -65,6 +66,8 @@ import com.xrn1997.common.event.SimpleObserver
 import com.xrn1997.common.mvvm.view.BaseMvvmActivity
 import com.xrn1997.common.util.DisplayUtil.dip2px
 import com.xrn1997.common.util.ToastUtil.showShort
+import com.xrn1997.common.util.detectColor
+import com.xrn1997.common.util.setStatusBarColor
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
@@ -159,6 +162,7 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
             v.setPadding(stateBars.left, stateBars.top, stateBars.right, stateBars.bottom)
             insets
         }
+        setStatusBarColor(textBackground.detectColor())//自适应背景色
         onBackPressedDispatcher.addCallback(this) {
             when {
                 // 菜单可见，则先关闭菜单
@@ -239,12 +243,15 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
             Log.e(TAG, "initCsvBook: key is null")
             return
         }
-        mViewModel.bookShelf = BitIntentDataManager.getData(key) as BookShelf
-        if (mViewModel.bookShelf!!.tag != BookShelf.LOCAL_TAG) {
-            showDownloadMenu()
+        BitIntentDataManager.getData(key)?.let {
+            val bookShelf = it as BookShelf
+            if (bookShelf.tag != BookShelf.LOCAL_TAG) {
+                showDownloadMenu()
+            }
+            mViewModel.bookShelf = bookShelf
+            BitIntentDataManager.cleanData(key)
+            mViewModel.checkInShelf()
         }
-        BitIntentDataManager.cleanData(key)
-        mViewModel.checkInShelf()
     }
 
     private fun openBookFromOther() {
@@ -323,6 +330,7 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
             }
 
             override fun bgChange(index: Int) {
+                setStatusBarColor(textBackground.detectColor())//自适应背景色
                 csvBook.changeBg()
             }
         })

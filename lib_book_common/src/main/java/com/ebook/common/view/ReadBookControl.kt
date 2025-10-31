@@ -35,10 +35,10 @@ object ReadBookControl {
 
     /** 背景主题列表（初始化一次） */
     private val textDrawableList: List<TextDrawable> = listOf(
-        TextDrawable("#3E3D3B".toColorInt(), R.drawable.bg_book_white),
-        TextDrawable("#5E432E".toColorInt(), R.drawable.bg_book_yellow),
-        TextDrawable("#22482C".toColorInt(), R.drawable.bg_book_green),
-        TextDrawable("#808080".toColorInt(), R.drawable.bg_book_black)
+        TextDrawable("#3E3D3B".toColorInt(), "#F3F3F3".toColorInt()),//白
+        TextDrawable("#5E432E".toColorInt(), "#DCD1BC".toColorInt()),//黄
+        TextDrawable("#22482C".toColorInt(), "#E1F0D9".toColorInt()),//绿
+        TextDrawable("#808080".toColorInt(), "#2D2D33".toColorInt())//黑
     )
 
     // ----------------------------

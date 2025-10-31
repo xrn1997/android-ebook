@@ -49,26 +49,20 @@
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
+                    android:layout_marginBottom="4dp"
                     android:includeFontPadding="false"
                     android:lineSpacingExtra="5dp"
                     android:lineSpacingMultiplier="1"
                     android:textSize="19sp" />
 
-                <View
-                    android:id="@+id/v_bottom"
-                    android:layout_width="match_parent"
-                    android:layout_height="0.3dp"
-                    android:layout_marginTop="5dp"
-                    android:layout_marginBottom="5dp"
-                    android:background="#ffffff" />
-
                 <TextView
                     android:id="@+id/tv_page"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="end"
+                    android:layout_gravity="center"
                     android:lines="1"
                     android:text="@string/read_progress"
+                    android:layout_marginBottom="8dp"
                     android:textColor="#ffffff"
                     android:textSize="14sp" />
             </LinearLayout>
