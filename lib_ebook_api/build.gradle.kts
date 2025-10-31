@@ -3,6 +3,9 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.xrn1997.android.library)
     id("kotlin-parcelize")
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.xrn1997.hilt)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -16,7 +19,9 @@ android {
             )
         }
     }
-
+    buildFeatures {
+        buildConfig = true
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -40,6 +45,7 @@ dependencies {
     //json解析
     api(libs.gson)
     api(libs.fastjson2)
+    implementation(libs.kotlinx.serialization.json)
     //rx管理View的生命周期
     api(libs.trello.rxlifecycle) {
         exclude(group = "com.android.support")

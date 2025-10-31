@@ -6,7 +6,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -14,6 +13,7 @@ import android.text.TextUtils
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
@@ -125,7 +125,7 @@ object EnvironmentUtil {
          */
         @JvmStatic
         fun unInstallApp(context: Context, packageName: String) {
-            val intent = Intent(Intent.ACTION_DELETE, Uri.parse("package:$packageName")).apply {
+            val intent = Intent(Intent.ACTION_DELETE, "package:$packageName".toUri()).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)

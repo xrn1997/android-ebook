@@ -12,6 +12,7 @@ import android.view.PixelCopy
 import android.view.WindowManager
 import android.view.WindowMetrics
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.createBitmap
 
 @Suppress("unused")
 object ScreenUtils {
@@ -27,7 +28,7 @@ object ScreenUtils {
                 context.getSystemService(WindowManager::class.java).currentWindowMetrics
             windowMetrics.bounds.width()
         } else {
-            val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val wm = context.getSystemService(WindowManager::class.java)
             val outMetrics = DisplayMetrics()
             @Suppress("DEPRECATION")
             wm.defaultDisplay.getMetrics(outMetrics)
@@ -45,7 +46,7 @@ object ScreenUtils {
                 context.getSystemService(WindowManager::class.java).currentWindowMetrics
             windowMetrics.bounds.height()
         } else {
-            val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val wm = context.getSystemService(WindowManager::class.java)
             val outMetrics = DisplayMetrics()
             @Suppress("DEPRECATION")
             wm.defaultDisplay.getMetrics(outMetrics)
@@ -72,7 +73,7 @@ object ScreenUtils {
         val window = activity.window
         val width = getScreenWidth(activity)
         val height = getScreenHeight(activity)
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(width, height)
 
         // 使用 PixelCopy 进行截图
         PixelCopy.request(window, bitmap, { copyResult ->
@@ -95,7 +96,7 @@ object ScreenUtils {
         val statusBarHeight = frame.top
         val width = getScreenWidth(activity)
         val height = getScreenHeight(activity) - statusBarHeight
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(width, height)
 
         // 使用 PixelCopy 进行截图
         PixelCopy.request(window, bitmap, { copyResult ->

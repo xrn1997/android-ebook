@@ -29,7 +29,7 @@
                 android:layout_height="match_parent"
                 android:layout_gravity="center_vertical"
                 android:gravity="center"
-                android:text="字号"
+                android:text="@string/font_size"
                 android:textColor="#adadad"
                 android:textSize="14sp" />
 
@@ -44,7 +44,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="-"
+                    android:text="@string/char_"
                     android:textColor="#767676"
                     android:textSize="22sp" />
             </FrameLayout>
@@ -56,7 +56,7 @@
                 android:layout_gravity="center"
                 android:gravity="center"
                 android:singleLine="true"
-                android:text="18"
+                android:text="@string/_18"
                 android:textColor="#767676"
                 android:textSize="14sp" />
 
@@ -71,7 +71,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="+"
+                    android:text="@string/plus"
                     android:textColor="#767676"
                     android:textSize="22sp" />
             </FrameLayout>
@@ -82,7 +82,7 @@
                 android:layout_height="match_parent"
                 android:layout_gravity="center_vertical"
                 android:gravity="center"
-                android:text="默认"
+                android:text="@string/default_size"
                 android:textColor="@drawable/selector_pop_font_color"
                 android:textSize="14sp" />
         </LinearLayout>
@@ -99,17 +99,17 @@
                 android:layout_height="match_parent"
                 android:layout_gravity="center_vertical"
                 android:gravity="center"
-                android:paddingLeft="20dp"
-                android:paddingRight="20dp"
-                android:text="背景"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:text="@string/background"
                 android:textColor="#adadad"
                 android:textSize="14sp" />
 
-            <de.hdodenhof.circleimageview.CircleImageView
+            <com.ebook.common.view.profilePhoto.CircleImageView
                 android:id="@+id/civ_bg_white"
                 android:layout_width="45dp"
                 android:layout_height="45dp"
-                android:src="@drawable/icon_readbook_white"
+                app:civ_fill_color="#F3F3F3"
                 app:civ_border_color="#00000000"
                 app:civ_border_width="1dp" />
 
@@ -118,12 +118,12 @@
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-            <de.hdodenhof.circleimageview.CircleImageView
+            <com.ebook.common.view.profilePhoto.CircleImageView
                 android:id="@+id/civ_bg_yellow"
                 android:layout_width="45dp"
                 android:layout_height="45dp"
-                android:src="@drawable/icon_readbook_yellow"
-                app:civ_border_color="#F3B63F"
+                app:civ_border_color="#00000000"
+                app:civ_fill_color="#DCD1BC"
                 app:civ_border_width="1dp" />
 
             <View
@@ -131,11 +131,11 @@
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-            <de.hdodenhof.circleimageview.CircleImageView
+            <com.ebook.common.view.profilePhoto.CircleImageView
                 android:id="@+id/civ_bg_green"
                 android:layout_width="45dp"
                 android:layout_height="45dp"
-                android:src="@drawable/icon_readbook_green"
+                app:civ_fill_color="#E1F0D9"
                 app:civ_border_color="#00000000"
                 app:civ_border_width="1dp" />
 
@@ -144,11 +144,11 @@
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-            <de.hdodenhof.circleimageview.CircleImageView
+            <com.ebook.common.view.profilePhoto.CircleImageView
                 android:id="@+id/civ_bg_black"
                 android:layout_width="45dp"
                 android:layout_height="45dp"
-                android:src="@drawable/icon_readbook_black"
+                app:civ_fill_color="#2D2D33"
                 app:civ_border_color="#00000000"
                 app:civ_border_width="1dp" />
 

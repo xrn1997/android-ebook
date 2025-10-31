@@ -7,6 +7,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 @Suppress("unused")
 object DateUtil {
@@ -159,10 +160,10 @@ object DateUtil {
     fun formatSecondToHourMinute(duration: Int): String {
         return when {
             duration < 60 -> "${duration}秒"
-            duration < 60 * 60 -> "${Math.round(duration / 60f)}分钟"
+            duration < 60 * 60 -> "${(duration / 60f).roundToInt()}分钟"
             else -> {
                 val second = duration % (60 * 60)
-                val round = Math.round(second / 60f)
+                val round = (second / 60f).roundToInt()
                 if (second == 0 || round == 0) {
                     "${duration / (60 * 60)}小时"
                 } else {

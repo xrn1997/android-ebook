@@ -127,8 +127,6 @@ class MainBookFragment :
     }
 
     companion object {
-        const val TAG: String = "MainBookFragment"
-
         @JvmStatic
         fun newInstance(): MainBookFragment {
             return MainBookFragment()

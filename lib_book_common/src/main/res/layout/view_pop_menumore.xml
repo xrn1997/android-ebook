@@ -8,9 +8,9 @@
         android:layout_height="wrap_content"
         android:background="@drawable/bg_search"
         android:orientation="vertical"
-        android:paddingLeft="10.5dp"
+        android:paddingStart="10.5dp"
         android:paddingTop="3.5dp"
-        android:paddingRight="10.5dp"
+        android:paddingEnd="10.5dp"
         android:paddingBottom="16.5dp">
 
         <LinearLayout
@@ -21,8 +21,8 @@
             android:clickable="true"
             android:focusable="true"
             android:orientation="horizontal"
-            android:paddingLeft="10dp"
-            android:paddingRight="10dp">
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp">
 
             <View
                 android:layout_width="25dp"
@@ -35,7 +35,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
                 android:layout_marginStart="10dp"
-                android:text="离线下载"
+                android:text="@string/offline_download"
                 android:textColor="@color/tv_btn_black"
                 android:textSize="15sp" />
 
@@ -54,8 +54,8 @@
             android:clickable="true"
             android:focusable="true"
             android:orientation="horizontal"
-            android:paddingLeft="10dp"
-            android:paddingRight="10dp">
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp">
 
             <View
                 android:layout_width="25dp"
@@ -68,7 +68,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
                 android:layout_marginStart="10dp"
-                android:text="本章评论"
+                android:text="@string/chapter_comments"
                 android:textColor="@color/tv_btn_black"
                 android:textSize="15sp" />
         </LinearLayout>

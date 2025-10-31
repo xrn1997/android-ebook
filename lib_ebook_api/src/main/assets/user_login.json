@@ -1,0 +1,15 @@
+{
+  "code": "00000",
+  "error": "",
+  "data": {
+    "user": {
+      "id": 1,
+      "username": "test_user",
+      "password": "$2a$10$abcdefg....",
+      "image": "https://example.com/images/user_1.png",
+      "nickname": "测试用户",
+      "addtime": "2025-10-25 12:00:00"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIs..."
+  }
+}

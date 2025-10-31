@@ -18,9 +18,6 @@ import kotlin.system.exitProcess
 
 @AndroidEntryPoint
 class MainActivity : BaseActivity<ActivityMainBinding>() {
-    private var mBookFragment: Fragment? = null
-    private var mFindFragment: Fragment? = null
-    private var mMeFragment: Fragment? = null
     private var mCurrFragment: Fragment? = null
     private var exitTime: Long = 0
 
@@ -29,41 +26,42 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     override fun initView() {
+        mCurrFragment = supportFragmentManager.findFragmentById(R.id.frame_content)
+        if (mCurrFragment == null) {
+            // Activity 首次创建，显示书架 Fragment
+            mCurrFragment = TheRouter.get(IBookProvider::class.java)?.mainBookFragment
+            mCurrFragment?.let {
+                supportFragmentManager.beginTransaction()
+                    .replace(R.id.frame_content, it, MainChannel.BOOKSHELF.name)
+                    .commit()
+            }
+        }
         binding.navigationMain.setOnItemSelectedListener { menuItem: MenuItem ->
-            val i = menuItem.itemId
-            when (i) {
+            val tag: String
+            val to: Fragment?
+            when (menuItem.itemId) {
                 R.id.navigation_trip -> {
-                    switchContent(mCurrFragment, mBookFragment, MainChannel.BOOKSHELF.name)
-                    mCurrFragment = mBookFragment
-                    return@setOnItemSelectedListener true
+                    tag = MainChannel.BOOKSHELF.name
+                    to = TheRouter.get(IBookProvider::class.java)?.mainBookFragment
                 }
 
                 R.id.navigation_discover -> {
-                    switchContent(mCurrFragment, mFindFragment, MainChannel.BOOKSTORE.name)
-                    mCurrFragment = mFindFragment
-                    return@setOnItemSelectedListener true
+                    tag = MainChannel.BOOKSTORE.name
+                    to = TheRouter.get(IFindProvider::class.java)?.mainFindFragment
                 }
 
                 R.id.navigation_me -> {
-                    switchContent(mCurrFragment, mMeFragment, MainChannel.ME.name)
-                    mCurrFragment = mMeFragment
-                    return@setOnItemSelectedListener true
+                    tag = MainChannel.ME.name
+                    to = TheRouter.get(IMeProvider::class.java)?.mainMeFragment
                 }
 
-                else -> false
+                else -> return@setOnItemSelectedListener false
             }
+            switchContent(mCurrFragment, to, tag)
+            mCurrFragment = to
+            return@setOnItemSelectedListener true
         }
-        mBookFragment = TheRouter.get(IBookProvider::class.java)?.mainBookFragment
-        mFindFragment = TheRouter.get(IFindProvider::class.java)?.mainFindFragment
-        mMeFragment = TheRouter.get(IMeProvider::class.java)?.mainMeFragment
-        mCurrFragment = mBookFragment
-        mCurrFragment?.let {
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.frame_content, it, MainChannel.BOOKSHELF.name).commit()
-        }
-        onBackPressedDispatcher.addCallback(this) {
-            exit()
-        }
+        onBackPressedDispatcher.addCallback(this) { exit() }
     }
 
     override fun initData() {}

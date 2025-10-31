@@ -133,6 +133,5 @@ class BookReadViewModel @Inject constructor(
     companion object {
         const val OPEN_FROM_OTHER: Int = 0
         const val OPEN_FROM_APP: Int = 1
-        private const val TAG = "ReadBookPresenterImpl"
     }
 }

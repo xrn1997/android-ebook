@@ -3,9 +3,9 @@ package com.ebook.me
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import com.blankj.utilcode.util.SPUtils
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RxBusTag
+import com.ebook.common.util.SPUtil
 import com.ebook.me.databinding.ActivitySettingBinding
 import com.hwangjr.rxbus.RxBus
 import com.therouter.router.Route
@@ -28,7 +28,7 @@ class SettingActivity : BaseActivity<ActivitySettingBinding>() {
     override fun initView() {
         val mExitButton = binding.btnExit
         mExitButton.setOnClickListener {
-            SPUtils.getInstance().clear()
+            SPUtil.clear()
             RetrofitManager.TOKEN = ""
             ToastUtil.showShort(this, "退出登录成功")
             RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, Any()) //更新UI

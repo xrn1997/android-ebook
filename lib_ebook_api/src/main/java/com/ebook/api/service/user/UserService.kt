@@ -1,9 +1,8 @@
-package com.ebook.api.service
+package com.ebook.api.service.user
 
-import com.ebook.api.dto.RespDTO
+import com.xrn1997.common.dto.RespDTO
 import com.ebook.api.entity.LoginDTO
 import com.ebook.api.entity.User
-import io.reactivex.rxjava3.core.Observable
 import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.Header
@@ -18,33 +17,37 @@ interface UserService {
     //登录
     @POST("/user/login")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    fun login(@Body user: User): Observable<RespDTO<LoginDTO>>
+    suspend fun login(@Body user: User): RespDTO<LoginDTO>
 
     //注册
     @POST("/user/registry")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    fun register(@Body user: User): Observable<RespDTO<LoginDTO>>
+    suspend fun register(@Body user: User): RespDTO<LoginDTO>
 
     //修改密码
     @POST("/user/modify/password")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    fun modifyPwd(@Body user: User): Observable<RespDTO<Int>>
+    suspend fun modifyPwd(@Body user: User): RespDTO<Int>
 
     //修改昵称
     @POST("/user/modify/nickname")
     @Headers("Content-Type:application/json;charset=UTF-8")
-    fun modifyNickname(
+    suspend fun modifyNickname(
         @Header("Authorization") token: String?,
         @Query("username") username: String,
         @Query("nickname") nickname: String
-    ): Observable<RespDTO<Int>>
+    ): RespDTO<Int>
 
     //修改头像
     @Multipart
     @POST("/user/modify/image/u{username}")
-    fun modifyProfilePhoto(
+    suspend fun modifyProfilePhoto(
         @Header("Authorization") token: String?,
         @Path("username") username: String,
         @Part file: MultipartBody.Part
-    ): Observable<RespDTO<String>>
+    ): RespDTO<String>
 }
+
+
+
+

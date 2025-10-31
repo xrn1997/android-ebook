@@ -1,23 +1,24 @@
 package debug
 
-import com.ebook.common.BaseApplication
+import android.content.Intent
+import com.ebook.book.service.DownloadService
+import com.ebook.common.BookApplication
 import com.ebook.common.event.KeyCode
+import com.ebook.db.ObjectBoxManager
 import com.therouter.router.addPathReplaceInterceptor
 import com.therouter.router.interceptor.PathReplaceInterceptor
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class MeApplication : BaseApplication() {
+class TestApplication : BookApplication() {
     override fun onCreate() {
         super.onCreate()
-        //模块独立开发测试用，替换掉登录界面。
+        ObjectBoxManager.init(context)
+        startService(Intent(this, DownloadService::class.java))
         addPathReplaceInterceptor(object : PathReplaceInterceptor() {
             override fun replace(path: String?): String? {
                 if (path == KeyCode.Login.LOGIN_PATH) {
-                    return KeyCode.Me.TEST_LOGIN_PATH
-                }
-                if (path == KeyCode.Login.MODIFY_PATH) {
-                    return KeyCode.Me.TEST_LOGIN_PATH
+                    return KeyCode.Book.TEST_LOGIN_PATH
                 }
                 return path
             }

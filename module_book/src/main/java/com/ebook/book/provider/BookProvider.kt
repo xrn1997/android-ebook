@@ -6,5 +6,6 @@ import com.therouter.inject.ServiceProvider
 
 @ServiceProvider
 class BookProvider : IBookProvider {
-    override val mainBookFragment = MainBookFragment.newInstance()
+    override val mainBookFragment: MainBookFragment
+        get() = MainBookFragment.newInstance()  // 每次访问都新建
 }

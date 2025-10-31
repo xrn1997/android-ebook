@@ -1,8 +1,8 @@
 package com.ebook.common.interceptor
 
 import android.util.Log
-import com.blankj.utilcode.util.SPUtils
 import com.ebook.common.event.KeyCode
+import com.ebook.common.util.SPUtil
 import com.therouter.router.RouteItem
 import com.therouter.router.interceptor.RouterReplaceInterceptor
 import com.therouter.router.matchRouteMap
@@ -23,16 +23,20 @@ class LoginInterceptor : RouterReplaceInterceptor() {
             Log.e(TAG, "目标地址不存在")
             return null
         }
-        val isLogin = SPUtils.getInstance().getBoolean(KeyCode.Login.SP_IS_LOGIN, false)
+        Log.e(TAG, "replace: $routeItem")
+        val isLogin = SPUtil.get(KeyCode.Login.SP_IS_LOGIN, false)
         if (isLogin) {
-            // 如果已经登录不拦截
+            Log.d(TAG, "已登录，不拦截")
             return routeItem
         }
-        return if (routeItem.getExtras().getString("needLogin").toBoolean()) {
-            val loginItem = matchRouteMap(KeyCode.Login.LOGIN_PATH)
-            loginItem?.getExtras()?.putString(KeyCode.Login.PATH, routeItem.path)
-            loginItem
-        } else routeItem
-        // 不需要拦截
+
+        val needLogin = routeItem.getExtras().getString("needLogin")?.toBoolean() ?: false
+        if (!needLogin) {
+            Log.d(TAG, "目标页不需要登录，继续跳转")
+            return routeItem
+        }
+
+        Log.d(TAG, "未登录，需要拦截到登录页")
+        return matchRouteMap(KeyCode.Login.LOGIN_PATH)
     }
 }

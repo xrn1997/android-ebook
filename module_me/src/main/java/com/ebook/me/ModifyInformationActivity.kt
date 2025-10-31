@@ -6,11 +6,11 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
-import com.blankj.utilcode.util.SPUtils
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RxBusTag
+import com.ebook.common.util.SPUtil
 import com.ebook.common.view.profilePhoto.CircleImageView
 import com.ebook.common.view.profilePhoto.PhotoCutDialog.Companion.newInstance
 import com.ebook.me.databinding.ActivityModifyInformationBinding
@@ -58,7 +58,7 @@ class ModifyInformationActivity :
     }
 
     override fun initData() {
-        val url = SPUtils.getInstance().getString(KeyCode.Login.SP_IMAGE)
+        val url = SPUtil.get(KeyCode.Login.SP_IMAGE, "")
         setProfilePicture(url)
     }
 

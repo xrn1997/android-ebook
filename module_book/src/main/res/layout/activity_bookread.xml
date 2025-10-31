@@ -63,8 +63,8 @@
                         android:id="@+id/atv_title"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:layout_marginLeft="5dp"
-                        android:layout_marginRight="5dp"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginEnd="5dp"
                         android:layout_weight="1"
                         android:gravity="center|start"
                         android:singleLine="true"
@@ -116,9 +116,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginLeft="20dp"
+                    android:layout_marginStart="20dp"
                     android:layout_marginTop="5dp"
-                    android:layout_marginRight="20dp"
+                    android:layout_marginEnd="20dp"
                     android:layout_marginBottom="5dp"
                     android:orientation="horizontal">
 
@@ -131,7 +131,7 @@
                         android:enabled="false"
                         android:focusable="true"
                         android:padding="10dp"
-                        android:text="上一章"
+                        android:text="@string/last_chapter"
                         android:textColor="@drawable/selector_tv_black"
                         android:textSize="14sp" />
 
@@ -158,7 +158,7 @@
                         android:enabled="false"
                         android:focusable="true"
                         android:padding="10dp"
-                        android:text="下一章"
+                        android:text="@string/next_chapter"
                         android:textColor="@drawable/selector_tv_black"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -191,7 +191,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_horizontal"
                             android:layout_marginTop="3dp"
-                            android:text="目录"
+                            android:text="@string/catalogue"
                             android:textColor="#767676"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -219,7 +219,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_horizontal"
                             android:layout_marginTop="3dp"
-                            android:text="亮度"
+                            android:text="@string/luminance"
                             android:textColor="#767676"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -247,7 +247,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_horizontal"
                             android:layout_marginTop="3dp"
-                            android:text="字体"
+                            android:text="@string/font"
                             android:textColor="#767676"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -275,7 +275,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_horizontal"
                             android:layout_marginTop="3dp"
-                            android:text="设置"
+                            android:text="@string/setting"
                             android:textColor="#767676"
                             android:textSize="12sp" />
                     </LinearLayout>

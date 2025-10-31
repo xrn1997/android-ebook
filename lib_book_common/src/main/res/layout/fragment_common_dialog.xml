@@ -10,9 +10,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:paddingLeft="20dp"
+        android:paddingStart="20dp"
         android:paddingTop="20dp"
-        android:paddingRight="20dp"
+        android:paddingEnd="20dp"
         android:textColor="#333333"
         android:textSize="17sp" />
 
@@ -42,7 +42,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="@null"
-            android:text="取消"
+            android:text="@string/cancel"
             android:textColor="#007AFF"
             android:textSize="17sp" />
 
@@ -58,7 +58,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="@null"
-            android:text="确定"
+            android:text="@string/confirm"
             android:textColor="#007AFF"
             android:textSize="17sp" />
     </LinearLayout>

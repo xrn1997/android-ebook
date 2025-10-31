@@ -5,12 +5,12 @@ import android.view.ViewGroup
 import android.widget.EditText
 import androidx.activity.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.blankj.utilcode.util.SPUtils
 import com.ebook.api.entity.Comment
 import com.ebook.book.adapter.BookCommentsAdapter
 import com.ebook.book.databinding.ActivityBookCommentsBinding
 import com.ebook.book.mvvm.viewmodel.BookCommentsViewModel
 import com.ebook.common.event.KeyCode
+import com.ebook.common.util.SPUtil
 import com.ebook.common.util.SoftInputUtil.hideSoftInput
 import com.ebook.common.view.DeleteDialog.Companion.newInstance
 import com.scwang.smart.refresh.layout.api.RefreshLayout
@@ -41,7 +41,7 @@ class BookCommentsActivity :
             hideSoftInput(this@BookCommentsActivity, editText)
         }
         mBookCommentsAdapter.setOnItemLongClickListener { comment: Comment, _: Int ->
-            val username = SPUtils.getInstance().getString(KeyCode.Login.SP_USERNAME)
+            val username = SPUtil.get(KeyCode.Login.SP_USERNAME, "")
             if (comment.user.username == username) {
                 val deleteDialog = newInstance()
                 deleteDialog.setOnClickListener {

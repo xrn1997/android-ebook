@@ -21,14 +21,14 @@
             android:layout_height="52dp"
             android:background="#ffffff"
             android:orientation="horizontal"
-            android:paddingLeft="15dp"
-            android:paddingRight="15dp">
+            android:paddingStart="15dp"
+            android:paddingEnd="15dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:text="音量键翻页"
+                android:text="@string/turn_pages_with_the_volume_keys"
                 android:textColor="#767676" />
 
             <View
@@ -49,8 +49,8 @@
             android:layout_width="match_parent"
             android:layout_height="0.8dp"
             android:background="#ffffff"
-            android:paddingLeft="15dp"
-            android:paddingRight="15dp"
+            android:paddingStart="15dp"
+            android:paddingEnd="15dp"
             android:src="#f3f3f3" />
 
         <LinearLayout
@@ -58,14 +58,14 @@
             android:layout_height="52dp"
             android:background="#ffffff"
             android:orientation="horizontal"
-            android:paddingLeft="15dp"
-            android:paddingRight="15dp">
+            android:paddingStart="15dp"
+            android:paddingEnd="15dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:text="点击页面两侧翻下一页"
+                android:text="@string/tap_on_the_sides_to_turn_the_page"
                 android:textColor="#767676" />
 
             <View

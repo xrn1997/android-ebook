@@ -9,9 +9,9 @@
         android:background="@drawable/bg_search"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingLeft="10.5dp"
+        android:paddingStart="10.5dp"
         android:paddingTop="3.5dp"
-        android:paddingRight="10.5dp"
+        android:paddingEnd="10.5dp"
         android:paddingBottom="16.5dp">
 
         <TextView
@@ -22,7 +22,7 @@
             android:gravity="center"
             android:maxLines="2"
             android:padding="10dp"
-            android:text="是否将《xxx》放入书架？"
+            android:text="@string/is_add_xxx_to_bookshelf"
             android:textColor="#343434"
             android:textSize="16sp" />
 
@@ -44,7 +44,7 @@
                 android:background="@drawable/selector_book_detail_shelf_bg"
                 android:clickable="true"
                 android:gravity="center"
-                android:text="退出阅读"
+                android:text="@string/exit"
                 android:textColor="#767676"
                 android:textSize="15sp" />
 
@@ -56,7 +56,7 @@
                 android:background="@drawable/selector_book_detail_read_bg"
                 android:clickable="true"
                 android:gravity="center"
-                android:text="放入书架"
+                android:text="@string/add_to_bookshelf"
                 android:textColor="#ffffff"
                 android:textSize="15sp" />
         </LinearLayout>

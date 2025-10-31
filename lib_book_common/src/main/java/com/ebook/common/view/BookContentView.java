@@ -1,6 +1,7 @@
 package com.ebook.common.view;
 
 import android.content.Context;
+import android.graphics.drawable.ColorDrawable;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,7 +24,6 @@ public class BookContentView extends FrameLayout {
     private TextView tvTitle;
     private LinearLayout llContent;
     private MTextView tvContent;
-    private View vBottom;
     private TextView tvPage;
 
     private TextView tvLoading;
@@ -73,9 +73,8 @@ public class BookContentView extends FrameLayout {
         ivBg = view.findViewById(R.id.iv_bg);
         tvTitle = view.findViewById(R.id.tv_title);
         llContent = view.findViewById(R.id.ll_content);
-        LinearLayout mainContent=view.findViewById(R.id.main_content);
+        LinearLayout mainContent = view.findViewById(R.id.main_content);
         tvContent = view.findViewById(R.id.tv_content);
-        vBottom = view.findViewById(R.id.v_bottom);
         tvPage = view.findViewById(R.id.tv_page);
 
         tvLoading = view.findViewById(R.id.tv_loading);
@@ -117,8 +116,7 @@ public class BookContentView extends FrameLayout {
 
     public void setNoData(String contentLines) {
         this.content = contentLines;
-
-        tvPage.setText((this.durPageIndex + 1) + "/" + this.pageAll);
+        tvPage.setText(getContext().getString(R.string.page_indicator_format, this.durPageIndex + 1, this.pageAll));
 
         finishLoading();
     }
@@ -145,7 +143,7 @@ public class BookContentView extends FrameLayout {
 
             tvTitle.setText(this.title);
             tvContent.setText(this.content);
-            tvPage.setText((this.durPageIndex + 1) + "/" + this.pageAll);
+            tvPage.setText(getContext().getString(R.string.page_indicator_format, this.durPageIndex + 1, this.pageAll));
 
             finishLoading();
         }
@@ -246,11 +244,10 @@ public class BookContentView extends FrameLayout {
     }
 
     public void setBg(ReadBookControl readBookControl) {
-        ivBg.setImageResource(readBookControl.getTextBackground());
+        ivBg.setImageDrawable(new ColorDrawable(readBookControl.getTextBackground()));
         tvTitle.setTextColor(readBookControl.getTextColor());
         tvContent.setTextColor(readBookControl.getTextColor());
         tvPage.setTextColor(readBookControl.getTextColor());
-        vBottom.setBackgroundColor(readBookControl.getTextColor());
         tvLoading.setTextColor(readBookControl.getTextColor());
         tvErrorInfo.setTextColor(readBookControl.getTextColor());
     }

@@ -32,7 +32,6 @@ dependencies {
     api(libs.xrn1997.common)
     api(project(":lib_ebook_api"))
     api(project(":lib_ebook_db"))
-    api(libs.androidx.legacy.support.v4)
     api(libs.androidx.appcompat)
     api(libs.androidx.constraintlayout)
     api(libs.material)
@@ -67,8 +66,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
-    // 安卓工具类 https://github.com/Blankj/AndroidUtilCode
-    api(libs.blankj.utilcodex)
 
     //JSOUP
     api(libs.jsoup)
@@ -81,8 +78,6 @@ dependencies {
     //View简易动画
     api(libs.daimajia.easing.library) { artifact { type = "aar" } }
     api(libs.daimajia.androidanimations.library) { artifact { type = "aar" } }
-    //CircleImageView
-    api(libs.hdodenhof.circleimageview)
     //SwitchButton
     api(libs.switchbutton.library)
     api(libs.victor.lib)

@@ -80,7 +80,7 @@
                 android:background="?colorPrimary"
                 android:clickable="true"
                 android:gravity="center"
-                android:text="开始下载"
+                android:text="@string/download_start"
                 android:textColor="?attr/colorOnPrimary"
                 android:textSize="12sp" />
 
@@ -93,7 +93,7 @@
                 android:background="?attr/colorPrimaryContainer"
                 android:clickable="true"
                 android:gravity="center"
-                android:text="取消下载"
+                android:text="@string/download_cancel"
                 android:textColor="?attr/colorOnPrimaryContainer"
                 android:textSize="12sp" />
 
@@ -110,7 +110,7 @@
             android:background="?attr/colorSurfaceContainer"
             android:clickable="true"
             android:gravity="center"
-            android:text="暂无任务"
+            android:text="@string/no_task"
             android:textColor="?attr/colorOnSurface"
             android:textSize="14sp"
             android:visibility="gone" />

@@ -7,11 +7,11 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import com.blankj.utilcode.util.SPUtils
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RxBusTag
+import com.ebook.common.util.SPUtil
 import com.ebook.common.view.profilePhoto.CircleImageView
 import com.ebook.me.R
 import com.ebook.me.databinding.FragmentMeMainBinding
@@ -98,7 +98,7 @@ class MainMeFragment : BaseFragment<FragmentMeMainBinding>() {
         tags = [Tag(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME)]
     )
     fun updateView(o: Any?) {
-        if (!SPUtils.getInstance().getBoolean(KeyCode.Login.SP_IS_LOGIN)) {
+        if (!SPUtil.get(KeyCode.Login.SP_IS_LOGIN, false)) {
             //未登录，显示按钮
             mTextView.visibility = View.GONE
             mButton.visibility = View.VISIBLE
@@ -112,8 +112,8 @@ class MainMeFragment : BaseFragment<FragmentMeMainBinding>() {
             //已登录，显示昵称
             mTextView.visibility = View.VISIBLE
             mButton.visibility = View.GONE
-            setProfilePicture(SPUtils.getInstance().getString(KeyCode.Login.SP_IMAGE))
-            mTextView.text = SPUtils.getInstance().getString(KeyCode.Login.SP_NICKNAME)
+            setProfilePicture(SPUtil.get(KeyCode.Login.SP_IMAGE, ""))
+            mTextView.text = SPUtil.get(KeyCode.Login.SP_NICKNAME, "")
         }
     }
 

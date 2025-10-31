@@ -30,7 +30,7 @@ object ErrorAnalyzeContentManager {
 
                 val errorFile = File(dir, "ErrorAnalyzeUrls.txt")
                 val content = readFileContent(errorFile)
-                val baseUrl = url.substring(0, url.indexOf('/', 8))
+                val baseUrl = url.take(url.indexOf('/', 8))
 
                 if (!content.contains(baseUrl)) {
                     appendToFile(errorFile, "$baseUrl    \r\n")

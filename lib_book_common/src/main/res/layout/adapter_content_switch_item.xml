@@ -16,16 +16,16 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingLeft="15dp"
+        android:paddingStart="15dp"
         android:paddingTop="5dp"
-        android:paddingRight="15dp"
+        android:paddingEnd="15dp"
         android:paddingBottom="5dp">
 
         <TextView
             android:id="@+id/tv_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="left"
+            android:layout_gravity="start"
             android:alpha="0.7"
             android:lines="1"
             android:textColor="#ffffff"
@@ -49,26 +49,20 @@
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
+                    android:layout_marginBottom="4dp"
                     android:includeFontPadding="false"
                     android:lineSpacingExtra="5dp"
                     android:lineSpacingMultiplier="1"
                     android:textSize="19sp" />
 
-                <View
-                    android:id="@+id/v_bottom"
-                    android:layout_width="match_parent"
-                    android:layout_height="0.3dp"
-                    android:layout_marginTop="5dp"
-                    android:layout_marginBottom="5dp"
-                    android:background="#ffffff" />
-
                 <TextView
                     android:id="@+id/tv_page"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="right"
+                    android:layout_gravity="center"
                     android:lines="1"
-                    android:text="6/18"
+                    android:text="@string/read_progress"
+                    android:layout_marginBottom="8dp"
                     android:textColor="#ffffff"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -78,7 +72,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:text="加载中..."
+                android:text="@string/loading"
                 android:textColor="#ffffff"
                 android:textSize="20sp"
                 android:visibility="visible" />
@@ -109,9 +103,9 @@
                     android:background="@drawable/selector_tv_addshelf"
                     android:gravity="center"
                     android:lines="1"
-                    android:paddingLeft="18dp"
+                    android:paddingStart="18dp"
                     android:paddingTop="7dp"
-                    android:paddingRight="18dp"
+                    android:paddingEnd="18dp"
                     android:paddingBottom="7dp"
                     android:text="重试"
                     android:textColor="@drawable/selector_tv_addshelf_text"

@@ -3,16 +3,16 @@ package com.ebook.me.mvvm.viewmodel
 import android.app.Application
 import android.net.Uri
 import android.util.Log
-import com.blankj.utilcode.util.SPUtils
-import com.ebook.api.dto.RespDTO
+import androidx.lifecycle.viewModelScope
+import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RxBusTag
+import com.ebook.common.util.SPUtil
 import com.ebook.me.mvvm.model.ModifyModel
 import com.hwangjr.rxbus.RxBus
-import com.xrn1997.common.event.SimpleObserver
-import com.xrn1997.common.http.ExceptionHandler
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -20,26 +20,26 @@ class ModifyViewModel @Inject constructor(
     application: Application,
     model: ModifyModel
 ) : BaseViewModel<ModifyModel>(application, model) {
+
     /**
      * 修改昵称
      */
     fun modifyNickname(name: String) {
-        mModel.modifyNickname(name).doOnSubscribe(this)
-            .subscribe(object : SimpleObserver<RespDTO<Int>>() {
-            override fun onNext(integerRespDTO: RespDTO<Int>) {
-                if (integerRespDTO.code == ExceptionHandler.AppError.SUCCESS) {
-                    mToastLiveEvent.setValue("修改成功")
-                    SPUtils.getInstance().put(KeyCode.Login.SP_NICKNAME, name)
-                    RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, Any())
-                    postFinishActivityEvent()
+        viewModelScope.launch {
+            val result = mModel.modifyNickname(name)
+            result.onSuccess {
+                postToastEvent("修改成功")
+                SPUtil.put(KeyCode.Login.SP_NICKNAME, name)
+                RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, Any())
+                postFinishActivityEvent()
+            }.onFailure { exception ->
+                if (exception is CoroutineAdapter.ApiException) {
+                    postToastEvent(exception.message())
                 } else {
-                    Log.e(TAG, "error: " + integerRespDTO.error)
+                    postToastEvent("${exception.message}")
                 }
             }
-
-            override fun onError(e: Throwable) {
-            }
-        })
+        }
     }
 
     /**
@@ -48,26 +48,21 @@ class ModifyViewModel @Inject constructor(
      * @param uri 图片路径
      */
     fun modifyProfilePhoto(uri: Uri) {
-        mModel.modifyProfilePhoto(uri).doOnSubscribe(this)
-            .subscribe(object : SimpleObserver<RespDTO<String>>() {
-            override fun onNext(stringRespDTO: RespDTO<String>) {
-                if (stringRespDTO.code == ExceptionHandler.AppError.SUCCESS) {
-                    mToastLiveEvent.setValue("头像修改成功")
-                    val url = stringRespDTO.data
-                    SPUtils.getInstance().put(KeyCode.Login.SP_IMAGE, url)
+        viewModelScope.launch {
+            val result = mModel.modifyProfilePhoto(uri)
+            result.onSuccess { resp ->
+                postToastEvent("头像修改成功")
+                    val url = resp.data
+                SPUtil.put(KeyCode.Login.SP_IMAGE, url)
                     Log.e(TAG, "url: $url")
                     RxBus.get().post(RxBusTag.MODIFY_PROFILE_PICTURE, url)
+            }.onFailure { exception ->
+                if (exception is CoroutineAdapter.ApiException) {
+                    postToastEvent(exception.message())
                 } else {
-                    Log.e(TAG, "error: " + stringRespDTO.error)
+                    postToastEvent("${exception.message}")
                 }
             }
-
-            override fun onError(e: Throwable) {
-            }
-        })
-    }
-
-    companion object {
-        private val TAG: String = ModifyViewModel::class.java.simpleName
+        }
     }
 }

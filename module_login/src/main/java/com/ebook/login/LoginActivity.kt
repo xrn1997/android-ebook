@@ -1,6 +1,5 @@
 package com.ebook.login
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.viewModels
@@ -34,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +44,6 @@ import androidx.compose.ui.unit.sp
 import com.ebook.common.event.KeyCode
 import com.ebook.login.mvvm.viewmodel.LoginViewModel
 import com.hwangjr.rxbus.RxBus
-import com.therouter.router.Autowired
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import dagger.hilt.android.AndroidEntryPoint
@@ -55,9 +52,6 @@ import dagger.hilt.android.AndroidEntryPoint
 @Route(path = KeyCode.Login.LOGIN_PATH)
 class LoginActivity : BaseMvvmActivity<LoginViewModel>() {
     override val mViewModel: LoginViewModel by viewModels()
-    @Autowired
-    @JvmField
-    var path: String = String()
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,64 +76,14 @@ class LoginActivity : BaseMvvmActivity<LoginViewModel>() {
     @Composable
     override fun InitView() {
         val viewModel: LoginViewModel = mViewModel
-        // 获取当前上下文
-        val context = LocalContext.current
-
         // 状态管理
         var username by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         LaunchedEffect(Unit) {
-            val intent = (context as Activity).intent
-            username = intent.getStringExtra("username") ?: ""
-            password = intent.getStringExtra("password") ?: ""
-
-            // 处理路径参数
-            if (path.isNotEmpty()) {
-                viewModel.path = path
-                intent.extras?.let { bundle ->
-                    viewModel.bundle = bundle
-                }
-            }
+            username = intent.getStringExtra("username").orEmpty()
+            password = intent.getStringExtra("password").orEmpty()
+            viewModel.bundle = intent.extras
         }
-        LoginScreen(
-            username = username,
-            onUsernameChange = { username = it },
-            password = password,
-            onPasswordChange = { password = it },
-            onLogin = { viewModel.login(username, password) },
-            onRegister = { toRegisterActivity() },
-            onForgotPwd = { toForgetPwdActivity() }
-        )
-    }
-
-    override fun enableFitsSystemWindows(): Boolean {
-        return false
-    }
-
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-    }
-
-    private fun toRegisterActivity() {
-        startActivity(Intent(this, RegisterActivity::class.java))
-    }
-
-    private fun toForgetPwdActivity() {
-        startActivity(Intent(this, VerifyUserActivity::class.java))
-    }
-
-    @Composable
-    fun LoginScreen(
-        username: String,
-        onUsernameChange: (String) -> Unit,
-        password: String,
-        onPasswordChange: (String) -> Unit,
-        onLogin: () -> Unit,
-        onRegister: () -> Unit,
-        onForgotPwd: () -> Unit
-    ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // 背景图部分
             Image(
@@ -166,10 +110,13 @@ class LoginActivity : BaseMvvmActivity<LoginViewModel>() {
                 // 用户名输入框
                 CustomTextField(
                     value = username,
-                    onValueChange = onUsernameChange,
+                    onValueChange = {
+                        if (it.length <= 11) {
+                            username = it
+                        }
+                    },
                     hint = stringResource(R.string.print_tel),
                     keyboardType = KeyboardType.Number,
-                    maxLength = 11,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 40.dp)
@@ -178,7 +125,11 @@ class LoginActivity : BaseMvvmActivity<LoginViewModel>() {
                 // 密码输入框
                 CustomTextField(
                     value = password,
-                    onValueChange = onPasswordChange,
+                    onValueChange = {
+                        if (it.length <= 64) {
+                            password = it
+                        }
+                    },
                     hint = stringResource(R.string.print_pwd),
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardType = KeyboardType.Password,
@@ -189,7 +140,7 @@ class LoginActivity : BaseMvvmActivity<LoginViewModel>() {
 
                 // 登录按钮
                 Button(
-                    onClick = onLogin,
+                    onClick = { viewModel.login(username, password) },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Transparent,
                         contentColor = Color.White
@@ -218,7 +169,7 @@ class LoginActivity : BaseMvvmActivity<LoginViewModel>() {
                     modifier = Modifier.padding(top = 30.dp),
                     horizontalArrangement = Arrangement.spacedBy(100.dp)
                 ) {
-                    TextButton(onClick = onRegister) {
+                    TextButton(onClick = { toRegisterActivity() }) {
                         Text(
                             text = stringResource(R.string.tel_register),
                             color = Color.White,
@@ -226,7 +177,7 @@ class LoginActivity : BaseMvvmActivity<LoginViewModel>() {
                         )
                     }
 
-                    TextButton(onClick = onForgotPwd) {
+                    TextButton(onClick = { toForgetPwdActivity() }) {
                         Text(
                             text = stringResource(R.string.fgt_pwd),
                             color = Color.White,
@@ -236,6 +187,24 @@ class LoginActivity : BaseMvvmActivity<LoginViewModel>() {
                 }
             }
         }
+    }
+
+    override fun enableFitsSystemWindows(): Boolean {
+        return false
+    }
+
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
+    private fun toRegisterActivity() {
+        startActivity(Intent(this, RegisterActivity::class.java))
+    }
+
+    private fun toForgetPwdActivity() {
+        startActivity(Intent(this, VerifyUserActivity::class.java))
     }
 
     /**
@@ -249,13 +218,10 @@ class LoginActivity : BaseMvvmActivity<LoginViewModel>() {
         modifier: Modifier = Modifier,
         keyboardType: KeyboardType = KeyboardType.Text,
         visualTransformation: VisualTransformation = VisualTransformation.None,
-        maxLength: Int = Int.MAX_VALUE
     ) {
         TextField(
             value = value,
-            onValueChange = {
-                if (it.length <= maxLength) onValueChange(it)
-            },
+            onValueChange = { onValueChange(it) },
             placeholder = { Text(hint, color = Color.White.copy(alpha = 0.7f)) },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             visualTransformation = visualTransformation,

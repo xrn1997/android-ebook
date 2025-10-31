@@ -10,8 +10,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.ebook.book.R
 import com.ebook.book.adapter.ChapterListAdapter
-import com.ebook.common.R
 import com.ebook.common.view.RecyclerViewBar
 import com.ebook.db.entity.BookShelf
 
@@ -98,7 +98,8 @@ class ChapterListView(
         this.itemClickListener = clickListener
         val bookInfo = bookShelf.bookInfo.target
         tvName.text = bookInfo.name
-        tvListCount.text = "共" + bookInfo.chapterList.size + "章"
+        tvListCount.text =
+            context.getString(R.string.chapter_count_format, bookInfo.chapterList.size)
         chapterListAdapter.setOnItemClickListener { _, position ->
             itemClickListener?.let {
                 it.itemClick(position)

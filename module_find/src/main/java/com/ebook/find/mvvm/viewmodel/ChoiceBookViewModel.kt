@@ -122,7 +122,7 @@ class ChoiceBookViewModel @Inject constructor(
                 }
 
                 override fun onError(e: Throwable) {
-                    mToastLiveEvent.setValue(e.message ?: "网络请求超时")
+                    postToastEvent(e.message ?: "网络请求超时")
                     postShowLoadingViewEvent(false)
                 }
             })
@@ -150,7 +150,7 @@ class ChoiceBookViewModel @Inject constructor(
                 }
 
                 override fun onError(e: Throwable) {
-                    mToastLiveEvent.setValue(e.message ?: "网络请求超时")
+                    postToastEvent(e.message ?: "网络请求超时")
                 }
             })
     }

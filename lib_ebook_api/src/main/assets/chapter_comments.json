@@ -1,0 +1,51 @@
+{
+  "code": "00000",
+  "error": "",
+  "data": [
+    {
+      "id": 301,
+      "user": {
+        "id": 11,
+        "username": "readerA",
+        "password": "",
+        "image": "https://example.com/images/user_11.png",
+        "nickname": "读者A"
+      },
+      "chapterUrl": "https://example.com/books/1/chapter/5",
+      "chapterName": "第五章 终极对决",
+      "bookName": "天启之书",
+      "comment": "伏笔收得太精彩了！",
+      "addTime": "2025-10-24 10:00:00"
+    },
+    {
+      "id": 302,
+      "user": {
+        "id": 12,
+        "username": "readerB",
+        "password": "",
+        "image": "https://example.com/images/user_12.png",
+        "nickname": "读者B"
+      },
+      "chapterUrl": "https://example.com/books/1/chapter/5",
+      "chapterName": "第五章 终极对决",
+      "bookName": "天启之书",
+      "comment": "主角终于成长了，热血沸腾！",
+      "addTime": "2025-10-24 12:10:00"
+    },
+    {
+      "id": 303,
+      "user": {
+        "id": 13,
+        "username": "readerC",
+        "password": "",
+        "image": "https://example.com/images/user_13.png",
+        "nickname": "读者C"
+      },
+      "chapterUrl": "https://example.com/books/1/chapter/5",
+      "chapterName": "第五章 终极对决",
+      "bookName": "天启之书",
+      "comment": "节奏稍快，但剧情依然很精彩！",
+      "addTime": "2025-10-24 15:30:00"
+    }
+  ]
+}

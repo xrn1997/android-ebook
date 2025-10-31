@@ -10,6 +10,7 @@ import android.graphics.Rect
 import android.graphics.Xfermode
 import android.util.AttributeSet
 import android.view.View
+import androidx.core.graphics.toColorInt
 import com.ebook.common.util.ScreenUtils
 
 /**
@@ -57,8 +58,8 @@ class ClipView @JvmOverloads constructor(
         //通过Xfermode 的DST_OUT来产生中间的透明裁剪区域，一定要另起一个Layer（层）
         canvas.saveLayer(0f, 0f, this.width.toFloat(), this.height.toFloat(), null)
         //设置背景
-        canvas.drawColor(Color.parseColor("#a8000000"))
-        paint.setXfermode(xfermode)
+        canvas.drawColor("#a8000000".toColorInt())
+        paint.xfermode = xfermode
         //绘制圆形裁剪框
         if (clipType == ClipType.CIRCLE) {
             //中间的透明的圆

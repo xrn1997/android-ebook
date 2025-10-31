@@ -3,12 +3,11 @@ package debug
 import android.content.Intent
 import android.os.Bundle
 import androidx.compose.runtime.Composable
-import com.blankj.utilcode.util.SPUtils
 import com.ebook.api.entity.User
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RxBusTag
+import com.ebook.common.util.SPUtil
 import com.hwangjr.rxbus.RxBus
-import com.therouter.router.Autowired
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseActivity
 import com.xrn1997.common.ui.TextInButton
@@ -17,11 +16,6 @@ import com.xrn1997.common.util.ToastUtil
 
 @Route(path = KeyCode.Book.TEST_LOGIN_PATH)
 class LoginActivity : BaseActivity() {
-    @Autowired
-    @JvmField
-    var path: String = String()
-    private var mBundle: Bundle? = null //储存被拦截的信息
-
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         RxBus.get().register(this)
@@ -48,15 +42,16 @@ class LoginActivity : BaseActivity() {
     }
 
     private fun loginOnNext(user: User) {
-        val spUtils = SPUtils.getInstance()
-        if (!spUtils.getBoolean(KeyCode.Login.SP_IS_LOGIN)) {
-            spUtils.put(KeyCode.Login.SP_IS_LOGIN, true)
-            spUtils.put(KeyCode.Login.SP_USERNAME, user.username)
-            spUtils.put(KeyCode.Login.SP_PASSWORD, user.password)
-            spUtils.put(KeyCode.Login.SP_NICKNAME, user.nickname)
-            spUtils.put(KeyCode.Login.SP_USER_ID, user.id)
-            spUtils.put(KeyCode.Login.SP_IMAGE, user.image)
-            ToastUtil.showShort(this, "登录成功")
+        SPUtil.apply {
+            if (!get(KeyCode.Login.SP_IS_LOGIN, false)) {
+                put(KeyCode.Login.SP_IS_LOGIN, true)
+                put(KeyCode.Login.SP_USERNAME, user.username)
+                put(KeyCode.Login.SP_PASSWORD, user.password)
+                put(KeyCode.Login.SP_NICKNAME, user.nickname)
+                put(KeyCode.Login.SP_USER_ID, user.id)
+                put(KeyCode.Login.SP_IMAGE, user.image)
+                ToastUtil.showShort(this@LoginActivity, "登录成功")
+            }
         }
     }
 

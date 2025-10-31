@@ -187,7 +187,7 @@ class SearchViewModel @Inject constructor(
                 }
 
                 override fun onError(e: Throwable) {
-                    mToastLiveEvent.setValue(e.message ?: "网络请求超时")
+                    postToastEvent(e.message ?: "网络请求超时")
                     postShowLoadingViewEvent(false)
                 }
             })
@@ -203,7 +203,7 @@ class SearchViewModel @Inject constructor(
                 }
 
                 override fun onError(e: Throwable) {
-                    mToastLiveEvent.setValue(e.message ?: "网络请求超时")
+                    postToastEvent(e.message ?: "网络请求超时")
                 }
             })
     }
@@ -211,7 +211,6 @@ class SearchViewModel @Inject constructor(
     override fun refreshData() {}
 
     companion object {
-        const val TAG: String = "SearchPresenterImpl"
         const val BOOK: Int = 2
     }
 }

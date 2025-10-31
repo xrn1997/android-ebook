@@ -38,13 +38,13 @@ object TXTDownloadBookModelImpl : StationBookModel {
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     override fun getKindBook(url: String, page: Int): Observable<List<SearchBook>> {
         val type = when (url) {
-            URL.xh -> 1
-            URL.xz -> 2
-            URL.ds -> 3
-            URL.ls -> 4
-            URL.wy -> 5
-            URL.kh -> 6
-            URL.qt -> 8
+            URL.XH -> 1
+            URL.XZ -> 2
+            URL.DS -> 3
+            URL.LS -> 4
+            URL.WY -> 5
+            URL.KH -> 6
+            URL.QT -> 8
             else -> -1
         }
         if (type == -1) {
@@ -156,7 +156,7 @@ object TXTDownloadBookModelImpl : StationBookModel {
                     //小说URL比较特殊，需要拼凑一下。
                     val bookNum = temp[temp.size - 1].trim()
                     val index = max((bookNum.length - 3).toDouble(), 0.0).toInt()
-                    val c = if (index == 0) "0" else bookNum.substring(0, index)
+                    val c = if (index == 0) "0" else bookNum.take(index)
                     item.coverUrl =
                         TXTDownloadBookService.COVER_URL + "/" + c + "/" + temp[temp.size - 1] + "/" + temp[temp.size - 1] + "s.jpg"
                     //                    Log.e(TAG, "analyzeLibraryData: " + item.getCoverUrl());
@@ -218,7 +218,7 @@ object TXTDownloadBookModelImpl : StationBookModel {
                         //小说URL比较特殊，需要拼凑一下。
                         val bookNum = temp[temp.size - 1].trim()
                         val index = max((bookNum.length - 3).toDouble(), 0.0).toInt()
-                        val c = if (index == 0) "0" else bookNum.substring(0, index)
+                        val c = if (index == 0) "0" else bookNum.take(index)
                         item.coverUrl =
                             TXTDownloadBookService.COVER_URL + "/" + c + "/" + temp[temp.size - 1] + "/" + temp[temp.size - 1] + "s.jpg"
                         books.add(item)
@@ -419,7 +419,7 @@ object TXTDownloadBookModelImpl : StationBookModel {
 
                 ErrorAnalyzeContentManager.writeNewErrorUrl(context, durChapterUrl)
                 bookContent.durChapterContent =
-                    durChapterUrl.substring(0, durChapterUrl.indexOf('/', 8)) + "站点暂时不支持解析"
+                    durChapterUrl.take(durChapterUrl.indexOf('/', 8)) + "站点暂时不支持解析"
                 bookContent.right = false
             }
             e.onNext(bookContent)

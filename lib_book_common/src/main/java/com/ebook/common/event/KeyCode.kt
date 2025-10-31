@@ -14,8 +14,7 @@ interface KeyCode {
             const val SP_IMAGE = "sp_image"
             const val SP_NICKNAME = "sp_nickname"
             const val SP_USER_ID = "sp_user_id"
-
-            const val PATH = "path"
+            const val PATH = "therouter_path" //这个值不能随便改，受制于theRouter
             private const val BASE_PATH = "/ebook/user/"
 
             //登录
