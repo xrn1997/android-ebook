@@ -89,9 +89,9 @@ class ImportBookActivity : BaseMvvmActivity<ActivityImportbookBinding, BookImpor
         binding.rcvBooks.adapter = importBookAdapter
         binding.rcvBooks.layoutManager = LinearLayoutManager(this)
 
-        animIn = AnimationUtils.loadAnimation(this, com.ebook.common.R.anim.anim_act_importbook_in)
+        animIn = AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_in)
         animOut =
-            AnimationUtils.loadAnimation(this, com.ebook.common.R.anim.anim_act_importbook_out)
+            AnimationUtils.loadAnimation(this, R.anim.anim_act_importbook_out)
 
         ViewCompat.setOnApplyWindowInsetsListener(llContent) { v, insets ->
             val stateBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())

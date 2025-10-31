@@ -1,7 +1,5 @@
 package debug.di
 
-import com.ebook.api.service.comment.CommentDataSource
-import com.ebook.api.service.comment.CommentNetworkTest
 import com.ebook.api.service.user.UserDataSource
 import com.ebook.api.service.user.UserNetworkTest
 import dagger.Binds

@@ -38,7 +38,7 @@ public class WindowLightPop extends PopupWindow {
     public WindowLightPop(Context context) {
         super(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         this.mContext = context;
-        preferences = context.getSharedPreferences(SP_NAME, Context.MODE_PRIVATE);
+        preferences = context.getSharedPreferences(SP_NAME, 0);
         view = LayoutInflater.from(mContext).inflate(R.layout.view_pop_windowlight, null);
         this.setContentView(view);
         initData();

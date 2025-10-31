@@ -16,12 +16,9 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.ObservableEmitter
 import org.mozilla.universalchardet.UniversalDetector
 import java.io.BufferedReader
-import java.io.File
-import java.io.FileInputStream
 import java.io.IOException
 import java.io.InputStreamReader
 import java.math.BigInteger
-import java.net.URI
 import java.security.MessageDigest
 import java.util.regex.Pattern
 
@@ -156,7 +153,7 @@ object BookImportUtil {
                                 contentBuilder.clear()
                             }
 
-                            title = line.substring(line.indexOf("第"))
+                            title = line.substringAfter("第")
                         } else {
                             // 非章节标题行，拼接正文内容
                             val cleanLine = line

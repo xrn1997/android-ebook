@@ -13,7 +13,11 @@ import com.xrn1997.common.util.ToastUtil.showShort
 class MainActivity : BaseActivity<ActivityMainBinding>() {
     override fun initView() {
         binding.btnLogin.setOnClickListener {
-            build(KeyCode.Login.LOGIN_PATH).navigation()
+            if (SPUtil.get(KeyCode.Login.SP_IS_LOGIN, false)) {
+                showShort(this, "已经登录")
+            } else {
+                build(KeyCode.Login.LOGIN_PATH).navigation()
+            }
         }
         binding.btnRegister.setOnClickListener {
             build(KeyCode.Login.REGISTER_PATH).navigation()

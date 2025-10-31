@@ -13,7 +13,6 @@ import com.ebook.me.databinding.AdapterCommentListItemBinding
 import com.xrn1997.common.adapter.BaseBindAdapter
 
 
-@Suppress("unused")
 class CommentListAdapter(context: Context) :
     BaseBindAdapter<Comment, AdapterCommentListItemBinding>(context, CommentDifferCallback()) {
 

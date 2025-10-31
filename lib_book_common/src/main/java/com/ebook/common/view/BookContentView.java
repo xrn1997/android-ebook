@@ -117,8 +117,7 @@ public class BookContentView extends FrameLayout {
 
     public void setNoData(String contentLines) {
         this.content = contentLines;
-
-        tvPage.setText((this.durPageIndex + 1) + "/" + this.pageAll);
+        tvPage.setText(getContext().getString(R.string.page_indicator_format, this.durPageIndex + 1, this.pageAll));
 
         finishLoading();
     }
@@ -145,7 +144,7 @@ public class BookContentView extends FrameLayout {
 
             tvTitle.setText(this.title);
             tvContent.setText(this.content);
-            tvPage.setText((this.durPageIndex + 1) + "/" + this.pageAll);
+            tvPage.setText(getContext().getString(R.string.page_indicator_format, this.durPageIndex + 1, this.pageAll));
 
             finishLoading();
         }

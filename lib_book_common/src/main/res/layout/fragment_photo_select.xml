@@ -16,14 +16,14 @@
             android:id="@+id/btn_take_photo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="5dip"
-            android:layout_marginRight="5dip"
+            android:layout_marginStart="5dip"
+            android:layout_marginEnd="5dip"
             android:layout_marginBottom="5dip"
             android:background="@null"
             android:minWidth="0dp"
             android:minHeight="0dp"
             android:padding="13dip"
-            android:text="拍照"
+            android:text="@string/take_picture"
             android:textSize="15sp" />
 
         <View
@@ -35,14 +35,14 @@
             android:id="@+id/btn_select_photo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="5dip"
-            android:layout_marginRight="5dip"
+            android:layout_marginStart="5dip"
+            android:layout_marginEnd="5dip"
             android:layout_marginBottom="5dip"
             android:background="@null"
             android:minWidth="0dp"
             android:minHeight="0dp"
             android:padding="13dip"
-            android:text="从手机相册选择"
+            android:text="@string/select_from_album"
             android:textSize="15sp" />
 
         <View
@@ -56,7 +56,7 @@
             android:layout_height="wrap_content"
             android:background="#ffffff"
             android:padding="13dp"
-            android:text="取消"
+            android:text="@string/cancel"
             android:textSize="15sp" />
     </LinearLayout>
 

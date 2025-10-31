@@ -1,14 +1,11 @@
 package com.ebook.me.mvvm.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.ebook.api.entity.Comment
 import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.util.DateUtil
 import com.ebook.me.mvvm.model.CommentModel
-import com.xrn1997.common.constant.ErrorCode
-import com.xrn1997.common.http.ExceptionHandler
 import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch

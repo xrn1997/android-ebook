@@ -13,15 +13,16 @@ import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
 import android.view.MotionEvent
-import android.view.ViewGroup
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.ImageView
 import android.widget.RelativeLayout
+import androidx.core.graphics.createBitmap
 import androidx.exifinterface.media.ExifInterface
 import com.ebook.common.R
 import java.io.IOException
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
@@ -321,7 +322,7 @@ class ClipViewLayout @JvmOverloads constructor(
     fun clip(): Bitmap {
         val rect = clipView.clipRect
         // 创建与目标区域相同大小的 Bitmap
-        val bitmap = Bitmap.createBitmap(imageView.width, imageView.height, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(imageView.width, imageView.height)
         val canvas = Canvas(bitmap)
         imageView.draw(canvas)
         val cropBitmap =
@@ -426,8 +427,8 @@ class ClipViewLayout @JvmOverloads constructor(
                 // Calculate ratios of height and width to requested height and
                 // width
 
-                val heightRatio = Math.round(height.toFloat() / reqHeight.toFloat())
-                val widthRatio = Math.round(width.toFloat() / reqWidth.toFloat())
+                val heightRatio = (height.toFloat() / reqHeight.toFloat()).roundToInt()
+                val widthRatio = (width.toFloat() / reqWidth.toFloat()).roundToInt()
 
                 // Choose the smallest ratio as inSampleSize value, this will
                 // guarantee

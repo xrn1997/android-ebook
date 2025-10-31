@@ -45,7 +45,7 @@ dependencies {
     //json解析
     api(libs.gson)
     api(libs.fastjson2)
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation(libs.kotlinx.serialization.json)
     //rx管理View的生命周期
     api(libs.trello.rxlifecycle) {
         exclude(group = "com.android.support")

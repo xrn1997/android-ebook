@@ -78,8 +78,6 @@ dependencies {
     //View简易动画
     api(libs.daimajia.easing.library) { artifact { type = "aar" } }
     api(libs.daimajia.androidanimations.library) { artifact { type = "aar" } }
-    //CircleImageView
-    api(libs.hdodenhof.circleimageview)
     //SwitchButton
     api(libs.switchbutton.library)
     api(libs.victor.lib)

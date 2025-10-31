@@ -5,5 +5,9 @@
         <item name="textAllCaps">true</item>
     </style>
 
+    <style name="anim_pop_chapterlist">
+        <item name="android:windowEnterAnimation">@anim/anim_pop_chapterlist_in</item>
+        <item name="android:windowExitAnimation">@anim/anim_pop_chapterlist_out</item>
+    </style>
 
 </resources>

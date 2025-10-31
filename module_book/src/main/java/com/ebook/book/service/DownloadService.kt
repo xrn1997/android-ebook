@@ -208,7 +208,7 @@ class DownloadService : Service() {
                         //章节内容不存在
                         return@Function WebBookModelImpl
                             .getBookContent(context, data.durChapterUrl, data.durChapterIndex)
-                            .map<BookContent> { bookContent1: BookContent ->
+                            .map { bookContent1: BookContent ->
                                 downloadChapterBox.remove(data)
                                 Log.e(
                                     TAG,
@@ -248,7 +248,7 @@ class DownloadService : Service() {
                             }
                     } else {
                         //存在章节内容
-                        return@Function Observable.create<BookContent> { e: ObservableEmitter<BookContent> ->
+                        return@Function Observable.create { e: ObservableEmitter<BookContent> ->
                             downloadChapterBox.remove(data)
                             e.onNext(bookContent)
                             e.onComplete()

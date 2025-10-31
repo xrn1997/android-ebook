@@ -15,4 +15,6 @@
 
     <string name="print_new_pwd_again">请再次输入新密码</string>
     <string name="define">确\u3000定</string>
+    <string name="interrupt">拦截</string>
+    <string name="logout">退出登录</string>
 </resources>

@@ -129,7 +129,7 @@ class BookDetailActivity : BaseMvvmActivity<ActivityDetailBinding, BookDetailVie
                 author = bookInfo.author
                 if (bookInfo.origin.isNotEmpty()) {
                     tvOrigin.visibility = View.VISIBLE
-                    tvOrigin.text = "来源:" + bookInfo.origin
+                    tvOrigin.text = getString(R.string.source_label, bookInfo.origin)
                 } else {
                     tvOrigin.visibility = View.GONE
                 }
@@ -141,7 +141,7 @@ class BookDetailActivity : BaseMvvmActivity<ActivityDetailBinding, BookDetailVie
                 author = it.author
                 if (it.origin.isNotEmpty()) {
                     tvOrigin.visibility = View.VISIBLE
-                    tvOrigin.text = "来源:" + it.origin
+                    tvOrigin.text = getString(R.string.source_label, it.origin)
                 } else {
                     tvOrigin.visibility = View.GONE
                 }

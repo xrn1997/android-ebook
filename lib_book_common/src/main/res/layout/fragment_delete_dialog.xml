@@ -15,14 +15,14 @@
             android:id="@+id/btn_delete"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="5dip"
-            android:layout_marginRight="5dip"
+            android:layout_marginStart="5dip"
+            android:layout_marginEnd="5dip"
             android:layout_marginBottom="5dip"
             android:background="@null"
             android:minWidth="0dp"
             android:minHeight="0dp"
             android:padding="13dip"
-            android:text="删除"
+            android:text="@string/delete"
             android:textColor="#8B0000"
             android:textSize="15sp" />
 
@@ -37,7 +37,7 @@
             android:layout_height="wrap_content"
             android:background="#ffffff"
             android:padding="13dp"
-            android:text="取消"
+            android:text="@string/cancel"
             android:textSize="15sp" />
     </LinearLayout>
 </LinearLayout>

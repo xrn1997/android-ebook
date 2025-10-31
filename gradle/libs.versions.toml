@@ -29,14 +29,13 @@ androidxWork = "2.11.0"
 annotation = "1.9.1"
 annotations = "26.0.2-1"
 autofittextview = "0.2.1"
-circleimageview = "3.1.0"
 coil = "2.7.0"
 common = "0.2.4-SNAPSHOT"
 constraintlayout = "2.2.1"
 dagger = "2.57.2"
 daimajiaLibraryVersion = "2.4"
 explosionfield = "1.0.1"
-fastjson2 = "2.0.59"
+fastjson2 = "2.0.60"
 fragmentKtx = "1.8.9"
 glide = "5.0.5"
 glideTransformations = "4.3.0"
@@ -64,7 +63,7 @@ logginginterceptorVersion = "3.1.0"
 material = "1.13.0"
 moduleGraph = "2.9.0"
 objectboxGradlePlugin = "5.0.1"
-okhttp = "5.2.1"
+okhttp = "5.3.0"
 paletteVersion = "1.0.0"
 permissionx = "1.8.1"
 router = "1.3.0"
@@ -183,7 +182,6 @@ glide-core = { group = "com.github.bumptech.glide", name = "glide", version.ref 
 glide-compiler = { group = "com.github.bumptech.glide", name = "ksp", version.ref = "glide" }
 glide-transformations = { group = "jp.wasabeef", name = "glide-transformations", version.ref = "glideTransformations" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
-hdodenhof-circleimageview = { group = "de.hdodenhof", name = "circleimageview", version.ref = "circleimageview" }
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }

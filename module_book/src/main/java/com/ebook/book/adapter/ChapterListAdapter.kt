@@ -1,16 +1,14 @@
 package com.ebook.book.adapter
 
 import android.content.Context
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.graphics.toColorInt
 import com.ebook.book.databinding.ViewAdapterChapterlistBinding
 import com.ebook.common.R
-
 import com.ebook.common.callback.ChapterListDifferCallback
 import com.ebook.db.entity.ChapterList
-
 import com.xrn1997.common.adapter.BaseBindAdapter
 
 class ChapterListAdapter(
@@ -31,7 +29,7 @@ class ChapterListAdapter(
         } else binding.vLine.visibility = View.VISIBLE
         binding.tvName.text = item.durChapterName
         if (position == index) {
-            binding.flContent.setBackgroundColor(Color.parseColor("#cfcfcf"))
+            binding.flContent.setBackgroundColor("#cfcfcf".toColorInt())
             binding.flContent.isClickable = false
         } else {
             binding.flContent.setBackgroundResource(R.drawable.bg_ib_pre2)

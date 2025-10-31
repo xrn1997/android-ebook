@@ -14,8 +14,8 @@ import androidx.core.content.ContextCompat;
 
 import com.ebook.common.R;
 import com.ebook.common.view.ReadBookControl;
+import com.ebook.common.view.profilePhoto.CircleImageView;
 
-import de.hdodenhof.circleimageview.CircleImageView;
 
 public class FontPop extends PopupWindow {
     private Context mContext;

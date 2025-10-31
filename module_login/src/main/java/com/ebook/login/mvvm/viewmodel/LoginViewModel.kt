@@ -81,7 +81,11 @@ class LoginViewModel @Inject constructor(
                 put(KeyCode.Login.SP_USER_ID, user.id)
                 put(KeyCode.Login.SP_IMAGE, user.image)
                 postShowLoadingViewEvent(false)
-                build(bundle?.getString(KeyCode.Login.PATH)).navigation()
+                val path = bundle?.getString(KeyCode.Login.PATH)
+                if (path != KeyCode.Login.LOGIN_PATH) {
+                    build(path).navigation()
+                }
+
                 postFinishActivityEvent()
                 postToastEvent("登录成功")
             }

@@ -6,11 +6,11 @@ package com.ebook.api.config
  * @author xrn1997
  */
 object URL {
-        const val xh: String = "https://www.shuangliusc.com/xuanhuanxiaoshuo/"
-        const val xz: String = "https://www.shuangliusc.com/xiuzhenxiaoshuo/"
-        const val ds: String = "https://www.shuangliusc.com/dushixiaoshuo/"
-        const val ls: String = "https://www.shuangliusc.com/lishixiaoshuo/"
-        const val wy: String = "https://www.shuangliusc.com/wangyouxiaoshuo/"
-        const val kh: String = "https://www.shuangliusc.com/kehuanxiaoshuo/"
-        const val qt: String = "https://www.shuangliusc.com/qitaxiaoshuo/"
+    const val XH: String = "https://www.shuangliusc.com/xuanhuanxiaoshuo/"
+    const val XZ: String = "https://www.shuangliusc.com/xiuzhenxiaoshuo/"
+    const val DS: String = "https://www.shuangliusc.com/dushixiaoshuo/"
+    const val LS: String = "https://www.shuangliusc.com/lishixiaoshuo/"
+    const val WY: String = "https://www.shuangliusc.com/wangyouxiaoshuo/"
+    const val KH: String = "https://www.shuangliusc.com/kehuanxiaoshuo/"
+    const val QT: String = "https://www.shuangliusc.com/qitaxiaoshuo/"
 }

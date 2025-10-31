@@ -19,6 +19,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.addCallback
 import androidx.activity.viewModels
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -157,6 +158,21 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
             val stateBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
             v.setPadding(stateBars.left, stateBars.top, stateBars.right, stateBars.bottom)
             insets
+        }
+        onBackPressedDispatcher.addCallback(this) {
+            when {
+                // 菜单可见，则先关闭菜单
+                flMenu.isVisible -> {
+                    llMenuTop.startAnimation(menuTopOut)
+                    llMenuBottom.startAnimation(menuBottomOut)
+                }
+                // 未加入书架并且未显示提示，弹出加入书架提示
+                !mViewModel.isAdd && !checkAddShelfPop.isShowing -> {
+                    checkAddShelfPop.showAtLocation(flContent, Gravity.CENTER, 0, 0)
+                }
+                // 章节列表可见则关闭章节列表，否则退出阅读
+                !chapterListView.dismissChapterList() -> finish()
+            }
         }
     }
 
@@ -712,33 +728,6 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
     override fun onPause() {
         super.onPause()
         mViewModel.saveProgress()
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        val mo = moProgressHUD.onKeyDown(keyCode, event)
-        if (mo) return true
-        else {
-            if (keyCode == KeyEvent.KEYCODE_BACK) {
-                if (flMenu.isVisible) {
-                    llMenuTop.startAnimation(menuTopOut)
-                    llMenuBottom.startAnimation(menuBottomOut)
-                    return true
-                } else if (!mViewModel.isAdd && !checkAddShelfPop.isShowing) {
-                    checkAddShelfPop.showAtLocation(flContent, Gravity.CENTER, 0, 0)
-                    return true
-                } else {
-                    val temp2 = chapterListView.dismissChapterList()
-                    if (!temp2) {
-                        finish()
-                    }
-                    return true
-                }
-            } else {
-                val temp = csvBook.onKeyDown(keyCode, event)
-                if (temp) return true
-            }
-            return super.onKeyDown(keyCode, event)
-        }
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {

@@ -24,13 +24,13 @@ class LibraryModel @Inject constructor(
     //获取书籍类型信息，此处用本地数据。
     fun getBookTypeList(): List<BookType> {
         return mutableListOf(
-            BookType("玄幻小说", URL.xh),
-            BookType("修真小说", URL.xz),
-            BookType("都市小说", URL.ds),
-            BookType("历史小说", URL.ls),
-            BookType("网游小说", URL.wy),
-            BookType("科幻小说", URL.kh),
-            BookType("其他小说", URL.qt)
+            BookType("玄幻小说", URL.XH),
+            BookType("修真小说", URL.XZ),
+            BookType("都市小说", URL.DS),
+            BookType("历史小说", URL.LS),
+            BookType("网游小说", URL.WY),
+            BookType("科幻小说", URL.KH),
+            BookType("其他小说", URL.QT)
         )
         }
 
