@@ -419,7 +419,7 @@ object TXTDownloadBookModelImpl : StationBookModel {
 
                 ErrorAnalyzeContentManager.writeNewErrorUrl(context, durChapterUrl)
                 bookContent.durChapterContent =
-                    durChapterUrl.substring(0, durChapterUrl.indexOf('/', 8)) + "站点暂时不支持解析"
+                    durChapterUrl.take(durChapterUrl.indexOf('/', 8)) + "站点暂时不支持解析"
                 bookContent.right = false
             }
             e.onNext(bookContent)
