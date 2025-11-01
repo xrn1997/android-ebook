@@ -77,24 +77,19 @@
 
 <div style="display: flex; justify-content: center;">
   <figure style="text-align: center; margin-right: 20px;">
-    <img src="./image/book.jpg" alt="Image 1" style="width: 300px; padding: 5px;">
-    <figcaption>书架</figcaption>
+    <img src="./image/book.jpg" alt="Image 1" style="width: 200px; padding: 5px;">
   </figure>
   <figure style="text-align: center; margin-right: 20px;">
-    <img src="./image/find.jpg" alt="Image 2" style="width: 300px; padding: 5px;">
-    <figcaption>书城</figcaption>
+    <img src="./image/find.jpg" alt="Image 2" style="width: 200px; padding: 5px;">
   </figure>
   <figure style="text-align: center;">
-    <img src="./image/me.jpg" alt="Image 3" style="width: 300px; padding: 5px;">
-    <figcaption>个人</figcaption>
+    <img src="./image/me.jpg" alt="Image 3" style="width: 200px; padding: 5px;">
   </figure>
   <figure style="text-align: center;">
-    <img src="./image/read.jpg" alt="Image 3" style="width: 300px; padding: 5px;">
-    <figcaption>阅读</figcaption>
+    <img src="./image/read.jpg" alt="Image 3" style="width: 200px; padding: 5px;">
   </figure>
   <figure style="text-align: center;">
-    <img src="./image/login.jpg" alt="Image 3" style="width: 300px; padding: 5px;">
-    <figcaption>登录</figcaption>
+    <img src="./image/login.jpg" alt="Image 3" style="width: 200px; padding: 5px;">
   </figure>
 </div>
 
