@@ -101,10 +101,7 @@ class ChapterListView(
         tvListCount.text =
             context.getString(R.string.chapter_count_format, bookInfo.chapterList.size)
         chapterListAdapter.setOnItemClickListener { _, position ->
-            itemClickListener?.let {
-                it.itemClick(position)
-                rvbSlider.scrollToPositionWithOffset(position)
-            }
+            itemClickListener?.itemClick(position)
             chapterListAdapter.setIndex(position)
         }
         chapterListAdapter.submitList(bookInfo.chapterList)

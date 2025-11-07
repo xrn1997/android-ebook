@@ -434,7 +434,7 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
                     val start = pageIndex * mViewModel.pageLineCount
                     val end =
                         if (pageIndex == tempCount) bookContent.lineContent.size else start + mViewModel.pageLineCount
-                    if (bookTag == bookContentView.getqTag()) {
+                    if (bookTag == bookContentView.qTag) {
                         bookContentView.updateData(
                             bookTag, chapterList.durChapterName,
                             bookContent.lineContent.subList(start, end),
@@ -460,7 +460,7 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
                             }
 
                             override fun onError(e: Throwable) {
-                                if (bookTag == bookContentView.getqTag()) bookContentView.loadError()
+                                if (bookTag == bookContentView.qTag) bookContentView.loadError()
                             }
                         })
                 }
@@ -520,20 +520,20 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
                                         override fun onNext(value: BookContent) {
                                             if (value.durChapterUrl.isNotEmpty()) {
                                                 chapterList.bookContent.target = value
-                                                if (bookTag == bookContentView.getqTag()) loadContent(
+                                                if (bookTag == bookContentView.qTag) loadContent(
                                                     bookContentView,
                                                     bookTag,
                                                     chapterIndex,
                                                     tempList.pageIndex
                                                 )
                                             } else {
-                                                if (bookTag == bookContentView.getqTag()) bookContentView.loadError()
+                                                if (bookTag == bookContentView.qTag) bookContentView.loadError()
                                             }
                                         }
 
                                         override fun onError(e: Throwable) {
                                             Log.e(TAG, "onError: ", e)
-                                            if (bookTag == bookContentView.getqTag()) bookContentView.loadError()
+                                            if (bookTag == bookContentView.qTag) bookContentView.loadError()
                                         }
                                     })
                             }
@@ -544,7 +544,7 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
                     })
             }
         } else {
-            if (bookTag == bookContentView.getqTag()) bookContentView.loadError()
+            if (bookTag == bookContentView.qTag) bookContentView.loadError()
         }
     }
 

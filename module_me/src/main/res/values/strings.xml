@@ -3,7 +3,7 @@
     <string name="head_portrait">头像</string>
     <string name="xiaoming">小明</string>
     <string name="setting">设置</string>
-    <string name="exit">退出登录</string>
+    <string name="logout">退出登录</string>
     <string name="print_new_nickname">请输入新昵称</string>
     <string name="define">确\u3000定</string>
     <string name="comment">评论于：《</string>

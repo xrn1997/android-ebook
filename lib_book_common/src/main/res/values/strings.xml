@@ -24,7 +24,7 @@
     <string name="chapter">章</string>
     <string name="download">下载</string>
     <string name="is_add_xxx_to_bookshelf">是否将《xxx》放入书架？</string>
-    <string name="exit">退出阅读</string>
+    <string name="exit_read">退出阅读</string>
     <string name="add_to_bookshelf">放入书架</string>
     <string name="download_cancel">取消下载</string>
     <string name="download_start">开始下载</string>

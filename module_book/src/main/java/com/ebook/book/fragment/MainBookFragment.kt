@@ -14,11 +14,11 @@ import com.ebook.book.databinding.FragmentBookMainBinding
 import com.ebook.book.mvvm.viewmodel.BookListViewModel
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.book.service.DownloadService
+import com.ebook.book.view.DownloadListPop
 import com.ebook.common.event.FROM_BOOKSHELF
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RxBusTag
 import com.ebook.common.manager.BitIntentDataManager
-import com.ebook.common.view.popupwindow.DownloadListPop
 import com.ebook.db.entity.BookShelf
 import com.ebook.db.entity.DownloadChapterList
 import com.hwangjr.rxbus.RxBus

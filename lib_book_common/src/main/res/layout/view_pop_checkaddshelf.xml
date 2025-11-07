@@ -44,7 +44,7 @@
                 android:background="@drawable/selector_book_detail_shelf_bg"
                 android:clickable="true"
                 android:gravity="center"
-                android:text="@string/exit"
+                android:text="@string/exit_read"
                 android:textColor="#767676"
                 android:textSize="15sp" />
 

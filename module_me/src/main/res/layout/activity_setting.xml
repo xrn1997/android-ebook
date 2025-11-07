@@ -12,7 +12,7 @@
         android:layout_marginTop="20dp"
         android:layout_marginEnd="12dp"
         android:background="@drawable/btn_selector"
-        android:text="@string/exit"
+        android:text="@string/logout"
         android:textColor="#FFFFFF"
         android:textSize="16sp" />
 </LinearLayout>
