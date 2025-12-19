@@ -156,19 +156,39 @@ object BookImportUtil {
                             title = line.substringAfter("第")
                         } else {
                             // 非章节标题行，拼接正文内容
-                            val cleanLine = line
-                                .replace(" ", "")
-                                .replace(" ", "")
-                                .replace("\\s*".toRegex(), "")
-
-                            if (cleanLine.isEmpty()) {
-                                // 段落空行：添加段首空格
-                                contentBuilder.append(
-                                    if (contentBuilder.isNotEmpty()) "\r\n\u3000\u3000" else "\r\u3000\u3000"
-                                )
+                            // 保留段首空格，识别自然段
+                            val trimmedLine = rawLine.trim()
+                            
+                            if (trimmedLine.isEmpty()) {
+                                // 空行：如果有待写入内容，则标记段落结束
+                                if (contentBuilder.isNotEmpty() && !contentBuilder.endsWith("\r\n")) {
+                                    contentBuilder.append("\r\n")
+                                }
                             } else {
+                                // 检查是否是新段落的开始（以空格或特殊空白符开头）
+                                val isNewParagraph = rawLine.startsWith("    ") || 
+                                                     rawLine.startsWith("\t") ||
+                                                     rawLine.startsWith("\u3000") || 
+                                                     rawLine.startsWith("　") ||
+                                                     rawLine.startsWith("  ")
+                                
+                                // 如果是新段落且不是第一行，添加换行和段首空格
+                                if (isNewParagraph && contentBuilder.isNotEmpty() && 
+                                    !contentBuilder.endsWith("\r\n\u3000\u3000")) {
+                                    contentBuilder.append("\r\n\u3000\u3000")
+                                } else if (contentBuilder.isEmpty() || contentBuilder.endsWith("\r\n")) {
+                                    // 如果是章节开头或段落开头，添加段首空格
+                                    contentBuilder.append("\u3000\u3000")
+                                }
+                                
+                                // 移除行首的空白但保留正文内容
+                                val cleanLine = trimmedLine
+                                    .replace(" ", "")  // 移除全角空格
+                                    .replace(" ", "") // 移除半角空格
+                                    .trim()
+                                
                                 contentBuilder.append(cleanLine)
-                                if (title == null) title = line
+                                if (title == null) title = trimmedLine
                             }
                         }
                     }
