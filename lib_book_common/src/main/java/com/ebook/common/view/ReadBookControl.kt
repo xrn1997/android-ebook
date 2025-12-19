@@ -16,6 +16,7 @@ object ReadBookControl {
     private const val SP_NAME = "CONFIG"
     const val DEFAULT_TEXT = 2
     const val DEFAULT_BG = 1
+    private const val FALLBACK_DARK_INDEX = 3  // 如果找不到暗色主题时的后备索引
     
     // 黑色主题在列表中的索引，通过查找暗色主题自动确定
     private val DARK_BG_INDEX: Int by lazy {
@@ -27,7 +28,7 @@ object ReadBookControl {
             val b = bg and 0xFF
             val brightness = (r * 299 + g * 587 + b * 114) / 1000
             brightness < 128  // 亮度小于128认为是暗色
-        }.takeIf { it >= 0 } ?: 3  // 如果找不到，使用索引3作为默认
+        }.takeIf { it >= 0 && it < textDrawableList.size } ?: FALLBACK_DARK_INDEX
     }
 
     /** 字体样式 */

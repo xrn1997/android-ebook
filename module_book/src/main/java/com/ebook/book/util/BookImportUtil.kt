@@ -177,10 +177,9 @@ object BookImportUtil {
                                     contentBuilder.append("\u3000\u3000")
                                 }
                                 
-                                // 移除行首的空白但保留正文内容
+                                // 移除行首和行中的所有空白字符
                                 val cleanLine = trimmedLine
-                                    .replace(" ", "")  // 移除全角空格
-                                    .replace(" ", "") // 移除半角空格
+                                    .replace("\\s+".toRegex(), "")  // 移除所有空白字符(包括全角、半角空格、制表符等)
                                     .trim()
                                 
                                 contentBuilder.append(cleanLine)
