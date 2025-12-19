@@ -35,6 +35,12 @@ class BookReadViewModel @Inject constructor(
     }
 
     fun saveProgress() {
+        // 只有当书籍已经添加到书架时才保存进度，避免自动写入数据库
+        if (!isAdd) {
+            Log.d(TAG, "saveProgress: Book not in shelf, skip saving progress")
+            return
+        }
+        
         bookShelf?.let {
             Observable.create { e: ObservableEmitter<BookShelf> ->
                 it.finalDate = System.currentTimeMillis()

@@ -170,6 +170,22 @@ class BookDetailViewModel @Inject constructor(
                             bookShelfBox.remove(bookShelf.id)
                         }
                     }
+                
+                // 重置内存对象的ID，避免重新添加时出现ID冲突
+                // ObjectBox ID冲突问题：删除后对象的ID需要重置为0，否则再次添加会失败
+                it.id = 0
+                if (it.bookInfo.target != null) {
+                    it.bookInfo.target.id = 0
+                    if (it.bookInfo.target::chapterList.isInitialized) {
+                        for (chapter in it.bookInfo.target.chapterList) {
+                            chapter.id = 0
+                            if (chapter::bookContent.isInitialized && chapter.bookContent.target != null) {
+                                chapter.bookContent.target.id = 0
+                            }
+                        }
+                    }
+                }
+                
                 e.onNext(true)
                 e.onComplete()
             }.subscribeOn(Schedulers.io())
