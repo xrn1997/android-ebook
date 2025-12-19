@@ -173,18 +173,7 @@ class BookDetailViewModel @Inject constructor(
                 
                 // 重置内存对象的ID，避免重新添加时出现ID冲突
                 // ObjectBox ID冲突问题：删除后对象的ID需要重置为0，否则再次添加会失败
-                it.id = 0
-                if (it.bookInfo.target != null) {
-                    it.bookInfo.target.id = 0
-                    if (it.bookInfo.target::chapterList.isInitialized) {
-                        for (chapter in it.bookInfo.target.chapterList) {
-                            chapter.id = 0
-                            if (chapter::bookContent.isInitialized && chapter.bookContent.target != null) {
-                                chapter.bookContent.target.id = 0
-                            }
-                        }
-                    }
-                }
+                resetBookShelfIds(it)
                 
                 e.onNext(true)
                 e.onComplete()
@@ -210,6 +199,26 @@ class BookDetailViewModel @Inject constructor(
                             .show()
                     }
                 })
+        }
+    }
+    
+    /**
+     * 递归重置BookShelf及其关联对象的ObjectBox ID
+     * 用于解决删除后重新添加时的ID冲突问题
+     */
+    private fun resetBookShelfIds(bookShelf: BookShelf) {
+        bookShelf.id = 0
+        if (bookShelf.bookInfo.target != null) {
+            val bookInfo = bookShelf.bookInfo.target
+            bookInfo.id = 0
+            if (bookInfo::chapterList.isInitialized) {
+                for (chapter in bookInfo.chapterList) {
+                    chapter.id = 0
+                    if (chapter::bookContent.isInitialized && chapter.bookContent.target != null) {
+                        chapter.bookContent.target.id = 0
+                    }
+                }
+            }
         }
     }
 }

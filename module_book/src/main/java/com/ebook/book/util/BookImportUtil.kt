@@ -165,12 +165,8 @@ object BookImportUtil {
                                     contentBuilder.append("\r\n")
                                 }
                             } else {
-                                // 检查是否是新段落的开始（以空格或特殊空白符开头）
-                                val isNewParagraph = rawLine.startsWith("    ") || 
-                                                     rawLine.startsWith("\t") ||
-                                                     rawLine.startsWith("\u3000") || 
-                                                     rawLine.startsWith("　") ||
-                                                     rawLine.startsWith("  ")
+                                // 检查是否是新段落的开始
+                                val isNewParagraph = isLineStartsNewParagraph(rawLine)
                                 
                                 // 如果是新段落且不是第一行，添加换行和段首空格
                                 if (isNewParagraph && contentBuilder.isNotEmpty() && 
@@ -202,6 +198,18 @@ object BookImportUtil {
         }
     }
 
+
+    /**
+     * 检查一行文本是否以段落开始标记开头
+     * 支持多种常见的段落缩进格式
+     */
+    private fun isLineStartsNewParagraph(line: String): Boolean {
+        return line.startsWith("    ") ||  // 四个半角空格
+               line.startsWith("\t") ||     // Tab制表符
+               line.startsWith("\u3000") || // 全角空格
+               line.startsWith("　") ||     // 全角空格(另一种写法)
+               line.startsWith("  ")        // 两个半角空格
+    }
 
     private fun saveDurChapterContent(
         md5: String,
