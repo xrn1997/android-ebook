@@ -104,7 +104,9 @@ class ChapterListView(
             itemClickListener?.itemClick(position)
             chapterListAdapter.setIndex(position)
         }
-        chapterListAdapter.submitList(bookInfo.chapterList)
+        // 按章节索引排序，确保章节顺序正确
+        val sortedChapters = bookInfo.chapterList.sortedBy { it.durChapterIndex }
+        chapterListAdapter.submitList(sortedChapters)
         rvList.adapter = chapterListAdapter
         rvbSlider.setRecyclerView(rvList)
 

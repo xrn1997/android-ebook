@@ -74,7 +74,9 @@ data class BookInfo(
 
         //数据保存到数据库之前如果调用了clone，需要手动处理一下关系。
         if (this::chapterList.isInitialized && bookInfo.chapterList.isEmpty()) {
-            for (chapter in chapterList) {
+            // 按章节索引排序后添加，确保章节顺序正确
+            val sortedChapters = chapterList.sortedBy { it.durChapterIndex }
+            for (chapter in sortedChapters) {
                 bookInfo.chapterList.add(chapter.clone())
             }
         }
