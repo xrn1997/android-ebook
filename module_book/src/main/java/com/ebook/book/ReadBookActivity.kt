@@ -1,5 +1,6 @@
 package com.ebook.book
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -758,5 +759,21 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
 
     private fun showDownloadMenu() {
         ivMenuMore.visibility = View.VISIBLE
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        
+        // 当系统主题改变时，如果启用了跟随系统主题，则更新阅读界面主题
+        val nightModeFlags = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        when (nightModeFlags) {
+            Configuration.UI_MODE_NIGHT_YES,
+            Configuration.UI_MODE_NIGHT_NO -> {
+                com.ebook.common.view.ReadBookControl.onSystemThemeChanged()
+                // 更新状态栏颜色和阅读背景
+                setStatusBarColor(com.ebook.common.view.ReadBookControl.textBackground.detectColor())
+                csvBook.changeBg()
+            }
+        }
     }
 }

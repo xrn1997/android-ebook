@@ -1,8 +1,10 @@
 package com.ebook.common.view
 
+import android.content.res.Configuration
 import androidx.core.graphics.toColorInt
 import com.ebook.common.R
 import com.ebook.common.util.SPUtil
+import com.xrn1997.common.BaseApplication
 import com.xrn1997.common.util.DisplayUtil
 
 /**
@@ -14,6 +16,7 @@ object ReadBookControl {
     private const val SP_NAME = "CONFIG"
     const val DEFAULT_TEXT = 2
     const val DEFAULT_BG = 1
+    const val DARK_BG_INDEX = 3  // 黑色主题在列表中的索引
 
     /** 字体样式 */
     data class TextKind(val textSize: Int, val textExtra: Int)
@@ -60,6 +63,8 @@ object ReadBookControl {
         private set
     var canKeyTurn: Boolean
         private set
+    var followSystemTheme: Boolean
+        private set
 
     init {
         // 从 SP 初始化（只读一次）
@@ -68,7 +73,16 @@ object ReadBookControl {
         textSize = textKindList[textKindIndex].textSize
         textExtra = textKindList[textKindIndex].textExtra
 
-        textDrawableIndex = SPUtil.get("textDrawableIndex", DEFAULT_BG, SP_NAME)
+        followSystemTheme = SPUtil.get("followSystemTheme", false, SP_NAME)
+        
+        // 如果启用跟随系统主题，则根据系统深色模式自动选择主题
+        val savedThemeIndex = SPUtil.get("textDrawableIndex", DEFAULT_BG, SP_NAME)
+        textDrawableIndex = if (followSystemTheme && isSystemInDarkMode()) {
+            DARK_BG_INDEX
+        } else {
+            savedThemeIndex
+        }
+        
         if (textDrawableIndex !in textDrawableList.indices) textDrawableIndex = DEFAULT_BG
         textColor = textDrawableList[textDrawableIndex].textColor
         textBackground = textDrawableList[textDrawableIndex].textBackground
@@ -107,6 +121,17 @@ object ReadBookControl {
         SPUtil.put("canKeyTurn", enable, SP_NAME)
     }
 
+    fun setFollowSystemTheme(enable: Boolean) {
+        followSystemTheme = enable
+        SPUtil.put("followSystemTheme", enable, SP_NAME)
+        
+        // 如果启用跟随系统，立即根据当前系统主题更新
+        if (enable) {
+            val newIndex = if (isSystemInDarkMode()) DARK_BG_INDEX else DEFAULT_BG
+            updateTextDrawableIndex(newIndex)
+        }
+    }
+
     // ----------------------------
     // 工具方法
     // ----------------------------
@@ -114,4 +139,22 @@ object ReadBookControl {
     fun getCurrentTextDrawable(): TextDrawable = textDrawableList[textDrawableIndex]
     fun getTextKindList(): List<TextKind> = textKindList
     fun getTextDrawableList(): List<TextDrawable> = textDrawableList
+    
+    /**
+     * 检测系统是否处于深色模式
+     */
+    fun isSystemInDarkMode(): Boolean {
+        val nightModeFlags = BaseApplication.context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return nightModeFlags == Configuration.UI_MODE_NIGHT_YES
+    }
+    
+    /**
+     * 当系统主题改变时调用此方法更新阅读主题
+     */
+    fun onSystemThemeChanged() {
+        if (followSystemTheme) {
+            val newIndex = if (isSystemInDarkMode()) DARK_BG_INDEX else DEFAULT_BG
+            updateTextDrawableIndex(newIndex)
+        }
+    }
 }
