@@ -20,6 +20,31 @@ class VerifyUserActivity : BaseMvvmActivity<ActivityVerifyUserBinding, ModifyPwd
      * todo 用真的验证码，而不是编的。
      */
     private fun getVerifyCode() {
+        // 获取输入的手机号
+        val username = binding.idEtFgtUsername.text.toString().trim()
+        
+        // 验证手机号格式
+        if (username.isEmpty()) {
+            AlertDialog.Builder(getContext())
+                .setTitle("提示")
+                .setMessage("请先输入手机号")
+                .setPositiveButton("确定", null)
+                .show()
+            return
+        }
+        
+        if (username.length < 11) {
+            AlertDialog.Builder(getContext())
+                .setTitle("提示")
+                .setMessage("请输入正确的手机号")
+                .setPositiveButton("确定", null)
+                .show()
+            return
+        }
+        
+        // 保存用户名到ViewModel
+        mViewModel.username = username
+        
         // 生成六位随机数字的验证码
         mViewModel.mVerifyCode = Random.nextInt(100000, 1000000).toString()
         // 弹出提醒对话框，提示用户六位验证码数字

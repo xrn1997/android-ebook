@@ -40,8 +40,17 @@ class ModifyPwdViewModel @Inject constructor(
             postToastEvent("请输入正确的手机号")
             return
         }
+        if (TextUtils.isEmpty(mVerifyCode)) {
+            postToastEvent("请先获取验证码")
+            return
+        }
         if (!TextUtils.equals(verifyCode, mVerifyCode)) {
             postToastEvent("请输入正确的验证码")
+            return
+        }
+        // 验证用户名是否与生成验证码时的用户名一致
+        if (!TextUtils.equals(username, this.username)) {
+            postToastEvent("手机号不匹配，请重新获取验证码")
             return
         }
         postFinishActivityEvent()
