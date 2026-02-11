@@ -57,7 +57,7 @@
     </declare-styleable>
 
     <!--MProgressBar相关-->
-    <declare-styleable name="MProgressBar">
+    <declare-styleable name="BaseProgressBar">
         <attr name="maxprogress" format="float" />    <!--设置最大值-->   <!--通用-->
         <attr name="durprogress" format="float" />    <!--设置当前值-->  <!--通用-->
         <attr name="bgdrawable" format="color|reference" />    <!--进度条背景颜色或者图片--> <!--通用-->

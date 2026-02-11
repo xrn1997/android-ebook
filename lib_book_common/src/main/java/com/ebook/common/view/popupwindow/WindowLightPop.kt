@@ -88,12 +88,12 @@ class WindowLightPop(private val mContext: Context) :
             if (isChecked) {
                 setScreenBrightnessFollowSystem()
             } else {
-                hpbLight.setDurProgress(light.toFloat())
+                hpbLight.durProgress = light.toFloat()
             }
         }
 
         // 亮度进度条监听
-        hpbLight.setProgressListener(object : OnProgressListener {
+        hpbLight.progressListener = object : OnProgressListener {
             override fun moveStartProgress(dur: Float) {}
             override fun durProgressChange(dur: Float) {
                 if (!isFollowSys) {
@@ -104,7 +104,7 @@ class WindowLightPop(private val mContext: Context) :
 
             override fun moveStopProgress(dur: Float) {}
             override fun setDurProgress(dur: Float) {}
-        })
+        }
     }
 
     /** 设置亮度跟随系统 */
@@ -143,7 +143,7 @@ class WindowLightPop(private val mContext: Context) :
     override fun showAtLocation(parent: View?, gravity: Int, x: Int, y: Int) {
         super.showAtLocation(parent, gravity, x, y)
         initData()
-        hpbLight.setDurProgress(light.toFloat())
+        hpbLight.durProgress = light.toFloat()
         scbFollowSys.setChecked(isFollowSys, false)
     }
 

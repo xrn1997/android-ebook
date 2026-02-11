@@ -98,15 +98,15 @@
 
 ### 4.1 架构与模块调整
 
-- 基本完成 Java → Kotlin 改造
+- 完成 Java → Kotlin 100% 迁移
+- 完成 Dagger → Hilt 迁移（全项目使用 `@HiltViewModel` 和 `@Inject`）
 - 原 common 模块打包为依赖上传至 Maven 中央仓库（如需源码请联系我）
 - 增加 build-logic 模块，自定义 Gradle 插件（支持 KTS 模块 lib/app 互转）
 - TheRouter 替换 ARouter(停止维护)（希望开源库作者人没事 🙏）
 - 删除 MVP，统一 MVVM，移除 DataBinding，支持 View Binding & Compose
-- suspend 替换部分 RxJava3 网络请求
-- 使用 Hilt 重构依赖注入
+- **⏳ 正在进行**: suspend + Coroutines 替换 RxJava3（新代码使用 Coroutines，旧代码逐步迁移）
 - Gradle 升级至 **8.13**，Kotlin 升级至 **2.2.20**，目标设备 API 36
-- 使用 KSP 全面替代 KAPT。
+- 使用 KSP 全面替代 KAPT
 
 > Android Studio < 2025.1.3 不支持 Gradle 8.13，请参考 [IDE 指南](https://developer.android.google.cn/studio/releases?hl=zh-cn)。
 

@@ -575,7 +575,7 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
     }
 
     private fun bindEvent() {
-        hpbReadProgress.setProgressListener(object : OnProgressListener {
+        hpbReadProgress.progressListener = object : OnProgressListener {
             override fun moveStartProgress(dur: Float) {
             }
 
@@ -594,8 +594,9 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
                         DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
                     )
                 }
-                if (hpbReadProgress.durProgress != realDur.toFloat()) hpbReadProgress.durProgress =
-                    realDur.toFloat()
+                if (hpbReadProgress.durProgress != realDur.toFloat()) {
+                    hpbReadProgress.durProgress = realDur.toFloat()
+                }
             }
 
             override fun setDurProgress(dur: Float) {
@@ -621,7 +622,7 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
                     }
                 }
             }
-        })
+        }
         ivReturn.setOnClickListener {
             // finish();
             onBackPressedDispatcher.onBackPressed()
@@ -649,8 +650,9 @@ class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewM
                 if (!mViewModel.bookShelf!!.bookInfo.target.chapterList.isEmpty()) atvTitle.text =
                     mViewModel.bookShelf!!.bookInfo.target.chapterList[mViewModel.bookShelf!!.durChapter].durChapterName
                 else atvTitle.text = "无章节"
-                if (hpbReadProgress.durProgress != (chapterIndex + 1).toFloat()) hpbReadProgress.durProgress =
-                    (chapterIndex + 1).toFloat()
+                if (hpbReadProgress.durProgress != (chapterIndex + 1).toFloat()) {
+                    hpbReadProgress.durProgress = (chapterIndex + 1).toFloat()
+                }
             }
 
             override fun getChapterTitle(chapterIndex: Int): String {
