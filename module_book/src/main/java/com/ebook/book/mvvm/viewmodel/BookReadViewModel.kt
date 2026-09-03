@@ -1,129 +1,144 @@
 package com.ebook.book.mvvm.viewmodel
 
-import android.app.Application
-import android.util.Log
-import com.ebook.book.mvvm.model.BookReadModel
-import com.ebook.common.event.RxBusTag
-import com.ebook.db.ObjectBoxManager.bookShelfBox
-import com.ebook.db.entity.BookShelf
-import com.ebook.db.entity.BookShelf_
-import com.hwangjr.rxbus.RxBus
-import com.xrn1997.common.event.SimpleObserver
-import com.xrn1997.common.event.SingleLiveEvent
+import android.content.Context
+import androidx.lifecycle.viewModelScope
+import com.ebook.book.R
+import com.ebook.book.repository.DownloadRepository
+import com.ebook.book.service.DownloadService
+import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.repository.BookRepository
+import com.ebook.db.entity.BookContentEntity
+import com.ebook.db.entity.BookShelfEntity
+import com.ebook.db.entity.ChapterListEntity
+import com.ebook.db.entity.DownloadChapterEntity
+import com.xrn1997.common.util.ToastUtil
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.core.ObservableEmitter
-import io.reactivex.rxjava3.schedulers.Schedulers
 import javax.inject.Inject
 
 @HiltViewModel
 class BookReadViewModel @Inject constructor(
-    application: Application,
-    model: BookReadModel
-) : BaseViewModel<BookReadModel>(application, model) {
-    var isAdd = false //判断是否已经添加进书架
-    var bookShelf: BookShelf? = null
+    @ApplicationContext private val context: Context,
+    private val bookRepository: BookRepository,
+    private val bookSourceManager: BookSourceManager,
+    private val downloadRepository: DownloadRepository
+) : BaseViewModel<BookRepository>(bookRepository) {
+    var isAdd = false
+    var bookShelf: BookShelfEntity? = null
 
-    var pageLineCount = 5 //假设5行一页
-    val nextInShelfEvent by lazy { SingleLiveEvent<Unit>() }
+    var pageLineCount = 5
+    val nextInShelfEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     fun updateProgress(chapterIndex: Int, pageIndex: Int) {
-        bookShelf!!.durChapter = chapterIndex
-        bookShelf!!.durChapterPage = pageIndex
+        bookShelf?.let {
+            it.durChapter = chapterIndex
+            it.durChapterPage = pageIndex
+        }
     }
 
     fun saveProgress() {
         bookShelf?.let {
-            Observable.create { e: ObservableEmitter<BookShelf> ->
-                it.finalDate = System.currentTimeMillis()
-                bookShelfBox.query(BookShelf_.noteUrl.equal(it.noteUrl))
-                    .build().use { query ->
-                        val temp = query.findFirst()
-                        if (temp != null) {
-                            it.id = temp.id
-                        }
-                    }
-                bookShelfBox.put(it)
-                e.onNext(it)
-                e.onComplete()
-            }.subscribeOn(Schedulers.io())
-                .subscribe(object : SimpleObserver<BookShelf>() {
-                    override fun onNext(value: BookShelf) {
-                        RxBus.get().post(RxBusTag.UPDATE_BOOK_PROGRESS, it)
-                    }
-
-                    override fun onError(e: Throwable) {
-                        Log.e(TAG, "onError: ", e)
-                    }
-                })
+            viewModelScope.launch {
+                bookRepository.saveProgress(it)
+            }
         }
     }
 
     fun getChapterTitle(chapterIndex: Int): String {
-        return if (bookShelf!!.bookInfo.target.chapterList.isEmpty()) {
+        val chapters = bookShelf?.chapterList
+        return if (chapters.isNullOrEmpty()) {
             "无章节"
-        } else bookShelf!!.bookInfo.target.chapterList[chapterIndex].durChapterName
+        } else chapters.getOrNull(chapterIndex)?.durChapterName ?: "无章节"
     }
 
     fun checkInShelf() {
-        Observable.create { e: ObservableEmitter<Boolean> ->
-            try {
-                bookShelfBox
-                    .query(BookShelf_.noteUrl.equal(bookShelf!!.noteUrl)).build().use { query ->
-                        val temp = query.find()
-                        isAdd = temp.isNotEmpty()
-                        e.onNext(isAdd)
-                        e.onComplete()
-                    }
-            } catch (ex: Exception) {
-                e.onError(ex)
-            }
-        }.subscribeOn(Schedulers.io())
-            .doOnSubscribe(this)
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(object : SimpleObserver<Boolean>() {
-                override fun onNext(value: Boolean) {
-                    nextInShelfEvent.call()
-                }
-
-                override fun onError(e: Throwable) {
-                    Log.e(TAG, "onError: ", e)
-                }
-            })
+        val noteUrl = bookShelf?.noteUrl ?: return
+        viewModelScope.launch {
+            isAdd = bookRepository.getBookByUrl(noteUrl) != null
+            nextInShelfEvent.tryEmit(Unit)
+        }
     }
 
     fun addToShelf(addListener: OnAddListener?) {
         bookShelf?.let {
-            Observable.create { e: ObservableEmitter<Boolean> ->
-                bookShelfBox.query(
-                    BookShelf_.noteUrl.equal(
-                        it.noteUrl
-                    )
-                ).build().use { query ->
-                    val temp = query.findFirst()
-                    if (temp != null) {
-                        it.id = temp.id
-                    }
-                }
-                //网络数据获取成功  存入BookShelf表数据库
-                bookShelfBox.put(it)
-                RxBus.get().post(RxBusTag.HAD_ADD_BOOK, it)
+            viewModelScope.launch {
+                bookRepository.addToShelf(it)
                 isAdd = true
-                e.onNext(true)
-                e.onComplete()
-            }.subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(object : SimpleObserver<Any>() {
-                    override fun onNext(value: Any) {
-                        addListener?.addSuccess()
-                    }
-
-                    override fun onError(e: Throwable) {
-                    }
-                })
+                addListener?.addSuccess()
+            }
         }
+    }
+
+    /**
+     * 发起一批章节下载：先入库，再拉起前台服务。
+     *
+     * 顺序很关键：前台服务启动在 targetSdk 35+ 可能被系统直接拒绝（dataSync 类型 24 小时内共
+     * 6 小时的配额用尽，或应用已处于后台，见 [DownloadService.start]），而任务原先只躲在 Intent
+     * extra 里，一旦启动被拒这批选择就彻底丢了。先入库后，服务任何一次拉起（页面重试、
+     * 下载管理页、START_STICKY 重启）都能按库中未完成任务续跑；[DownloadRepository.addTasks] 按章节
+     * URL 去重，服务收到同批 Intent 再入一次也是幂等的（见其构造分支）。
+     */
+    fun startDownload(chapters: List<DownloadChapterEntity>) {
+        if (chapters.isEmpty()) return
+        viewModelScope.launch {
+            downloadRepository.addTasks(chapters)
+            if (!DownloadService.start(context, DownloadService.buildStartIntent(context, chapters))) {
+                ToastUtil.showShort(context, context.getString(R.string.download_start_restricted))
+            }
+        }
+    }
+
+    /**
+     * 从数据库加载章节内容
+     */
+    suspend fun loadBookContent(chapterUrl: String): BookContentEntity? {
+        return bookRepository.loadBookContent(chapterUrl)
+    }
+
+    /**
+     * 保存章节内容到数据库
+     */
+    suspend fun saveBookContent(content: BookContentEntity) {
+        bookRepository.saveBookContent(content)
+    }
+
+    /**
+     * 更新章节缓存状态
+     */
+    suspend fun updateChapterCache(chapterUrl: String, hasCache: Boolean) {
+        bookRepository.updateChapterCache(chapterUrl, hasCache)
+    }
+
+    /**
+     * 从网络获取章节内容
+     */
+    suspend fun fetchBookContent(chapterUrl: String, chapterIndex: Int): BookContentEntity {
+        return withContext(Dispatchers.IO) {
+            bookSourceManager.requireParser().getBookContent(
+                context,
+                chapterUrl,
+                chapterIndex
+            )
+        }
+    }
+
+    /**
+     * 获取章节列表大小
+     */
+    fun getChapterListSize(): Int {
+        return bookShelf?.chapterList?.size ?: 0
+    }
+
+    /**
+     * 获取指定索引的章节
+     */
+    fun getChapter(index: Int): ChapterListEntity? {
+        return bookShelf?.chapterList?.getOrNull(index)
     }
 
     interface OnAddListener {
@@ -133,5 +148,6 @@ class BookReadViewModel @Inject constructor(
     companion object {
         const val OPEN_FROM_OTHER: Int = 0
         const val OPEN_FROM_APP: Int = 1
+        const val TAG: String = "BookReadViewModel"
     }
 }

@@ -1,30 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-
     <style name="CAppTransparentTheme" parent="Theme.Common">
         <!-- Customize your theme here. -->
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
-    </style>
-
-    <style name="anim_pop_checkaddshelf">
-        <item name="android:windowEnterAnimation">@anim/anim_pop_checkaddshelf_in</item>
-        <item name="android:windowExitAnimation">@anim/anim_pop_checkaddshelf_out</item>
-    </style>
-
-    <style name="anim_pop_moresetting">
-        <item name="android:windowEnterAnimation">@anim/anim_pop_moresetting_in</item>
-        <item name="android:windowExitAnimation">@anim/anim_pop_moresetting_out</item>
-    </style>
-
-    <style name="anim_pop_windowlight">
-        <item name="android:windowEnterAnimation">@anim/anim_pop_windowlight_in</item>
-        <item name="android:windowExitAnimation">@anim/anim_pop_windowlight_out</item>
-    </style>
-
-    <style name="anim_pop_windowmenumore">
-        <item name="android:windowEnterAnimation">@anim/anim_pop_windowmenumore_in</item>
-        <item name="android:windowExitAnimation">@anim/anim_pop_windowmenumore_out</item>
     </style>
 </resources>

@@ -1,12 +1,119 @@
 <resources>
+    <!-- 模块名：独立运行（isModule=true）调试时作为应用名展示，集成模式由宿主 app 覆盖 -->
     <string name="app_name">module_me</string>
-    <string name="head_portrait">头像</string>
-    <string name="xiaoming">小明</string>
-    <string name="setting">设置</string>
-    <string name="logout">退出登录</string>
-    <string name="print_new_nickname">请输入新昵称</string>
-    <string name="define">确\u3000定</string>
-    <string name="comment">评论于：《</string>
-    <string name="shu_ming_hao">》</string>
-    <string name="click_to_login">点击登录</string>
+
+    <!-- ===== 我的页（MePage） ===== -->
+    <string name="me_not_logged_in">未登录</string>
+    <string name="me_account_prefix">账号：%1$s</string>
+    <string name="me_login_hint">登录后同步你的阅读记录</string>
+    <string name="me_login_now">立即登录</string>
+    <string name="me_edit_profile_desc">编辑资料</string>
+    <string name="me_avatar_desc">用户头像</string>
+    <string name="me_default_avatar_desc">默认头像</string>
+    <string name="me_shelf_count">书架藏书</string>
+    <string name="me_recent_book">最近在读</string>
+    <string name="me_recent_book_empty">暂无</string>
+
+    <!-- ===== 通用文案（模块内多页共用） ===== -->
+    <string name="common_back_desc">返回</string>
+    <string name="common_confirm">确定</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_delete">删除</string>
+    <string name="common_logout">退出</string>
+    <string name="common_not_set">未设置</string>
+    <string name="common_pending">--</string>
+
+    <!-- ===== 设置页 ===== -->
+    <string name="setting_title">设置</string>
+    <string name="setting_section_general">通用</string>
+    <string name="setting_clear_cache">清除缓存</string>
+    <string name="setting_section_about">关于</string>
+    <string name="setting_version">版本</string>
+    <string name="setting_about_us">关于我们</string>
+    <string name="setting_section_account">账号</string>
+    <string name="setting_logout">退出登录</string>
+    <string name="setting_logout_success">退出登录成功</string>
+    <string name="setting_check_update_title">检查更新</string>
+    <string name="setting_check_update_message">当前版本 v%1$s，已是最新版本。</string>
+    <string name="setting_logout_confirm_message">确定要退出当前账号吗？</string>
+
+    <!-- ===== 缓存管理页 ===== -->
+    <string name="cache_manage_title">缓存管理</string>
+    <string name="cache_total_label">缓存总占用</string>
+    <string name="cache_section_detail">缓存明细</string>
+    <string name="cache_clear_all">清理全部缓存</string>
+    <string name="cache_clear_all_message">将清理图片缓存、临时文件及其他缓存（共 %1$s），清理后图片需重新下载，确定继续吗？</string>
+    <string name="cache_cleared_category">已清理%1$s</string>
+    <string name="cache_cleared_all">已清理全部缓存</string>
+    <string name="cache_empty_detail">该分类暂无缓存内容</string>
+    <string name="cache_clear_category_button">清理%1$s（%2$s）</string>
+    <string name="cache_category_image">图片缓存</string>
+    <string name="cache_category_temp">临时文件</string>
+    <string name="cache_category_other">其他缓存</string>
+    <string name="cache_category_image_desc">书籍封面、头像等图片的磁盘缓存，由图片加载库自动管理，清理后将按需重新下载。</string>
+    <string name="cache_category_temp_desc">使用过程中产生的临时文件（如头像裁剪的中间产物），清理不影响正常使用。</string>
+    <string name="cache_category_other_desc">其他功能产生的缓存目录，清理后相关功能首次使用时可能需要重新加载。</string>
+
+    <!-- ===== 编辑资料页 ===== -->
+    <string name="modify_info_title">编辑资料</string>
+    <string name="modify_photo">修改头像</string>
+    <string name="modify_nickname">修改昵称</string>
+    <string name="modify_password">修改密码</string>
+    <string name="modify_take_photo">拍照</string>
+    <string name="modify_pick_from_album">从相册选择</string>
+    <string name="modify_nickname_success">修改成功</string>
+    <string name="modify_avatar_success">头像修改成功</string>
+    <string name="modify_avatar_failed">上传头像失败：%1$s</string>
+    <string name="modify_nickname_failed">修改昵称失败</string>
+    <string name="modify_avatar_failed_internal">修改头像失败</string>
+    <string name="modify_photo_open_failed">无法打开图片文件</string>
+
+    <!-- ===== 修改昵称页 ===== -->
+    <string name="modify_nickname_title">修改昵称</string>
+    <string name="modify_nickname_current">当前昵称：%1$s</string>
+    <string name="modify_nickname_blank_error">昵称不能为空白</string>
+    <string name="modify_nickname_counter">%1$d / %2$d</string>
+    <string name="new_nickname">新昵称</string>
+    <string name="confirm_modify">确认修改</string>
+
+    <!-- ===== 我的评论页 ===== -->
+    <string name="my_comment_title">我的评论</string>
+    <string name="my_comment_delete_title">删除评论</string>
+    <string name="my_comment_delete_message">确定要删除这条评论吗？</string>
+    <string name="my_comment_delete_success">删除成功！</string>
+    <string name="my_comment_empty_title">还没有发表过评论</string>
+    <string name="my_comment_empty_hint">在章节页写下你的想法吧</string>
+
+    <!-- ===== 关于页 ===== -->
+    <string name="about_title">关于我们</string>
+    <string name="about_slogan">随时随地，享受阅读</string>
+    <string name="about_version_prefix">v%1$s</string>
+    <string name="about_section_content">内容</string>
+    <string name="about_user_agreement">用户协议</string>
+    <string name="about_privacy_policy">隐私政策</string>
+    <string name="about_open_source_license">开源许可</string>
+    <string name="about_copyright">© 2026 android-ebook · All Rights Reserved</string>
+
+    <!-- ===== 协议 / 开源许可页 ===== -->
+    <!-- DocActivity 的 manifest label（运行时按文档类型覆盖标题） -->
+    <string name="doc_activity_label">协议</string>
+    <string name="licenses_title">开源许可</string>
+    <string name="licenses_section_label">本应用基于以下开源项目构建</string>
+
+    <!-- ===== 头像裁剪页 ===== -->
+    <!-- ClipImageActivity 的 manifest label 与裁剪页标题分离（裁剪页为「截取」） -->
+    <string name="clip_activity_label">修改头像</string>
+    <string name="clip_crop_title">截取</string>
+    <string name="clip_load_failed">图片加载失败</string>
+
+    <!-- ===== 独立运行（isModule=true）调试用 ===== -->
+    <string name="me_test_login_title">模拟登录</string>
+    <string name="me_test_login_success">登录成功（模拟）</string>
+    <string name="me_test_logout_success">已退出登录（模拟）</string>
+    <string name="me_test_user_nickname">测试用户</string>
+    <string name="me_test_user_account">账号：test_user</string>
+    <string name="me_test_mode_hint">独立运行模式：module_login 未集成，此处使用模拟账号写入本地会话，用于调试我的页各登录态功能。</string>
+    <string name="me_test_avatar_desc">模拟用户头像</string>
+    <string name="me_test_login_button">一键登录（模拟）</string>
+    <string name="me_test_reset_login">重置为未登录态</string>
 </resources>

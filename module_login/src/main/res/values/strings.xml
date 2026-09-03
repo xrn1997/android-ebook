@@ -3,13 +3,17 @@
     <string name="ebook">eBOOK</string>
     <string name="print_pwd">请输入密码</string>
     <string name="print_new_pwd">请输入新密码</string>
-    <string name="login">登\u3000录</string>
-    <string name="tel_register">手机注册</string>
+    <string name="login">登　录</string>
+    <string name="register_entry">注册</string>
     <string name="fgt_pwd">忘记密码</string>
-    <string name="print_tel">请输入手机号码</string>
+    <string name="print_username">请输入用户名</string>
+    <string name="print_email">请输入邮箱</string>
+    <string name="print_old_pwd">请输入旧密码</string>
     <string name="print_pwd_again">请再次输入密码</string>
     <string name="register">注\u3000册</string>
     <string name="get_verify_code">获取验证码</string>
+    <!-- 发码倒计时文案：与服务端 60 秒频控对齐，倒计时结束恢复「获取验证码」 -->
+    <string name="code_countdown">%1$d 秒后重发</string>
     <string name="print_verify_code">请输入验证码</string>
     <string name="next">下一步</string>
 
@@ -17,4 +21,29 @@
     <string name="define">确\u3000定</string>
     <string name="interrupt">拦截</string>
     <string name="logout">退出登录</string>
+
+    <!-- 注册/验证身份/修改密码页标题与文案 -->
+    <string name="title_register">注册</string>
+    <string name="title_verify_user">验证用户</string>
+    <string name="title_modify_pwd">修改密码</string>
+    <string name="title_reset_pwd">重置密码</string>
+    <string name="confirm_modify">确认修改</string>
+    <!-- 登录页品牌副标题 -->
+    <string name="login_subtitle">登录后，继续你的阅读之旅</string>
+    <!-- 表单页顶部引导文案：向用户说明当前流程要做什么 -->
+    <string name="register_subtitle">输入邮箱获取验证码，设置密码即可完成注册</string>
+    <string name="verify_user_subtitle">输入注册邮箱并获取验证码，验证通过后即可重置密码</string>
+    <string name="reset_pwd_subtitle">为账号设置新密码，完成后需重新登录</string>
+    <string name="modify_pwd_subtitle">为保障账号安全，修改密码后需重新登录</string>
+    <!-- 登录/注册/改密流程校验与结果提示（原硬编码在 ViewModel 的文案收敛到资源） -->
+    <string name="email_empty">邮箱不能为空</string>
+    <string name="pwd_empty">密码不能为空</string>
+    <string name="code_sent">验证码已发送，请查收邮件</string>
+    <string name="verify_code_invalid">请输入6位验证码</string>
+    <string name="pwd_incomplete">密码未填写完整</string>
+    <string name="pwd_mismatch">两次密码不一致</string>
+    <string name="login_success">登录成功</string>
+    <string name="register_success">注册成功，请登录</string>
+    <string name="modify_success">修改成功</string>
+    <string name="pwd_reset_success">密码重置成功，请登录</string>
 </resources>

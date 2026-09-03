@@ -1,216 +1,194 @@
 package com.ebook.find.mvvm.viewmodel
 
-import android.app.Application
-import android.util.Log
-import com.ebook.common.analyze.impl.WebBookModelImpl
-import com.ebook.common.event.RxBusTag
-import com.ebook.db.ObjectBoxManager.bookShelfBox
-import com.ebook.db.entity.BookShelf
-import com.ebook.db.entity.SearchBook
-import com.ebook.db.entity.SearchHistory
-import com.ebook.db.entity.WebChapter
-import com.ebook.find.mvvm.model.LibraryModel
-import com.ebook.find.mvvm.model.SearchModel
-import com.hwangjr.rxbus.RxBus
-import com.xrn1997.common.event.SimpleObserver
-import com.xrn1997.common.event.SingleLiveEvent
+import androidx.lifecycle.viewModelScope
+import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.manager.BookShelfManager
+import com.ebook.common.repository.BookRepository
+import com.ebook.common.repository.BookShelfEvent
+import com.ebook.db.entity.BookShelfEntity
+import com.ebook.db.entity.SearchBookEntity
+import com.ebook.db.entity.SearchHistoryEntity
+import com.ebook.find.repository.SearchHistoryRepository
 import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel
+import com.xrn1997.common.mvvm.viewmodel.Overlay
+import com.xrn1997.common.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.core.ObservableEmitter
-import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * 搜索页 VM。
+ *
+ * - "输入框是否有内容/是否已搜索"等纯 View 状态由 Activity 自持，不进 VM
+ * - 书架快照与书架事件同步收敛在 VM 内部，View 只消费 [list] 与 [successEvent]
+ */
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    application: Application,
-    model: SearchModel
-) : BaseRefreshViewModel<SearchBook, SearchModel>(application, model) {
-    val bookShelves: MutableList<BookShelf> = ArrayList() //用来比对搜索的书籍是否已经添加进书架
-    private var hasSearch = false //判断是否搜索过
-    var page: Int = 1
-        private set
+    private val searchHistoryRepository: SearchHistoryRepository,
+    private val bookSourceManager: BookSourceManager,
+    private val bookShelfManager: BookShelfManager,
+    bookRepository: BookRepository
+) : BaseRefreshViewModel<SearchBookEntity, SearchHistoryRepository>(searchHistoryRepository) {
+
+    /** 当前书架快照（用于给搜索结果标记"已加书架"状态），仅 VM 内部维护 */
+    private val bookShelves = mutableListOf<BookShelfEntity>()
+
+    /** 当前搜索关键词（持久化到分页加载完成，供 loadMore 复用） */
     private var durSearchKey: String = ""
-    var isInput = false
-    val successEvent by lazy { SingleLiveEvent<List<SearchHistory>>() }
+
+    /** 当前分页（仅在有结果时递增，避免空页越翻越深；刷新时归 1） */
+    private var page = 1
+
+    /** 搜索历史查询结果（供历史标签渲染） */
+    private val _successEvent = MutableSharedFlow<List<SearchHistoryEntity>>(extraBufferCapacity = 1)
+    val successEvent: SharedFlow<List<SearchHistoryEntity>> = _successEvent.asSharedFlow()
 
     init {
-        Observable.create { e: ObservableEmitter<List<BookShelf>> ->
-            var temp: List<BookShelf>
-            bookShelfBox.query().build().use { query ->
-                temp = query.find()
+        viewModelScope.launch {
+            try {
+                bookShelves.addAll(bookShelfManager.loadBookShelves())
+            } catch (e: Throwable) {
+                Logger.e(TAG, "loadBookShelves onError: ", e)
             }
-            e.onNext(temp)
-            e.onComplete()
-        }.subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .doOnSubscribe(this)
-            .subscribe(object : SimpleObserver<List<BookShelf>>() {
-                override fun onNext(value: List<BookShelf>) {
-                    bookShelves.addAll(value)
+        }
+        // 书架事件同步：书架增删时更新快照与列表项状态，替代原 Activity 侧的重复收集逻辑
+        viewModelScope.launch {
+            bookRepository.bookShelfEvents.collect { event ->
+                when (event) {
+                    is BookShelfEvent.Added -> {
+                        bookShelves.add(event.bookShelf)
+                        updateBookAddState(event.bookShelf, true)
+                    }
+                    is BookShelfEvent.Removed -> {
+                        bookShelves.remove(event.bookShelf)
+                        updateBookAddState(event.bookShelf, false)
+                    }
+                    is BookShelfEvent.ProgressUpdated -> Unit // 阅读进度与搜索页无关
                 }
-
-                override fun onError(e: Throwable) {
-                    Log.e(TAG, "onError: ", e)
-                }
-            })
+            }
+        }
     }
-
 
     override fun loadMore() {
         searchBook(durSearchKey)
     }
 
-    fun getHasSearch(): Boolean {
-        return hasSearch
-    }
-
-    fun setHasSearch(hasSearch: Boolean) {
-        this.hasSearch = hasSearch
-    }
-
+    /** 插入搜索历史（upsert：同一词条仅更新时间戳），插入后自动刷新历史列表。 */
     fun insertSearchHistory(content: String) {
-
-        mModel.insertSearchHistory(BOOK, content)
-            .doOnSubscribe(this)
-            .subscribe(object : SimpleObserver<SearchHistory>() {
-                override fun onNext(value: SearchHistory) {
-                    querySearchHistory(value.content)
-                }
-
-                override fun onError(e: Throwable) {
-                    Log.e(TAG, "onError: ", e)
-                }
-            })
+        viewModelScope.launch {
+            try {
+                searchHistoryRepository.insertSearchHistory(BOOK, content)
+                // 插入后刷新全量历史（同一词条重复搜索仅更新时间戳，不影响展示集合）
+                querySearchHistory()
+            } catch (e: Throwable) {
+                Logger.e(TAG, "onError: ", e)
+            }
+        }
     }
 
-    fun cleanSearchHistory(content: String) {
-        mModel.cleanSearchHistory(BOOK, content)
-            .observeOn(AndroidSchedulers.mainThread())
-            .doOnSubscribe(this)
-            .subscribe(object : SimpleObserver<Int>() {
-                override fun onNext(value: Int) {
-                    if (value > 0) {
-                        successEvent.setValue(listOf())
-                    }
+    /** 清除 BOOK 类型全部搜索历史，成功后向 [successEvent] 发射空列表。 */
+    fun cleanSearchHistory() {
+        viewModelScope.launch {
+            try {
+                val value = searchHistoryRepository.cleanSearchHistory(BOOK)
+                if (value > 0) {
+                    _successEvent.tryEmit(listOf())
                 }
-
-                override fun onError(e: Throwable) {
-                    Log.e(TAG, "onError: ", e)
-                }
-            })
+            } catch (e: Throwable) {
+                Logger.e(TAG, "onError: ", e)
+            }
+        }
     }
 
-    fun querySearchHistory(content: String) {
-        mModel.querySearchHistory(BOOK, content)
-            .doOnSubscribe(this)
-            .subscribe(object : SimpleObserver<List<SearchHistory>>() {
-                override fun onNext(value: List<SearchHistory>) {
-                    successEvent.setValue(value)
-                }
-
-                override fun onError(e: Throwable) {
-                }
-            })
+    /** 查询 BOOK 类型全部搜索历史，结果通过 [successEvent] 发射。 */
+    fun querySearchHistory() {
+        viewModelScope.launch {
+            try {
+                val entities = searchHistoryRepository.querySearchHistory(BOOK)
+                _successEvent.tryEmit(entities)
+            } catch (e: Throwable) {
+                Logger.e(TAG, "onError: ", e)
+            }
+        }
     }
 
+    /** 重置分页到第 1 页（由 Activity 在发起新搜索前调用）。 */
     fun initPage() {
         this.page = 1
     }
 
+    /**
+     * 发起搜索：显示加载态、记录搜索关键词、触发分页搜索。
+     * 空内容直接返回（由 Activity 侧拦截并触发抖动）。
+     */
     fun toSearchBooks(content: String) {
         if (content.isEmpty()) {
             return
         }
-        postShowLoadingViewEvent(true)
+        updateOverlay(Overlay.Loading)
         durSearchKey = content
         searchBook(durSearchKey)
     }
 
+    /** 分页搜索书籍：page=1 时替换列表，page>1 时追加。仅在有结果时递增页码，避免空页越翻越深。 */
     private fun searchBook(content: String) {
-        WebBookModelImpl.searchBook(content, page)
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribeOn(Schedulers.io())
-            .doOnSubscribe(this)
-            .subscribe(object : SimpleObserver<List<SearchBook>>() {
-                override fun onNext(value: List<SearchBook>) {
-                    for (temp in value) {
-                        for ((noteUrl) in bookShelves) {
-                            if (temp.noteUrl == noteUrl) {
-                                temp.add = true
-                                break
-                            }
-                        }
-                    }
-                    if (page == 1) {
-                        mList.value = value
-                    } else if (value.isNotEmpty()) {
-                        //todo 可能有性能问题
-                        val list = mList.value ?: emptyList()
-                        mList.value = list + value
-                    }
-                    postShowLoadingViewEvent(false)
-                    postStopLoadMoreEvent(true)
+        viewModelScope.launch {
+            try {
+                val value = bookSourceManager.requireParser().searchBook(content, page)
+                bookShelfManager.markShelfStatus(value, bookShelves)
+                if (page == 1) {
+                    updateList(value)
+                } else if (value.isNotEmpty()) {
+                    val list = list.value
+                    updateList(list + value)
+                } else {
+                    // 加载返回空 = 没有更多（仅加载更多路径置位；刷新路径由状态机自动重置，ADR-0041）
+                    updateHasMoreData(false)
                 }
-
-                override fun onError(e: Throwable) {
-                    postShowLoadingViewEvent(false)
-                    postStopLoadMoreEvent(false)
+                // 仅在有结果时递增页码
+                if (value.isNotEmpty()) {
+                    page++
                 }
-            })
-        }
-
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    fun addBookToShelf(searchBook: SearchBook) {
-        postShowLoadingViewEvent(true)
-        //  Log.e("添加到书架", searchBook.toString());
-        val bookShelfResult = BookShelf()
-        bookShelfResult.noteUrl = searchBook.noteUrl
-        bookShelfResult.finalDate = 0
-        bookShelfResult.durChapter = 0
-        bookShelfResult.durChapterPage = 0
-        bookShelfResult.tag = searchBook.tag
-        WebBookModelImpl.getBookInfo(bookShelfResult)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .doOnSubscribe(this)
-            .flatMap { fetchedBookShelf ->
-                // 获取章节列表
-                WebBookModelImpl.getChapterList(fetchedBookShelf)
+                updateOverlay(Overlay.None)
+                updateStopLoadMore(true)
+            } catch (e: Throwable) {
+                updateOverlay(Overlay.None)
+                updateStopLoadMore(false)
             }
-            .subscribe(object : SimpleObserver<WebChapter<BookShelf>>() {
-                override fun onNext(bookShelfWebChapter: WebChapter<BookShelf>) {
-                    saveBookToShelf(bookShelfWebChapter.data)
-                    postShowLoadingViewEvent(false)
-                }
-
-                override fun onError(e: Throwable) {
-                    postToastEvent(e.message ?: "网络请求超时")
-                    postShowLoadingViewEvent(false)
-                }
-            })
+        }
     }
 
-    private fun saveBookToShelf(bookShelf: BookShelf) {
-        LibraryModel.saveBookToShelf(bookShelf)
-            .doOnSubscribe(this)
-            .subscribe(object : SimpleObserver<BookShelf>() {
-                override fun onNext(value: BookShelf) {
-                    //成功   //发送RxBus
-                    RxBus.get().post(RxBusTag.HAD_ADD_BOOK, value)
-                }
-
-                override fun onError(e: Throwable) {
-                    postToastEvent(e.message ?: "网络请求超时")
-                }
-            })
+    /** 将搜索结果中的书籍加入书架，失败时 toast 提示。 */
+    fun addBookToShelf(searchBook: SearchBookEntity) {
+        updateOverlay(Overlay.Loading)
+        viewModelScope.launch {
+            bookShelfManager.addFromSearch(searchBook)
+                .onFailure { e -> sendToast(e.message ?: "网络请求超时") }
+            updateOverlay(Overlay.None)
+        }
     }
 
+    /**
+     * 书架事件同步：更新列表中对应书籍的"是否已加入书架"状态。
+     */
+    private fun updateBookAddState(bookShelf: BookShelfEntity, isAdd: Boolean) {
+        val currentList = list.value.toMutableList()
+        val index = currentList.indexOfFirst { it.noteUrl == bookShelf.noteUrl }
+        if (index != -1) {
+            val updatedBook = currentList[index].copy(add = isAdd)
+            currentList[index] = updatedBook
+            updateList(currentList)
+        }
+    }
+
+    // 搜索页面无下拉刷新入口（刷新即重新搜索），基类抽象方法的空实现
     override fun refreshData() {}
 
     companion object {
+        /** 搜索历史类型：书籍搜索（对齐 SearchHistoryEntity.type 字段） */
         const val BOOK: Int = 2
     }
 }

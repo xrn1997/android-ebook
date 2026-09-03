@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+        独立运行模式（isModule=true）专用 Manifest：与 src/main/AndroidManifest.xml 是**替换**
+        关系（不是合并），业务 Activity 与其属性两处必须同步修改，避免两种模式行为不一致
+        （详见集成清单同位置注释中的历史教训）。
+    -->
     <application
         android:name="debug.TestApplication"
         android:allowBackup="true"
@@ -18,9 +23,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- launchMode 与集成清单保持一致：登录页 singleTask，复用时清掉其上的注册/改密中间页 -->
         <activity
             android:name=".LoginActivity"
-            android:label="登录" />
+            android:label="登录"
+            android:launchMode="singleTask" />
         <activity
             android:name=".RegisterActivity"
             android:label="注册"

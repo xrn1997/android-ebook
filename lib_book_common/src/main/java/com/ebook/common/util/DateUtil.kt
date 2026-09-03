@@ -1,6 +1,6 @@
 package com.ebook.common.util
 
-import android.util.Log
+import com.xrn1997.common.util.Logger
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -63,7 +63,7 @@ object DateUtil {
             val sdf = SimpleDateFormat(formatStr, Locale.CHINA)
             sdf.parse(dateStr)
         } catch (e: ParseException) {
-            Log.e(TAG, "parseTime: ", e)
+            Logger.e(TAG, "parseTime: ", e)
             null
         }
     }
@@ -74,7 +74,7 @@ object DateUtil {
             val sdf = getSimpleDateFormat(FormatType.yyyyMMddHHmmss)
             sdf.parse(time)
         } catch (e: Exception) {
-            Log.e(TAG, "parseTime: ", e)
+            Logger.e(TAG, "parseTime: ", e)
             null
         }
     }
@@ -85,7 +85,7 @@ object DateUtil {
             val sdf = getSimpleDateFormat(type)
             sdf.parse(time)
         } catch (e: Exception) {
-            Log.e(TAG, "parseTime: ", e)
+            Logger.e(TAG, "parseTime: ", e)
             null
         }
     }
@@ -190,7 +190,7 @@ object DateUtil {
                 else -> sdf3.format(date)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "formatTimeToDay: ", e)
+            Logger.e(TAG, "formatTimeToDay: ", e)
             dateStr
         }
     }

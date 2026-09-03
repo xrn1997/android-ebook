@@ -1,0 +1,82 @@
+[
+  {
+    "name": "笔趣阁",
+    "url": "https://www.bqquge.com",
+    "enabled": true,
+    "group": "小说",
+    "weight": 0,
+    "charset": "utf-8",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    },
+    "method": "GET",
+    "searchUrl": "/so/{{keyword}}",
+    "searchPage": {
+      "param": "page",
+      "start": 1,
+      "step": 1
+    },
+    "ruleSearch": {
+      "list": ".item",
+      "name": ".itemtxt h3 a",
+      "author": ".itemtxt p a[href^='/zuozhe']",
+      "kind": ".itemtxt p span:last-child",
+      "lastChapter": ".itemtxt ul li:first-child a",
+      "coverUrl": "img@src",
+      "bookUrl": ".itemtxt h3 a@href"
+    },
+    "ruleBookInfo": {
+      "name": ".booktxt h1",
+      "author": ".booktxt p a[href^='/zuozhe']",
+      "authorPrefix": "作者：",
+      "coverUrl": ".bookdetail img@src",
+      "intro": ".des",
+      "kind": ".booktxt p:nth-child(2)",
+      "lastChapter": "",
+      "tocUrl": "",
+      "reverseToc": false
+    },
+    "ruleToc": {
+      "list": "#list ul li",
+      "name": "a",
+      "url": "a@href",
+      "reverse": false
+    },
+    "ruleContent": {
+      "content": ".con",
+      "nextPage": ".prenext span:last-child a@href",
+      "replaceRules": [
+        {"pattern": "天才一秒记住.*?地址", "replacement": "", "enabled": true},
+        {"pattern": "请收藏本站.*?地址", "replacement": "", "enabled": true},
+        {"pattern": "手机阅读.*?地址", "replacement": "", "enabled": true},
+        {"pattern": "必应搜索.*?更新章节[！!]?", "replacement": "", "enabled": true},
+        {"pattern": "嘚齐小说网", "replacement": "", "enabled": true}
+      ]
+    },
+    "ruleFind": {
+      "url": "/{{kind}}",
+      "kinds": [
+        {"title": "玄幻", "url": "xuanhuan"},
+        {"title": "奇幻", "url": "qihuan"},
+        {"title": "武侠", "url": "wuxia"},
+        {"title": "仙侠", "url": "xianxia"},
+        {"title": "都市", "url": "dushi"},
+        {"title": "军事", "url": "junshi"},
+        {"title": "历史", "url": "lishi"},
+        {"title": "游戏", "url": "youxi"},
+        {"title": "体育", "url": "tiyu"},
+        {"title": "科幻", "url": "kehuan"},
+        {"title": "悬疑", "url": "xuanyi"},
+        {"title": "轻小", "url": "qing"},
+        {"title": "穿越", "url": "chuanyue"},
+        {"title": "言情", "url": "yanqing"}
+      ],
+      "ruleSearch": {}
+    },
+    "ruleRank": {
+      "url": "/paihang",
+      "ranks": [],
+      "ruleSearch": {}
+    }
+  }
+]

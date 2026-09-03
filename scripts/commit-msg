@@ -1,0 +1,89 @@
+#!/bin/sh
+# commit-msg hook — 校验 Conventional Commits 格式
+# 安装：cp scripts/commit-msg .git/hooks/commit-msg && chmod +x .git/hooks/commit-msg
+
+# 强制 UTF-8 环境，确保 wc -m 正确计算中文字符数
+export LC_ALL=C.UTF-8
+
+MSG_FILE="$1"
+# 使用 printf 避免 echo 解析 -n, -e 等参数
+MSG=$(head -1 "$MSG_FILE")
+
+# 1. 允许 Merge Commit
+case "$MSG" in
+    Merge\ *) exit 0 ;;
+esac
+
+# 2. 定义正则
+TYPE_PATTERN='(feat|fix|build|refactor|docs|test|perf|chore|revert)'
+SCOPE_PATTERN='(\([a-zA-Z0-9_/-]+\))?'  # 增加了 / 以支持 auth/login 这种子模块
+BREAKING_PATTERN='\!?'
+DESC_PATTERN='.+'
+HEADER_PATTERN="^${TYPE_PATTERN}${SCOPE_PATTERN}${BREAKING_PATTERN}: ${DESC_PATTERN}"
+REVERT_PATTERN='^revert: .+'
+
+# 3. 格式校验
+if ! printf '%s\n' "$MSG" | grep -qE "$HEADER_PATTERN" && \
+   ! printf '%s\n' "$MSG" | grep -qE "$REVERT_PATTERN"; then
+    cat <<EOF
+
+❌ Commit message 格式不符合 Conventional Commits
+
+  正确格式: <type>(<scope>): <description>
+
+  type: feat | fix | build | refactor | docs | test | perf | chore | revert
+  scope: 可选，模块目录名（module_me, lib_book_common, lib_ebook_api 等）
+
+  示例:
+    feat(module_me): 新增个人中心编辑资料入口
+    fix(lib_ebook_api): 修复书源请求误携带认证 token
+    build: 升级 Gradle 到 9.4.1
+    revert: feat(module_me): 新增 xxx
+
+  详见 AGENTS.md 提交规范章节
+
+EOF
+    exit 1
+fi
+
+# 4. Revert 额外校验
+if printf '%s\n' "$MSG" | grep -qE "$REVERT_PATTERN"; then
+    if ! grep -q 'This reverts commit' "$MSG_FILE"; then
+        cat <<EOF
+
+❌ revert 提交的 body 必须包含 "This reverts commit <hash>"
+
+EOF
+        exit 1
+    fi
+fi
+
+# 5. 提取 Description
+if printf '%s\n' "$MSG" | grep -qE "$REVERT_PATTERN"; then
+    DESC=$(printf '%s\n' "$MSG" | sed 's/^revert: //')
+else
+    DESC=$(printf '%s\n' "$MSG" | sed 's/^[^:]*: //')
+fi
+
+# 6. 中文句号检查
+if printf '%s\n' "$DESC" | grep -qE '。$'; then
+    cat <<EOF
+
+❌ description 不应以句号结尾
+
+EOF
+    exit 1
+fi
+
+# 7. 长度检查 (确保 LC_ALL 已设置)
+DESC_LEN=$(printf '%s' "$DESC" | wc -m | tr -d ' ')
+if [ "$DESC_LEN" -gt 72 ]; then
+    cat <<EOF
+
+❌ description 超过 72 字符（当前 ${DESC_LEN} 字符）
+
+EOF
+    exit 1
+fi
+
+exit 0

@@ -81,6 +81,9 @@
         <activity
             android:name="com.ebook.book.BookDetailActivity"
             android:theme="@style/CAppTransparentTheme" />
+        <activity
+            android:name="com.ebook.book.DownloadManageActivity"
+            android:label="下载管理" />
 
         <service
             android:name=".service.DownloadService"

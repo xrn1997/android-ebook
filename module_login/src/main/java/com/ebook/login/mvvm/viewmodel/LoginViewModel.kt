@@ -1,94 +1,121 @@
 package com.ebook.login.mvvm.viewmodel
 
-import android.app.Application
+import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
-import android.util.Log
 import androidx.lifecycle.viewModelScope
-import com.ebook.api.entity.User
 import com.ebook.api.utils.CoroutineAdapter
+import com.ebook.common.domain.UserSession
+import com.ebook.common.domain.UserSessionManager
 import com.ebook.common.event.KeyCode
-import com.ebook.common.event.RxBusTag
-import com.ebook.common.util.SPUtil
-import com.ebook.login.mvvm.model.UserModel
-import com.hwangjr.rxbus.RxBus
+import com.ebook.common.repository.ProfileRepository
+import com.ebook.login.R
+import com.ebook.login.repository.UserRepository
 import com.therouter.TheRouter.build
-import com.xrn1997.common.constant.ErrorCode
-import com.xrn1997.common.manager.RetrofitManager
+import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
+import com.xrn1997.common.mvvm.viewmodel.Overlay
+import com.xrn1997.common.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * 登录 ViewModel：邮箱 + 密码登录（邮箱为登录主标识，见 ADR-0009）。
+ *
+ * 登录成功后经 [UserSessionManager.saveSession] 建立会话（身份 + 双 token 持久化，
+ * access token 同步写入 TokenHolder），并按 [bundle] 携带的来源路径回跳发起方页面。
+ * A0230 过期由网络层单飞静默刷新收口，本页失败分支只处理「救不回来」以外的异常。
+ */
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    application: Application,
-    model: UserModel
-) : BaseViewModel<UserModel>(application, model) {
-    var bundle: Bundle? = null //被拦截的信息
+    private val userRepository: UserRepository,
+    private val profileRepository: ProfileRepository,
+    private val userSessionManager: UserSessionManager
+) : BaseViewModel<UserRepository>(userRepository) {
+    /** 登录页路由参数（发起方页面路径，登录成功后回跳；见 [loginOnNext]） */
+    var bundle: Bundle? = null
 
-    fun login(username: String, password: String) {
-        if (TextUtils.isEmpty(username)) { //用户名为空
-            postToastEvent("用户名不能为空")
-            //  Log.d(TAG, "login: " + username);
+    /** 防重复点击登录：请求在途时忽略后续触发 */
+    private var isLoggingIn = false
+
+    /**
+     * 发起登录：客户端只做非空校验，账号/密码正确性交给服务端业务码。
+     * 成功后保存会话、回跳来源页并刷新本地资料缓存（头像/昵称）。
+     */
+    fun login(email: String, password: String) {
+        if (isLoggingIn) return  // 防止重复登录
+        if (TextUtils.isEmpty(email)) {
+            sendToast(context.getString(R.string.email_empty))
             return
         }
-        if (username.length < 11) { // 手机号码不足11位
-            postToastEvent("请输入正确的手机号")
-            return
-        }
-        if (TextUtils.isEmpty(password)) { //密码为空
-            postToastEvent("密码不能为空")
+        if (TextUtils.isEmpty(password)) {
+            sendToast(context.getString(R.string.pwd_empty))
             return
         }
         viewModelScope.launch {
-            postShowLoadingViewEvent(true)
-            val result = mModel.login(username, password)
-            result.onSuccess { resp ->
-                RetrofitManager.TOKEN = "Bearer " + resp.data?.token
-                val user = resp.data?.user
-                if (user == null) {
-                    Log.e(TAG, "onNext: user==null")
-                    return@launch
-                }
-                user.password = password //返回的是加密过的密码，不能使用，需要记住本地输入的密码。
-                loginOnNext(user) //非自动登录
-                RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, Any()) //通知其更新UI
-            }.onFailure { exception ->
-                if (exception is CoroutineAdapter.ApiException) {
-                    if (exception.code == ErrorCode.USER_ERROR_A0230.code) {
-                        RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, Any())
-                        SPUtil.clear()
-                        //   Log.d(TAG, "登录失效 is login 状态：" + SPUtils.getInstance().getString(KeyCode.Login.SP_IS_LOGIN));
+            isLoggingIn = true
+            updateOverlay(Overlay.Loading)
+            try {
+                val result = userRepository.login(email, password)
+                result.onSuccess { session ->
+                    // 保存会话信息到 UserSessionManager
+                    // saveSession 会将 token 写入 TokenHolder，AuthInterceptor 自动附加到请求头
+                    userSessionManager.saveSession(session, session.refreshToken)
+                    loginOnNext(session)
+                    profileRepository.updatePicture(session.avatar)
+                    profileRepository.updateNickname(session.nickname)
+                }.onFailure { exception ->
+                    if (CoroutineAdapter.isSessionExpiredHandled(exception)) {
+                        // 会话过期已由全局处置（清会话+提示+跳登录），本调用点静默、只记日志
+                        Logger.w(TAG, "会话过期已由全局处置，本调用点静默（仅日志）：${exception.message}")
+                    } else if (exception is CoroutineAdapter.ApiException) {
+                        sendToast(exception.message())
+                    } else {
+                        sendToast("${exception.message}")
                     }
-                    postToastEvent(exception.message())
-                } else {
-                    postToastEvent("${exception.message}")
                 }
+            } finally {
+                isLoggingIn = false
+                updateOverlay(Overlay.None)
             }
-            postShowLoadingViewEvent(false)
         }
     }
 
-    private fun loginOnNext(user: User) {
-        //不是自动登录则调用以下语句
-        SPUtil.apply {
-            if (!get(KeyCode.Login.SP_IS_LOGIN, false)) {
-                put(KeyCode.Login.SP_IS_LOGIN, true)
-                put(KeyCode.Login.SP_USERNAME, user.username)
-                put(KeyCode.Login.SP_PASSWORD, user.password)
-                put(KeyCode.Login.SP_NICKNAME, user.nickname)
-                put(KeyCode.Login.SP_USER_ID, user.id)
-                put(KeyCode.Login.SP_IMAGE, user.image)
-                postShowLoadingViewEvent(false)
-                val path = bundle?.getString(KeyCode.Login.PATH)
-                if (path != KeyCode.Login.LOGIN_PATH) {
-                    build(path).navigation()
-                }
-
-                postFinishActivityEvent()
-                postToastEvent("登录成功")
-            }
+    /**
+     * 登录成功后的导航处置：
+     *
+     * - **拦截回跳**：页面被 [LoginInterceptor] 拦截跳登录时，TheRouter 自动写入的
+     *   `therouter_path` 是**原始目标页** URL（如书籍详情页）→ 登录成功后回跳原页；
+     * - **主动跳登录**（改密/注册/会话过期后）：`therouter_path` 是 LOGIN_PATH 自身
+     *   （或其带参形式 `login?email=xxx`）→ 此时登录页只是流程中转站，应清掉中间
+     *   链路页面（编辑资料/注册等）回主界面，而非回退到改密/注册前的页面。
+     *
+     * 主界面路由在两种构建模式下都存在：集成模式由 module\_main 的 MainActivity 持有；
+     * 独立模式（isModule=true）不编译 module\_main，由调试宿主 `src/main/test/debug/MainActivity`
+     * 以同一路径占位（否则 TheRouter 找不到路由只会静默丢弃跳转，栈里未 finish 的中间页会被露出）。
+     */
+    private fun loginOnNext(session: UserSession) {
+        val path = bundle?.getString(KeyCode.Login.PATH)
+        // 被拦截回跳的目标：非空且非 LOGIN_PATH（或其带参形式）→ 原始目标页
+        val interceptTarget = path?.takeUnless {
+            it == KeyCode.Login.LOGIN_PATH || it.startsWith("${KeyCode.Login.LOGIN_PATH}?")
         }
+        if (interceptTarget != null) {
+            // 拦截回跳：登录成功回到被拦截的原始页面（如书籍详情页）
+            build(interceptTarget).navigation()
+        } else {
+            // 主动跳登录场景：CLEAR_TOP 复用栈底主界面并清掉其上的中间页（编辑资料/注册等），
+            // 登录成功后直接落回主界面；SINGLE_TOP 防主界面恰在栈顶时被重建。
+            build(KeyCode.Main.MAIN_PATH)
+                .withFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .navigation()
+        }
+        sendFinish()
+        sendToast(context.getString(R.string.login_success))
+    }
+
+    companion object {
+        private const val TAG = "LoginViewModel"
     }
 }

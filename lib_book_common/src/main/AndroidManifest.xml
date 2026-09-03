@@ -1,17 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!--
+        不声明 android:icon / android:roundIcon：库无启动器图标，且 minSdk 26 下
+        自适应图标由各模块自身的 mipmap-anydpi-v26 提供（集成构建时 module_app 的声明优先），
+        库侧声明反而会把 @mipmap/ic_launcher 的依赖压给下游模块。
+    -->
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true">
-        <activity
-            android:name="com.ebook.common.view.profilePhoto.ClipImageActivity"
-            android:label="修改头像"
 
-            android:theme="@style/ToolbarTheme.BackBar" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider.apk"

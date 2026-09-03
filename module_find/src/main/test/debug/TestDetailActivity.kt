@@ -9,19 +9,26 @@ import androidx.compose.ui.Modifier
 import com.ebook.common.event.FROM_BOOKSHELF
 import com.ebook.common.event.FROM_SEARCH
 import com.ebook.common.event.KeyCode
-import com.ebook.db.entity.SearchBook
+import com.ebook.db.entity.SearchBookEntity
 import com.therouter.TheRouter
 import com.therouter.router.Autowired
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseActivity
 
+/**
+ * 模块独立运行时的书籍详情桩页：仅展示来源标记与书籍基本信息，
+ * 替代 module_book 的真实详情页，使 module_find 可脱离宿主独立调试。
+ *
+ * 路由由 [TestApplication] 的 PathReplaceInterceptor 从 [KeyCode.Book.DETAIL_PATH]
+ * 重定向到 [KeyCode.Find.TEST_DETAIL_PATH]。
+ */
 @Route(path = KeyCode.Find.TEST_DETAIL_PATH)
 class TestDetailActivity : BaseActivity() {
     @Autowired(name = "from")
     var openFrom = -1
 
     @Autowired(name = "data")
-    var searchBook: SearchBook? = null
+    var searchBook: SearchBookEntity? = null
 
     @Autowired(name = "data_key")
     var dataKey: String? = null
@@ -31,7 +38,7 @@ class TestDetailActivity : BaseActivity() {
     }
 
     @Composable
-    override fun InitView() {
+    override fun PageContent() {
         Column(Modifier.fillMaxSize()) {
             if (openFrom == FROM_BOOKSHELF) {
                 Text("来自书架")

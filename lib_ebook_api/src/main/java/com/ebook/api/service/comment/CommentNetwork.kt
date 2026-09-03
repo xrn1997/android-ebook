@@ -1,41 +1,34 @@
 package com.ebook.api.service.comment
 
+import com.ebook.api.RetrofitBuilder
 import com.ebook.api.config.API
 import com.xrn1997.common.dto.RespDTO
 import com.ebook.api.entity.Comment
-import com.xrn1997.common.manager.RetrofitManager
+import com.ebook.api.entity.CommentPage
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class CommentNetwork @Inject constructor() : CommentDataSource {
+class CommentNetwork @Inject constructor(
+    retrofitBuilder: RetrofitBuilder
+) : CommentDataSource {
+    private val networkApi = retrofitBuilder.getRetrofitObject(
+        "http://${API.URL_HOST_COMMENT}:${API.URL_PORT_COMMENT}/"
+    ).create(CommentService::class.java)
 
-    init {
-        //通过反射动态修改BaseUrl
-        RetrofitManager.mHttpUrl.setHost(API.URL_HOST_COMMENT)
-        RetrofitManager.mHttpUrl.setPort(API.URL_PORT_COMMENT)
-    }
+    override suspend fun addComment(comment: Comment): RespDTO<Comment> =
+        networkApi.addComment(comment)
 
-    private val networkApi = RetrofitManager.create(CommentService::class.java)
+    override suspend fun deleteComment(id: Long): RespDTO<Unit> =
+        networkApi.deleteComment(id)
 
-    override suspend fun addComment(
-        token: String?,
-        comment: Comment
-    ): RespDTO<Comment> = networkApi.addComment(token, comment)
-
-
-    override suspend fun deleteComment(
-        token: String?,
-        id: Long
-    ): RespDTO<Int> = networkApi.deleteComment(token, id)
-
-    override suspend fun getUserComments(
-        token: String?,
-        username: String
-    ): RespDTO<List<Comment>> = networkApi.getUserComments(token, username)
+    override suspend fun getMyComments(page: Int, pageSize: Int): RespDTO<CommentPage> =
+        networkApi.getMyComments(page, pageSize)
 
     override suspend fun getChapterComments(
-        token: String?,
-        chapterUrl: String?
-    ): RespDTO<List<Comment>> = networkApi.getChapterComments(token, chapterUrl)
+        chapterUrl: String?,
+        bookName: String?,
+        page: Int,
+        pageSize: Int
+    ): RespDTO<CommentPage> = networkApi.getChapterComments(chapterUrl, bookName, page, pageSize)
 }

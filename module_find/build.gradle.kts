@@ -30,7 +30,6 @@ android {
     buildFeatures {
         buildConfig = true
         compose = true
-        viewBinding = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -47,10 +46,13 @@ dependencies {
     implementation(project(":lib_book_common"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.coil.kt.compose)
     ksp(libs.router.apt)
     implementation(libs.router)
     //Dagger
     ksp(libs.dagger.compiler)
+    // Compose 页面 hiltViewModel()（替代 Fragment 的 viewModels() 注入路径）
+    implementation(libs.androidx.hilt.navigation.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)

@@ -1,764 +1,813 @@
 package com.ebook.book
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.text.Layout
-import android.text.StaticLayout
+import android.content.Context
+import android.content.res.Resources
 import android.text.TextPaint
-import android.util.Log
-import android.view.Gravity
 import android.view.KeyEvent
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.view.animation.Animation
-import android.view.animation.AnimationUtils
-import android.widget.FrameLayout
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
-import androidx.activity.addCallback
+import androidx.activity.compose.BackHandler
 import androidx.activity.viewModels
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.isVisible
-import com.ebook.book.databinding.ActivityBookreadBinding
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.TextUnit
+import androidx.lifecycle.lifecycleScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_OTHER
-import com.ebook.book.util.BookImportUtil
-import com.ebook.book.view.ChapterListView
-import com.ebook.common.analyze.impl.WebBookModelImpl
+import com.ebook.book.reader.AddShelfDialog
+import com.ebook.book.reader.ChapterListDrawer
+import com.ebook.book.reader.ChapterDownloadSheet
+import com.ebook.book.reader.FontPanel
+import com.ebook.book.reader.LightPanel
+import com.ebook.book.reader.MoreSettingPanel
+import com.ebook.book.reader.ReaderBottomBar
+import com.ebook.book.reader.ReaderPager
+import com.ebook.book.reader.ReaderPagerController
+import com.ebook.book.reader.ReaderPanel
+import com.ebook.book.reader.ReaderTopBar
+import com.ebook.book.reader.ReaderTypesetter
+import com.ebook.book.reader.applyReaderBrightness
+import com.ebook.book.reader.rememberReaderTypesetter
+import com.ebook.book.util.BookImportManager
+import com.ebook.book.R
+import com.ebook.book.manager.BitIntentDataManager
+import com.ebook.book.service.DownloadService
+import com.ebook.book.view.ReadBookControl
 import com.ebook.common.event.KeyCode
-import com.ebook.common.event.RxBusTag
-import com.ebook.common.manager.BitIntentDataManager
-import com.ebook.common.view.BookContentView
-import com.ebook.common.view.ContentSwitchView
-import com.ebook.common.view.ContentSwitchView.LoadDataListener
-import com.ebook.common.view.ReadBookControl.textBackground
-import com.ebook.common.view.modialog.MoProgressHUD
-import com.ebook.common.view.mprogressbar.MHorProgressBar
-import com.ebook.common.view.mprogressbar.OnProgressListener
-import com.ebook.common.view.popupwindow.CheckAddShelfPop
-import com.ebook.common.view.popupwindow.FontPop
-import com.ebook.common.view.popupwindow.FontPop.OnChangeProListener
-import com.ebook.common.view.popupwindow.MoreSettingPop
-import com.ebook.common.view.popupwindow.ReadBookMenuMorePop
-import com.ebook.common.view.popupwindow.WindowLightPop
-import com.ebook.db.ObjectBoxManager.bookContentBox
-import com.ebook.db.ObjectBoxManager.chapterListBox
-import com.ebook.db.entity.BookContent
-import com.ebook.db.entity.BookContent_
-import com.ebook.db.entity.BookShelf
-import com.ebook.db.entity.DownloadChapter
-import com.ebook.db.entity.DownloadChapterList
-import com.ebook.db.entity.LocBookShelf
-import com.ebook.db.entity.ReadBookContent
+import com.ebook.common.event.RouteArgs
+import com.ebook.common.repository.BookRepository
+import com.ebook.db.entity.BookShelfEntity
+import com.ebook.db.entity.DownloadChapterEntity
 import com.ebook.db.event.DBCode
-import com.hwangjr.rxbus.RxBus
 import com.permissionx.guolindev.PermissionX
-import com.therouter.TheRouter.build
-import com.trello.rxlifecycle4.android.ActivityEvent
-import com.xrn1997.common.BaseApplication.Companion.context
-import com.xrn1997.common.event.SimpleObserver
-import com.xrn1997.common.mvvm.view.BaseMvvmActivity
-import com.xrn1997.common.util.DisplayUtil.dip2px
-import com.xrn1997.common.util.ToastUtil.showShort
+import com.therouter.TheRouter
+import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
+import com.xrn1997.common.ui.LoadingView
+import com.xrn1997.common.util.Logger
+import com.xrn1997.common.util.ToastUtil
 import com.xrn1997.common.util.detectColor
 import com.xrn1997.common.util.setStatusBarColor
 import dagger.hilt.android.AndroidEntryPoint
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.core.ObservableEmitter
-import io.reactivex.rxjava3.schedulers.Schedulers
-import me.grantland.widget.AutofitTextView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
 import kotlin.math.ceil
 
+/**
+ * 阅读页（Compose 版，替代原 ViewBinding + ContentSwitchView 体系，见 ADR-0001）。
+ *
+ * 结构：
+ * - 翻页核心：[ReaderPager] + [ReaderPagerController]（三页窗口状态机 1:1 移植）
+ * - 页面渲染：ReaderPageCard（原 BookContentView）
+ * - 菜单/面板：[ReaderTopBar]/[ReaderBottomBar]/章节目录/亮度/字体/设置（原五个 PopupWindow）
+ * - 数据加载：[loadPage]（原 loadContent：DB 缓存 → 网络 → 存库 → StaticLayout 重分行）
+ *
+ * 配色豁免：阅读界面使用「阅读背景主题」（ReadBookControl），不跟随系统深色模式。
+ */
 @AndroidEntryPoint
-class ReadBookActivity : BaseMvvmActivity<ActivityBookreadBinding, BookReadViewModel>() {
-    override val mViewModel: BookReadViewModel by viewModels()
-    private var openFrom = 0
-    private lateinit var flContent: FrameLayout
-    private val handler: Handler = Handler(Looper.getMainLooper())
-    private lateinit var csvBook: ContentSwitchView
+class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
+    override val viewModel: BookReadViewModel by viewModels()
 
-    //主菜单
-    private lateinit var flMenu: FrameLayout
-    private lateinit var vMenuBg: View
-    private lateinit var llMenuTop: LinearLayout
-    private lateinit var llMenuBottom: LinearLayout
-    private lateinit var ivReturn: ImageButton
-    private lateinit var ivMenuMore: ImageView
-    private lateinit var atvTitle: AutofitTextView
-    private lateinit var tvPre: TextView
-    private lateinit var tvNext: TextView
-    private lateinit var hpbReadProgress: MHorProgressBar
-    private lateinit var llCatalog: LinearLayout
-    private lateinit var llLight: LinearLayout
-    private lateinit var llFont: LinearLayout
-    private lateinit var llSetting: LinearLayout
+    @Inject
+    lateinit var bookImportManager: BookImportManager
 
-    //主菜单动画
-    private lateinit var menuTopIn: Animation
-    private lateinit var menuTopOut: Animation
-    private lateinit var menuBottomIn: Animation
-    private lateinit var menuBottomOut: Animation
+    @Inject
+    lateinit var bookRepository: BookRepository
 
-    private lateinit var checkAddShelfPop: CheckAddShelfPop
-    private lateinit var chapterListView: ChapterListView
-    private lateinit var windowLightPop: WindowLightPop
-    private lateinit var readBookMenuMorePop: ReadBookMenuMorePop
-    private lateinit var fontPop: FontPop
-    private lateinit var moreSettingPop: MoreSettingPop
+    /** 翻页控制器引用：音量键翻页由 Activity.onKeyUp 转发（组合外入口） */
+    var pagerController: ReaderPagerController? = null
 
-    private lateinit var moProgressHUD: MoProgressHUD
+    /** 正文区实测宽度（px）：StaticLayout 分行宽度，由页面测量回调写入 */
+    var readerContentWidthPx: Int = 0
+        private set
+
+    /** 正文区实测高度（px）：每页行数测算依据，由页面测量回调写入 */
+    var readerBodyHeightPx: Int = 0
+        private set
+
+    /**
+     * 当前分页排版上下文（测量器 + 正文样式 + 密度），由 [rePaginate] 落定、[loadPage] 取用。
+     *
+     * 为什么挂在 Activity 上而不是随参数传进控制器：翻页控制器在首次组合就被 `remember`
+     * 记住，其 lambda 捕获的引用不会随字号更新；而「样式变了」必然伴随一次 [rePaginate]，
+     * 让它作为唯一的换装点，取值时机就与行数测算严格同步了。
+     */
+    internal var readerTypesetter: ReaderTypesetter? = null
+        private set
+
+    override fun enableToolbar(): Boolean = false
+
+    override fun enableFitsSystemWindows(): Boolean = false
 
     override fun initData() {
-        mViewModel.saveProgress()
-        menuTopIn =
-            AnimationUtils.loadAnimation(this, com.ebook.common.R.anim.anim_readbook_top_in)
-        menuTopIn.setAnimationListener(object : Animation.AnimationListener {
-            override fun onAnimationStart(animation: Animation) {
-            }
-
-            override fun onAnimationEnd(animation: Animation) {
-                vMenuBg.setOnClickListener {
-                    llMenuTop.startAnimation(menuTopOut)
-                    llMenuBottom.startAnimation(menuBottomOut)
-                }
-            }
-
-            override fun onAnimationRepeat(animation: Animation) {
-            }
-        })
-        menuBottomIn =
-            AnimationUtils.loadAnimation(this, com.ebook.common.R.anim.anim_readbook_bottom_in)
-
-        menuTopOut =
-            AnimationUtils.loadAnimation(this, com.ebook.common.R.anim.anim_readbook_top_out)
-        menuTopOut.setAnimationListener(object : Animation.AnimationListener {
-            override fun onAnimationStart(animation: Animation) {
-                vMenuBg.setOnClickListener(null)
-            }
-
-            override fun onAnimationEnd(animation: Animation) {
-                flMenu.visibility = View.INVISIBLE
-            }
-
-            override fun onAnimationRepeat(animation: Animation) {
-            }
-        })
-        menuBottomOut =
-            AnimationUtils.loadAnimation(this, com.ebook.common.R.anim.anim_readbook_bottom_out)
+        // 对齐原实现：进入即保存一次进度（防止异常退出丢失）
+        viewModel.saveProgress()
+        // 恢复已持久化的手动亮度（窗口亮度不跨生命周期，见 applyReaderBrightness KDoc）
+        applyReaderBrightness(this)
     }
 
-    override fun initView() {
-        bindView()
-        bindEvent()
-        ViewCompat.setOnApplyWindowInsetsListener(binding.llMenuBar) { v, insets ->
-            val stateBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
-            v.setPadding(stateBars.left, stateBars.top, stateBars.right, stateBars.bottom)
-            insets
-        }
-        setStatusBarColor(textBackground.detectColor())//自适应背景色
-        onBackPressedDispatcher.addCallback(this) {
-            when {
-                // 菜单可见，则先关闭菜单
-                flMenu.isVisible -> {
-                    llMenuTop.startAnimation(menuTopOut)
-                    llMenuBottom.startAnimation(menuBottomOut)
-                }
-                // 未加入书架并且未显示提示，弹出加入书架提示
-                !mViewModel.isAdd && !checkAddShelfPop.isShowing -> {
-                    checkAddShelfPop.showAtLocation(flContent, Gravity.CENTER, 0, 0)
-                }
-                // 章节列表可见则关闭章节列表，否则退出阅读
-                !chapterListView.dismissChapterList() -> finish()
-            }
-        }
-    }
-
-    override fun enableToolbar(): Boolean {
-        return false
-    }
-
-    override fun enableFitsSystemWindows(): Boolean {
-        return false
-    }
-
-    override fun onBindViewBinding(
-        inflater: LayoutInflater,
-        parent: ViewGroup?,
-        attachToParent: Boolean
-    ): ActivityBookreadBinding {
-        return ActivityBookreadBinding.inflate(inflater, parent, attachToParent)
-    }
-
-    private fun bindView() {
-        moProgressHUD = MoProgressHUD(this)
-
-        flContent = findViewById(R.id.fl_content)
-        csvBook = findViewById(R.id.csv_book)
-        initCsvBook()
-
-        flMenu = findViewById(R.id.fl_menu)
-        vMenuBg = findViewById(R.id.v_menu_bg)
-        llMenuTop = findViewById(R.id.ll_menu_top)
-        llMenuBottom = findViewById(R.id.ll_menu_bottom)
-        ivReturn = findViewById(R.id.iv_return)
-        ivMenuMore = findViewById(R.id.iv_more)
-        atvTitle = findViewById(R.id.atv_title)
-
-        tvPre = findViewById(R.id.tv_pre)
-        tvNext = findViewById(R.id.tv_next)
-        hpbReadProgress = findViewById(R.id.hpb_read_progress)
-        llCatalog = findViewById(R.id.ll_catalog)
-        llLight = findViewById(R.id.ll_light)
-        llFont = findViewById(R.id.ll_font)
-        llSetting = findViewById(R.id.ll_setting)
-
-        chapterListView = findViewById(R.id.clp_chapterlist)
-    }
-
-    private fun setHpbReadProgressMax(count: Int) {
-        hpbReadProgress.maxProgress = count.toFloat()
-    }
-
-    private fun initCsvBook() {
-        csvBook.bookReadInit {
-            openFrom = intent.getIntExtra("from", OPEN_FROM_OTHER)
-            if (openFrom == OPEN_FROM_APP) {
-                openBookFromApp()
-            } else {
-                openBookFromOther()
-            }
-        }
-    }
-
-    private fun openBookFromApp() {
-        val key = intent.getStringExtra("data_key")
-        if (key == null) {
-            Log.e(TAG, "initCsvBook: key is null")
-            return
-        }
-        BitIntentDataManager.getData(key)?.let {
-            val bookShelf = it as BookShelf
-            if (bookShelf.tag != BookShelf.LOCAL_TAG) {
-                showDownloadMenu()
-            }
-            mViewModel.bookShelf = bookShelf
-            BitIntentDataManager.cleanData(key)
-            mViewModel.checkInShelf()
-        }
-    }
-
-    private fun openBookFromOther() {
-        //APP外部打开
-        val uri = intent.data ?: return
-        showLoadBook()
-        BookImportUtil.importBook(this, uri)
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribeOn(Schedulers.io())
-            .subscribe(object : SimpleObserver<LocBookShelf>() {
-                override fun onNext(value: LocBookShelf) {
-                    if (value.new) RxBus.get().post(RxBusTag.HAD_ADD_BOOK, value)
-                    mViewModel.bookShelf = value.bookShelf
-                    dimissLoadBook()
-                    mViewModel.checkInShelf()
-                }
-
-                override fun onError(e: Throwable) {
-                    Log.e(TAG, "onError: ", e)
-                    dimissLoadBook()
-                    loadLocationBookError()
-                    showShort(context, "文本打开失败！")
-                }
-            })
+    /** 正文区尺寸测量回调：更新分行宽度与行数测算高度 */
+    fun onBodyMeasured(widthPx: Int, heightPx: Int) {
+        if (widthPx > 0) readerContentWidthPx = widthPx
+        if (heightPx > 0) readerBodyHeightPx = heightPx
     }
 
     /**
-     * 所有需要的权限
+     * 应用内打开书籍（对齐原 openBookFromApp）：
+     * 经 BitIntentDataManager 取书架实体；非本地书显示"更多"下载入口；随后发起书架归属检查。
+     *
+     * 快速失败：数据键缺失或数据为空/类型不符时直接提示并退出——否则 bookShelf 恒为 null，
+     * checkInShelf 不会触发，阅读器将停在永久空白页无任何反馈（上游详情页已做前置守卫，
+     * 此处为兜底）。
      */
-    private fun allNeedPermissions(): List<String> {
-        val permissions: MutableList<String> = ArrayList()
-        permissions.add(PermissionX.permission.POST_NOTIFICATIONS)
-        return permissions
+    fun openBookFromApp(onShowMore: () -> Unit) {
+        val key = intent.getStringExtra("data_key")
+        if (key == null) {
+            Logger.e(TAG, "openBookFromApp: key is null")
+            finish()
+            return
+        }
+        val data = BitIntentDataManager.getData(key)
+        BitIntentDataManager.cleanData(key)
+        val bookShelf = data as? BookShelfEntity
+        if (bookShelf == null) {
+            Logger.e(TAG, "openBookFromApp: data missing or type mismatch")
+            ToastUtil.showShort(this, getString(R.string.reader_load_failed))
+            finish()
+            return
+        }
+        if (bookShelf.tag != BookShelfEntity.LOCAL_TAG) {
+            onShowMore()
+        }
+        viewModel.bookShelf = bookShelf
+        viewModel.checkInShelf()
     }
 
-    override fun initBaseViewObservable() {
-        super.initBaseViewObservable()
-        mViewModel.nextInShelfEvent.observe(this) {
-            initPop()
-            setHpbReadProgressMax(mViewModel.bookShelf!!.bookInfo.target.chapterList.size)
-            startLoadingBook()
-        }
-    }
-
-    private fun initPop() {
-        val bookInfo = mViewModel.bookShelf!!.bookInfo.target
-        checkAddShelfPop =
-            CheckAddShelfPop(this, bookInfo.name, object : CheckAddShelfPop.OnItemClickListener {
-                override fun clickExit() {
-                    finish()
+    /**
+     * 应用外打开文本（对齐原 openBookFromOther）：
+     * 导入本地文件 → 加入书架 → 归属检查；失败提示并置错误页。
+     */
+    fun openBookFromOther(onImporting: (Boolean) -> Unit) {
+        val uri = intent.data ?: return
+        onImporting(true)
+        lifecycleScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    bookImportManager.importBook(this@ReadBookActivity, uri)
                 }
-
-                override fun clickAddShelf() {
-                    mViewModel.addToShelf(null)
-                    checkAddShelfPop.dismiss()
-                }
-            })
-        chapterListView.setData(
-            mViewModel.bookShelf!!,
-            object : ChapterListView.OnItemClickListener {
-                override fun itemClick(index: Int) {
-                    csvBook.setInitData(
-                        index,
-                        bookInfo.chapterList.size,
-                        DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
-                    )
-                }
-            })
-
-        windowLightPop = WindowLightPop(this)
-        windowLightPop.initLight()
-
-        fontPop = FontPop(this, object : OnChangeProListener {
-            override fun textChange(index: Int) {
-                csvBook.changeTextSize()
+                // 通知书籍添加事件
+                bookRepository.addToShelf(result.bookShelf)
+                viewModel.bookShelf = result.bookShelf
+                onImporting(false)
+                viewModel.checkInShelf()
+            } catch (e: Exception) {
+                Logger.e(TAG, "openBookFromOther error: ", e)
+                onImporting(false)
+                ToastUtil.showShort(this@ReadBookActivity, getString(R.string.text_open_failed))
             }
-
-            override fun bgChange(index: Int) {
-                setStatusBarColor(textBackground.detectColor())//自适应背景色
-                csvBook.changeBg()
-            }
-        })
-
-        readBookMenuMorePop = ReadBookMenuMorePop(this)
-        readBookMenuMorePop.setOnClickDownload {
-            //检查通知权限
-            PermissionX
-                .init(this)
-                .permissions(allNeedPermissions())
-                .request { allGranted: Boolean, _: List<String?>?, _: List<String?>? ->
-                    if (allGranted) {
-                        readBookMenuMorePop.dismiss()
-                        if (flMenu.isVisible) {
-                            llMenuTop.startAnimation(menuTopOut)
-                            llMenuBottom.startAnimation(menuBottomOut)
-                        }
-                        //弹出离线下载界面
-                        var endIndex = mViewModel.bookShelf!!.durChapter + 50
-                        if (endIndex >= mViewModel.bookShelf!!.bookInfo.target.chapterList.size) {
-                            endIndex = mViewModel.bookShelf!!.bookInfo.target.chapterList.size - 1
-                        }
-                        moProgressHUD.showDownloadList(
-                            mViewModel.bookShelf!!.durChapter,
-                            endIndex,
-                            mViewModel.bookShelf!!.bookInfo.target.chapterList.size
-                        ) { start: Int, end: Int ->
-                            moProgressHUD.dismiss()
-                            mViewModel.addToShelf(object : BookReadViewModel.OnAddListener {
-                                override fun addSuccess() {
-                                    val result: MutableList<DownloadChapter> =
-                                        ArrayList()
-                                    for (i in start..end) {
-                                        val item = DownloadChapter()
-                                        item.noteUrl = mViewModel.bookShelf!!.noteUrl
-                                        item.durChapterIndex =
-                                            mViewModel.bookShelf!!.bookInfo.target.chapterList[i].durChapterIndex
-                                        item.durChapterName =
-                                            mViewModel.bookShelf!!.bookInfo.target.chapterList[i].durChapterName
-                                        item.durChapterUrl =
-                                            mViewModel.bookShelf!!.bookInfo.target.chapterList[i].durChapterUrl
-                                        item.tag = mViewModel.bookShelf!!.tag
-                                        item.bookName = mViewModel.bookShelf!!.bookInfo.target.name
-                                        item.coverUrl =
-                                            mViewModel.bookShelf!!.bookInfo.target.coverUrl
-                                        result.add(item)
-                                    }
-                                    RxBus.get()
-                                        .post(
-                                            RxBusTag.START_DOWNLOAD_SERVICE,
-                                            DownloadChapterList(result)
-                                        )
-                                }
-                            })
-                        }
-                    }
-                }
-        }
-        readBookMenuMorePop.setOnClickComment {
-            readBookMenuMorePop.dismiss()
-            val path =
-                mViewModel.bookShelf!!.bookInfo.target.chapterList[mViewModel.bookShelf!!.durChapter]
-            val bundle = Bundle()
-            bundle.putString("chapterUrl", path.durChapterUrl)
-            bundle.putString("chapterName", path.durChapterName)
-            bundle.putString("bookName", mViewModel.bookShelf!!.bookInfo.target.name)
-            build(KeyCode.Book.COMMENT_PATH)
-                .with(bundle)
-                .navigation(this@ReadBookActivity)
-        }
-
-        moreSettingPop = MoreSettingPop(this)
-    }
-
-    fun loadContent(
-        bookContentView: BookContentView,
-        bookTag: Long,
-        chapterIndex: Int,
-        index: Int
-    ) {
-        var pageIndex = index
-        if (null != mViewModel.bookShelf && !mViewModel.bookShelf!!.bookInfo.target.chapterList.isEmpty()) {
-            val chapterList = mViewModel.bookShelf!!.bookInfo.target.chapterList[chapterIndex]
-            val bookContent = chapterList.bookContent.target
-            if (bookContent != null && bookContent.durChapterContent.isNotEmpty()) {
-                if (bookContent.lineSize == csvBook.textPaint.textSize && bookContent.lineContent.isNotEmpty()) {
-                    //已有数据
-                    val tempCount =
-                        ceil(bookContent.lineContent.size * 1.0 / mViewModel.pageLineCount).toInt() - 1
-
-                    if (pageIndex == DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN) {
-                        pageIndex = 0
-                    } else if (pageIndex == DBCode.BookContentView.DUR_PAGE_INDEX_END) {
-                        pageIndex = tempCount
-                    } else {
-                        if (pageIndex >= tempCount) {
-                            pageIndex = tempCount
-                        }
-                    }
-
-                    val start = pageIndex * mViewModel.pageLineCount
-                    val end =
-                        if (pageIndex == tempCount) bookContent.lineContent.size else start + mViewModel.pageLineCount
-                    if (bookTag == bookContentView.qTag) {
-                        bookContentView.updateData(
-                            bookTag, chapterList.durChapterName,
-                            bookContent.lineContent.subList(start, end),
-                            chapterIndex,
-                            mViewModel.bookShelf!!.bookInfo.target.chapterList.size,
-                            pageIndex,
-                            tempCount + 1
-                        )
-                    }
-                } else {
-                    //有元数据  重新分行
-                    bookContent.lineSize = csvBook.textPaint.textSize
-                    val finalPageIndex = pageIndex
-                    separateParagraphToLines(bookContent.durChapterContent)
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeOn(Schedulers.io())
-                        .compose(bindUntilEvent(ActivityEvent.DESTROY))
-                        .subscribe(object : SimpleObserver<List<String>>() {
-                            override fun onNext(value: List<String>) {
-                                bookContent.lineContent.clear()
-                                bookContent.lineContent.addAll(value)
-                                loadContent(bookContentView, bookTag, chapterIndex, finalPageIndex)
-                            }
-
-                            override fun onError(e: Throwable) {
-                                if (bookTag == bookContentView.qTag) bookContentView.loadError()
-                            }
-                        })
-                }
-            } else {
-                Observable.create { e: ObservableEmitter<ReadBookContent> ->
-                    try {
-                        bookContentBox
-                            .query(BookContent_.durChapterUrl.equal(chapterList.durChapterUrl))
-                            .build().use { query ->
-                                val tempList = query.find()
-                                e.onNext(ReadBookContent(tempList, pageIndex))
-                                e.onComplete()
-                            }
-                    } catch (ex: Exception) {
-                        e.onError(ex)
-                    }
-                }.observeOn(AndroidSchedulers.mainThread())
-                    .subscribeOn(Schedulers.io())
-                    .compose(bindUntilEvent(ActivityEvent.DESTROY))
-                    .subscribe(object : SimpleObserver<ReadBookContent>() {
-                        override fun onNext(tempList: ReadBookContent) {
-                            if (tempList.bookContentList.isNotEmpty() && tempList.bookContentList[0].durChapterContent.isNotEmpty()) {
-                                chapterList.bookContent.target = tempList.bookContentList[0]
-                                loadContent(
-                                    bookContentView,
-                                    bookTag,
-                                    chapterIndex,
-                                    tempList.pageIndex
-                                )
-                            } else {
-                                WebBookModelImpl.getBookContent(
-                                    context,
-                                    chapterList.durChapterUrl,
-                                    chapterIndex
-                                ).map { bookContent: BookContent ->
-                                    if (bookContent.right) {
-                                        bookContentBox.query(
-                                            BookContent_.durChapterUrl.equal(
-                                                bookContent.durChapterUrl
-                                            )
-                                        ).build().use { query ->
-                                            val tmp = query.findFirst()
-                                            if (tmp != null) {
-                                                bookContent.id = tmp.id
-                                            }
-                                        }
-                                        chapterList.hasCache = true
-                                        chapterList.bookContent.target = bookContent
-                                        chapterListBox.put(chapterList)
-                                    }
-                                    bookContent
-                                }
-                                    .observeOn(AndroidSchedulers.mainThread())
-                                    .subscribeOn(Schedulers.io())
-                                    .compose(bindUntilEvent(ActivityEvent.DESTROY))
-                                    .subscribe(object : SimpleObserver<BookContent>() {
-                                        override fun onNext(value: BookContent) {
-                                            if (value.durChapterUrl.isNotEmpty()) {
-                                                chapterList.bookContent.target = value
-                                                if (bookTag == bookContentView.qTag) loadContent(
-                                                    bookContentView,
-                                                    bookTag,
-                                                    chapterIndex,
-                                                    tempList.pageIndex
-                                                )
-                                            } else {
-                                                if (bookTag == bookContentView.qTag) bookContentView.loadError()
-                                            }
-                                        }
-
-                                        override fun onError(e: Throwable) {
-                                            Log.e(TAG, "onError: ", e)
-                                            if (bookTag == bookContentView.qTag) bookContentView.loadError()
-                                        }
-                                    })
-                            }
-                        }
-
-                        override fun onError(e: Throwable) {
-                        }
-                    })
-            }
-        } else {
-            if (bookTag == bookContentView.qTag) bookContentView.loadError()
         }
     }
 
-    private fun separateParagraphToLines(paragraph: String): Observable<List<String>> {
-        return Observable.create { e: ObservableEmitter<List<String>> ->
-            val mPaint = csvBook.textPaint as TextPaint
-            mPaint.isSubpixelText = true
-            val tempLayout: Layout = StaticLayout.Builder.obtain(
-                paragraph, 0, paragraph.length, mPaint, csvBook.contentWidth
-            )
-                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                .setLineSpacing(0f, 0f) // 你之前的行距参数：`0f` 为额外的行间距，`1f` 是行间距倍数
-                .setIncludePad(false)    // 对应之前的 `includePad = false`
-                .build()
-            val lines: MutableList<String> =
-                ArrayList()
-            for (i in 0 until tempLayout.lineCount) {
-                lines.add(
-                    paragraph.substring(
-                        tempLayout.getLineStart(i),
-                        tempLayout.getLineEnd(i)
-                    )
-                )
-            }
-            e.onNext(lines)
-            e.onComplete()
+    /**
+     * 下载入口的通知权限请求（对齐原 readBookMenuMorePop 下载分支）。
+     *
+     * 无论授予与否都回调 [onResult]：通知只是进度的展示渠道，把它当成下载的前置门槛，
+     * 会造成"用户拒绝过一次通知 → 点下载完全没反应"（原实现 `if (allGranted) onGranted()` 的缺陷）；
+     * 前台服务与落库本身不需要该权限，Service 侧发不出通知时自行降级（见 DownloadService）。
+     */
+    fun requestDownloadPermission(onResult: () -> Unit) {
+        PermissionX
+            .init(this)
+            .permissions(PermissionX.permission.POST_NOTIFICATIONS)
+            .request { _: Boolean, _: List<String?>?, _: List<String?>? -> onResult() }
+    }
+
+    /** 跳转章节评论区（对齐原评论入口的 TheRouter 传参） */
+    fun navToComment(bookShelf: BookShelfEntity) {
+        val chapter = viewModel.getChapter(bookShelf.durChapter)
+        val bundle = Bundle().apply {
+            putString(RouteArgs.CHAPTER_URL, chapter?.durChapterUrl ?: "")
+            putString(RouteArgs.CHAPTER_NAME, chapter?.durChapterName ?: getString(R.string.unknown_chapter))
+            putString(RouteArgs.BOOK_NAME, bookShelf.bookInfo?.name ?: getString(R.string.unknown_book))
+        }
+        TheRouter.build(KeyCode.Book.COMMENT_PATH)
+            .with(bundle)
+            .navigation(this)
+    }
+
+    /**
+     * 测算每页行数并启动/重分页（原 startLoading → initData(lineCount) → setInitData 链）。
+     *
+     * 行数由 [ReaderTypesetter.fitRenderLineCount] 向渲染引擎本身实测得出：正文区高度
+     * 放得下几行，一页就切几行。同时把这份排版上下文存下来给 [loadPage] 用——
+     * 「测算行数的样式」与「切行、渲染用的样式」必须是同一份，否则又会回到两套判定。
+     *
+     * 禁止回到「用字体度量估行数」的老路（(高度-段距)/(字高+段距)）：那是拿平台度量
+     * 猜 Compose 的几何，每行差零点几像素、25 行就累计出近 20px 的误差。
+     *
+     * [readerBodyHeightPx] 是正文区的实测高度，只在首屏与字号变化时重算，因此**正文区高度
+     * 必须与页面状态无关**：页码行等内容若在 Loading/Loaded 两态占位不同，这里就会按虚高
+     * 的高度多算行，正文渲染时溢出到页码行并被其盖住（占位契约见 ReaderPageCard）。
+     */
+    internal fun rePaginate(typesetter: ReaderTypesetter, startFromCurrent: Boolean = true) {
+        val width = readerContentWidthPx
+        val height = readerBodyHeightPx
+        if (width <= 0 || height <= 0) return
+        val lineCount = typesetter.fitRenderLineCount(width, height)
+        if (lineCount <= 0) return
+        // 样式与行数一起落定：随后的 loadPage 取的就是这份样式，测算与分页不可能错身
+        readerTypesetter = typesetter
+        viewModel.pageLineCount = lineCount
+        val shelf = viewModel.bookShelf ?: return
+        if (startFromCurrent) {
+            pagerController?.setInitData(shelf.durChapter, shelf.durChapterPage)
         }
     }
 
-    private fun bindEvent() {
-        hpbReadProgress.progressListener = object : OnProgressListener {
-            override fun moveStartProgress(dur: Float) {
-            }
+    /**
+     * 加载单页内容（原 loadContent 的 suspend 化）：
+     * 1. DB 缓存 → 2. 网络拉取并存库 → 3. 按当前排版求渲染行偏移 → 4. 分页切片取原文子串。
+     *
+     * 断行走 [readerTypesetter]（与页面渲染同一引擎、同一份样式）——见
+     * [ReaderTypesetter] 里「分页与渲染必须同源」的契约：两套引擎判定的行数不一致时，
+     * 多出来的行会被静默裁掉，表现为上一页和下一页内容接不上。
+     *
+     * 哨兵页码（DUR_PAGE_INDEX_BEGIN/END）在分页结果出来后解析；页码越界钳到末页。
+     * 返回 null 表示失败（控制器置为错误态）。
+     */
+    suspend fun loadPage(chapterIndex: Int, pageIndex: Int): com.ebook.book.reader.ReaderPageUi.Loaded? {
+        val bookShelf = viewModel.bookShelf
+        val chapterSize = viewModel.getChapterListSize()
+        if (bookShelf == null || chapterSize == 0) return null
+        val chapter = viewModel.getChapter(chapterIndex) ?: return null
+        val typesetter = readerTypesetter ?: return null
 
-            override fun durProgressChange(dur: Float) {
-            }
+        return try {
+            // 1. 尝试从数据库加载缓存内容
+            var bookContent = viewModel.loadBookContent(chapter.durChapterUrl)
 
-            override fun moveStopProgress(dur: Float) {
-                var realDur = ceil(dur.toDouble()).toInt()
-                if (realDur < 1) {
-                    realDur = 1
-                }
-                if ((realDur - 1) != mViewModel.bookShelf!!.durChapter) {
-                    csvBook.setInitData(
-                        realDur - 1,
-                        mViewModel.bookShelf!!.bookInfo.target.chapterList.size,
-                        DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
-                    )
-                }
-                if (hpbReadProgress.durProgress != realDur.toFloat()) {
-                    hpbReadProgress.durProgress = realDur.toFloat()
-                }
-            }
-
-            override fun setDurProgress(dur: Float) {
-                if (hpbReadProgress.maxProgress == 1f) {
-                    tvPre.isEnabled = false
-                    tvNext.isEnabled = false
-                } else {
-                    when (dur) {
-                        1f -> {
-                            tvPre.isEnabled = false
-                            tvNext.isEnabled = true
-                        }
-
-                        hpbReadProgress.maxProgress -> {
-                            tvPre.isEnabled = true
-                            tvNext.isEnabled = false
-                        }
-
-                        else -> {
-                            tvPre.isEnabled = true
-                            tvNext.isEnabled = true
-                        }
-                    }
+            // 2. 缓存不存在则从网络获取并保存
+            if (bookContent == null || bookContent.durChapterContent.isEmpty()) {
+                bookContent = viewModel.fetchBookContent(chapter.durChapterUrl, chapterIndex)
+                if (bookContent.durChapterContent.isNotEmpty()) {
+                    viewModel.saveBookContent(bookContent)
+                    viewModel.updateChapterCache(chapter.durChapterUrl, true)
                 }
             }
-        }
-        ivReturn.setOnClickListener {
-            // finish();
-            onBackPressedDispatcher.onBackPressed()
-        }
-        ivMenuMore.setOnClickListener {
-            readBookMenuMorePop.showAsDropDown(
-                ivMenuMore,
-                0,
-                dip2px(-3.5f).toInt()
-            )
-        }
-        csvBook.loadDataListener = object : LoadDataListener {
-            override fun loadData(
-                bookContentView: BookContentView,
-                tag: Long,
-                chapterIndex: Int,
-                pageIndex: Int
-            ) {
-                loadContent(bookContentView, tag, chapterIndex, pageIndex)
+            if (bookContent.durChapterContent.isEmpty()) return null
+
+            // 3. 按当前排版求渲染行起始偏移。注意这里**每页都整章重排**（不缓存）：
+            //    同章的每一页各自调用 lineStartOffsets 重算整章，而非如旧的 lineContent 缓存
+            //    在跨页间复用。取舍：实体每查一次都是新对象（断行结果是运行期的，不落库），
+            //    单章数千字量级重排各页都能在 Default 线程快速完成；但若出现超长章（几十页），
+            //    页数 N 会把整章重排放大到 N 次，成为可见的 CPU 开销——若后续有性能诉求，
+            //    应按（章节，字号）粒度缓存这份偏移而非逐页重算，现未做是鉴于本章节规模可控。
+            val width = readerContentWidthPx
+            if (width <= 0) return null
+            // CPU 密集：切到 Default 线程（对齐原实现）
+            val content = bookContent.durChapterContent
+            val lineStarts = withContext(Dispatchers.Default) {
+                typesetter.lineStartOffsets(content, width)
             }
 
-            override fun updateProgress(chapterIndex: Int, pageIndex: Int) {
-                mViewModel.updateProgress(chapterIndex, pageIndex)
-
-                if (!mViewModel.bookShelf!!.bookInfo.target.chapterList.isEmpty()) atvTitle.text =
-                    mViewModel.bookShelf!!.bookInfo.target.chapterList[mViewModel.bookShelf!!.durChapter].durChapterName
-                else atvTitle.text = "无章节"
-                if (hpbReadProgress.durProgress != (chapterIndex + 1).toFloat()) {
-                    hpbReadProgress.durProgress = (chapterIndex + 1).toFloat()
-                }
+            // 4. 分页切片
+            val pageLineCount = viewModel.pageLineCount
+            if (pageLineCount <= 0) return null
+            val tempCount = ceil(lineStarts.size * 1.0 / pageLineCount).toInt() - 1
+            if (tempCount < 0) return null
+            val resolved = when {
+                pageIndex == DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN -> 0
+                pageIndex == DBCode.BookContentView.DUR_PAGE_INDEX_END -> tempCount
+                else -> pageIndex.coerceAtMost(tempCount).coerceAtLeast(0)
             }
-
-            override fun getChapterTitle(chapterIndex: Int): String {
-                return mViewModel.getChapterTitle(chapterIndex)
-            }
-
-            override fun initData(lineCount: Int) {
-                mViewModel.pageLineCount = lineCount
-                initContentSuccess(
-                    mViewModel.bookShelf!!.durChapter,
-                    mViewModel.bookShelf!!.bookInfo.target.chapterList.size,
-                    mViewModel.bookShelf!!.durChapterPage
-                )
-            }
-
-            override fun showMenu() {
-                flMenu.visibility = View.VISIBLE
-                llMenuTop.startAnimation(menuTopIn)
-                llMenuBottom.startAnimation(menuBottomIn)
-            }
-        }
-
-        tvPre.setOnClickListener {
-            csvBook.setInitData(
-                mViewModel.bookShelf!!.durChapter - 1,
-                mViewModel.bookShelf!!.bookInfo.target.chapterList.size,
-                DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
+            val start = resolved * pageLineCount
+            val end = if (resolved == tempCount) lineStarts.size else start + pageLineCount
+            // 页文本 = 原文的连续子串：从本页首行偏移取到「下一页首行偏移」（末页取到文末），
+            // 段落分隔符（\r\n）原样保留；再去掉结尾换行——段末换行留在结尾会让渲染引擎
+            // 多排一个空行，白占一行高度（内容不丢，但会顶掉最后一行）。
+            // 不能用「行子串拼接」：见 ReaderTypesetter.lineStartOffsets 的 CRLF 说明。
+            val from = lineStarts[start]
+            val to = if (end < lineStarts.size) lineStarts[end] else content.length
+            val pageText = content.substring(from, to).trimEnd('\r', '\n')
+            com.ebook.book.reader.ReaderPageUi.Loaded(
+                title = chapter.durChapterName,
+                chapterIndex = chapterIndex,
+                durPageIndex = resolved,
+                pageAll = tempCount + 1,
+                text = pageText
             )
-        }
-        tvNext.setOnClickListener {
-            csvBook.setInitData(
-                mViewModel.bookShelf!!.durChapter + 1,
-                mViewModel.bookShelf!!.bookInfo.target.chapterList.size,
-                DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
-            )
-        }
-
-        llCatalog.setOnClickListener {
-            llMenuTop.startAnimation(menuTopOut)
-            llMenuBottom.startAnimation(menuBottomOut)
-            handler.postDelayed(
-                { chapterListView.show(mViewModel.bookShelf!!.durChapter) },
-                menuTopOut.duration
-            )
-        }
-
-        llLight.setOnClickListener {
-            llMenuTop.startAnimation(menuTopOut)
-            llMenuBottom.startAnimation(menuBottomOut)
-            handler.postDelayed(
-                { windowLightPop.showAtLocation(flContent, Gravity.BOTTOM, 0, 0) },
-                menuTopOut.duration
-            )
-        }
-
-        llFont.setOnClickListener {
-            llMenuTop.startAnimation(menuTopOut)
-            llMenuBottom.startAnimation(menuBottomOut)
-            handler.postDelayed(
-                { fontPop.showAtLocation(flContent, Gravity.BOTTOM, 0, 0) },
-                menuTopOut.duration
-            )
-        }
-
-        llSetting.setOnClickListener {
-            llMenuTop.startAnimation(menuTopOut)
-            llMenuBottom.startAnimation(menuBottomOut)
-            handler.postDelayed(
-                { moreSettingPop.showAtLocation(flContent, Gravity.BOTTOM, 0, 0) },
-                menuTopOut.duration
-            )
+        } catch (e: Exception) {
+            Logger.e(TAG, "loadPage error: ", e)
+            null
         }
     }
 
-    fun initContentSuccess(durChapterIndex: Int, chapterAll: Int, durPageIndex: Int) {
-        csvBook.setInitData(durChapterIndex, chapterAll, durPageIndex)
+    /**
+     * 音量键按下拦截：系统在 key down 即触发音量调整，必须在此消费音量键事件，
+     * 否则翻页的同时还会调整音量；翻页动作放在 [onKeyUp]（对齐原实现，避免长按重复翻页）。
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (ReadBookControl.canKeyTurn) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_UP -> return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
-    private fun startLoadingBook() {
-        csvBook.startLoading()
+    /** 音量键翻页（受"按键翻页"开关控制），其余按键走系统默认 */
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (ReadBookControl.canKeyTurn) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                    pagerController?.turnNext()
+                    return true
+                }
+                KeyEvent.KEYCODE_VOLUME_UP -> {
+                    pagerController?.turnPrev()
+                    return true
+                }
+            }
+        }
+        return super.onKeyUp(keyCode, event)
     }
 
     override fun onPause() {
         super.onPause()
-        mViewModel.saveProgress()
+        viewModel.saveProgress()
     }
 
-    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        val temp = csvBook.onKeyUp(keyCode, event)
-        if (temp) return true
-        return super.onKeyUp(keyCode, event)
+    @Composable
+    override fun PageContent() {
+        // 阅读器整片豁免系统深色：作用域内固定 lightColorScheme，使顶/底栏、面板、
+        // 弹窗的 MaterialTheme.colorScheme.* 一律解析到浅色，与正文阅读背景主题（
+        // ReadBookControl）保持一致、不随系统深色切换（ADR-0001 记载的豁免情形）。
+        MaterialTheme(colorScheme = ReaderLightColorScheme) {
+            ReadBookScreen(this, viewModel)
+        }
     }
 
-    private fun showLoadBook() {
-        moProgressHUD.showLoading("文本导入中...")
+    companion object {
+        private const val TAG = "ReadBookActivity"
+    }
+}
+
+/**
+ * 下载面板异步参数快照：缓存事实集 + 预勾选集（通知权限/缓存查询完成后才开面板，
+ * 避免面板先弹出后闪烁刷新）。
+ */
+private data class DownloadSheetArgs(
+    val cachedUrls: Set<String>,
+    val initialSelected: Set<Int>
+)
+
+/**
+ * 阅读器固定浅色色彩方案：整片豁免系统深色。
+ *
+ * 对齐原阅读界面菜单/面板始终为浅色（原 ll_menu_top/ll_menu_bottom 固定 #ffffff）；
+ * 正文背景由 [ReadBookControl] 阅读背景主题独立控制，故本方案仅覆盖 chrome 层的
+ * [MaterialTheme.colorScheme]，语义色走默认 Material 浅色调板、不逐组件硬编码颜色。
+ */
+private val ReaderLightColorScheme: ColorScheme = lightColorScheme()
+
+/**
+ * 构造阅读正文排版的 TextPaint（字号与 Compose 正文一致）。
+ *
+ * 只用于取「单行字高」（descent - ascent）：正文行高 = 字高 + 段距，见 [ReadBookScreen]
+ * 的 lineHeight 与 [ReaderTypesetter]。分行与行数测算本身已统一到 Compose 排版引擎
+ * （[ReaderTypesetter]），不再用平台 StaticLayout，避免两套引擎行数不一致。
+ */
+private fun readerTextPaint(resources: Resources): TextPaint = TextPaint().apply {
+    textSize = spToPx(resources, ReadBookControl.textSize.toFloat())
+    isSubpixelText = true
+}
+
+/**
+ * sp → px（不用已弃用的 displayMetrics.scaledDensity 字段）。
+ *
+ * 阅读器字号配置以 sp 存储（ReadBookControl.textSize），绘制与测量需要 px：
+ * 经 TypedValue.applyDimension 按当前 density 换算，保证字号随系统字体缩放。
+ */
+private fun spToPx(resources: Resources, sp: Float): Float =
+    android.util.TypedValue.applyDimension(
+        android.util.TypedValue.COMPLEX_UNIT_SP, sp, resources.displayMetrics
+    )
+
+/**
+ * 阅读页屏幕：翻页容器 + 菜单覆盖层 + 各类面板/弹窗的编排。
+ */
+@Composable
+private fun ReadBookScreen(
+    activity: ReadBookActivity,
+    viewModel: BookReadViewModel
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+
+    // ---------------- 阅读主题（ReadBookControl 原始色值，豁免深色模式） ----------------
+    // 版本号仅用于触发重组以重读单例最新值（ReadBookControl 非 Compose 状态）
+    var textKindVersion by remember { mutableIntStateOf(0) }
+    var bgVersion by remember { mutableIntStateOf(0) }
+    val textColor = remember(bgVersion) { Color(ReadBookControl.textColor) }
+    val bgColor = remember(bgVersion) { Color(ReadBookControl.textBackground) }
+    val textSizeSp = remember(textKindVersion) { ReadBookControl.textSize.toFloat() }
+    // 行高 = 单行高度 + 段距（对齐原 lineSpacingExtra 语义）
+    val lineHeight: TextUnit = remember(textKindVersion) {
+        val paint = readerTextPaint(activity.resources)
+        val textHeight = paint.descent() - paint.ascent()
+        with(density) { (textHeight + ReadBookControl.textExtra).toSp() }
+    }
+    // 分页排版上下文：行数测算、切行、正文渲染三方共用的唯一样式来源（契约见 ReaderTypesetter）
+    val typesetter = rememberReaderTypesetter(textSizeSp, lineHeight)
+
+    // ---------------- 页面级状态 ----------------
+    var menuVisible by remember { mutableStateOf(false) }
+    var panel by remember { mutableStateOf(ReaderPanel.NONE) }
+    // 点击翻页开关的页面级镜像：ReadBookControl.canClickTurn 是普通属性（非 Compose State），
+    // 写入不触发重组；此处镜像为 State 并经 MoreSettingPanel.onClickTurnChanged 即时同步，
+    // 避免"点击翻页是否生效"依赖 panel 变化恰好触发重组（隐式耦合）。
+    // 注意：canKeyTurn 不走此镜像——onKeyDown/onKeyUp 是 Activity 回调，运行时直读单例即最新值。
+    var clickTurnEnabled by remember { mutableStateOf(ReadBookControl.canClickTurn) }
+    var showMore by remember { mutableStateOf(false) } // 原 iv_menu_more：非本地书显示下载入口
+    var chapterTitle by remember { mutableStateOf(context.getString(R.string.no_chapter)) }
+    var sliderValue by remember { mutableFloatStateOf(1f) }
+    var bookReady by remember { mutableStateOf(false) } // nextInShelfEvent 已到
+    var pagerStarted by remember { mutableStateOf(false) }
+    var importingBook by remember { mutableStateOf(false) } // 外部打开文本的导入遮罩
+    var addShelfDialogVisible by remember { mutableStateOf(false) }
+    // 下载面板异步参数（见 DownloadSheetArgs）；面板显隐由 panel 枚举驱动，与其他面板一致
+    var downloadArgs by remember { mutableStateOf<DownloadSheetArgs?>(null) }
+    // 正文区测量尺寸（Compose 状态，驱动首屏分页启动）；
+    // activity.onBodyMeasured 同步存非状态字段供 loadPage 分行使用。
+    var bodyWidth by remember { mutableIntStateOf(0) }
+    var bodyHeight by remember { mutableIntStateOf(0) }
+
+    val bookShelf = viewModel.bookShelf
+    val chapterAll = viewModel.getChapterListSize()
+
+    // ---------------- 翻页控制器 ----------------
+    val controller = remember {
+        ReaderPagerController(
+            scope = scope,
+            context = context,
+            chapterSize = { viewModel.getChapterListSize() },
+            chapterTitle = { viewModel.getChapterTitle(it) },
+            loadPage = { c, p -> activity.loadPage(c, p) },
+            onProgress = { c, p ->
+                // 对齐原 updateProgress：进度落 ViewModel + 菜单标题 + 章节滑条。
+                // p 为翻页目标的页码（可能为哨兵），与原实现一致直接落库。
+                viewModel.updateProgress(c, p)
+                chapterTitle = viewModel.getChapterTitle(c)
+                sliderValue = (c + 1).toFloat()
+            }
+        )
+    }
+    DisposableEffect(controller) {
+        activity.pagerController = controller
+        onDispose { activity.pagerController = null }
     }
 
-    fun dimissLoadBook() {
-        moProgressHUD.dismiss()
+    // ---------------- 生命周期与事件 ----------------
+    // 屏幕常亮（对齐原 fl_content 的 keepScreenOn）
+    DisposableEffect(Unit) {
+        activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
-    fun loadLocationBookError() {
-        csvBook.loadError()
+    // 状态栏色随阅读背景自适应（对齐原 setStatusBarColor(textBackground.detectColor())）
+    LaunchedEffect(bgVersion) {
+        activity.setStatusBarColor(ReadBookControl.textBackground.detectColor())
     }
 
-    private fun showDownloadMenu() {
-        ivMenuMore.visibility = View.VISIBLE
+    // 书架归属检查完成事件（原 initBaseViewObservable 的 nextInShelfEvent 收集）
+    LaunchedEffect(Unit) {
+        viewModel.nextInShelfEvent.collect { bookReady = true }
     }
+
+    // 打开书籍（对齐原 csvBook.bookReadInit 回调）
+    LaunchedEffect(Unit) {
+        if (activity.intent.getIntExtra("from", OPEN_FROM_OTHER) == OPEN_FROM_APP) {
+            activity.openBookFromApp { showMore = true }
+        } else {
+            activity.openBookFromOther { importingBook = it }
+        }
+    }
+
+    // 书籍就绪 + 正文区完成测量 → 测算行数并启动翻页（两者先后顺序不定，均在此汇合）
+    LaunchedEffect(bookReady, bodyHeight) {
+        if (bookReady && !pagerStarted && bodyHeight > 0) {
+            pagerStarted = true
+            sliderValue = ((viewModel.bookShelf?.durChapter ?: 0) + 1).toFloat()
+            val shelf = viewModel.bookShelf
+            activity.rePaginate(typesetter, startFromCurrent = false)
+            controller.setInitData(
+                shelf?.durChapter ?: 0,
+                shelf?.durChapterPage ?: DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
+            )
+        }
+    }
+
+    // 排版上下文换实例（字号/段距变化，或密度变化）→ 按新行高重分页并停在当前页。
+    // 由 typesetter 驱动而不是面板回调：面板里改完 ReadBookControl 只是自增版本号，
+    // 新样式要等这次重组才生效，直接在回调里重分页就会拿旧样式去量新字号的行数。
+    LaunchedEffect(typesetter) {
+        if (pagerStarted) activity.rePaginate(typesetter, startFromCurrent = true)
+    }
+
+    // 返回键处置链（对齐原 onBackPressedDispatcher 回调）：
+    // 章节目录抽屉（自绘覆盖层）→ 关菜单 → 未加入书架弹确认 → 退出。
+    // 其余面板（ModalBottomSheet）与弹窗自带返回处理，优先于本回调消费。
+    BackHandler {
+        when {
+            panel == ReaderPanel.CHAPTER -> panel = ReaderPanel.NONE
+            menuVisible -> menuVisible = false
+            addShelfDialogVisible -> addShelfDialogVisible = false
+            !viewModel.isAdd -> addShelfDialogVisible = true
+            else -> activity.finish()
+        }
+    }
+
+    // ---------------- 下载面板（章节多选，缓存感知） ----------------
+    // 统一入口：请通知权限 → 从内容表查缓存事实集 → 预勾选 → 开面板。
+    // 预勾选沿用原默认范围语义（当前章 +50 章）：默认勾范围内未缓存章节（一键下载习惯）；
+    // 想刷新缓存就改勾已缓存章节——任务统一带 forceRefresh（见 startChapterDownload）
+    val openDownloadSheet: () -> Unit = {
+        menuVisible = false
+        activity.requestDownloadPermission {
+            val shelf = viewModel.bookShelf
+            val chapterList = shelf?.chapterList
+            if (shelf == null || chapterList.isNullOrEmpty()) return@requestDownloadPermission
+            scope.launch {
+                val cachedUrls = activity.bookRepository.getCachedChapterUrls(
+                    chapterList.map { it.durChapterUrl }
+                )
+                val endIndex = (shelf.durChapter + 50).coerceAtMost(chapterList.size - 1)
+                val initialSelected = (shelf.durChapter..endIndex).filterTo(mutableSetOf()) { i ->
+                    chapterList[i].durChapterUrl !in cachedUrls
+                }
+                downloadArgs = DownloadSheetArgs(cachedUrls, initialSelected)
+                panel = ReaderPanel.DOWNLOAD
+            }
+        }
+    }
+
+    // ---------------- 布局 ----------------
+    // 章节列表取 bookShelf.chapterList（书架页经 getAllBooksWithDetails() 填充；
+    // 本地导入书由 BookImportManager 回填）；不用 bookInfo.chapterList（仅网络书解析时填充）
+    val chapters = bookShelf?.chapterList ?: emptyList()
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        ReaderPager(
+            controller = controller,
+            textColor = textColor,
+            bgColor = bgColor,
+            textSizeSp = textSizeSp,
+            lineHeight = lineHeight,
+            canClickTurn = clickTurnEnabled,
+            onCenterTap = { menuVisible = !menuVisible },
+            onBodySizeChanged = { w, h ->
+                activity.onBodyMeasured(w, h)
+                if (w != bodyWidth) bodyWidth = w
+                if (h != bodyHeight) bodyHeight = h
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // 菜单背景（对齐原 v_menu_bg：菜单可见时点击空白关闭）
+        if (menuVisible) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable { menuVisible = false }
+            )
+        }
+
+        // 顶栏（上滑入/出动画对齐原 anim_readbook_top_in/out）
+        AnimatedVisibility(
+            visible = menuVisible,
+            enter = slideInVertically { -it },
+            exit = slideOutVertically { -it },
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            ReaderTopBar(
+                title = chapterTitle,
+                subtitle = bookShelf?.bookInfo?.name ?: "",
+                showMore = showMore,
+                onBack = {
+                    // 返回箭头 = 退出阅读器（未加入书架先弹确认），不能走 onBackPressedDispatcher：
+                    // 处置链首位是"菜单可见→关菜单"，会把退出语义降级为隐藏控制界面；
+                    // 硬件返回键仍走 BackHandler（菜单可见时先收菜单，符合阅读器习惯）
+                    if (!viewModel.isAdd) {
+                        addShelfDialogVisible = true
+                    } else {
+                        activity.finish()
+                    }
+                },
+                onDownload = openDownloadSheet,
+                onComment = {
+                    menuVisible = false
+                    viewModel.bookShelf?.let { shelf -> activity.navToComment(shelf) }
+                }
+            )
+        }
+
+        // 底栏（下滑入/出动画对齐原 anim_readbook_bottom_in/out）
+        AnimatedVisibility(
+            visible = menuVisible,
+            enter = slideInVertically { it },
+            exit = slideOutVertically { it },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            ReaderBottomBar(
+                chapterAll = chapterAll,
+                sliderValue = sliderValue.coerceIn(1f, chapterAll.coerceAtLeast(1).toFloat()),
+                activePanel = panel,
+                onSliderChange = { sliderValue = it },
+                onSliderFinished = {
+                    // 对齐原 moveStopProgress：抬手取整跳章
+                    var realDur = ceil(sliderValue.toDouble()).toInt()
+                    if (realDur < 1) realDur = 1
+                    val shelf = viewModel.bookShelf
+                    if (shelf != null && realDur - 1 != shelf.durChapter) {
+                        controller.setInitData(
+                            realDur - 1,
+                            DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
+                        )
+                    }
+                    if (sliderValue != realDur.toFloat()) sliderValue = realDur.toFloat()
+                },
+                prevEnabled = sliderValue > 1f,
+                nextEnabled = sliderValue < chapterAll.toFloat(),
+                onPrevChapter = {
+                    viewModel.bookShelf?.let { shelf ->
+                        controller.setInitData(
+                            shelf.durChapter - 1,
+                            DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
+                        )
+                    }
+                },
+                onNextChapter = {
+                    viewModel.bookShelf?.let { shelf ->
+                        controller.setInitData(
+                            shelf.durChapter + 1,
+                            DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
+                        )
+                    }
+                },
+                onCatalog = { panel = ReaderPanel.CHAPTER },
+                onLight = { panel = ReaderPanel.LIGHT },
+                onFont = { panel = ReaderPanel.FONT },
+                onSetting = { panel = ReaderPanel.SETTING }
+            )
+        }
+
+        // 外部打开文本的导入遮罩：共享 LoadingView（透明遮罩 + 居中卡片，语义对齐原 MoProgressHUD.showLoading）。
+        // 阅读器浅色作用域内 LoadingView 取当前主题语义色，无需自绘 scrim 层
+        LoadingView(
+            visible = importingBook,
+            modifier = Modifier.fillMaxSize(),
+            txt = stringResource(R.string.importing_text),
+        )
+
+        // 章节目录抽屉（左侧滑入，对齐原 ChapterListView 侧滑面板）：
+        // 常驻组合、由 panel 状态驱动进出场动画；自绘覆盖层无内置返回处置，
+        // 返回键由上方 BackHandler 收口
+        ChapterListDrawer(
+            visible = panel == ReaderPanel.CHAPTER,
+            bookName = bookShelf?.bookInfo?.name ?: "",
+            chapters = chapters,
+            durChapter = bookShelf?.durChapter ?: 0,
+            onChapterClick = { index ->
+                panel = ReaderPanel.NONE
+                controller.setInitData(index, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
+            },
+            onDismiss = { panel = ReaderPanel.NONE }
+        )
+    }
+
+    // ---------------- 面板与弹窗 ----------------
+    when (panel) {
+        // CHAPTER 由布局内的 ChapterListDrawer 承载（自绘覆盖层，非 ModalBottomSheet）
+        ReaderPanel.CHAPTER -> Unit
+        ReaderPanel.LIGHT -> LightPanel(activity = activity, onDismiss = { panel = ReaderPanel.NONE })
+        ReaderPanel.FONT -> FontPanel(
+            onTextChange = {
+                // 只推版本号：新样式要等下一次重组才成形，重分页由上方 LaunchedEffect(typesetter) 接力
+                textKindVersion++
+            },
+            onBgChange = {
+                bgVersion++
+                // setStatusBarColor 由上方 LaunchedEffect(bgVersion) 统一处理
+            },
+            onDismiss = { panel = ReaderPanel.NONE }
+        )
+        ReaderPanel.SETTING -> MoreSettingPanel(
+            onDismiss = { panel = ReaderPanel.NONE },
+            onClickTurnChanged = { clickTurnEnabled = it }
+        )
+        // 下载（已含刷新缓存能力：任务统一带 forceRefresh，勾中已缓存章节即重抓）
+        ReaderPanel.DOWNLOAD -> downloadArgs?.let { args ->
+            ChapterDownloadSheet(
+                chapters = chapters,
+                cachedUrls = args.cachedUrls,
+                initialSelected = args.initialSelected,
+                onConfirm = { selected ->
+                    panel = ReaderPanel.NONE
+                    startChapterDownload(activity, viewModel, context, selected)
+                },
+                onDismiss = { panel = ReaderPanel.NONE }
+            )
+        }
+        ReaderPanel.NONE -> Unit
+    }
+
+    // 加入书架确认（对齐原 CheckAddShelfPop）
+    if (addShelfDialogVisible) {
+        AddShelfDialog(
+            bookName = bookShelf?.bookInfo?.name ?: stringResource(R.string.unknown_book),
+            onExit = {
+                addShelfDialogVisible = false
+                activity.finish()
+            },
+            onAddShelf = {
+                viewModel.addToShelf(null)
+                addShelfDialogVisible = false
+            },
+            onDismiss = { addShelfDialogVisible = false }
+        )
+    }
+}
+
+/**
+ * 发起章节下载：先加入书架 → 按选中索引构建任务列表 → 交给 ViewModel 入库并拉起服务。
+ *
+ * 任务统一携带 [DownloadChapterEntity.forceRefresh]：下载入口已合并原"强制刷新缓存"入口，
+ * 用户显式勾中已缓存章节时必须真正重抓（先删旧内容）；未缓存章节该标记为空操作，
+ * 行为与普通下载一致。任务列表按索引升序，保证下载顺序与目录一致。
+ */
+private fun startChapterDownload(
+    activity: ReadBookActivity,
+    viewModel: BookReadViewModel,
+    context: Context,
+    selected: Set<Int>
+) {
+    val shelf = viewModel.bookShelf ?: return
+    val bookInfo = shelf.bookInfo
+    viewModel.addToShelf(object : BookReadViewModel.OnAddListener {
+        override fun addSuccess() {
+            val result = selected.sorted().mapNotNull { i ->
+                viewModel.getChapter(i)?.let { chapter ->
+                    DownloadChapterEntity(
+                        noteUrl = shelf.noteUrl,
+                        durChapterIndex = chapter.durChapterIndex,
+                        durChapterName = chapter.durChapterName,
+                        durChapterUrl = chapter.durChapterUrl,
+                        tag = shelf.tag,
+                        bookName = bookInfo?.name ?: context.getString(R.string.unknown_book),
+                        coverUrl = bookInfo?.coverUrl ?: "",
+                        forceRefresh = true
+                    )
+                }
+            }
+            if (result.isEmpty()) return
+            // 入库与前台服务拉起统一交给 BookReadViewModel.startDownload：任务先落库，再经
+            // DownloadService.start 启动（启动被系统拒绝时任务不丢，见那里的注释）；通知权限在入口
+            // 已顺带申请，但拒绝不影响下载（仅看不到进度通知，见 requestDownloadPermission）
+            viewModel.startDownload(result)
+        }
+    })
 }

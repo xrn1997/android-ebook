@@ -31,7 +31,13 @@ android {
     buildFeatures {
         buildConfig = true
         compose = true
-        viewBinding = true
+        // ViewBinding 已随 Compose 全量迁移完成而移除（见 ADR-0001），无需保留配置项
+    }
+    testOptions {
+        unitTests {
+            // Robolectric 要读到合并后的资源（阅读器翻页测试里会取 R.string.*）
+            isIncludeAndroidResources = true
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -53,9 +59,19 @@ dependencies {
 
     // Dagger
     ksp(libs.dagger.compiler)
-    ksp(libs.glide.compiler)
+
+    // Compose
+    implementation(libs.coil.kt.compose)
+    implementation(libs.androidx.compose.material.iconsExtended)
+    // Compose 页面 hiltViewModel()（替代 Fragment 的 viewModels() 注入路径）
+    implementation(libs.androidx.hilt.navigation.compose)
 
     testImplementation(libs.junit)
+    // Robolectric：ReaderPagerController 窗口状态机的 JVM 回归测试（只为提供 Context 与资源，
+    // 不涉及 View/Compose 渲染）；与 lib_ebook_db 的 DAO 测试同一口径
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 }

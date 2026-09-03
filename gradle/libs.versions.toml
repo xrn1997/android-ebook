@@ -2,21 +2,22 @@
 
 androidDesugarJdkLibs = "2.1.5"
 # AGP and tools should be updated together
-androidGradlePlugin = "8.13.0"
-androidTools = "31.13.0"
-androidxActivity = "1.11.0"
+androidGradlePlugin = "9.2.1"
+androidTools = "32.2.1"
+androidxActivity = "1.13.0"
 androidxAppCompat = "1.7.1"
 androidxBrowser = "1.9.0"
-androidxComposeBom = "2025.10.01"
-androidxCore = "1.17.0"
+androidxComposeBom = "2026.06.00"
+androidxCore = "1.19.0"
 androidxCoreSplashscreen = "1.0.1"
-androidxDataStore = "1.1.7"
+androidxDataStore = "1.2.0"
 androidxEspresso = "3.7.0"
+androidxExifinterface = "1.4.2"
 androidxHiltNavigationCompose = "1.3.0"
-androidxLifecycle = "2.9.4"
+androidxLifecycle = "2.11.0"
 androidxMacroBenchmark = "1.4.1"
 androidxMetrics = "1.0.0"
-androidxNavigation = "2.9.5"
+androidxNavigation = "2.9.6"
 androidxProfileinstaller = "1.4.1"
 androidxTestCore = "1.7.0"
 androidxTestExt = "1.3.0"
@@ -30,58 +31,46 @@ annotation = "1.9.1"
 annotations = "26.0.2-1"
 autofittextview = "0.2.1"
 coil = "2.7.0"
-common = "0.2.5"
 constraintlayout = "2.2.1"
-dagger = "2.57.2"
-daimajiaLibraryVersion = "2.4"
-explosionfield = "1.0.1"
-fastjson2 = "2.0.60"
+dagger = "2.60.1"
 fragmentKtx = "1.8.9"
 glide = "5.0.5"
 glideTransformations = "4.3.0"
 greendaoGradlePluginVersion = "3.3.1"
-gson = "2.13.2"
-hilt = "2.57.2"
+hilt = "2.60.1"
 hiltExt = "1.3.0"
 input = "3.3.0"
-jsoup = "1.21.2"
+jsoup = "1.22.2"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 juniversalchardet = "1.0.3"
-kotlin = "2.2.20"
-kotlinxCoroutines = "1.10.2"
+kotlin = "2.4.10"
+kotlinxCoroutines = "1.11.0"
 kotlinxDatetime = "0.7.1"
-kotlinxSerializationJson = "1.9.0"
-ksp = "2.2.20-2.0.4"
+kotlinxSerializationJson = "1.11.0"
+ksp = "2.3.10"
 kyleduoLibrary = "2.1.0"
 leakcanaryAndroid = "2.14"
 legacySupportV4 = "1.0.0"
 victorLib = "1.0.4"
-lifecycleExtensions = "2.2.0"
 
 logginginterceptorVersion = "3.1.0"
 material = "1.13.0"
 moduleGraph = "2.9.0"
-objectboxGradlePlugin = "5.0.1"
 okhttp = "5.3.0"
 paletteVersion = "1.0.0"
 permissionx = "1.8.1"
-router = "1.3.0"
-protobuf = "4.33.0"
+router = "1.4.0-rc1"
+protobuf = "4.35.0"
 recyclerview = "1.4.0"
 retrofit = "3.0.0"
+room = "3.0.0"
+sqliteBundled = "2.7.0"
 robolectric = "4.16"
 roborazzi = "1.50.0"
-rxandroid = "3.0.2"
-rxbinding = "4.0.0"
-rxbus = "3.0.0"
-rxjava = "3.1.12"
-rxkotlin = "3.0.1"
-rxlifecycleKotlin = "4.0.2"
 tinypinyin = "2.0.3"
 truth = "1.4.5"
 turbine = "1.2.1"
-stetho = "1.6.0"
 
 [bundles]
 androidx-compose-ui-test = ["androidx-compose-ui-test", "androidx-compose-ui-testManifest"]
@@ -126,13 +115,11 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "androidxCoreSplashscreen" }
 androidx-dataStore = { group = "androidx.datastore", name = "datastore", version.ref = "androidxDataStore" }
 androidx-dataStore-core = { group = "androidx.datastore", name = "datastore-core", version.ref = "androidxDataStore" }
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "androidxExifinterface" }
 androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
 androidx-hilt-ext-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltExt" }
 androidx-hilt-ext-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltExt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "androidxHiltNavigationCompose" }
-androidx-lifecycle-common = { group = "androidx.lifecycle", name = "lifecycle-common", version.ref = "androidxLifecycle" }
-androidx-lifecycle-common-java8 = { group = "androidx.lifecycle", name = "lifecycle-common-java8", version.ref = "androidxLifecycle" }
-androidx-lifecycle-extensions = { group = "androidx.lifecycle", name = "lifecycle-extensions", version.ref = "lifecycleExtensions" }
 androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "androidxLifecycle" }
 androidx-lifecycle-runtimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
@@ -166,22 +153,17 @@ androidx-work-ktx = { group = "androidx.work", name = "work-runtime-ktx", versio
 androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "androidxWork" }
 annotations = { group = "org.jetbrains", name = "annotations", version.ref = "annotations" }
 autofittextview = { group = "me.grantland", name = "autofittextview", version.ref = "autofittextview" }
+# 来自 android-practice 的 lib_common（composite build 替换为本地项目）
+common = { group = "io.github.xrn1997", name = "common", version = "0.3.0" }
 coil-kt = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
 coil-kt-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 coil-kt-svg = { group = "io.coil-kt", name = "coil-svg", version.ref = "coil" }
 
 dagger = { group = "com.google.dagger", name = "dagger", version.ref = "dagger" }
 dagger-compiler = { group = "com.google.dagger", name = "dagger-compiler", version.ref = "dagger" }
-daimajia-androidanimations-library = { group = "com.daimajia.androidanimations", name = "library", version.ref = "daimajiaLibraryVersion" }
-daimajia-easing-library = { group = "com.daimajia.easing", name = "library", version.ref = "daimajiaLibraryVersion" }
-eventbus = { group = "org.greenrobot", name = "eventbus", version.ref = "greendaoGradlePluginVersion" }
-explosionfield = { group = "tyrantgit", name = "explosionfield", version.ref = "explosionfield" }
-fastjson2 = { group = "com.alibaba.fastjson2", name = "fastjson2", version.ref = "fastjson2" }
-
 glide-core = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 glide-compiler = { group = "com.github.bumptech.glide", name = "ksp", version.ref = "glide" }
 glide-transformations = { group = "jp.wasabeef", name = "glide-transformations", version.ref = "glideTransformations" }
-gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
@@ -192,6 +174,7 @@ jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 juniversalchardet = { group = "com.googlecode.juniversalchardet", name = "juniversalchardet", version.ref = "juniversalchardet" }
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
+kotlin-metadata = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlin" }
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8", version.ref = "kotlin" }
 kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
@@ -206,42 +189,27 @@ lint-api = { group = "com.android.tools.lint", name = "lint-api", version.ref = 
 lint-checks = { group = "com.android.tools.lint", name = "lint-checks", version.ref = "androidTools" }
 lint-tests = { group = "com.android.tools.lint", name = "lint-tests", version.ref = "androidTools" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-objectbox = { group = "io.objectbox", name = "objectbox-gradle-plugin", version.ref = "objectboxGradlePlugin" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 permissionx = { group = "com.guolindev.permissionx", name = "permissionx", version.ref = "permissionx" }
 protobuf-kotlin-lite = { group = "com.google.protobuf", name = "protobuf-kotlin-lite", version.ref = "protobuf" }
 protobuf-protoc = { group = "com.google.protobuf", name = "protoc", version.ref = "protobuf" }
 
 
-retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 retrofit-converter-scalars = { group = "com.squareup.retrofit2", name = "converter-scalars", version.ref = "retrofit" }
 retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
-retrofit-adapter-rxjava3 = { group = "com.squareup.retrofit2", name = "adapter-rxjava3", version.ref = "retrofit" }
 retrofit-kotlin-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
 router-apt = { group = "cn.therouter", name = "apt", version.ref = "router" }
 router = { group = "cn.therouter", name = "router", version.ref = "router" }
-rxandroid = { group = "io.reactivex.rxjava3", name = "rxandroid", version.ref = "rxandroid" }
-rxbinding = { group = "com.jakewharton.rxbinding4", name = "rxbinding", version.ref = "rxbinding" }
-rxbus = { group = "com.hwangjr.rxbus", name = "rxbus", version.ref = "rxbus" }
-rxjava = { group = "io.reactivex.rxjava3", name = "rxjava", version.ref = "rxjava" }
-rxkotlin = { group = "io.reactivex.rxjava3", name = "rxkotlin", version.ref = "rxkotlin" }
-stetho = { group = "com.facebook.stetho", name = "stetho", version.ref = "stetho" }
-stetho-okhttp3 = { group = "com.facebook.stetho", name = "stetho-okhttp3", version.ref = "stetho" }
+room-runtime = { group = "androidx.room3", name = "room3-runtime", version.ref = "room" }
+room-compiler = { group = "androidx.room3", name = "room3-compiler", version.ref = "room" }
+sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqliteBundled" }
 switchbutton-library = { group = "com.kyleduo.switchbutton", name = "library", version.ref = "kyleduoLibrary" }
 tinypinyin = { group = "com.github.promeg", name = "tinypinyin", version.ref = "tinypinyin" }
-trello-rxlifecycle = { group = "com.trello.rxlifecycle4", name = "rxlifecycle", version.ref = "rxlifecycleKotlin" }
-trello-rxlifecycle-android = { group = "com.trello.rxlifecycle4", name = "rxlifecycle-android", version.ref = "rxlifecycleKotlin" }
-trello-rxlifecycle-android-lifecycle = { group = "com.trello.rxlifecycle4", name = "rxlifecycle-android-lifecycle", version.ref = "rxlifecycleKotlin" }
-trello-rxlifecycle-android-lifecycle-kotlin = { group = "com.trello.rxlifecycle4", name = "rxlifecycle-android-lifecycle-kotlin", version.ref = "rxlifecycleKotlin" }
-trello-rxlifecycle-components = { group = "com.trello.rxlifecycle4", name = "rxlifecycle-components", version.ref = "rxlifecycleKotlin" }
-trello-rxlifecycle-components-preference = { group = "com.trello.rxlifecycle4", name = "rxlifecycle-components-preference", version.ref = "rxlifecycleKotlin" }
-trello-rxlifecycle-kotlin = { group = "com.trello.rxlifecycle4", name = "rxlifecycle-kotlin", version.ref = "rxlifecycleKotlin" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 victor-lib = { group = "com.victor", name = "lib", version.ref = "victorLib" }
-xrn1997-common = { module = "io.github.xrn1997:common", version.ref = "common" }
 # Dependencies of the included build-logic
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradlePlugin" }
 android-tools-common = { group = "com.android.tools", name = "common", version.ref = "androidTools" }
@@ -249,29 +217,32 @@ compose-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-
 kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 ksp-gradlePlugin = { group = "com.google.devtools.ksp", name = "com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
 router-gradlePlugin = { group = "cn.therouter", name = "cn.therouter.gradle.plugin", version.ref = "router" }
+room-gradlePlugin = { group = "androidx.room3", name = "room3-gradle-plugin", version.ref = "room" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+android-lint = { id = "com.android.lint", version.ref = "androidGradlePlugin" }
 android-test = { id = "com.android.test", version.ref = "androidGradlePlugin" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidxMacroBenchmark" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 module-graph = { id = "com.jraska.module.graph.assertion", version.ref = "moduleGraph" }
+room = { id = "androidx.room3", version.ref = "room" }
 therouter = { id = "cn.therouter", version.ref = "router" }
 
 # Plugins defined by this project
 xrn1997-android-application = { id = "xrn1997.android.application" }
-xrn1997-android-application-compose = { id = "xrn1997android.application.compose" }
-xrn1997-android-application-flavors = { id = "xrn1997.android.application.flavors" }
+xrn1997-android-application-compose = { id = "xrn1997.android.application.compose" }
 xrn1997-android-library = { id = "xrn1997.android.library" }
 xrn1997-android-library-compose = { id = "xrn1997.android.library.compose" }
+xrn1997-android-compose = { id = "xrn1997.android.compose" }
 xrn1997-android-lint = { id = "xrn1997.android.lint" }
 xrn1997-android-test = { id = "xrn1997.android.test" }
 xrn1997-hilt = { id = "xrn1997.hilt" }
+xrn1997-android-room = { id = "xrn1997.android.room" }
 xrn1997-jvm-library = { id = "xrn1997.jvm.library" }
 xrn1997-android-component = { id = "xrn1997.android.component" }

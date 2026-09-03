@@ -1,9 +1,11 @@
 <resources>
     <string name="app_name">module_main</string>
     <string name="title_bookshelf">书架</string>
-    <string name="title_library">书库</string>
+    <string name="title_bookstore">书城</string>
     <string name="title_me">我的</string>
-    <string name="skip">跳过</string>
-    <string name="title_activity_register">RegisterActivity</string>
+    <string name="skip_countdown">跳过 %1$ds</string>
     <string name="start_background">启动背景图</string>
+    <string name="press_again_to_exit">再按一次退出程序</string>
+    <!-- 会话过期（refresh 失败）统一处置的提示文案 -->
+    <string name="session_expired">登录已过期，请重新登录</string>
 </resources>

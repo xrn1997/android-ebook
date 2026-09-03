@@ -4,6 +4,9 @@
         <item name="windowSplashScreenBackground">@color/lib_common_dark_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_welcome</item>
         <item name="postSplashScreenTheme">@style/Theme.Common</item>
+        <!-- 同 values/theme.xml：显式钉死无 ActionBar，避免欢迎图顶部叠出框架标题栏 -->
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
     </style>
 
 </resources>

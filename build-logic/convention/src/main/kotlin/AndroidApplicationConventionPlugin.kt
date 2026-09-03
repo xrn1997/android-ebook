@@ -16,28 +16,26 @@
 
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
-import com.android.build.gradle.BaseExtension
-import com.xrn1997.convention.configureBadgingTasks
 import com.xrn1997.convention.configureGradleManagedDevices
 import com.xrn1997.convention.configureKotlinAndroid
 import com.xrn1997.convention.configurePrintApksTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.getByType
+
 
 class AndroidApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
-            with(pluginManager) {
-                apply("com.android.application")
-                apply("org.jetbrains.kotlin.android")
-                apply("xrn1997.android.lint")
-            }
+            // AGP 9 内置 Kotlin：不再需要单独应用 org.jetbrains.kotlin.android（KGP），
+            // Kotlin 支持由 AGP 提供，顶层 kotlin { } 扩展（KotlinAndroidProjectExtension）仍可用
+            apply(plugin = "com.android.application")
+            apply(plugin = "xrn1997.android.lint")
 
             extensions.configure<ApplicationExtension> {
                 configureKotlinAndroid(this)
-                defaultConfig.targetSdk = 36
+                defaultConfig.targetSdk = 37
                 //默认情况下让applicationId 等于 namespace
                 defaultConfig.applicationId = namespace
                 testOptions.animationsDisabled = true
@@ -45,7 +43,6 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
             }
             extensions.configure<ApplicationAndroidComponentsExtension> {
                 configurePrintApksTask(this)
-                configureBadgingTasks(extensions.getByType<BaseExtension>(), this)
             }
         }
     }

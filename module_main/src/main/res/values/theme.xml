@@ -4,6 +4,11 @@
         <item name="windowSplashScreenBackground">@color/lib_common_light_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_welcome</item>
         <item name="postSplashScreenTheme">@style/Theme.Common</item>
+        <!-- 显式钉死无 ActionBar：仅靠父类链的 NoActionBar 声明不可靠（实测 SplashTheme
+             经 core-splashscreen 应用 postSplashScreenTheme 后，窗口 decor 仍可能按带框架级
+             android:id/action_bar 的 ActionBarOverlayLayout 生成，欢迎图顶部叠出一条标题栏） -->
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
     </style>
 
 </resources>

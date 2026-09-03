@@ -1,51 +1,162 @@
 {
   "code": "00000",
   "error": "",
-  "data": [
-    {
-      "id": 301,
-      "user": {
-        "id": 11,
-        "username": "readerA",
-        "password": "",
-        "image": "https://example.com/images/user_11.png",
-        "nickname": "读者A"
+  "data": {
+    "items": [
+      {
+        "id": 401,
+        "user": {
+          "uid": 13,
+          "username": "readerC",
+          "nickname": "读者C",
+          "avatar": "https://example.com/images/user_13.png"
+        },
+        "content": "所以守夜人到底是谁？第一章就埋这么大一个坑。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-20 10:02:00"
       },
-      "chapterUrl": "https://example.com/books/1/chapter/5",
-      "chapterName": "第五章 终极对决",
-      "bookName": "天启之书",
-      "comment": "伏笔收得太精彩了！",
-      "addTime": "2025-10-24 10:00:00"
-    },
-    {
-      "id": 302,
-      "user": {
-        "id": 12,
-        "username": "readerB",
-        "password": "",
-        "image": "https://example.com/images/user_12.png",
-        "nickname": "读者B"
+      {
+        "id": 402,
+        "user": {
+          "uid": 11,
+          "username": "readerA",
+          "nickname": "读者A",
+          "avatar": "https://example.com/images/user_11.png"
+        },
+        "content": "回楼上：第三章会揭晓，这里先卖个关子，不剧透。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-20 10:15:00"
       },
-      "chapterUrl": "https://example.com/books/1/chapter/5",
-      "chapterName": "第五章 终极对决",
-      "bookName": "天启之书",
-      "comment": "主角终于成长了，热血沸腾！",
-      "addTime": "2025-10-24 12:10:00"
-    },
-    {
-      "id": 303,
-      "user": {
-        "id": 13,
-        "username": "readerC",
-        "password": "",
-        "image": "https://example.com/images/user_13.png",
-        "nickname": "读者C"
+      {
+        "id": 403,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "content": "第一遍没注意，二刷才发现门牌号的数字是倒着写的。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-20 10:31:00"
       },
-      "chapterUrl": "https://example.com/books/1/chapter/5",
-      "chapterName": "第五章 终极对决",
-      "bookName": "天启之书",
-      "comment": "节奏稍快，但剧情依然很精彩！",
-      "addTime": "2025-10-24 15:30:00"
-    }
-  ]
+      {
+        "id": 411,
+        "user": {
+          "uid": 12,
+          "username": "readerB",
+          "nickname": "读者B",
+          "avatar": "https://example.com/images/user_12.png"
+        },
+        "content": "这一章气氛绝了，雾里那段建议开夜读模式看。",
+        "chapter_url": "https://example.com/books/1/chapter/3",
+        "chapter_name": "第三章 迷雾",
+        "book_name": "天启之书",
+        "add_time": "2025-10-21 21:05:00"
+      },
+      {
+        "id": 412,
+        "user": {
+          "uid": 14,
+          "username": "nightOwl",
+          "nickname": "夜猫子",
+          "avatar": "https://example.com/images/user_14.png"
+        },
+        "content": "同感，看到守夜人提灯那里我直接坐起来了。",
+        "chapter_url": "https://example.com/books/1/chapter/3",
+        "chapter_name": "第三章 迷雾",
+        "book_name": "天启之书",
+        "add_time": "2025-10-21 21:20:00"
+      },
+      {
+        "id": 413,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "content": "提灯那段原文我抄下来了：「灯是他自己点的，路是他自己选的」。",
+        "chapter_url": "https://example.com/books/1/chapter/3",
+        "chapter_name": "第三章 迷雾",
+        "book_name": "天启之书",
+        "add_time": "2025-10-21 21:44:00"
+      },
+      {
+        "id": 421,
+        "user": {
+          "uid": 11,
+          "username": "readerA",
+          "nickname": "读者A",
+          "avatar": "https://example.com/images/user_11.png"
+        },
+        "content": "伏笔收得太精彩了！第一章那个倒写的门牌号在这里对上了。",
+        "chapter_url": "https://example.com/books/1/chapter/5",
+        "chapter_name": "第五章 终极对决",
+        "book_name": "天启之书",
+        "add_time": "2025-10-24 10:00:00"
+      },
+      {
+        "id": 422,
+        "user": {
+          "uid": 13,
+          "username": "readerC",
+          "nickname": "读者C",
+          "avatar": "https://example.com/images/user_13.png"
+        },
+        "content": "主角终于成长了，热血沸腾！追了二十章没白等。",
+        "chapter_url": "https://example.com/books/1/chapter/5",
+        "chapter_name": "第五章 终极对决",
+        "book_name": "天启之书",
+        "add_time": "2025-10-24 12:10:00"
+      },
+      {
+        "id": 423,
+        "user": {
+          "uid": 12,
+          "username": "readerB",
+          "nickname": "读者B",
+          "avatar": "https://example.com/images/user_12.png"
+        },
+        "content": "节奏稍快，但剧情依然很精彩，就是希望下一章慢一点。",
+        "chapter_url": "https://example.com/books/1/chapter/5",
+        "chapter_name": "第五章 终极对决",
+        "book_name": "天启之书",
+        "add_time": "2025-10-24 15:30:00"
+      },
+      {
+        "id": 431,
+        "user": {
+          "uid": 14,
+          "username": "nightOwl",
+          "nickname": "夜猫子",
+          "avatar": "https://example.com/images/user_14.png"
+        },
+        "content": "第二章这位来客明显不是人，铺垫给得很足。",
+        "chapter_url": "https://example.com/books/2/chapter/2",
+        "chapter_name": "第二章 来客",
+        "book_name": "深夜书屋",
+        "add_time": "2025-10-25 23:12:00"
+      },
+      {
+        "id": 432,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "content": "深夜书屋的气氛比天启之书更适合睡前看，就是看完更睡不着了。",
+        "chapter_url": "https://example.com/books/2/chapter/2",
+        "chapter_name": "第二章 来客",
+        "book_name": "深夜书屋",
+        "add_time": "2025-10-25 23:40:00"
+      }
+    ],
+    "total": 11,
+    "page": 1,
+    "page_size": 20
+  }
 }

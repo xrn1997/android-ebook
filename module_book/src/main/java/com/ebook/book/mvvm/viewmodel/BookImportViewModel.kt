@@ -1,67 +1,58 @@
 package com.ebook.book.mvvm.viewmodel
 
-import android.app.Application
 import android.os.Environment
-import android.util.Log
+import com.xrn1997.common.util.Logger
 import androidx.lifecycle.MutableLiveData
-import com.ebook.book.mvvm.model.BookImportModel
-import com.ebook.common.event.RxBusTag
-import com.ebook.db.entity.LocBookShelf
-import com.hwangjr.rxbus.RxBus
-import com.xrn1997.common.event.SimpleObserver
-import com.xrn1997.common.event.SingleLiveEvent
+import androidx.lifecycle.viewModelScope
+import com.ebook.book.R
+import com.ebook.book.repository.BookImportRepository
+import com.ebook.common.repository.BookRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.core.ObservableEmitter
-import io.reactivex.rxjava3.schedulers.Schedulers
 import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class BookImportViewModel @Inject constructor(
-    application: Application,
-    model: BookImportModel
-) : BaseViewModel<BookImportModel>(application, model) {
+    private val bookImportRepository: BookImportRepository,
+    private val bookRepository: BookRepository
+) : BaseViewModel<BookImportRepository>(bookImportRepository) {
     val mImportBookList = MutableLiveData<List<File>>()
-    val searchFinishEvent by lazy { SingleLiveEvent<Unit>() }
-    val addSuccessEvent by lazy { SingleLiveEvent<Unit>() }
-    val addErrorEvent by lazy { SingleLiveEvent<Unit>() }
+    val searchFinishEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val addSuccessEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val addErrorEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     //停止扫描
+    @Volatile
     private var isCancel: Boolean = false
 
     fun searchLocationBook() {
         isCancel = false
-        Observable.create { e: ObservableEmitter<File> ->
-            if (Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) {
-                searchBook(e, File(Environment.getExternalStorageDirectory().absolutePath))
-                e.onComplete()
+        viewModelScope.launch {
+            try {
+                val files = withContext(Dispatchers.IO) {
+                    val result = mutableListOf<File>()
+                    if (Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) {
+                        searchBook(result, File(Environment.getExternalStorageDirectory().absolutePath))
+                    }
+                    result
+                }
+                val list = mImportBookList.value ?: emptyList()
+                mImportBookList.value = list + files
+                searchFinishEvent.tryEmit(Unit)
+            } catch (e: Exception) {
+                Logger.e(TAG, "onError: ", e)
             }
-        }.subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(object : SimpleObserver<File>() {
-                override fun onNext(value: File) {
-                    val list = mImportBookList.value ?: emptyList()
-                    mImportBookList.value = list + value
-                }
-
-                override fun onComplete() {
-                    searchFinishEvent.call()
-                }
-
-                override fun onError(e: Throwable) {
-                    Log.e(TAG, "onError: ", e)
-                }
-            })
+        }
     }
 
-    private fun searchBook(e: ObservableEmitter<File>, parentFile: File) {
-        if (isCancel) {
-            e.onComplete()
-            return
-        }
+    private fun searchBook(result: MutableList<File>, parentFile: File) {
+        if (isCancel) return
         if (!parentFile.listFiles().isNullOrEmpty()) {
             val childFiles = parentFile.listFiles()
             if (childFiles != null) {
@@ -70,7 +61,7 @@ class BookImportViewModel @Inject constructor(
                             .equals("txt", ignoreCase = true)
                         && childFile.length() > 100 * 1024
                     ) {   //100kb
-                        e.onNext(childFile)
+                        result.add(childFile)
                         continue
                     }
                     if (childFile.absolutePath == "/storage/emulated/0/Android/data"
@@ -81,7 +72,7 @@ class BookImportViewModel @Inject constructor(
                     }
                     if (childFile.isDirectory && !childFile.listFiles().isNullOrEmpty()) {
                         //进入文件夹中继续扫
-                        searchBook(e, childFile)
+                        searchBook(result, childFile)
                     }
                 }
             }
@@ -89,28 +80,29 @@ class BookImportViewModel @Inject constructor(
     }
 
     fun importBooks(books: List<File>) {
-        Observable.fromIterable(books).flatMap { file: File ->
-            mModel.importBook(file)
-        }
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(object : SimpleObserver<LocBookShelf>() {
-                override fun onNext(value: LocBookShelf) {
-                    Log.e(TAG, "onNext: " + value.new)
+        viewModelScope.launch {
+            var successCount = 0
+            var failCount = 0
+            for (file in books) {
+                try {
+                    val value = bookImportRepository.importBook(file)
+                    Logger.e(TAG, "onNext: " + value.new)
                     if (value.new) {
-                        RxBus.get().post(RxBusTag.HAD_ADD_BOOK, value.bookShelf)
+                        bookRepository.addToShelf(value.bookShelf)
                     }
+                    successCount++
+                } catch (e: Exception) {
+                    Logger.e(TAG, "导入失败: ${file.name}", e)
+                    failCount++
                 }
-
-                override fun onError(e: Throwable) {
-                    Log.e(TAG, "onError: ", e)
-                    addErrorEvent.call()
-                }
-
-                override fun onComplete() {
-                    addSuccessEvent.call()
-                }
-            })
+            }
+            if (failCount == 0) {
+                addSuccessEvent.tryEmit(Unit)
+            } else {
+                addErrorEvent.tryEmit(Unit)
+                sendToast(context.getString(R.string.import_result_format, successCount, failCount))
+            }
+        }
     }
 
     fun scanCancel() {

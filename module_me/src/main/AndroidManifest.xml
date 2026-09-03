@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+        注意：本文件（library 集成模式）与 src/main/module/AndroidManifest.xml
+        （isModule=true 独立运行模式）重复声明 module_me 的全部业务 Activity。
+        新增/重命名/改 label 的页面时两处必须同步修改，避免两种模式行为不一致。
+    -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -9,20 +14,40 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Common">
         <activity
-            android:name="com.ebook.me.SettingActivity"
-            android:label="设置"
+            android:name=".view.SettingActivity"
+            android:label="@string/setting_title"
             android:theme="@style/ToolbarTheme.BackBar" />
         <activity
-            android:name=".MyCommentActivity"
-            android:label="我的评论"
+            android:name=".view.CacheManageActivity"
+            android:label="@string/cache_manage_title"
             android:theme="@style/ToolbarTheme.BackBar" />
         <activity
-            android:name=".ModifyInformationActivity"
-            android:label="编辑资料"
+            android:name=".view.AboutActivity"
+            android:label="@string/about_title"
             android:theme="@style/ToolbarTheme.BackBar" />
         <activity
-            android:name=".ModifyNicknameActivity"
-            android:label="修改昵称"
+            android:name=".view.DocActivity"
+            android:label="@string/doc_activity_label"
+            android:theme="@style/ToolbarTheme.BackBar" />
+        <activity
+            android:name=".view.LicensesActivity"
+            android:label="@string/licenses_title"
+            android:theme="@style/ToolbarTheme.BackBar" />
+        <activity
+            android:name=".view.MyCommentActivity"
+            android:label="@string/my_comment_title"
+            android:theme="@style/ToolbarTheme.BackBar" />
+        <activity
+            android:name=".view.ModifyInformationActivity"
+            android:label="@string/modify_info_title"
+            android:theme="@style/ToolbarTheme.BackBar" />
+        <activity
+            android:name=".view.ModifyNicknameActivity"
+            android:label="@string/modify_nickname_title"
+            android:theme="@style/ToolbarTheme.BackBar" />
+        <activity
+            android:name=".view.profilePhoto.ClipImageActivity"
+            android:label="@string/clip_activity_label"
             android:theme="@style/ToolbarTheme.BackBar" />
     </application>
 </manifest>

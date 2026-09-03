@@ -32,5 +32,3 @@ google-services.json
 # Android Profiling
 *.hprof
 
-#ObjectBox-models
-objectbox-models/

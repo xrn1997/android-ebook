@@ -27,33 +27,41 @@ import org.jetbrains.kotlin.compose.compiler.gradle.ComposeCompilerGradlePluginE
  * Configure Compose-specific options
  */
 internal fun Project.configureAndroidCompose(
-    commonExtension: CommonExtension<*, *, *, *, *, *>,
+    commonExtension: CommonExtension,
 ) {
     commonExtension.apply {
-        buildFeatures {
+        buildFeatures.apply {
             compose = true
         }
 
         dependencies {
             val bom = libs.findLibrary("androidx-compose-bom").get()
-            add("implementation", platform(bom))
-            add("androidTestImplementation", platform(bom))
-            add("implementation", libs.findLibrary("androidx-compose-ui-tooling-preview").get())
-            add("debugImplementation", libs.findLibrary("androidx-compose-ui-tooling").get())
+            "implementation"(platform(bom))
+            // 与 disableUnnecessaryAndroidTests 保持一致：无 androidTest 源码目录时该变体被禁用，
+            // 注入会被 AGP 忽略并告警 "androidTestImplementation dependencies are ignored..."
+            if (projectDir.resolve("src/androidTest").exists()) {
+                "androidTestImplementation"(platform(bom))
+            }
+            "implementation"(libs.findLibrary("androidx-compose-ui-tooling-preview").get())
+            "debugImplementation"(libs.findLibrary("androidx-compose-ui-tooling").get())
         }
 
-        testOptions {
-            unitTests {
-                // For Robolectric
-                isIncludeAndroidResources = true
-            }
-        }
+        // TODO: AGP 9.x 中 testOptions API 已改变，暂时移除
+        // testOptions {
+        //     unitTests {
+        //         // For Robolectric
+        //         isIncludeAndroidResources = true
+        //     }
+        // }
     }
 
     extensions.configure<ComposeCompilerGradlePluginExtension> {
         fun Provider<String>.onlyIfTrue() = flatMap { provider { it.takeIf(String::toBoolean) } }
-        fun Provider<*>.relativeToRootProject(dir: String) = flatMap {
-            rootProject.layout.buildDirectory.dir(projectDir.toRelativeString(rootDir))
+        fun Provider<*>.relativeToRootProject(dir: String) = map {
+            @Suppress("UnstableApiUsage")
+            isolated.rootProject.projectDirectory
+                .dir("build")
+                .dir(projectDir.toRelativeString(rootDir))
         }.map { it.dir(dir) }
 
         project.providers.gradleProperty("enableComposeCompilerMetrics").onlyIfTrue()
@@ -64,6 +72,8 @@ internal fun Project.configureAndroidCompose(
             .relativeToRootProject("compose-reports")
             .let(reportsDestination::set)
 
-        stabilityConfigurationFiles.addAll(rootProject.layout.projectDirectory.file("compose_compiler_config.conf"))
+        @Suppress("UnstableApiUsage")
+        stabilityConfigurationFiles
+            .add(isolated.rootProject.projectDirectory.file("compose_compiler_config.conf"))
     }
 }

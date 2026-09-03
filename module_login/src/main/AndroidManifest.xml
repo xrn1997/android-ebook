@@ -1,12 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+        注意：本文件（isModule=false 集成模式）与 src/main/module/AndroidManifest.xml
+        （isModule=true 独立运行模式）是**替换**关系，不是清单合并关系——独立运行时只生效后者
+        （见 build-logic 的 AndroidComponentConventionPlugin 对 sourceSets.main.manifest 的改写）。
+        Activity 声明与其属性（launchMode/theme/label）两处必须同步修改，否则两种模式行为不一致。
+        历史教训：LoginActivity 的 singleTask 一度只写在本文件里，独立模式下注册页不被清顶，
+        登录成功后返回栈里又露出注册页。
+    -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true">
+        <!--
+            singleTask：登录页是「流程中转站」（注册/忘记密码/会话过期后都会跳到这里），
+            复用已有实例并清掉其上的注册页/改密页，同时经 onNewIntent 消费预填邮箱。
+        -->
         <activity
             android:name=".LoginActivity"
             android:label="登录"

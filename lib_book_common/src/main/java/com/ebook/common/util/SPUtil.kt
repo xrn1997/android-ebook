@@ -3,6 +3,7 @@ package com.ebook.common.util
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
+import com.ebook.common.event.KeyCode
 import com.xrn1997.common.BaseApplication.Companion.context
 
 /**
@@ -71,6 +72,19 @@ object SPUtil {
 
     fun clear(spName: String = DEFAULT_SP_NAME, isCommit: Boolean = false) {
         val editor = getSharedPreferences(spName).edit().clear()
+        if (isCommit) editor.commit() else editor.apply()
+    }
+
+    /**
+     * 仅清除认证相关数据，保留其他偏好设置
+     */
+    fun clearAuthData(spName: String = DEFAULT_SP_NAME, isCommit: Boolean = false) {
+        val editor = getSharedPreferences(spName).edit()
+        editor.remove(KeyCode.Login.SP_IS_LOGIN)
+        editor.remove(KeyCode.Login.SP_USERNAME)
+        editor.remove(KeyCode.Login.SP_NICKNAME)
+        editor.remove(KeyCode.Login.SP_USER_ID)
+        editor.remove(KeyCode.Login.SP_IMAGE)
         if (isCommit) editor.commit() else editor.apply()
     }
 

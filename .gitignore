@@ -12,6 +12,7 @@ captures/
 .externalNativeBuild/
 .cxx/
 *.apk
+*.aab
 output.json
 
 # IntelliJ
@@ -33,3 +34,7 @@ google-services.json
 
 #Kotlin
 .kotlin
+findings.json
+
+# WorkBuddy 项目数据（工作日志/记忆），不入库
+.workbuddy/

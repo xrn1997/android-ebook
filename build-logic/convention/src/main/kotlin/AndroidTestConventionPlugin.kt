@@ -14,24 +14,24 @@
  *   limitations under the License.
  */
 
-import com.android.build.gradle.TestExtension
+import com.android.build.api.dsl.TestExtension
 import com.xrn1997.convention.configureGradleManagedDevices
 import com.xrn1997.convention.configureKotlinAndroid
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.configure
 
 class AndroidTestConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
-            with(pluginManager) {
-                apply("com.android.test")
-                apply("org.jetbrains.kotlin.android")
-            }
+            // AGP 9 内置 Kotlin：不再需要单独应用 org.jetbrains.kotlin.android（KGP），
+            // Kotlin 支持由 AGP 提供，顶层 kotlin { } 扩展（KotlinAndroidProjectExtension）仍可用
+            apply(plugin ="com.android.test")
 
             extensions.configure<TestExtension> {
                 configureKotlinAndroid(this)
-                defaultConfig.targetSdk = 36
+                defaultConfig.targetSdk = 37
                 configureGradleManagedDevices(this)
             }
         }

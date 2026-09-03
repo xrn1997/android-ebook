@@ -3,31 +3,27 @@ package debug
 import android.content.Intent
 import android.os.Bundle
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.lifecycleScope
 import com.ebook.api.entity.User
 import com.ebook.common.event.KeyCode
-import com.ebook.common.event.RxBusTag
+import com.ebook.common.repository.ProfileRepository
 import com.ebook.common.util.SPUtil
-import com.hwangjr.rxbus.RxBus
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseActivity
 import com.xrn1997.common.ui.TextInButton
 import com.xrn1997.common.util.ToastUtil
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+import dagger.hilt.android.AndroidEntryPoint
 
 
+@AndroidEntryPoint
 @Route(path = KeyCode.Book.TEST_LOGIN_PATH)
 class LoginActivity : BaseActivity() {
-    public override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        RxBus.get().register(this)
-    }
-
-    public override fun onDestroy() {
-        super.onDestroy()
-        RxBus.get().unregister(this)
-    }
+    @Inject lateinit var profileRepository: ProfileRepository
 
     @Composable
-    override fun InitView() {
+    override fun PageContent() {
         TextInButton(onClick = {
             val user = User()
             user.id = 0
@@ -36,7 +32,8 @@ class LoginActivity : BaseActivity() {
             user.password = "123456"
             user.username = "xrn1997"
             loginOnNext(user)
-            RxBus.get().post(RxBusTag.SET_PROFILE_PICTURE_AND_NICKNAME, Any()) //通知其更新UI
+            profileRepository.updatePicture(user.image ?: "")
+            profileRepository.updateNickname(user.nickname)
             onBackPressedDispatcher.onBackPressed()
         })
     }
@@ -46,7 +43,7 @@ class LoginActivity : BaseActivity() {
             if (!get(KeyCode.Login.SP_IS_LOGIN, false)) {
                 put(KeyCode.Login.SP_IS_LOGIN, true)
                 put(KeyCode.Login.SP_USERNAME, user.username)
-                put(KeyCode.Login.SP_PASSWORD, user.password)
+                // 密码不落盘（ADR-0008）：这里只写展示身份键，绝不写密码
                 put(KeyCode.Login.SP_NICKNAME, user.nickname)
                 put(KeyCode.Login.SP_USER_ID, user.id)
                 put(KeyCode.Login.SP_IMAGE, user.image)

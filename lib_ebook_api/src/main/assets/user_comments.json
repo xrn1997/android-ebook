@@ -1,36 +1,76 @@
 {
   "code": "00000",
   "error": "",
-  "data": [
-    {
-      "id": 201,
-      "user": {
-        "id": 1,
-        "username": "test_user",
-        "password": "$2a$10$abcdefghijklmno...",
-        "image": "https://example.com/images/user_1.png",
-        "nickname": "测试用户"
+  "data": {
+    "items": [
+      {
+        "id": 201,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "content": "这本书的开头就很吸引人！门牌号的细节二刷才看懂。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-20 09:21:00"
       },
-      "chapterUrl": "https://example.com/books/1/chapter/1",
-      "chapterName": "第一章 序幕",
-      "bookName": "天启之书",
-      "comment": "这本书的开头就很吸引人！",
-      "addTime": "2025-10-20 09:21:00"
-    },
-    {
-      "id": 202,
-      "user": {
-        "id": 1,
-        "username": "test_user",
-        "password": "$2a$10$abcdefghijklmno...",
-        "image": "https://example.com/images/user_1.png",
-        "nickname": "测试用户"
+      {
+        "id": 202,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "content": "剧情开始变得紧张了！雾里那段读得后背发凉。",
+        "chapter_url": "https://example.com/books/1/chapter/3",
+        "chapter_name": "第三章 迷雾",
+        "book_name": "天启之书",
+        "add_time": "2025-10-21 18:45:00"
       },
-      "chapterUrl": "https://example.com/books/1/chapter/3",
-      "chapterName": "第三章 迷雾",
-      "bookName": "天启之书",
-      "comment": "剧情开始变得紧张了！",
-      "addTime": "2025-10-21 18:45:00"
-    }
-  ]
+      {
+        "id": 203,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "content": "三章前的门牌号在这里对上，作者布局太稳了。",
+        "chapter_url": "https://example.com/books/1/chapter/5",
+        "chapter_name": "第五章 终极对决",
+        "book_name": "天启之书",
+        "add_time": "2025-10-24 09:30:00"
+      },
+      {
+        "id": 204,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "content": "来客那段铺垫给得很足，一口气看到凌晨。",
+        "chapter_url": "https://example.com/books/2/chapter/2",
+        "chapter_name": "第二章 来客",
+        "book_name": "深夜书屋",
+        "add_time": "2025-10-25 23:58:00"
+      },
+      {
+        "id": 205,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "content": "补一句：序章的钟声也是伏笔，别跳过。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-26 08:12:00"
+      }
+    ],
+    "total": 5,
+    "page": 1,
+    "page_size": 20
+  }
 }

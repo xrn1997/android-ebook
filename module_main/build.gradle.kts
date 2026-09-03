@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.xrn1997.android.component)
+    alias(libs.plugins.xrn1997.android.library.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.xrn1997.hilt)
 }
@@ -28,7 +29,6 @@ android {
     }
     buildFeatures {
         buildConfig = true
-        viewBinding = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -45,6 +45,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.compose.material.iconsExtended)
+    implementation(libs.androidx.navigation.compose)
     ksp(libs.router.apt)
     implementation(libs.router)
     ksp(libs.dagger.compiler)

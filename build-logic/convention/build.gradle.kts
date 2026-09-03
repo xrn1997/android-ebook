@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     `kotlin-dsl`
+    alias(libs.plugins.android.lint)
 }
 
 group = "com.xrn1997.convention"
@@ -25,6 +26,7 @@ dependencies {
     compileOnly(libs.compose.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.ksp.gradlePlugin)
+    compileOnly(libs.room.gradlePlugin)
     compileOnly(libs.router.gradlePlugin)
     implementation(libs.truth)
 }
@@ -39,43 +41,48 @@ tasks {
 gradlePlugin {
     plugins {
         register("androidApplicationCompose") {
-            id = "xrn1997.android.application.compose"
+            id = libs.plugins.xrn1997.android.application.compose.get().pluginId
             implementationClass = "AndroidApplicationComposeConventionPlugin"
         }
         register("androidApplication") {
-            id = "xrn1997.android.application"
+            id = libs.plugins.xrn1997.android.application.asProvider().get().pluginId
             implementationClass = "AndroidApplicationConventionPlugin"
         }
         register("androidLibraryCompose") {
-            id = "xrn1997.android.library.compose"
+            id = libs.plugins.xrn1997.android.library.compose.get().pluginId
+            implementationClass = "AndroidLibraryComposeConventionPlugin"
+        }
+        // 兼容别名：lib_common（android-practice）使用 xrn1997.android.compose
+        register("androidCompose") {
+            id = libs.plugins.xrn1997.android.compose.get().pluginId
             implementationClass = "AndroidLibraryComposeConventionPlugin"
         }
         register("androidLibrary") {
-            id = "xrn1997.android.library"
+            id = libs.plugins.xrn1997.android.library.asProvider().get().pluginId
             implementationClass = "AndroidLibraryConventionPlugin"
         }
         register("androidTest") {
-            id = "xrn1997.android.test"
+            id = libs.plugins.xrn1997.android.test.get().pluginId
             implementationClass = "AndroidTestConventionPlugin"
         }
         register("hilt") {
-            id = "xrn1997.hilt"
+            id = libs.plugins.xrn1997.hilt.get().pluginId
             implementationClass = "HiltConventionPlugin"
         }
-        register("androidFlavors") {
-            id = "xrn1997.android.application.flavors"
-            implementationClass = "AndroidApplicationFlavorsConventionPlugin"
+        register("androidRoom") {
+            id = libs.plugins.xrn1997.android.room.get().pluginId
+            implementationClass = "AndroidRoomConventionPlugin"
         }
         register("androidLint") {
-            id = "xrn1997.android.lint"
+            id =  libs.plugins.xrn1997.android.lint.get().pluginId
             implementationClass = "AndroidLintConventionPlugin"
         }
         register("jvmLibrary") {
-            id = "xrn1997.jvm.library"
+            id =  libs.plugins.xrn1997.jvm.library.get().pluginId
             implementationClass = "JvmLibraryConventionPlugin"
         }
         register("androidComponent") {
-            id = "xrn1997.android.component"
+            id = libs.plugins.xrn1997.android.component.get().pluginId
             implementationClass = "AndroidComponentConventionPlugin"
         }
     }

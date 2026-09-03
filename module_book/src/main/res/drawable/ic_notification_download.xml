@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  下载通知状态栏图标（Material file_download 轮廓）。
+
+  通知 smallIcon 必须是无细节的单色轮廓图：系统只取其 alpha 通道并单色染色，
+  原实现直接用 R.mipmap.ic_launcher（彩色位图）→ 状态栏上被抠成一团白块，
+  完全辨不出是下载。tint 显式给白，保证在任何 ROM 的蒙版处理下都是合法轮廓源。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M5,20h14v-2H5V20zM19,9h-4V3H9v6H5l7,7 7,-7z" />
+</vector>

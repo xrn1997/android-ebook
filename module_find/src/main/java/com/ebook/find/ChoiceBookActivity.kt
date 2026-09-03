@@ -1,127 +1,90 @@
 package com.ebook.find
 
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.TextView
 import androidx.activity.viewModels
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import com.ebook.common.event.FROM_SEARCH
 import com.ebook.common.event.KeyCode
-import com.ebook.common.event.RxBusTag
-import com.ebook.db.entity.BookShelf
-import com.ebook.db.entity.SearchBook
-import com.ebook.find.adapter.SearchBookAdapter
-import com.ebook.find.databinding.ActivityBookchoiceBinding
+import com.ebook.common.ui.CommonUiTokens
 import com.ebook.find.mvvm.viewmodel.ChoiceBookViewModel
-import com.hwangjr.rxbus.RxBus
-import com.hwangjr.rxbus.annotation.Subscribe
-import com.hwangjr.rxbus.annotation.Tag
-import com.hwangjr.rxbus.thread.EventThread
-import com.scwang.smart.refresh.layout.api.RefreshLayout
+import com.ebook.find.view.SearchBookItem
 import com.therouter.TheRouter
-import com.xrn1997.common.mvvm.view.BaseMvvmRefreshActivity
+import com.therouter.router.Route
+import com.xrn1997.common.mvvm.compose.BaseMvvmRefreshActivity
+import com.xrn1997.common.ui.LoadMoreFooter
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * 分类书籍列表页（Compose 基类，经 [KeyCode.Find.CHOICE_PATH] 路由进入）。
+ *
+ * - 外壳：lib_common Compose 基类统一提供 Toolbar/刷新容器/加载与空态覆盖层
+ * - 参数：路由 withString 的 url/title 最终落到 intent.extras。url 由
+ *   [ChoiceBookViewModel] 经 SavedStateHandle 读取（见 VM KDoc），title 在
+ *   [onCreate] 直接读 extras 设工具栏标题（纯 View 状态，留在 View 层）
+ *   （不用 TheRouter @Autowired 注入：其生成代码对 String 产生"No cast needed"新警告）
+ */
 @AndroidEntryPoint
-class ChoiceBookActivity :
-    BaseMvvmRefreshActivity<ActivityBookchoiceBinding, ChoiceBookViewModel>() {
-    override val mViewModel: ChoiceBookViewModel by viewModels()
-    private lateinit var tvTitle: TextView
-    private lateinit var rfRvSearchBooks: RecyclerView
-    private lateinit var searchBookAdapter: SearchBookAdapter
-
-    override fun getRefreshLayout(): RefreshLayout {
-        return binding.rfRvSmartRefreshLayout
-    }
-
-    override fun initView() {
-        tvTitle = binding.tvTitle
-        searchBookAdapter = SearchBookAdapter(this)
-        rfRvSearchBooks = binding.rfRvSearchBooks
-        rfRvSearchBooks.layoutManager = LinearLayoutManager(this)
-        rfRvSearchBooks.adapter = searchBookAdapter
-        binding.ivReturn.setOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
-        }
-        searchBookAdapter.setItemClickListener(object : SearchBookAdapter.OnItemClickListener {
-            override fun clickAddShelf(clickView: View, position: Int, searchBook: SearchBook) {
-                mViewModel.addBookToShelf(searchBook)
-            }
-
-            override fun clickItem(animView: View, position: Int, searchBook: SearchBook) {
-                TheRouter.build(KeyCode.Book.DETAIL_PATH)
-                    .withInt("from", FROM_SEARCH)
-                    .withObject("data", searchBook)
-                    .navigation(this@ChoiceBookActivity)
-            }
-        })
-    }
-
-
-    override fun initData() {
-        val bundle = this.intent.extras
-        if (bundle != null) {
-            tvTitle.text = bundle.getString("title")
-            mViewModel.url = bundle.getString("url", "")
-        }
-        mViewModel.mList.observe(this) {
-            searchBookAdapter.submitList(it)
-        }
-    }
-
-    override fun enableToolbar(): Boolean {
-        return false
-    }
-
-    override fun onBindViewBinding(
-        inflater: LayoutInflater,
-        parent: ViewGroup?,
-        attachToParent: Boolean
-    ): ActivityBookchoiceBinding {
-        return ActivityBookchoiceBinding.inflate(inflater, parent, attachToParent)
-    }
-
-    override fun enableLoadMore(): Boolean {
-        return true
-    }
+@Route(path = KeyCode.Find.CHOICE_PATH)
+class ChoiceBookActivity : BaseMvvmRefreshActivity<ChoiceBookViewModel>() {
+    protected override val viewModel: ChoiceBookViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        toolbarTitle.value = intent.extras?.getString("title").orEmpty()
         super.onCreate(savedInstanceState)
-        RxBus.get().register(this)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        RxBus.get().unregister(this)
-    }
+    override fun enableLoadMore(): Boolean = true
 
-    // 处理添加书籍事件
-    @Subscribe(thread = EventThread.MAIN_THREAD, tags = [Tag(RxBusTag.HAD_ADD_BOOK)])
-    fun hadAddBook(bookShelf: BookShelf) {
-        mViewModel.bookShelves.add(bookShelf)
-        handleBookUpdate(bookShelf, true)  // true 表示添加书籍
-    }
-
-    // 处理移除书籍事件
-    @Subscribe(thread = EventThread.MAIN_THREAD, tags = [Tag(RxBusTag.HAD_REMOVE_BOOK)])
-    fun hadRemoveBook(bookShelf: BookShelf) {
-        mViewModel.bookShelves.remove(bookShelf)
-        handleBookUpdate(bookShelf, false)  // false 表示移除书籍
-    }
-
-    // 公共处理逻辑
-    private fun handleBookUpdate(bookShelf: BookShelf, isAdd: Boolean) {
-        val currentList = mViewModel.mList.value?.toMutableList() ?: mutableListOf()
-
-        val index = currentList.indexOfFirst { it.noteUrl == bookShelf.noteUrl }
-        if (index != -1) {
-            // 根据 isAdd 判断是添加还是移除书籍
-            val updatedBook = currentList[index].copy(add = isAdd)
-            currentList[index] = updatedBook
+    @Composable
+    override fun PageContent(state: LazyListState) {
+        val books by viewModel.list.collectAsState()
+        // 加载更多底部状态（ADR-0041）：由基类渲染镜像推导，失败可点重试
+        val loadingMore by remember { isLoadingMoreState }
+        val loadMoreFailed by remember { loadMoreFailedState }
+        val hasMore by remember { hasMoreDataState }
+        LazyColumn(
+            state = state,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(
+                start = CommonUiTokens.pagePadding,
+                top = CommonUiTokens.sectionSpacing,
+                end = CommonUiTokens.pagePadding,
+                bottom = CommonUiTokens.pagePadding
+            ),
+            // 条目为独立圆角卡片（见 SearchBookItem），用间距分隔替代条目内分割线
+            verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing)
+        ) {
+            items(books, key = { it.noteUrl }) { searchBook ->
+                SearchBookItem(
+                    searchBook = searchBook,
+                    onItemClick = {
+                        TheRouter.build(KeyCode.Book.DETAIL_PATH)
+                            .withInt("from", FROM_SEARCH)
+                            .withObject("data", searchBook)
+                            .navigation(this@ChoiceBookActivity)
+                    },
+                    onAddShelf = { viewModel.addBookToShelf(searchBook) }
+                )
+            }
+            // 触底加载反馈：加载中 / 失败重试 / 没有更多（ADR-0041）
+            item {
+                LoadMoreFooter(
+                    isLoadingMore = loadingMore,
+                    loadMoreFailed = loadMoreFailed,
+                    hasMoreData = hasMore,
+                    onRetry = { retryLoadMore() },
+                )
+            }
         }
-        searchBookAdapter.submitList(currentList)
     }
 }
