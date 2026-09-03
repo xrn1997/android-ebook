@@ -43,16 +43,14 @@ dependencyResolutionManagement {
 }
 
 
-// io.github.xrn1997:common 0.3.0 已发布到 Maven Central，但当前处于 common 继续迭代期，
-// 本次改动依赖尚未随 0.3.0 发布的新 API（共享 Call.Factory 脱敏日志、ExplodeEffect、DisplayUtil 新签名等），
 // 临时启用 includeBuild 走本地源码联调（lib_common 改动即时生效）。
 // common 新版本发布并升级 libs.versions.toml 后，注释掉下方 includeBuild 改回中央坐标解析：
- includeBuild("lib-common-build") {
-     dependencySubstitution {
-         substitute(module("io.github.xrn1997:common"))
-             .using(project(":lib_common"))
-     }
- }
+// includeBuild("lib-common-build") {
+//     dependencySubstitution {
+//         substitute(module("io.github.xrn1997:common"))
+//             .using(project(":lib_common"))
+//     }
+// }
 
 rootProject.name = "android-ebook"
 include(":module_app")
