@@ -10,7 +10,7 @@
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     },
     "method": "GET",
-    "searchUrl": "/so/{{keyword}}",
+    "searchUrl": "/so/{{keyword}}/{{page}}",
     "searchPage": {
       "param": "page",
       "start": 1,
@@ -54,7 +54,7 @@
       ]
     },
     "ruleFind": {
-      "url": "/{{kind}}",
+      "url": "/{{kind}}/{{page}}",
       "kinds": [
         {"title": "玄幻", "url": "xuanhuan"},
         {"title": "奇幻", "url": "qihuan"},

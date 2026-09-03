@@ -77,7 +77,10 @@ class ChoiceBookViewModel @Inject constructor(
         }
     }
 
-    /** 分页加载分类书籍：page=1 时替换列表，page>1 时追加。加载后标记书架状态。 */
+    /**
+     * 分页加载分类书籍：page=1 时替换列表，page>1 时经 [mergeBookPage] 去重追加，
+     * 本页没带来新条目即置「没有更多」。加载后标记书架状态。
+     */
     private fun searchBook() {
         if (url.isEmpty()) {
             return
@@ -87,12 +90,12 @@ class ChoiceBookViewModel @Inject constructor(
                 val value = bookSourceRepository.getKindBook(url, page)
                 bookShelfManager.markShelfStatus(value, bookShelves)
                 if (page == 1) {
-                    updateList(value)
+                    // 首屏按 noteUrl 去重：列表以 noteUrl 作 item key，重复 key 直接抛异常
+                    updateList(value.distinctBy { it.noteUrl })
                 } else {
-                    val list = list.value
-                    updateList(list + value)
-                    // 加载返回空 = 没有更多：置位后触底自动触发被状态机守卫拒绝（ADR-0041）
-                    if (value.isEmpty()) updateHasMoreData(false)
+                    // 无新条目 = 已经到底：越界页会以 200 重复返回首页书目，只靠「空页」判不到底
+                    val merged = mergeBookPage(list.value, value)
+                    if (merged == null) updateHasMoreData(false) else updateList(merged)
                 }
                 page++
                 updateStopRefresh()

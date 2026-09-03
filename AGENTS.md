@@ -236,6 +236,8 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 - 涉及正文分页跟进（`JsoupBookParser.getBookContent` / `ChapterPageMatcher`）时：判定基准是**目录页给出的原始章节 URL**（不对入口剥后缀），只对「下一页」候选链接剥一次分页后缀再比（扩展名形态不一致时再去扩展名兜底比一次）。对入口也剥离会让「章节号写在连字符后」的站点（`/1234-15.html` 与 `/1234-16.html`）剥后同形而串章（一路跟进后续章节直到页数上限，正文错乱 + 数十次冗余请求）。「第 1 页也带后缀」的站点与此结构同形、无法靠 URL 区分，取舍是**宁漏页不串章**，真要支持需在书源规则里声明分页模板（属 ADR-0016）；边界形态已由 `ChapterPageMatcherTest` 锁死
 
+- 涉及列表分页（分类页 `ruleFind.url` / 搜索页 `searchUrl`）时：模板**必须带 `{{page}}`**，否则「加载更多」每页都在请求同一个首页（内置书源曾如此）；页码换算与渲染统一走 `JsoupBookParser` 的 `ListPageUrl`，它把以 `/{{page}}` 结尾的模板在**首页裁掉页码段**（笔趣阁式站点首页是裸路径 `/xuanhuan`、`/so/关键词`，`/xuanhuan/1` 与 `/xuanhuan/` 都是 404），故 `getLibraryData` 等取首页的调用也必须经它，不要自己 `replace("{{page}}", "1")`。判「到底」不能只看空页：**越界页会以 HTTP 200 重复返回首页书目**（软 404），因此追加页一律走 `mergeBookPage` 按 `noteUrl` 去重、无新条目即置 `hasMore=false`——列表页的 `LazyColumn` 以 `noteUrl` 作 item key，重复条目直接抛异常。形态由 `ListPageUrlTest` 与 `BookPageMergeTest` 锁死
+
 - 跨模块导航使用 TheRouter，不直接依赖其他模块
 
 - 修改 Compose 页面时遵循 Material Theme 语义色（`MaterialTheme.colorScheme`），禁止硬编码颜色（阅读界面背景主题除外）

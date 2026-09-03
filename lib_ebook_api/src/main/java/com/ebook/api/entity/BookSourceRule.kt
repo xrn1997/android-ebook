@@ -29,7 +29,12 @@ data class BookSourceRule(
     val body: String = "",
 
     // ========== 搜索规则 ==========
-    /** 搜索 URL 模板，支持 {{keyword}}、{{page}} 占位符 */
+    /**
+     * 搜索 URL 模板，支持 {{keyword}}、{{page}} 占位符。
+     *
+     * {{page}} 的渲染见 JsoupBookParser 的 `ListPageUrl`：模板以 `/{{page}}` 结尾时，
+     * 首页裁掉该段（笔趣阁式站点的首页是裸路径 `/so/关键词`，`/so/关键词/1` 为 404）。
+     */
     val searchUrl: String = "",
     /** 搜索请求方法（覆盖 method） */
     val searchMethod: String = "",
@@ -173,7 +178,13 @@ data class ReplaceRule(
  */
 @Serializable
 data class FindRule(
-    /** 发现页 URL 模板，支持 {{kind}}、{{page}} 占位符 */
+    /**
+     * 发现页 URL 模板，支持 {{kind}}、{{page}} 占位符（页码按 `searchPage` 换算）。
+     *
+     * **必须写 {{page}}**：模板里没有它，「加载更多」每页都会请求同一个首页地址。
+     * {{page}} 的渲染见 JsoupBookParser 的 `ListPageUrl`：模板以 `/{{page}}` 结尾时，
+     * 首页裁掉该段（笔趣阁式站点的分类首页是裸路径 `/xuanhuan`，`/xuanhuan/1` 为 404）。
+     */
     val url: String = "",
     /** 分类列表 */
     val kinds: List<KindItem> = emptyList(),

@@ -4,6 +4,7 @@ import android.content.Context
 import com.xrn1997.common.util.Logger
 import com.ebook.api.cache.ACache
 import com.ebook.api.entity.BookSourceRule
+import com.ebook.api.entity.PageRule
 import com.ebook.api.entity.SearchRule
 import com.ebook.api.service.source.BookSourceNetwork
 import com.ebook.api.utils.JsoupHelper
@@ -46,23 +47,19 @@ class JsoupBookParser(
                 content
             }
 
-            // 计算页码
+            // 计算页码：URL 模板交 ListPageUrl 渲染（首页不带页码段），
+            // 请求体是表单参数、首页仍要带真实页码，故此处单独换算
             val pageParam = rule.searchPage
-            val actualPage = if (pageParam.start > 0) {
-                (page - 1) * pageParam.step + pageParam.start
-            } else {
-                page
-            }
-
-            val url = rule.searchUrl
-                .replace("{{keyword}}", keyword)
-                .replace("{{page}}", actualPage.toString())
-                .replace("{{pageParam}}", pageParam.param)
+            val url = ListPageUrl.build(
+                rule.searchUrl.replace("{{keyword}}", keyword),
+                page,
+                pageParam,
+            )
 
             val method = rule.searchMethod.ifEmpty { rule.method }
             val body = rule.searchBody
                 .replace("{{keyword}}", keyword)
-                .replace("{{page}}", actualPage.toString())
+                .replace("{{page}}", ListPageUrl.actualPage(page, pageParam).toString())
 
             val html = network.getPage(url, method, body)
             parseSearchBook(html)
@@ -260,18 +257,12 @@ class JsoupBookParser(
                 return@withContext emptyList()
             }
 
-            // 计算页码
-            val pageParam = rule.searchPage
-            val actualPage = if (pageParam.start > 0) {
-                (page - 1) * pageParam.step + pageParam.start
-            } else {
-                page
-            }
-
-            val kindUrl = findRule.url
-                .replace("{{kind}}", url)
-                .replace("{{page}}", actualPage.toString())
-                .replace("{{pageParam}}", pageParam.param)
+            // {{kind}} 由调用方给出，页码换算与 {{page}} 渲染统一收在 ListPageUrl
+            val kindUrl = ListPageUrl.build(
+                findRule.url.replace("{{kind}}", url),
+                page,
+                rule.searchPage,
+            )
 
             val html = network.getPage(kindUrl)
             // 使用发现规则的搜索规则，如果没有则使用通用搜索规则
@@ -310,9 +301,12 @@ class JsoupBookParser(
 
         for (kind in findRule.kinds) {
             try {
-                val kindUrl = findRule.url
-                    .replace("{{kind}}", kind.url)
-                    .replace("{{page}}", "1")
+                // 首页必须走 ListPageUrl：直接填 1 会生成 /xuanhuan/1，站点 404
+                val kindUrl = ListPageUrl.build(
+                    findRule.url.replace("{{kind}}", kind.url),
+                    1,
+                    rule.searchPage,
+                )
                 val html = network.getPage(kindUrl)
                 val searchRule = if (findRule.ruleSearch.list.isNotEmpty()) findRule.ruleSearch else rule.ruleSearch
                 val books = parseSearchBookWithRule(html, searchRule)
@@ -378,6 +372,51 @@ class JsoupBookParser(
         /** 单章最多抓取的正文分页数：兜底防御翻页链接异常导致的死循环 */
         private const val MAX_CONTENT_PAGES = 50
     }
+}
+
+/**
+ * 列表（分类页/搜索结果页）分页 URL 渲染（纯函数）。
+ *
+ * 提为文件级 `internal` 对象而非 [JsoupBookParser] 的私有方法：与 [ChapterPageMatcher] 同一考量，
+ * 纯字符串运算，单测无需构造 parser（书源规则 + OkHttpClient）即可覆盖各种模板形态。
+ */
+internal object ListPageUrl {
+
+    /** 路径段式分页占位符：模板以它结尾时，第 1 页整段裁掉（见 [build]） */
+    private const val PATH_PAGE_PLACEHOLDER = "/{{page}}"
+
+    /** 把调用方页序号 [page]（从 1 起）按 [pageParam] 的起始页与步长换算成站点侧页码。 */
+    fun actualPage(page: Int, pageParam: PageRule): Int =
+        if (pageParam.start > 0) (page - 1) * pageParam.step + pageParam.start else page
+
+    /**
+     * 渲染第 [page] 页地址。[template] 支持 {{page}}、{{pageParam}} 占位符，
+     * {{kind}}、{{keyword}} 之类的业务占位符由调用方先行替换。
+     *
+     * **首页不带页码段**：笔趣阁式站点的列表首页是裸路径（`/xuanhuan`、`/so/关键词`），
+     * `/xuanhuan/1` 与 `/xuanhuan/` 都是 404 —— 首页照旧填 1 会让首屏直接取不到数据。
+     * 故模板以 `/{{page}}` 结尾且换算后正好是起始页时，把这一段整个去掉。
+     *
+     * 只裁「结尾的页码段」：查询参数式（`?{{pageParam}}={{page}}`）与页码段在模板中段的形态，
+     * 其首页地址本身就带 page=1，裁掉反而错，因此这类模板原样渲染真实页码。
+     */
+    fun build(template: String, page: Int, pageParam: PageRule): String {
+        val actualPage = actualPage(page, pageParam)
+        val withParam = template.replace("{{pageParam}}", pageParam.param)
+        return if (actualPage == firstPage(pageParam) && withParam.endsWith(PATH_PAGE_PLACEHOLDER)) {
+            withParam.removeSuffix(PATH_PAGE_PLACEHOLDER)
+        } else {
+            withParam.replace("{{page}}", actualPage.toString())
+        }
+    }
+
+    /**
+     * 站点侧的起始页码。
+     *
+     * [actualPage] 在 `start <= 0` 时不做换算（直接用页序号），此时序号 1 就是首页，
+     * 不能拿 start（0 或负数）去比对——否则首页会渲染成带 `/1` 的地址而 404。
+     */
+    private fun firstPage(pageParam: PageRule): Int = if (pageParam.start > 0) pageParam.start else 1
 }
 
 /**

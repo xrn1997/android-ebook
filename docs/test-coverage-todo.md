@@ -33,6 +33,14 @@
   判定基准为目录页原始章节 URL、只对候选链接剥一次后缀（保留扩展名 + 去扩展名兜底）。
   锁死两类回归：「章节号写在连字符后」的站点相邻章不得被判为同章（否则串章），
   以及「第 1 页也带后缀」形态当前宁漏页不串章的取舍（将来上书源分页模板时需同步改该断言）
+- [x] 为列表（分类页/搜索页）分页判定添加回归测试
+  —— 两处纯逻辑已覆盖：`lib_book_common/src/test/.../analyze/source/ListPageUrlTest.kt`（8 例，纯 JVM）
+  锁死页码换算与首页裁剪——以 `/{{page}}` 结尾的模板首页渲染为裸路径（`/xuanhuan`、`/so/关键词`），
+  `?page=` 查询式与页码段在中段的模板不裁；`module_find/src/test/.../mvvm/viewmodel/BookPageMergeTest.kt`
+  （5 例，纯 JVM）锁死「按 noteUrl 去重」与「本页无新条目 = 到底」（站点越界页以 HTTP 200 重复返回首页
+  书目，只看空页判不到底；重复条目还会撞 `LazyColumn` 的 item key 而抛异常）。
+  **仍未覆盖**：ViewModel 侧的页码递增、`hasMore` 信号与刷新状态机的接线（需 Robolectric + 假仓库，
+  或直接人工装机验证），本轮按人工验证处理
 - [ ] 为下载队列的失败重试/出队语义添加测试
   —— `DownloadService.downloading` 的不变式（重试 `RETRY_TIMES` 次耗尽后必须 `deleteTask` 出队、
   暂停中断时不出队、解析占位文案与空正文都不得入库）目前**无自动化覆盖**，只能靠人工装机验证。

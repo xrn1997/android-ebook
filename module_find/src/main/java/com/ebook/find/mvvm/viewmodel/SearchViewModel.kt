@@ -135,20 +135,22 @@ class SearchViewModel @Inject constructor(
         searchBook(durSearchKey)
     }
 
-    /** 分页搜索书籍：page=1 时替换列表，page>1 时追加。仅在有结果时递增页码，避免空页越翻越深。 */
+    /**
+     * 分页搜索书籍：page=1 时替换列表，page>1 时经 [mergeBookPage] 去重追加，
+     * 本页没带来新条目即置「没有更多」。仅在有结果时递增页码，避免空页越翻越深。
+     */
     private fun searchBook(content: String) {
         viewModelScope.launch {
             try {
                 val value = bookSourceManager.requireParser().searchBook(content, page)
                 bookShelfManager.markShelfStatus(value, bookShelves)
                 if (page == 1) {
-                    updateList(value)
-                } else if (value.isNotEmpty()) {
-                    val list = list.value
-                    updateList(list + value)
+                    // 首屏按 noteUrl 去重：列表以 noteUrl 作 item key，重复 key 直接抛异常
+                    updateList(value.distinctBy { it.noteUrl })
                 } else {
-                    // 加载返回空 = 没有更多（仅加载更多路径置位；刷新路径由状态机自动重置，ADR-0041）
-                    updateHasMoreData(false)
+                    // 没带来新条目（空页或整页重复）= 没有更多；刷新路径由状态机自动重置，ADR-0041
+                    val merged = mergeBookPage(list.value, value)
+                    if (merged == null) updateHasMoreData(false) else updateList(merged)
                 }
                 // 仅在有结果时递增页码
                 if (value.isNotEmpty()) {
