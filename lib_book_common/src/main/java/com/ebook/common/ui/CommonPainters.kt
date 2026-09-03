@@ -1,8 +1,8 @@
 package com.ebook.common.ui
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.ColorPainter
@@ -26,11 +26,13 @@ import androidx.core.graphics.drawable.toBitmap
 @Composable
 fun rememberCoverPlaceholderPainter(): Painter {
     val context = LocalContext.current
+    // 解码失败时的回退色走语义色（禁止硬编码色值）；取一次即可，占位色不随内容变化
+    val fallbackColor = MaterialTheme.colorScheme.surfaceVariant
     return remember {
         context.getDrawable(com.ebook.common.R.drawable.img_cover_default)
             ?.toBitmap()
             ?.asImageBitmap()
             ?.let { BitmapPainter(it) }
-            ?: ColorPainter(Color.Gray)
+            ?: ColorPainter(fallbackColor)
     }
 }

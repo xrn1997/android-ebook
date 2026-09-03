@@ -4,13 +4,14 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.book.R
 import com.ebook.common.domain.BookComment
-import com.ebook.common.event.KeyCode
+import com.ebook.common.domain.UserSessionManager
 import com.ebook.common.util.DateUtil
-import com.ebook.common.util.SPUtil
 import com.ebook.common.repository.CommentRepository
 import com.xrn1997.common.util.Logger
 import com.xrn1997.common.BaseApplication.Companion.context
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.map
 import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -18,8 +19,18 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BookCommentsViewModel @Inject constructor(
-    private val commentRepository: CommentRepository
+    private val commentRepository: CommentRepository,
+    private val userSessionManager: UserSessionManager
 ) : BaseRefreshViewModel<BookComment, CommentRepository>(commentRepository) {
+
+    /**
+     * 当前会话用户 id（null = 未登录）。
+     *
+     * 取自 [UserSessionManager]（认证状态的唯一 seam），供评论本人判定使用：
+     * 判身份一律用 userId，不用展示名——昵称可重复且仅展示用（见 ADR-0009），
+     * 用展示名比对会让设过昵称的用户永久删不掉自己的评论。
+     */
+    val currentUserId: Flow<Long?> = userSessionManager.currentUser.map { it?.userId }
 
     @JvmField
     var comment: BookComment = BookComment(
@@ -50,7 +61,8 @@ class BookCommentsViewModel @Inject constructor(
 
     fun addComment(comments: String) {
         if (comments.isNotEmpty()) {
-            val userId = SPUtil.get(KeyCode.Login.SP_USER_ID, -1L)
+            // 与本人判定同源：会话里的 userId；未登录取 0，交由服务端按 token 拒绝
+            val userId = userSessionManager.currentUser.value?.userId ?: 0L
             val updatedComment = comment.copy(
                 userId = userId,
                 content = comments
@@ -102,3 +114,16 @@ class BookCommentsViewModel @Inject constructor(
         private const val TAG = "BookCommentsViewModel"
     }
 }
+
+/**
+ * 评论本人判定（纯函数，便于 JVM 单测）。
+ *
+ * 用 `userId` 而非展示名比对：展示名（昵称）可重复且仅用于展示（见 ADR-0009），
+ * 且 [com.ebook.common.mapper.toBookComment] 填的是「昵称优先」的值，
+ * 与登录名比对必然对设过昵称的用户失配。
+ *
+ * 要求 `currentUserId > 0`：路由参数组装的占位评论 `userId = 0`，未登录时若不加这道
+ * 闸门会与自己比出「本人」的假阳性。
+ */
+fun isOwnComment(commentUserId: Long, currentUserId: Long?): Boolean =
+    currentUserId != null && currentUserId > 0L && commentUserId == currentUserId

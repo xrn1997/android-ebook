@@ -60,16 +60,15 @@ dependencies {
     api(libs.coil.kt.compose)
     ksp(libs.router.apt)
     api(libs.router)
-    //glide图片加载
-    api(libs.glide.core) {
-        exclude(group = "com.android.support")
-    }
-    ksp(libs.glide.compiler)
 
     api(libs.dagger)
     ksp(libs.dagger.compiler)
 
     testImplementation(libs.junit)
+    // Robolectric：AndroidUserSessionManager 需要真实 SharedPreferences 与 Application 上下文
+    // （与 lib_ebook_db 的 SearchHistoryDaoTest 同一套跑法）
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
@@ -78,13 +77,6 @@ dependencies {
     api(libs.jsoup)
     //kotlinx-serialization
     implementation(libs.kotlinx.serialization.json)
-    //高斯模糊类
-    api(libs.glide.transformations)
-    //AutoFitTextView
-    api(libs.autofittextview)
-    //SwitchButton
-    api(libs.switchbutton.library)
-    api(libs.victor.lib)
     api(libs.retrofit.converter.scalars)
     api(libs.juniversalchardet)
     // PermissionX

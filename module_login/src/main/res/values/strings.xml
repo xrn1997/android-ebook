@@ -6,7 +6,6 @@
     <string name="login">登　录</string>
     <string name="register_entry">注册</string>
     <string name="fgt_pwd">忘记密码</string>
-    <string name="print_username">请输入用户名</string>
     <string name="print_email">请输入邮箱</string>
     <string name="print_old_pwd">请输入旧密码</string>
     <string name="print_pwd_again">请再次输入密码</string>
@@ -23,9 +22,6 @@
     <string name="logout">退出登录</string>
 
     <!-- 注册/验证身份/修改密码页标题与文案 -->
-    <string name="title_register">注册</string>
-    <string name="title_verify_user">验证用户</string>
-    <string name="title_modify_pwd">修改密码</string>
     <string name="title_reset_pwd">重置密码</string>
     <string name="confirm_modify">确认修改</string>
     <!-- 登录页品牌副标题 -->

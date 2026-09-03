@@ -39,7 +39,8 @@ class EncodingInterceptor(
      */
     @Throws(IOException::class)
     private fun setBodyContentType(response: Response) {
-        val body = response.body ?: return
+        // OkHttp 5: body is non-null (empty body when absent), no null guard needed
+        val body = response.body
         // setting body contentTypeString using reflect
         val aClass: Class<out ResponseBody> = body.javaClass
         try {

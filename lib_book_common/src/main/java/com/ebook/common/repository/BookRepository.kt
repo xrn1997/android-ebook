@@ -109,13 +109,12 @@ class BookRepository @Inject constructor(
         }
         // 保存 bookShelf
         bookShelfDao.insert(bookShelf)
-        // 保存 chapterList（如果存在）
-        bookShelf.chapterList?.let { chapters ->
-            if (chapters.isNotEmpty()) {
-                // 设置 noteUrl 关联
-                chapters.forEach { it.noteUrl = bookShelf.noteUrl }
-                chapterListDao.insertAll(chapters)
-            }
+        // 保存 chapterList：实体上是非空 List（默认空集），只需判空集，不用安全调用
+        val chapters = bookShelf.chapterList
+        if (chapters.isNotEmpty()) {
+            // 设置 noteUrl 关联
+            chapters.forEach { it.noteUrl = bookShelf.noteUrl }
+            chapterListDao.insertAll(chapters)
         }
         _bookShelfEvents.emit(BookShelfEvent.Added(bookShelf))
     }

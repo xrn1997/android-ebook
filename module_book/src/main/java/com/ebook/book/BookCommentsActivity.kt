@@ -2,7 +2,6 @@ package com.ebook.book
 
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,7 +22,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,12 +43,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ebook.book.mvvm.viewmodel.BookCommentsViewModel
+import com.ebook.book.mvvm.viewmodel.isOwnComment
 import com.ebook.common.domain.BookComment
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
 import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.util.DateUtil
-import com.ebook.common.util.SPUtil
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.IBaseRefreshView
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
@@ -113,6 +112,8 @@ class BookCommentsActivity : BaseMvvmActivity<BookCommentsViewModel>() {
 @Composable
 fun BookCommentsScreen(viewModel: BookCommentsViewModel) {
     val comments by viewModel.list.collectAsState()
+    // 本人判定用的会话 userId：经 VM 从 UserSessionManager 取，不在页面里直读 SP
+    val currentUserId by viewModel.currentUserId.collectAsState(initial = null)
     var isRefreshing by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -167,6 +168,7 @@ fun BookCommentsScreen(viewModel: BookCommentsViewModel) {
             CommentList(
                 listState = listState,
                 comments = comments,
+                currentUserId = currentUserId,
                 onDelete = { comment -> viewModel.deleteComment(comment.id) }
             )
         }
@@ -179,13 +181,17 @@ fun BookCommentsScreen(viewModel: BookCommentsViewModel) {
 }
 
 /**
- * 评论列表：长按本人评论弹删除确认（先由条目层比对用户名，再弹框）。
+ * 评论列表：长按本人评论弹删除确认。
+ *
+ * 本人判定走 [isOwnComment]（按 userId，判定逻辑在 VM 侧便于单测），
+ * 不再比对展示名——展示名填的是「昵称优先」的值，与登录名不同源。
  * 页面边距/条目间距走 [CommonUiTokens]（ADR-0006 共享设计语言）。
  */
 @Composable
 private fun CommentList(
     listState: LazyListState,
     comments: List<BookComment>,
+    currentUserId: Long?,
     onDelete: (BookComment) -> Unit
 ) {
     var pendingDelete by remember { mutableStateOf<BookComment?>(null) }
@@ -202,8 +208,8 @@ private fun CommentList(
     ) {
         items(comments, key = { it.id }) { comment ->
             CommentItem(comment) {
-                // 仅本人评论可删除（对齐原实现的 SP_USERNAME 比对）
-                if (comment.username == SPUtil.get(KeyCode.Login.SP_USERNAME, "")) {
+                // 仅本人评论可删除：按 userId 判定（展示名可重复，不能当所有权凭据）
+                if (isOwnComment(comment.userId, currentUserId)) {
                     pendingDelete = comment
                 }
             }
@@ -287,14 +293,9 @@ private fun CommentInputBar(
  */
 @Composable
 fun CommentItem(comment: BookComment, onLongClick: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = {}, onLongClick = onLongClick),
-        shape = RoundedCornerShape(CommonUiTokens.cardCornerSmall),
-        color = MaterialTheme.colorScheme.surfaceContainer
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+    // 条目无点击跳转，只保留长按删除；列表密集排布故不叠阴影
+    CommonItemCard(onLongClick = onLongClick, shadowElevation = 0.dp) {
+        Column {
             // 头部：头像 + 用户名
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AsyncImage(

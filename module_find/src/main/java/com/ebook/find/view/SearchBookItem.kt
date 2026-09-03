@@ -1,7 +1,6 @@
 package com.ebook.find.view
 
 import android.os.Looper
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ebook.common.ui.BookCover
+import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
 import com.ebook.db.entity.SearchBookEntity
@@ -48,15 +47,8 @@ fun SearchBookItem(
     onItemClick: () -> Unit,
     onAddShelf: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onItemClick),
-        shape = RoundedCornerShape(CommonUiTokens.cardCornerSmall),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = 1.dp
-    ) {
-        Row(modifier = Modifier.padding(12.dp)) {
+    CommonItemCard(onClick = onItemClick) {
+        Row {
             // 封面：共享 BookCover（条目内小封面用小圆角变体）
             BookCover(
                 url = searchBook.coverUrl,

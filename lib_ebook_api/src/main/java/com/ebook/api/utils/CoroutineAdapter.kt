@@ -49,6 +49,10 @@ class CoroutineAdapter @Inject constructor(
                 ErrorCode.USER_ERROR_A0230.code -> handleTokenExpired(apiCall, resp)
                 else -> Result.failure(ApiException(resp.code, resp.error))
             }
+        } catch (e: CancellationException) {
+            // 取消不是失败：原样抛出。这一层若吞掉，内层（handleTokenExpired）对取消的
+            // 放行就毫无意义——取消会被翻译成一条笼统的网络异常交给调用方
+            throw e
         } catch (e: Exception) {
             // 网络或未知异常处理
             val exception = handleException(e)
@@ -72,11 +76,11 @@ class CoroutineAdapter @Inject constructor(
         //
         // 单独兜异常（防御性）：[TokenRefresher] 的契约是「失败返回 null」（当前实现
         // SessionTokenRefresher 内部已 try/catch），但接缝是可替换的：一旦将来换成别的实现
-        // 或重构掉内部 catch，异常会冒到 [safeApiCall] 的通用 catch 变成一条笼统失败，
+        // 或重构掉内部 catch，非取消异常会冒到 [safeApiCall] 的通用 catch 变成一条笼统失败，
         // **且永远不会发 SessionExpired** —— 用户卡在过期会话里（页面反复报错但不跳登录）。
         // 故在此降级为「刷新失败」，保证事件出口唯一且总能发出。
-        // 必须先放行 [CancellationException]：请求被取消（页面销毁/超时）不是会话过期，
-        // 吞掉它会误清会话并把用户踢到登录页
+        // 取消必须原样上抛（本层与 [safeApiCall] 都放行）：请求被取消（页面销毁/超时）
+        // 不是会话过期，吞掉它会误发 SessionExpired、清会话并把用户踢到登录页
         val newToken = try {
             tokenRefresher.refresh(tokenHolder.token)
         } catch (e: CancellationException) {
@@ -99,6 +103,9 @@ class CoroutineAdapter @Inject constructor(
             } else {
                 Result.failure(ApiException(retry.code, retry.error))
             }
+        } catch (e: CancellationException) {
+            // 刷新已成功、重放时页面被销毁：取消照常上抛，不记为业务失败
+            throw e
         } catch (e: Exception) {
             Result.failure(handleException(e))
         }

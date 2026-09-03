@@ -7,7 +7,11 @@
   另含 addToShelf/removeFromShelf 级联、getCachedChapterUrls 短路、getAllBooksWithDetails 孤立清理与章节排序
 - [x] 为 `UserSessionManager` 补充 token 同步 TokenHolder 的测试用例
   —— 已完成：`FakeUserSessionManager` 已注入并同步 `TokenHolder`，`UserSessionManagerTest` 已含
-  `saveSession should sync token to TokenHolder` / `saveSession with empty token should clear TokenHolder` 等用例
+  `saveSession should sync token to TokenHolder` / `saveSession with empty token should clear TokenHolder` 等用例。
+  **注意该测试测的是假件自洽**，真实现 `AndroidUserSessionManager` 一度零覆盖——会话镜像③
+  （`ProfileRepository` 内存昵称/头像流）漏清因此没被发现。本轮已补
+  `lib_book_common/src/test/.../domain/AndroidUserSessionManagerTest.kt`（Robolectric + 真 SP/TokenHolder，
+  断言 `clearSession()` 一次覆盖三处镜像，并用落盘键白名单锁死「密码不落盘」）
 - [ ] 为 mock 数据源添加资产契约测试
   —— 评论侧已完成：`lib_ebook_api/src/test/.../comment/CommentNetworkTestTest.kt` 用文件版
   `TestAssetManager` 直读 `src/main/assets` 跑通生产路径，锁死三条契约：资产形态与解码类型一致
@@ -36,3 +40,25 @@
   「取任务 → 重试 → 出队/入库」抽成可注入假仓库与假时钟的纯挂起函数（或改用 Robolectric + 假 `DownloadRepository`）
 - [ ] 为 Compose 页面添加 UI 测试
 - [ ] `AuthInterceptor` 测试归属 lib_common（android-practice 仓库，随认证体系对齐后不再在本仓库维护）
+
+## 本轮（2026-09-03 评审）明确延后的技术债
+
+- [ ] **`xrn1997.android.compose` 跟随仓库级 `isModule` 开关，导致 `-PisModule=true` 弄坏复合构建**
+  —— `AndroidLibraryComposeConventionPlugin` 内部按 `findProperty("isModule")` 决定套
+  application 还是 library（该分支是为 `module_main` 同时应用两个约定插件而存在），但同一个类
+  又被注册成给 `lib_common` 用的兼容别名 `xrn1997.android.compose`。命令行 `-P` 会渗进
+  `includeBuild(lib-common-build)`，于是 `lib_common` 被套上 `com.android.application`，与它的
+  library 插件冲突：`'com.android.application' and 'com.android.library' plugins cannot be
+  applied in the same project`。根治方向：为兼容别名单列一个固定走 library 的插件类，
+  把 `isModule` 分支只留给 `xrn1997.android.library.compose`。当前规避方式见 `gradle.properties`
+  注释（独立调试直接改文件，勿用 `-P`）
+- [ ] **零调用方的 Room DAO 方法**（实测确认：`BookShelfDao.getAllBooksFlow`、`getBookFullInfoByUrl`、
+  `getBooksByUrls`、`getCount`、`DownloadChapterDao.getFirst`）—— 按 ADR-0015「无任何调用方 → 删除」
+  应删，但本轮不动：不影响 schema、无用户可见症状，删除需连带去掉刚补的注释并重跑回归，
+  宜单独一次 `refactor(lib_ebook_db)` 提交处理。删前先确认不是为 Flow 化书架预留
+  （`getAllBooksFlow` 看着像，但无任何文档这么写）
+- [ ] **独立调试宿主绕过 `clearSession()`**：`module_login/src/main/test/debug/MainActivity.kt:73`
+  的「退出登录」只 `SPUtil.remove(SP_IS_LOGIN)`，不清 `user_session` SP 与 `ProfileRepository` 内存态——
+  与本轮修掉的「会话三处镜像未一并失效」是同一类缺陷（仅影响独立调试宿主，不影响集成构建）。
+  修法：改调 `userSessionManager.clearSession()`；同批已把 `module_book` 调试宿主的模拟登录改成走
+  `saveSession`（见其类 KDoc）

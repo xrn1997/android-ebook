@@ -50,6 +50,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- 独立模式模拟登录页：TestApplication 把 LOGIN_PATH 重定向到 TEST_LOGIN_PATH，
+             该路由挂在本 Activity 上；不声明则跳转静默丢失（两份清单是替换关系，不是合并） -->
+        <activity android:name="debug.LoginActivity" />
         <activity
             android:name="com.ebook.book.ReadBookActivity"
             android:exported="true"

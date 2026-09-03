@@ -43,7 +43,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -66,6 +65,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.ebook.book.mvvm.viewmodel.BookImportViewModel
 import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.ui.CommonItemCard
 import com.permissionx.guolindev.PermissionX
 import com.permissionx.guolindev.request.ExplainScope
 import com.permissionx.guolindev.request.ForwardScope
@@ -500,18 +500,15 @@ private fun ImportBookItem(
     checked: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
-    Surface(
-        // clickable 挂在 Surface 上：ripple 按圆角裁剪，点击命中区即整卡
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = canCheck) { onToggle(!checked) },
-        shape = RoundedCornerShape(CommonUiTokens.cardCornerSmall),
-        color = MaterialTheme.colorScheme.surfaceContainer
+    CommonItemCard(
+        onClick = { onToggle(!checked) },
+        enabled = canCheck,
+        shadowElevation = 0.dp,
+        // 书源条目密度高，比默认 12dp 更紧
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(

@@ -147,7 +147,7 @@ class CommentNetworkTest @Inject constructor(
      * 以服务端身份重建评论：真实后端忽略客户端提交的 id/作者/时间，用 token 身份与
      * 服务器时间赋值后回显（见 ADR-0013）。mock 若原样回显客户端对象会有三个后果：
      * - id 恒为客户端占位的 0 → 连发两条在评论列表 `key = { it.id }` 上撞 key，LazyColumn 直接抛异常；
-     * - 作者沿用客户端空字段 → 「仅本人评论可长按删除」的门禁（用户名与 SP_USERNAME 比对）永不通过；
+     * - 作者沿用客户端空字段 → 「仅本人评论可长按删除」的门禁（按 userId 判定）永不通过；
      * - add_time 为空 → 时间显示与按时间倒序排序一起失效。
      */
     private suspend fun stampAsServer(comment: Comment): Comment {
@@ -155,9 +155,9 @@ class CommentNetworkTest @Inject constructor(
         val id = synchronized(this) { nextCommentId++ }
         return comment.copy(
             id = id,
-            // nickname 刻意留空：展示名经 toBookComment 回落到 username，
-            // 填昵称会让章节评论区的本人判定（用户名 == SP_USERNAME）失配、评论删不掉
-            user = User(id = me.id, username = me.username, image = me.image),
+            // 昵称如实带上：展示名走「昵称优先」，而本人判定已按 userId 比对，
+            // 不再需要靠留空昵称来绕开门禁失配
+            user = User(id = me.id, username = me.username, image = me.image, nickname = me.nickname),
             addTime = ZonedDateTime.now(SERVER_ZONE).format(serverTimeFormatter)
         )
     }

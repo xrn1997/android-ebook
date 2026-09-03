@@ -28,7 +28,6 @@ dependencies {
     compileOnly(libs.ksp.gradlePlugin)
     compileOnly(libs.room.gradlePlugin)
     compileOnly(libs.router.gradlePlugin)
-    implementation(libs.truth)
 }
 
 tasks {
@@ -40,12 +39,8 @@ tasks {
 
 gradlePlugin {
     plugins {
-        register("androidApplicationCompose") {
-            id = libs.plugins.xrn1997.android.application.compose.get().pluginId
-            implementationClass = "AndroidApplicationComposeConventionPlugin"
-        }
         register("androidApplication") {
-            id = libs.plugins.xrn1997.android.application.asProvider().get().pluginId
+            id = libs.plugins.xrn1997.android.application.get().pluginId
             implementationClass = "AndroidApplicationConventionPlugin"
         }
         register("androidLibraryCompose") {
@@ -61,10 +56,6 @@ gradlePlugin {
             id = libs.plugins.xrn1997.android.library.asProvider().get().pluginId
             implementationClass = "AndroidLibraryConventionPlugin"
         }
-        register("androidTest") {
-            id = libs.plugins.xrn1997.android.test.get().pluginId
-            implementationClass = "AndroidTestConventionPlugin"
-        }
         register("hilt") {
             id = libs.plugins.xrn1997.hilt.get().pluginId
             implementationClass = "HiltConventionPlugin"
@@ -76,10 +67,6 @@ gradlePlugin {
         register("androidLint") {
             id =  libs.plugins.xrn1997.android.lint.get().pluginId
             implementationClass = "AndroidLintConventionPlugin"
-        }
-        register("jvmLibrary") {
-            id =  libs.plugins.xrn1997.jvm.library.get().pluginId
-            implementationClass = "JvmLibraryConventionPlugin"
         }
         register("androidComponent") {
             id = libs.plugins.xrn1997.android.component.get().pluginId

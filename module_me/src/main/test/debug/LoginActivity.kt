@@ -104,7 +104,6 @@ class LoginActivity : BaseActivity() {
     /** 模拟退出登录：清空会话后返回，用于验证未登录态 UI。 */
     private fun logoutAndBack() {
         userSessionManager.clearSession()
-        profileRepository.clearAuthData()
         ToastUtil.showShort(this, getString(R.string.me_test_logout_success))
         onBackPressedDispatcher.onBackPressed()
     }

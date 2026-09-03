@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">module_find</string>
+    <!-- 异常无 message 时的兜底文案（VM 侧引用，不得硬编码在代码里） -->
+    <string name="network_request_timeout">网络请求超时</string>
     <string name="search_book_or_author">搜书名、作者</string>
     <string name="str_return">返回</string>
     <string name="str_search_history">搜索历史</string>

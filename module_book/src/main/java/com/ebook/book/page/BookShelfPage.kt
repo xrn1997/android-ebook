@@ -1,7 +1,6 @@
 package com.ebook.book.page
 
 import android.content.Intent
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,7 +25,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -53,6 +51,7 @@ import com.ebook.book.manager.BitIntentDataManager
 import com.ebook.common.event.FROM_BOOKSHELF
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.BookCover
+import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.db.entity.BookShelfEntity
 import com.therouter.TheRouter
@@ -106,7 +105,10 @@ fun BookShelfPage(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
             actions = {
-                // 导入本地书（点击反馈由 Material ripple 承担）
+                // 导入本地书（点击反馈由 Material ripple 承担）：
+                // 用 startActivity 而非 TheRouter——@Route 是为跨模块跳转准备的，
+                // ImportBookActivity 只被本页使用、未挂路由，直启即可（右侧下载管理入口
+                // 同样在本模块内，走路由是为与独立模式的调试宿主共用同一跳法）
                 IconButton(onClick = {
                     context.startActivity(Intent(context, ImportBookActivity::class.java))
                 }) {
@@ -211,15 +213,8 @@ fun BookShelfItem(
     onItemClick: () -> Unit,
     onItemLongClick: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = onItemClick, onLongClick = onItemLongClick),
-        shape = RoundedCornerShape(CommonUiTokens.cardCornerSmall),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = 1.dp
-    ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    CommonItemCard(onClick = onItemClick, onLongClick = onItemLongClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             // 封面：共享 BookCover（条目内小封面用小圆角变体）
             BookCover(
                 url = bookShelf.bookInfo?.coverUrl ?: "",

@@ -57,7 +57,7 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 > 本节只记**稳定约束**；接线细节（具体调用方式、基类钩子、内部机制）以相关代码与 KDoc 为事实源，改动时不要求同步本文件。
 
-- **约定插件**：`build-logic/convention/` 提供统一构建配置，插件 ID 以 `xrn1997.` 为前缀；其中 `xrn1997.android.component` 支撑模块化开发（`gradle.properties` 的 `isModule=true` 时功能模块可独立运行，`false`（默认）时作为 library 被 `module_app` 依赖）。
+- **约定插件**：`build-logic/convention/` 提供统一构建配置，插件 ID 以 `xrn1997.` 为前缀；其中 `xrn1997.android.component` 支撑模块化开发（`gradle.properties` 的 `isModule=true` 时功能模块可独立运行，`false`（默认）时作为 library 被 `module_app` 依赖）。**提交态 `gradle.properties` 必须是 `isModule=false`**——`true` 时 `module_app` 不依赖任何功能模块，产出的是空壳 App。临时单模块独立运行：**直接把 `gradle.properties` 的 `isModule` 改成 `true`，调试完改回，不要提交**。**不要用 `./gradlew -PisModule=true` 覆盖**——命令行 `-P` 会渗进 `settings.gradle.kts` 的 `includeBuild(lib-common-build)`，让 `lib_common` 也按独立模块去套 `com.android.application`，与它的 library 插件冲突而构建失败（`'com.android.application' and 'com.android.library' plugins cannot be applied in the same project`）；根因是兼容别名 `xrn1997.android.compose` 复用了带 `isModule` 分支的插件类，待修项见 `docs/test-coverage-todo.md`。
 
 - **功能模块**依赖 `lib_book_common`，互不依赖；跨模块导航使用 TheRouter，服务经 `provider/` 接口暴露。
 
@@ -85,7 +85,7 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 **跨模块路由在独立模式下的占位**：业务代码跳往其他模块的路由（如 `KeyCode.Main.MAIN_PATH`）在独立模块里不存在，TheRouter 找不到路由**只记一行日志、不报错不闪退**，跳转静默丢失。需要该链路的模块在 `src/main/test/debug/` 宿主上以 `@Route` 挂同名路径占位（该 source set 只在独立模式编译，不与集成模式抢路由），例：module\_login 的 `debug.MainActivity` 占 `MAIN_PATH` 供登录成功后 CLEAR\_TOP。另注：新增/改动 `@Route` 后，routeMap 资产由 TheRouter transform 回写，**当次构建的 APK 仍装旧路由表，需再构建一次**才生效。
 
-**新增接口同步**：新增 `DataSource` 接口方法时，必须同步更新对应的 `XxxNetworkTest` mock 实现和 `lib_ebook_api/src/main/assets/` 下的 JSON 资产文件。
+**新增接口同步**：新增 `DataSource` 接口方法时，必须同步更新对应的 `XxxNetworkTest` mock 实现。JSON 资产只适用于**返回固定结构的读接口**——这类方法同时要在 `lib_ebook_api/src/main/assets/` 补对应资产。**回显请求内容的写接口与文件上传接口**（如 `updateMe` 的部分更新回显、`uploadAvatar` 返回上传后的 URL）应在 mock 里以代码合成响应，并在实现上注释说明「为何无静态资产可对应」：静态资产表达不了「按入参变化」与「上传后真实地址」这类语义，禁止为凑规则造一份固定 JSON 去冒充响应。
 
 **资产形态与解码类型同步**：mock 读资产用的是 `getDataFromJsonFile<T>` 的 reified 类型，它必须与资产的 `data` 实际形态一致（服务端把列表改成分页包裹时，`T` 要从 `List<X>` 换成包裹对象，只取 `.data?.items`）。错配抛的 `SerializationException` 会被 `CoroutineAdapter` 吞成「未知错误」，**页面不闪退、数据永远加载不出来**，只有一行看不出根因的 ERROR 日志——因此这类改动必须同步更新 `lib_ebook_api` 的 mock 资产契约测试（`CommentNetworkTestTest` 一类）。
 
@@ -113,7 +113,7 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 ## 构建约定
 
-- 依赖版本仅通过版本目录管理（`gradle/libs.versions.toml`），构建脚本中引用 `libs.xxx.yyy`，不硬编码版本号
+- 依赖版本仅通过版本目录管理（`gradle/libs.versions.toml`），构建脚本中引用 `libs.xxx.yyy`，不硬编码版本号。**已知结构性豁免**：`settings.gradle.kts` 的 `plugins {}` 块中 foojay resolver 插件（`org.gradle.toolchains.foojay-resolver-convention`）版本 `1.0.0` 为字面值——settings 的 `plugins {}` 块读不到版本目录，无法写成 `libs.` 引用，不是漏改
 
 - **AGP 9 内置 Kotlin（built-in Kotlin）**：Android 模块不再应用 `org.jetbrains.kotlin.android`（约定插件 `xrn1997.android.*` 不包含 KGP，Kotlin 支持由 AGP 提供）；顶层 `kotlin { compilerOptions {} }` 块仍可用（AGP 注册了 `KotlinAndroidProjectExtension`）。`gradle.properties` 不设置 `builtInKotlin`/`newDsl` 开关（默认内置 + 新 DSL）。lib-common-build 的 lib\_common 同规则（约定插件由 android-ebook 的 build-logic 提供）
 
@@ -121,7 +121,7 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 - **不使用 DataBinding**：已移除，使用 ViewBinding 或 Compose
 
-- **图片加载**：Glide（View 体系）、Coil（Compose）
+- **图片加载**：Coil（Compose）。Glide 已随 View 体系一并移除（依赖与 `MyAppGlideModule`/`MyGlideExtension` 均已删除，代码零引用），不要再引入
 
 - **日志统一走** **`com.xrn1997.common.util.Logger`**（lib\_common 提供，级别控制、debug/release 自动裁剪），禁止直接调用 `android.util.Log`
 
@@ -131,7 +131,9 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 - **评审/grill 驱动改动的沉淀**：由代码评审、grill 会话等驱动的架构级决定（依赖替换、体系迁移、组件归属等）必须沉淀为 `docs/adr/` 的 ADR，不能只留在提交信息与会话记录里
 
-- **认证体系约定**：**邮箱为登录主标识**（用户名仅展示用，可重复；注册三步不发 token，见 ADR-0009）；access token 运行时存放于 lib\_common 的 `TokenHolder`（内存单例），`AuthInterceptor` 只对 `@AuthAllowedHosts` 白名单内的 host 附加到请求头（白名单绑定在 lib\_ebook\_api 的 NetworkModule，值为 `BuildConfig.EBOOK_SERVER_HOST`；`AuthInterceptor`/`@AuthAllowedHosts` 属 lib\_common 侧约定）；双 token 持久化由 `AndroidUserSessionManager` 负责（密码不落盘），登录/登出/启动恢复/静默刷新时同步 TokenHolder。A0230 过期由 `CoroutineAdapter` 收口：单飞静默刷新（`TokenRefresher` 接缝，实现在 lib\_book\_common）→ 成功重放一次；刷新失败发 `SessionEventBus` 会话过期事件，由 module\_main `MainActivity` 订阅处置（清会话 + 提示 + 跳登录页，见 ADR-0010）。ebook-server 基址经 `local.properties` 的 `ebook.server.host` 注入 BuildConfig（缺省 10.0.2.2），不硬编码。**本地调试地址约定**：Android 17（targetSdk 37）起 `10.0.0.0/8`、`192.168.0.0/16`、`169.254.0.0/16` 等算“本地网络”，访问需 `ACCESS_LOCAL_NETWORK` 运行时权限，未授权时 OkHttp 直接报 `sendto failed: EPERM`（症状是“页面不闪退、数据永远加载不出来”）；本项目不申请该权限（普通用户用不到，Play 需额外论证），真机/模拟器连本机后端一律用 `adb reverse tcp:9090 tcp:9090` + `ebook.server.host=127.0.0.1`（回环不属本地网络），或直接用公网 IP。**书源请求（第三方网站）必须使用** **`@Named("source")`** **纯净客户端，不得携带 token**；服务端载荷为蛇形命名，DTO 边界翻译用逐字段 `@SerialName`，不开全局命名策略。**用户会话有三处镜像**（① `user_session` SP 文件；② `spUtils` 的 `SP_IS_LOGIN` 等，供 `LoginInterceptor` 读；③ `ProfileRepository` 的内存 StateFlow，装着昵称/头像供「我的」页渲染），**清会话一律只调 `userSessionManager.clearSession()`**，三处由它内部一并覆盖。**禁止调用方自行「成对」补调 `profileRepository.clearAuthData()`**：旧约定「两个方法必须成对调」是 SP 镜像（②）尚未收进 `clearSession()` 时的写法，如今既已多余、又会掩盖真正容易漏的③——漏掉③的表现是会话已过期、token 已清，但「我的」页仍显示上一个身份的昵称与头像。`clearAuthData()` 现仅为 `clearSession()` 的内部实现细节，不作外部入口（见 CONTEXT.md「用户会话」）
+- **跨仓库 ADR 编号**：本仓 `docs/adr/` 的序列编号目前到 0019。代码注释里出现的、`docs/adr/` 中**不存在**的编号不是悬空引用，也不属于本仓：不带限定的大编号（如 `ADR-0038` 主题装配点、`ADR-0040` Compose 原生绑定、`ADR-0041` 刷新协议 hasMore）属 **android-practice（lib\_common）** 的 ADR 序列；带「后端」限定的（如「后端 ADR-0011」）属 **ebook-server** 仓库。判定前先 `ls docs/adr/`，不要按"引用失效"去改注释或补建本仓 ADR
+
+- **认证体系约定**：**邮箱为登录主标识**（用户名仅展示用，可重复；注册三步不发 token，见 ADR-0009）；access token 运行时存放于 lib\_common 的 `TokenHolder`（内存单例），`AuthInterceptor` 只对 `@AuthAllowedHosts` 白名单内的 host 附加到请求头（白名单绑定在 lib\_ebook\_api 的 NetworkModule，值为 `BuildConfig.EBOOK_SERVER_HOST`；`AuthInterceptor`/`@AuthAllowedHosts` 属 lib\_common 侧约定）；双 token 持久化由 `AndroidUserSessionManager` 负责（密码不落盘），登录/登出/启动恢复/静默刷新时同步 TokenHolder。A0230 过期由 `CoroutineAdapter` 收口：单飞静默刷新（`TokenRefresher` 接缝，实现在 lib\_book\_common）→ 成功重放一次；刷新失败发 `SessionEventBus` 会话过期事件，由 module\_main `MainActivity` 订阅处置（清会话 + 提示 + 跳登录页，见 ADR-0010）。ebook-server 基址经 `local.properties` 的 `ebook.server.host` 注入 BuildConfig（缺省 10.0.2.2），不硬编码。**本地调试地址约定**：Android 17（targetSdk 37）起 `10.0.0.0/8`、`192.168.0.0/16`、`169.254.0.0/16` 等算“本地网络”，访问需 `ACCESS_LOCAL_NETWORK` 运行时权限，未授权时 OkHttp 直接报 `sendto failed: EPERM`（症状是“页面不闪退、数据永远加载不出来”）；本项目不申请该权限（普通用户用不到，Play 需额外论证），真机/模拟器连本机后端一律用 `adb reverse tcp:9090 tcp:9090` + `ebook.server.host=127.0.0.1`（回环不属本地网络），或直接用公网 IP。**书源请求（第三方网站）必须使用** **`@Named("source")`** **纯净客户端，不得携带 token**；服务端载荷为蛇形命名，DTO 边界翻译用逐字段 `@SerialName`，不开全局命名策略。**用户会话有三处镜像**（① `user_session` SP 文件；② `spUtils` 的 `SP_IS_LOGIN` 等，供 `LoginInterceptor` 读；③ `ProfileRepository` 的内存 StateFlow，装着昵称/头像供「我的」页渲染），**清会话一律只调 `userSessionManager.clearSession()`**，三处由它内部一并覆盖。**禁止调用方自行「成对」补调 `ProfileRepository` 的清理方法**：旧约定「两个方法必须成对调」是 SP 镜像（②）尚未收进 `clearSession()` 时的写法，如今既已多余、又会掩盖真正容易漏的③——漏掉③的表现是会话已过期、token 已清，但「我的」页仍显示上一个身份的昵称与头像。`ProfileRepository` 侧的清理方法现为 internal 的 `resetProfileState()`，只是 `clearSession()` 的内部实现细节，不作外部入口（见 CONTEXT.md「用户会话」）
 
 - **前台服务约定（离线下载，见 ADR-0018）**：`DownloadService` 声明为 `foregroundServiceType="dataSync"`，两参 `startForeground(id, notification)` 合法且足够（其内部传 `ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST`，语义是取 manifest 声明的类型；`MissingForegroundServiceTypeException` **只在 manifest 未声明类型时**抛）——不存在“必须改成三参调用”的问题，不要按这类评审断言改动。targetSdk 35+ 的真实约束是两条：dataSync 前台服务在任意 24 小时内只有 6 小时配额（到点回调 `Service.onTimeout(int, int)`，必须在数秒内 `stopSelf()`，否则被记 `RemoteServiceException`），以及配额用尽/应用后台时启动被拒抛 `*ServiceStartNotAllowedException`。因此：**拉起服务一律走** **`DownloadService.start(context, intent)`**（返回 false 即需提示用户），禁止在页面/ViewModel 里直接调 `ContextCompat.startForegroundService`；**发起下载先入库再拉服务**（`BookReadViewModel.startDownload`），否则启动被拒时只躲在 Intent 里的任务会丢；`onTimeout` 内只做数秒可完成的收尾，不得查库/发网络请求/起协程；**失败章必须在重试耗尽后出队**（`DownloadService.downloading`）——`getNextDownloadTask` 永远取队头，失败任务留在表里会让服务在同一章上无限重试（常驻通知不消失、前台服务不停止、该书后续章节全被队头阻塞），跳过章数经 `skippedCount` 带进收尾文案，不静默丢章；暂停中断重试时**不出队**（任务保留待续跑）
 
@@ -141,7 +143,9 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 项目采用严格的 **Model → ViewModel → View** 三层结构，由 `lib_common` 提供基类。
 
-### ViewBinding 体系
+### ViewBinding 体系（lib\_common 的双 UI 栈能力，本仓只用 Compose 分支）
+
+本节描述的是依赖库 `lib_common`（android-practice）仍同时提供的两套 UI 栈之一，**本仓库不使用**：全仓无任何 ViewBinding / XML 布局页面（见开头「项目概述」），勿据本节新建页面，新页面一律走下面的 Compose 体系。双栈并存的决定见 android-practice 仓库的 `ADR-0016-dual-ui-stacks-alignment`。保留本节只为说明基类层级事实：
 
 ```
 BaseActivity<V : ViewBinding>
@@ -194,7 +198,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 - **无 Model 门面的 ViewModel 用 `NoOpModel` 占位**：纯展示页（依赖直接注入多个仓库、无一次性命令需求）仍须继承 `BaseViewModel`，Model 位传 lib\_common 的 `NoOpModel()`（实例：`MePageViewModel`），**不得直继 `androidx.lifecycle.ViewModel`**——否则全仓 VM 基类约定出现例外，后续接 `BaseMvvmActivity`/命令通道时要连带改页面。子类状态流命名避开基类的 `uiState`（覆盖层专用），沿用 `meState`/`detailState`/`cacheState` 这类「页面名 + State」
 
-- **用户会话清理相关页面**：清会话一律只调 `userSessionManager.clearSession()`（单点收口，见上面「认证体系约定」的三处镜像），不要单独去清 `ProfileRepository`，也不要自行补调 `clearAuthData()`
+- **用户会话清理相关页面**：清会话一律只调 `userSessionManager.clearSession()`（单点收口，见上面「认证体系约定」的三处镜像），不要单独去清 `ProfileRepository`，也不要自行补调 `ProfileRepository` 的清理方法（内部实现是 internal 的 `resetProfileState()`）
 
 ## 测试约定
 
@@ -376,6 +380,8 @@ BREAKING CHANGE: AuthenticationManager.onLoginEvent() 已删除
 ```
 
 ### 提交前验证
+
+- **首次 clone 后**执行 `bash scripts/install-hooks.sh`，把 `commit-msg` 校验钩子装进 `.git/hooks/`（钩子实现在 `scripts/commit-msg`，校验本文上述 Conventional Commits 格式）；未安装时提交信息格式不受本地强制校验
 
 - 运行 `./gradlew test`，并对涉及模块执行 `./gradlew :module:assembleDebug`
 

@@ -15,7 +15,6 @@
     <string name="me_recent_book_empty">暂无</string>
 
     <!-- ===== 通用文案（模块内多页共用） ===== -->
-    <string name="common_back_desc">返回</string>
     <string name="common_confirm">确定</string>
     <string name="common_cancel">取消</string>
     <string name="common_delete">删除</string>

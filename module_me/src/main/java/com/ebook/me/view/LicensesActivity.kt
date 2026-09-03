@@ -31,7 +31,7 @@ import com.xrn1997.common.mvvm.compose.BaseActivity
 /**
  * 开源许可页：静态列表展示本项目依赖的主要开源库及其许可证。
  *
- * 项目依赖以 Apache 2.0 为主（Glide 部分模块为 BSD），列表与
+ * 项目依赖以 Apache 2.0 为主，列表与
  * gradle/libs.versions.toml 中的主要依赖保持同步——新增核心依赖时更新此处。
  * 库名与许可证为专有名词，不做本地化，保留在代码中；页面标题与说明文案走字符串资源。
  */
@@ -65,7 +65,6 @@ class LicensesActivity : BaseActivity() {
             LicenseItem("Room", "Apache License 2.0"),
             // 图片加载
             LicenseItem("Coil", "Apache License 2.0"),
-            LicenseItem("Glide", "BSD / Apache License 2.0"),
             // 路由
             LicenseItem("TheRouter", "Apache License 2.0"),
         )

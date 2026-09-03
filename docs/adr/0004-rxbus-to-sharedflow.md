@@ -11,7 +11,3 @@
 
 - **背压语义**：SharedFlow 默认无 replay，先订阅后发布的事件会丢失；extraBufferCapacity = 64 缓冲瞬时并发。RxBus 的粘性事件（粘性订阅重放）语义未保留——当前无消费方依赖粘性
 - 事件模型从 String tag + Any payload 改为 sealed class，编译期类型安全
-
-## 下游影响
-
-- CLAUDE.md「事件总线：RxBus（仍在使用），计划替换为 SharedFlow/Channel」描述已过时，待同步（见 issue 02）

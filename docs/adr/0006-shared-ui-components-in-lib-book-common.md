@@ -17,6 +17,7 @@
 
 ## 下游影响
 
-- `module_me`：`MeUiComponents.kt` 删除，7 个页面 + 独立运行宿主改用共享组件（视觉零漂移）；`MyCommentActivity` 内联章节 chip 改用 `InfoChip`。
+- `module_me`：`MeUiComponents.kt` 删除，页面 + 独立运行宿主改用共享组件（视觉零漂移）；`MyCommentActivity` 内联章节 chip 改用 `InfoChip`。该模块现有 **10 个页面**（`MePage` + 9 个 Activity：`Setting`/`CacheManage`/`About`/`Doc`/`Licenses`/`MyComment`/`ModifyInformation`/`ModifyNickname`/`ClipImage`，后增的 4 个页面在 `src/main/AndroidManifest.xml` 与 `src/main/module/AndroidManifest.xml` 中同步声明）。协议类页面的文本不写进代码字符串，走 `res/raw/privacy_policy.txt`、`res/raw/user_agreement.txt` + 纯函数解析（`parseDocSections`），解析逻辑可单测。
 - `module_find`：书城页、搜索页、分类选书页按共享语言重设计（卡片/胶囊/typography/语义色），特有动效（圆形揭示、抖动、粒子爆炸）不变。
 - `module_book`：书架页、书籍详情、评论区、导入页按共享语言重设计（`TopAppBar` 文字标题顶栏 + 12dp 圆角条目卡 + `BookCover`/`InfoChip`/`CommonCard`/`SectionLabel` + typography）。顶栏两种形态并存且均为共享语言成员：**详情页、评论区经 lib_common 基类 `CenterAlignedTopAppBar`（居中标题，无 actions，默认插槽即可）**；**书架页、导入页因带 actions（导入/下载、加入书架按钮）自绘左对齐 `TopAppBar`**——基类顶栏无 actions 插槽，带操作项的页面必须自绘，两者视觉同源、不构成分裂。阅读器深色豁免依 ADR-0001/0012 不变，但 chrome 层已完成共享语言对齐：底栏四入口改 Material 矢量图标，亮度/字体/设置三面板改 `CommonCard` 分组 + `SectionLabel` + typography，背景选中描边硬编码 #F3B63F 改 `colorScheme.primary`（浅色作用域内语义色自动兼容豁免主题）。
+- **12dp 条目卡收口**：原先散落在各模块手写的重复条目卡（书架条目、搜索结果条目、评论条目、本地文件条目）统一由 `CommonItemCard` 承载，四处调用点为 `module_find/src/main/java/com/ebook/find/view/SearchBookItem.kt`、`module_book/src/main/java/com/ebook/book/page/BookShelfPage.kt`、`module_book/src/main/java/com/ebook/book/BookCommentsActivity.kt`、`module_book/src/main/java/com/ebook/book/ImportBookActivity.kt`；新增条目卡一律走该组件，不再在模块内手写容器。

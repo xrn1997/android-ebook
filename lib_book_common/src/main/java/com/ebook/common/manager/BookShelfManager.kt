@@ -6,6 +6,7 @@ import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.SearchBookEntity
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 
 /**
  * 书架管理器 - 统一处理加入书架的完整流程
@@ -51,6 +52,9 @@ class BookShelfManager @Inject constructor(
             val bookShelf = chapterResult.data
             bookRepository.addToShelf(bookShelf)
             Result.success(bookShelf)
+        } catch (e: CancellationException) {
+            // 取消不是「加入书架失败」：原样上抛，避免调用方按失败路径弹 Toast
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }

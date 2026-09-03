@@ -42,6 +42,8 @@ import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import com.xrn1997.common.util.ToastUtil
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 /**
  * 设置页：通用（缓存管理）+ 关于（版本检查更新/关于我们）+ 账号（退出登录）。
@@ -99,10 +101,16 @@ class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
                 TheRouter.build(KeyCode.Me.ABOUT_PATH).navigation()
             },
             onLogout = {
-                viewModel.logout()
-                // logout 同步清 TokenHolder 与双轨 SP，后续请求不再携带认证信息
-                ToastUtil.showShort(this, getString(R.string.setting_logout_success))
-                finish()
+                // 必须 await：finish() 后本作用域被取消，登出请求会没发出去。
+                // 提示与关闭放在 await 之后，保证「已退出」出现时本地会话确实清干净
+                lifecycleScope.launch {
+                    viewModel.logout()
+                    ToastUtil.showShort(
+                        this@SettingActivity,
+                        getString(R.string.setting_logout_success)
+                    )
+                    finish()
+                }
             }
         )
     }

@@ -58,7 +58,6 @@ dependencies {
     ksp(libs.dagger.compiler)
     implementation(libs.router)
     ksp(libs.router.apt)
-    ksp(libs.glide.compiler)
     implementation(libs.coil.kt.compose)
     implementation(libs.androidx.compose.material.iconsExtended)
     // 头像裁剪的 EXIF 旋转纠正（此前仅靠 Coil 传递提供，显式声明避免升级断链）

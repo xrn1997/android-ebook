@@ -2,10 +2,12 @@ package com.ebook.me.mvvm.viewmodel
 
 import androidx.lifecycle.viewModelScope
 import com.ebook.common.domain.UserSessionManager
-import com.ebook.common.repository.ProfileRepository
+import com.ebook.common.provider.ILoginProvider
 import com.ebook.me.repository.CacheModel
 import com.ebook.me.repository.formatSize
+import com.therouter.TheRouter
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
+import com.xrn1997.common.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,14 +20,13 @@ import javax.inject.Inject
  *
  * 职责（均为本地操作，无网络依赖）：
  * - 缓存：展示 cacheDir 总占用（点击入口跳缓存管理页做分类清理，本页不再直接清理）
- * - 退出登录：清理会话 + 资料双轨状态
+ * - 退出登录：经 UserSessionManager 单点清会话
  * - 登录态：控制「退出登录」区块的显隐
  */
 @HiltViewModel
 class SettingViewModel @Inject constructor(
     private val cacheModel: CacheModel,
     private val userSessionManager: UserSessionManager,
-    private val profileRepository: ProfileRepository,
 ) : BaseViewModel<CacheModel>(cacheModel) {
 
     /** 当前登录态（控制退出登录区块显隐） */
@@ -57,14 +58,29 @@ class SettingViewModel @Inject constructor(
     }
 
     /**
-     * 退出登录：清理会话与资料双轨状态。
+     * 退出登录：先尽力作废服务端会话，再无条件清本地会话。
      *
-     * [UserSessionManager.clearSession] 清 token/登录态/user_session SP，
-     * 但 [ProfileRepository] 的内存昵称/头像流需要单独清（否则重新登录另一账号时会闪现旧昵称）；
-     * 其内部对 SPUtil 的清理是幂等的，重复调用无副作用。
+     * 顺序与容错的取法：
+     * - 服务端作废（`POST /api/auth/logout`，作废该用户全部 refresh token）经
+     *   [ILoginProvider] 跨模块取用；**失败不阻塞本地清理**——救不回的凭证不该把用户
+     *   锁在一个他已认为退出的会话里。
+     * - 独立运行（isModule=true）时 module_login 不在依赖图内，provider 为 null，
+     *   此时只有本地清理（调试宿主本就不连后端）。
+     *
+     * 本方法是 `suspend`：调用方必须在页面 `finish()` 前 await，否则承载它的协程作用域
+     * 会随页面销毁被取消，登出请求等于从未发出。
+     *
+     * 本地清理只走 [UserSessionManager.clearSession]，它一次覆盖用户会话的三处镜像
+     * （`user_session` SP、`spUtils` 兼容键、ProfileRepository 进程内身份流）。
      */
-    fun logout() {
+    suspend fun logout() {
+        TheRouter.get(ILoginProvider::class.java)?.logout()?.onFailure {
+            Logger.w(TAG, "服务端登出失败，仍继续清本地会话：${it.message}")
+        }
         userSessionManager.clearSession()
-        profileRepository.clearAuthData()
+    }
+
+    companion object {
+        private const val TAG = "SettingViewModel"
     }
 }

@@ -3,6 +3,7 @@ package com.ebook.common.domain
 import android.app.Application
 import android.content.Context
 import com.ebook.common.event.KeyCode
+import com.ebook.common.repository.ProfileRepository
 import com.ebook.common.util.SPUtil
 import com.xrn1997.common.di.TokenHolder
 import com.xrn1997.common.mvvm.model.BaseModel
@@ -20,11 +21,14 @@ import javax.inject.Singleton
  * - 持久化到 SharedPreferences
  * - 登录/登出时同步 token 到 lib_common 的 TokenHolder（AuthInterceptor 从那里取）
  * - 兼容 LoginInterceptor（同时写入 spUtils 文件）
+ * - 清会话时一并失效用户会话的全部三处镜像：本类的内存态与 `user_session` SP（①）、
+ *   `spUtils` 兼容键（②）、[ProfileRepository] 的进程内身份流（③）
  */
 @Singleton
 class AndroidUserSessionManager @Inject constructor(
     application: Application,
     private val tokenHolder: TokenHolder,
+    private val profileRepository: ProfileRepository,
 ) : BaseModel(), UserSessionManager {
 
     private val sp by lazy {
@@ -92,6 +96,17 @@ class AndroidUserSessionManager @Inject constructor(
             .apply()
     }
 
+    /**
+     * 清除会话：用户会话的三处镜像在此一次性全部失效。
+     *
+     * - ① `user_session` SP 与本类内存态（`_currentUser`/`_isLoggedIn`/TokenHolder）
+     * - ② `spUtils` 的 `SP_IS_LOGIN`/`SP_USERNAME`/`SP_NICKNAME`/`SP_USER_ID`/`SP_IMAGE`
+     *   （`LoginInterceptor` 读这份，漏清会出现「已登出但仍被放行」）
+     * - ③ [ProfileRepository] 的进程内昵称/头像流
+     *   （漏清的症状：会话已过期、token 已清，但「我的」页仍显示上一个身份）
+     *
+     * 调用方不得再自行补调 [ProfileRepository] 的清理方法。
+     */
     override fun clearSession() {
         _currentUser.value = null
         _isLoggedIn.value = false
@@ -110,6 +125,10 @@ class AndroidUserSessionManager @Inject constructor(
 
         // 兼容 LoginInterceptor：同时清除 spUtils 文件
         SPUtil.clearAuthData()
+
+        // 镜像③：ProfileRepository 的 StateFlow 只在构造时读过一次 SP，
+        // 上一步清了 SP 也不会反映到已存在的单例实例上，必须显式复位
+        profileRepository.resetProfileState()
     }
 
     private fun loadSessionFromSp(): UserSession? {

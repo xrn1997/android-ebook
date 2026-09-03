@@ -11,6 +11,7 @@ import com.ebook.db.entity.SearchBookEntity
 import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -198,7 +199,11 @@ class BookDetailViewModel @Inject constructor(
      */
     private suspend fun fetchChapterList(bookShelf: BookShelfEntity): BookShelfEntity? {
         return try {
-            bookSourceManager.requireParser().getChapterList(bookShelf)?.data
+            // getChapterList 返回非空包装对象（data 才可能为空），不需要安全调用
+            bookSourceManager.requireParser().getChapterList(bookShelf).data
+        } catch (e: CancellationException) {
+            // 取消不是"取不到章节"：吞掉会让调用方把销毁中的页面渲染成空目录
+            throw e
         } catch (e: Exception) {
             null
         }

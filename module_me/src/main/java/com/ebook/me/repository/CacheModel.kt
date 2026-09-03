@@ -13,7 +13,7 @@ import javax.inject.Singleton
  * 缓存分类：缓存管理页按类展示与单独清理。
  *
  * 分类依据 cacheDir 内的实际产物（目录名以图片库默认磁盘缓存位置为准）：
- * - IMAGE：Coil（image_cache）+ Glide（image_manager_disk_cache），书籍封面/头像，可安全重下载
+ * - IMAGE：Coil（image_cache），另含老版本遗留的 Glide 目录，书籍封面/头像，可安全重下载
  * - TEMP：cacheDir 根目录的松散文件，如头像裁剪产物（cropped_*.jpg）
  * - OTHER：除图片缓存外的其余子目录
  */
@@ -47,7 +47,7 @@ data class CacheEntry(
 /**
  * 设置页/缓存管理页 Model：本地缓存管理（大小计算与清理）。
  *
- * 缓存指应用 cacheDir（Coil/Glide 磁盘缓存等均在其中），与账号/网络无关，
+ * 缓存指应用 cacheDir（Coil 磁盘缓存等均在其中），与账号/网络无关，
  * 归 Model 层做纯文件操作（内部已切 IO 线程），ViewModel 只编排状态。
  */
 @Singleton
@@ -82,7 +82,7 @@ class CacheModel @Inject constructor(
         )
     }
 
-    /** 清理图片缓存：删除 Coil/Glide 磁盘缓存目录（清理后按需重新下载） */
+    /** 清理图片缓存：删除 Coil 磁盘缓存目录（连带回收老版本遗留的 Glide 目录），清理后按需重新下载 */
     suspend fun clearImageCache() = withContext(Dispatchers.IO) {
         imageCacheDirs().forEach { it.deleteRecursively() }
     }
@@ -123,7 +123,7 @@ class CacheModel @Inject constructor(
         entries.sortedByDescending { it.sizeBytes }
     }
 
-    /** 图片缓存目录：Coil 与 Glide 各自的默认磁盘缓存位置 */
+    /** 图片缓存目录：Coil 当前缓存位 + 老版本可能残留的 Glide 缓存位（Glide 已移除，保留清理只为回收磁盘） */
     private fun imageCacheDirs(): List<File> = listOf(
         File(application.cacheDir, "image_cache"),
         File(application.cacheDir, "image_manager_disk_cache"),

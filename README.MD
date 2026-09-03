@@ -112,7 +112,7 @@ docs/adr/         → 架构决策记录（ADR）
 
 - **架构**：MVVM（Model → ViewModel → View），Hilt 依赖注入，Coroutines + Flow（RxJava 已全部移除）
 
-- **网络与数据**：Retrofit + OkHttp、Room、Jsoup（书源解析）、Glide / Coil（图片）
+- **网络与数据**：Retrofit + OkHttp、Room、Jsoup（书源解析）、Coil（图片）
 
 - **跨模块**：TheRouter 路由 + Provider 接口
 

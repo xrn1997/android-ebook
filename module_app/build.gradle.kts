@@ -48,7 +48,6 @@ dependencies {
     implementation(project(":lib_book_common"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.ihsanbal.logging.intercepter)
     if (!isModule) {
         implementation(project(":module_main"))
         implementation(project(":module_find"))

@@ -123,6 +123,10 @@ class DownloadManageViewModel @Inject constructor(
      * 启动被拒只剩一种现实情形：dataSync 前台配额（24 小时/6 小时）已用尽——此时页内提示
      * 用户而不能未捕获抛异常（点“全部开始”直接闪退），任务仍在库里，稍后重试即续跑
      * （见 [DownloadService.start]）。
+     *
+     * 提示走 [ToastUtil] 而非基类的 `sendToast` 命令通道：本 VM 除下载管理页外，还被
+     * `BookShelfPage` 以 `hiltViewModel()` 承载（见该页），那条宿主路径上没有 `MvvmBinder`
+     * 消费命令，`sendToast` 只会堆在 Channel 里随 VM 销毁丢弃——即「该提示的没提示」。
      */
     fun sendAction(action: String) {
         if (!DownloadService.start(context, DownloadService.buildActionIntent(context, action))) {

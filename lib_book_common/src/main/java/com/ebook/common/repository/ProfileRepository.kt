@@ -37,9 +37,17 @@ class ProfileRepository @Inject constructor(
         SPUtil.put(KeyCode.Login.SP_NICKNAME, name)
     }
 
-    /** 清除认证数据（退出登录） */
-    fun clearAuthData() {
-        SPUtil.clearAuthData()
+    /**
+     * 清除进程内的身份态（用户会话的第 ③ 处镜像：昵称与头像内存流）。
+     *
+     * 只清内存：SP 侧（② `spUtils` 与 ① `user_session`）由
+     * [com.ebook.common.domain.AndroidUserSessionManager.clearSession] 统一清除，
+     * 此处重复清 SP 不会出错，但会让「谁负责哪一处镜像」重新变模糊。
+     *
+     * 不作对外入口：清会话一律只调 `clearSession()`（见 ADR-0008 与 AGENTS.md
+     * §认证体系约定），本方法仅作为其内部实现细节被调用。
+     */
+    internal fun resetProfileState() {
         _pictureUrl.value = ""
         _nickname.value = ""
     }

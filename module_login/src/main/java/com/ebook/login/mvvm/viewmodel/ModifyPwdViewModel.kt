@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.domain.UserSessionManager
 import com.ebook.common.event.KeyCode
-import com.ebook.common.repository.ProfileRepository
 import com.ebook.login.ModifyPwdActivity
 import com.ebook.login.R
 import com.ebook.login.repository.UserRepository
@@ -35,7 +34,6 @@ import javax.inject.Inject
 @HiltViewModel
 class ModifyPwdViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val profileRepository: ProfileRepository,
     private val userSessionManager: UserSessionManager
 ) : BaseViewModel<UserRepository>(userRepository) {
 
@@ -113,13 +111,11 @@ class ModifyPwdViewModel @Inject constructor(
 
     /**
      * 已登录改密：旧密码由服务端校验（A0210 旧密码错误）。
-     * 改密成功即视为会话失效：清会话并回登录页。
+     * 改密成功即视为会话失效：清会话并回登录页（服务端改密已使该用户全部 token 失效）。
      *
-     * 两处登录态必须**成对清**（与 module_me 退出登录的 SettingViewModel.logout 同一收口）：
-     * [UserSessionManager.clearSession] 清 token/isLoggedIn/user_session SP 并同步镜像的 SP_IS_LOGIN，
-     * [ProfileRepository.clearAuthData] 清内存昵称/头像流。只清后者的话两侧数据源会脱钩：
-     * `LoginInterceptor` 读 SP_IS_LOGIN 已认为未登录，而 isLoggedIn/TokenHolder 仍为已登录，
-     * 表现为「我的页仍显示已登录、进评论区/编辑资料却被弹回登录页」。
+     * [UserSessionManager.clearSession] 是清会话的唯一入口，内部一次覆盖用户会话的
+     * 三处镜像（`user_session` SP、`spUtils` 兼容键、ProfileRepository 进程内身份流），
+     * 故此处不得再补调资料侧的清理方法。
      */
     fun modify(oldPwd: String, newPwd: String, confirmPwd: String) {
         if (oldPwd.isEmpty() || newPwd.isEmpty() || confirmPwd.isEmpty()) {
@@ -136,9 +132,8 @@ class ModifyPwdViewModel @Inject constructor(
             val result = userRepository.modifyPwd(oldPwd, newPwd)
             result.onSuccess {
                 sendToast(context.getString(R.string.modify_success))
-                // 先清会话（token + isLoggedIn + SP 镜像），再清资料内存流，见方法 KDoc
+                // 清会话单点收口：token + isLoggedIn + 三处镜像，见方法 KDoc
                 userSessionManager.clearSession()
-                profileRepository.clearAuthData()
                 build(KeyCode.Login.LOGIN_PATH)
                     .navigation()
                 sendFinish()

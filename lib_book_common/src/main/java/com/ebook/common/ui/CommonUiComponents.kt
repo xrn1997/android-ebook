@@ -1,6 +1,7 @@
 package com.ebook.common.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -33,8 +35,9 @@ import androidx.compose.ui.unit.dp
  *
  * module_me 重设计沉淀的视觉语言（轻卡片 + 语义色 + Material typography）
  * 上提到此处，供书城/书架/我的等业务模块统一复用，保证全 App 视觉一致：
- * 圆角卡片（[CommonCard]）+ 彩色图标列表项（[CommonListItem]）+ 缩进分割线
- * （[CommonListDivider]）+ 分组标题（[SectionLabel]）+ 信息标签（[InfoChip]）。
+ * 圆角卡片（[CommonCard]）+ 条目卡容器（[CommonItemCard]）+ 彩色图标列表项
+ * （[CommonListItem]）+ 缩进分割线（[CommonListDivider]）+ 分组标题（[SectionLabel]）
+ * + 信息标签（[InfoChip]）。
  *
  * **图标约束**：本文件只允许使用 material-icons-core 核心集图标
  * （如 [Icons.AutoMirrored.Filled.KeyboardArrowRight]），不得引入 iconsExtended——
@@ -91,6 +94,54 @@ fun CommonCard(
         shadowElevation = 1.dp
     ) {
         content()
+    }
+}
+
+/**
+ * 列表条目卡容器：12dp 圆角（[CommonUiTokens.cardCornerSmall]）+ surfaceContainer 语义色，
+ * 与分组容器 [CommonCard]（16dp）构成「容器-条目」两级卡片层次（ADR-0006）。
+ *
+ * 只负责「壳」：形状、语义色、点击面（ripple 随圆角裁剪）、内边距。
+ * 内容形态由各页决定（封面行、评论列、图标行），故内容用 slot 传入。
+ *
+ * @param onClick 点击回调；与 [onLongClick] 都为 null 时不挂点击面（纯展示条目）
+ * @param onLongClick 长按回调（如书架删除、评论删除确认）；提供时点击走
+ *   [androidx.compose.foundation.combinedClickable] 以保住长按手势
+ * @param enabled 点击是否可用（不可用时仍渲染，只是不响应）
+ * @param shadowElevation 阴影高度；列表密集排布时可传 0.dp 让层级更平
+ * @param contentPadding 条目内边距，默认 12dp；非默认值需在调用处说明原因
+ */
+@Composable
+fun CommonItemCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
+    shadowElevation: Dp = 1.dp,
+    contentPadding: PaddingValues = PaddingValues(12.dp),
+    content: @Composable () -> Unit
+) {
+    // clickable 挂在 Surface 的 modifier 上：ripple 按圆角裁剪，命中区即整卡
+    val interactionModifier = when {
+        onLongClick != null -> Modifier.combinedClickable(
+            enabled = enabled,
+            onClick = onClick ?: {},
+            onLongClick = onLongClick
+        )
+
+        onClick != null -> Modifier.clickable(enabled = enabled, onClick = onClick)
+        else -> Modifier
+    }
+
+    Surface(
+        modifier = modifier.fillMaxWidth().then(interactionModifier),
+        shape = RoundedCornerShape(CommonUiTokens.cardCornerSmall),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shadowElevation = shadowElevation
+    ) {
+        Box(modifier = Modifier.padding(contentPadding)) {
+            content()
+        }
     }
 }
 

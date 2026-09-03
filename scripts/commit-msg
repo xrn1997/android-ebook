@@ -1,6 +1,6 @@
 #!/bin/sh
 # commit-msg hook — 校验 Conventional Commits 格式
-# 安装：cp scripts/commit-msg .git/hooks/commit-msg && chmod +x .git/hooks/commit-msg
+# 安装：bash scripts/install-hooks.sh（等价于 cp scripts/commit-msg .git/hooks/commit-msg && chmod +x）
 
 # 强制 UTF-8 环境，确保 wc -m 正确计算中文字符数
 export LC_ALL=C.UTF-8
@@ -20,7 +20,15 @@ SCOPE_PATTERN='(\([a-zA-Z0-9_/-]+\))?'  # 增加了 / 以支持 auth/login 这�
 BREAKING_PATTERN='\!?'
 DESC_PATTERN='.+'
 HEADER_PATTERN="^${TYPE_PATTERN}${SCOPE_PATTERN}${BREAKING_PATTERN}: ${DESC_PATTERN}"
-REVERT_PATTERN='^revert: .+'
+
+# revert 的所有形态统一由本正则一次判定，格式校验（第 3 步）与 body 追溯校验（第 4 步）共用同一结论，
+# 避免出现「一处放过、另一处漏判」：
+#   - Git 原生形态 `Revert "<原消息头>"`（git revert 自动生成，不带 type/scope 结构）。放行它不等于
+#     放弃校验——Git 生成的 body 自带 "This reverts commit <hash>."，仍会被第 4 步强制检查。
+#   - 手写形态 `revert: ...` / `revert(scope): ...` / `revert!: ...` / `revert(scope)!: ...`。
+#     旧实现只有 `^revert: .+`，`revert(scope): ...` 虽被 HEADER_PATTERN 放过格式，却识别不出是
+#     revert，导致 body 必须含 "This reverts commit" 的要求被跳过。
+REVERT_PATTERN='^[Rr]evert( +".+|(\([a-zA-Z0-9_/-]+\))?!?: .+)'
 
 # 3. 格式校验
 if ! printf '%s\n' "$MSG" | grep -qE "$HEADER_PATTERN" && \
@@ -39,6 +47,7 @@ if ! printf '%s\n' "$MSG" | grep -qE "$HEADER_PATTERN" && \
     fix(lib_ebook_api): 修复书源请求误携带认证 token
     build: 升级 Gradle 到 9.4.1
     revert: feat(module_me): 新增 xxx
+    Revert "feat(module_me): 新增 xxx"   # git revert 自动生成
 
   详见 AGENTS.md 提交规范章节
 
@@ -46,7 +55,8 @@ EOF
     exit 1
 fi
 
-# 4. Revert 额外校验
+# 4. Revert 额外校验：任何 revert 形态都必须能追溯到被回退的提交
+#    （git revert 自动写入该行；手写或编辑时漏掉才拒绝）
 if printf '%s\n' "$MSG" | grep -qE "$REVERT_PATTERN"; then
     if ! grep -q 'This reverts commit' "$MSG_FILE"; then
         cat <<EOF
@@ -59,8 +69,10 @@ EOF
 fi
 
 # 5. 提取 Description
-if printf '%s\n' "$MSG" | grep -qE "$REVERT_PATTERN"; then
-    DESC=$(printf '%s\n' "$MSG" | sed 's/^revert: //')
+#    Git 原生形态把原消息头整体放进引号里，先剥掉 Revert " 前缀与结尾引号再校验：
+#    否则引号会遮蔽结尾句号、包裹前缀还会虚增长度。其余形态统一剥掉 "<type>(<scope>)!?: " 前缀。
+if printf '%s\n' "$MSG" | grep -qE '^[Rr]evert +'; then
+    DESC=$(printf '%s\n' "$MSG" | sed 's/^[Rr]evert *"\(.*\)"$/\1/')
 else
     DESC=$(printf '%s\n' "$MSG" | sed 's/^[^:]*: //')
 fi

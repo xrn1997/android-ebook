@@ -46,13 +46,9 @@ internal fun Project.configureAndroidCompose(
             "debugImplementation"(libs.findLibrary("androidx-compose-ui-tooling").get())
         }
 
-        // TODO: AGP 9.x 中 testOptions API 已改变，暂时移除
-        // testOptions {
-        //     unitTests {
-        //         // For Robolectric
-        //         isIncludeAndroidResources = true
-        //     }
-        // }
+        // 未设 testOptions.unitTests.isIncludeAndroidResources：本仓 Robolectric 用例
+        // （Room 内存数据库、SharedPreferences）都不读 APK 资源，加了反而拖慢配置；
+        // 将来出现需要 res/assets 的 UI 用例时再按需开启
     }
 
     extensions.configure<ComposeCompilerGradlePluginExtension> {

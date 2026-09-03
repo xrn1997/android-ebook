@@ -3,7 +3,7 @@
 本 ADR 决定：**离线下载继续使用 `foregroundServiceType="dataSync"` 的前台服务（`module_book` 的 `DownloadService`），不迁移到 WorkManager**；同时把 Android 15+（对 targetSdk 35+ 生效，本项目 targetSdk 37）压在 dataSync 上的两条硬约束收口在服务侧——
 
 - **24 小时内累计 6 小时的配额超时**：`DownloadService` 实现 `Service.onTimeout(int, int)`，在系统给定的数秒内完成收尾并 `stopSelf()`；
-- **启动被系统拒绝**：拉起统一走 `DownloadService.start(context, intent)`（返回 `false` = 未起来，调用方提示用户），**调用点不得直接调 `ContextCompat.startForegroundService`**；
+- **启动被系统拒绝**：拉起统一走 `DownloadService.start(context, intent)`（返回 `false` = 未起来，调用方提示用户），**调用点不得直接调 `ContextCompat.startForegroundService`**；服务自身常驻通知的动作按钮是**唯一例外**的第二启动口，取不到 `false`、也不弹提示（见决策第 6 条）；
 - 配套约束：发起下载的调用方必须**先把任务写入 `download_chapter`，再拉起服务**。
 
 ## 动机
@@ -34,6 +34,7 @@
 3. **启动收口 `DownloadService.start()`**：内部 try/catch，用**类名前缀+后缀比对**识别 `*ServiceStartNotAllowedException`（不直接 `catch(ForegroundServiceStartNotAllowedException)`——该类 API 31 才引入，minSdk 26 下 catch 子句要解析该类，低版本设备有 `NoClassDefFoundError` 风险），返回 `false` 由调用方提示用户。
 4. **发起方先入库再拉服务**：`BookReadViewModel.startDownload(chapters)` 先 `downloadRepository.addTasks()` 再 `DownloadService.start()`；`addTasks` 按 `durChapterUrl` 去重，服务侧收到同批 Intent 再入一次是幂等的。
 5. **前台化失败不再自动续跑**：`onStartCommand` 里 `startForeground` 抛异常时置 `fgUnavailable`，"无携带任务"的自动续跑分支据此直接收尾并返回 `START_NOT_STICKY`——没有前台态的下载服务既跑不久，也会被系统反复重启刷同一异常。提示走通知而非仅 Toast（该场景应用通常在后台）。注意：通知权限被拒**不会**让 `startForeground` 失败（Android 13+ 未授权时 notify 被静默丢弃，前台服务照常），故保留原 `catch(Throwable)` 兜底语义（设备侧包归属错乱的 `SecurityException`，见既有注释）。
+6. **常驻通知的动作按钮是合法例外的第二启动口**：`DownloadService.commandPendingIntent` 用 `PendingIntent.getForegroundService`（而非 `getActivity`）承载「暂停 / 继续 / 取消」，**代码现状即如此，不要按"必须一律走 `start()`"去改**。取它是因为服务可能已被系统回收，`getForegroundService` 能在**服务已被回收时先把它拉起来再执行动作**（服务已存活时只多一次 `onStartCommand`，各 action 分支幂等）。代价是这条路径**拿不到 `DownloadService.start()` 的 `false` 返回值**，因此**没有也不该有**用户提示——它的语义是「先拉起再执行」，系统拒绝启动（配额耗尽 / 应用后台）时按钮静默无响应即属预期。有反馈的重试入口在下载管理页「全部开始」（`DownloadManageViewModel.sendAction` → `DownloadService.start`，被拒提示 `download_start_restricted`）。上面的禁令（开头收口清单与决策第 3 条）只约束**页面 / ViewModel 侧**，不覆盖服务内部这一处。
 
 ## 被拒方案
 
@@ -53,7 +54,9 @@
 
 已实现，`:module_app:assembleRealDebug` 与 `:module_book:testDebugUnitTest` 通过。**Android 15+ 设备/模拟器上的两条路径未做装机验证**，提交前由人工完成：
 
-1. 压短配额：`adb shell am compat enable FGS_INTRODUCE_TIME_LIMITS com.ebook` ＋ `adb shell device_config put activity_manager data_sync_fgs_timeout_duration 60000`，然后在阅读器发起整本下载，等 60 秒——期望现象：下载停止、`adb logcat -b crash` 无 `RemoteServiceException`、通知栏出现"下载时长已达系统上限"、下载管理页显示"已暂停"、回到前台后点"全部开始"可续跑。
-2. 配额耗尽后再次发起下载（或把应用切后台再点通知"继续"）——期望现象：不闪退，Toast 提示"系统已限制后台下载时长…"，任务未丢（重新进入下载管理页仍列出剩余章数）。
+1. 压短配额：`adb shell am compat enable FGS_INTRODUCE_TIME_LIMITS com.ebook` ＋ `adb shell device_config put activity_manager data_sync_fgs_timeout_duration 60000`，然后在阅读器发起整本下载，等 60 秒——期望现象：下载停止、`adb logcat -b crash` 无 `RemoteServiceException`、通知栏出现"下载时长已达系统上限"、下载管理页显示"已暂停"、回到前台后点"全部开始"可续跑（配额耗尽后的两条重试入口见第 2 条，现象不同，别互相当成对方的失败）。
+2. 配额耗尽后再次发起下载，两个入口分开验：
+   - **通知「继续」按钮**（把应用切后台后点）：**静默无响应属预期**，不闪退即通过。该按钮走 `PendingIntent.getForegroundService`（决策第 6 条），不经 `DownloadService.start()`、拿不到 `false` 返回值，代码里不存在任何提示分支——旧版清单写的"期望 Toast 提示"是不可能成立的现象，别再照它判失败。要验有反馈的重试路径，见下一条。
+   - **下载管理页「全部开始」**：走 `DownloadManageViewModel.sendAction` → `DownloadService.start`，被拒时 Toast 提示"系统已限制后台下载时长，任务已保留，稍后回到下载管理页可继续"（`download_start_restricted`），任务未丢（重新进入下载管理页仍列出剩余章数）。
 
 后续若出现"单批次下载常超 6 小时"的真实反馈，再按被拒方案首条评估 WorkManager 迁移，并另立 ADR。

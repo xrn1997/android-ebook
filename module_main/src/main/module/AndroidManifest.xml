@@ -8,10 +8,15 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Common">
-        <activity android:name="com.ebook.main.MainActivity" />
+        <!-- 属性须与 src/main/AndroidManifest.xml 逐项对齐：两份清单是替换关系
+             （isModule=true 时只有本文件参与合并），漏一项即两种模式行为不一致 -->
+        <activity
+            android:name="com.ebook.main.MainActivity"
+            android:screenOrientation="portrait" />
         <activity
             android:name="com.ebook.main.SplashActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/SplashTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

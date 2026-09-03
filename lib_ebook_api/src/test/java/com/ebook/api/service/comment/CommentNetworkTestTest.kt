@@ -33,7 +33,7 @@ class CommentNetworkTestTest {
      * 相对路径命中的就是 APK 里那份资产——测的是真实数据，不是复刻的样本。
      */
     private fun dataSource(): CommentNetworkTest = CommentNetworkTest(
-        networkJson = Json { ignoreUnknownKeys = true },
+        networkJson = assetJson,
         assets = TestAssetManager { fileName ->
             val file = File(ASSET_DIR, fileName)
             if (!file.isFile) {
@@ -128,15 +128,17 @@ class CommentNetworkTestTest {
     }
 
     @Test
-    fun `发表的评论被赋服务端身份与时间，昵称留空以通过本人判定`() = runTest {
+    fun `发表的评论被赋服务端身份与时间，本人判定按 userId 命中`() = runTest {
         val posted = requireNotNull(
             dataSource().addComment(clientComment(CHAPTER_ONE, "我的评论")).data
         )
+        val me = loginAssetUser()
 
-        // 用户名取自登录资产：登录时该值写入 SP，章节评论区长按删除拿它作比对
-        assertEquals(loginAssetUsername(), posted.user.username)
-        // 展示名经 toBookComment 走 nickname.ifEmpty { username }，昵称必须为空，否则本人判定失配
-        assertEquals("", posted.user.nickname)
+        // 展示名如实回显昵称：门禁已按 userId 判定，不再需要靠留空昵称绕开失配
+        assertEquals(me.nickname, posted.user.nickname)
+        assertEquals(me.username, posted.user.username)
+        // 作者 uid 与登录资产一致，才是「仅本人评论可长按删除」成立的前提
+        assertEquals(me.id, posted.user.id)
         // 时间为服务端契约格式，否则「我的评论」排序与显示一起失效
         assertTrue("add_time 应为 yyyy-MM-dd HH:mm:ss，实际=${posted.addTime}", posted.addTime.matches(TIME_REGEX))
     }
@@ -207,14 +209,19 @@ class CommentNetworkTestTest {
         assertEquals(2, page.pageSize)
     }
 
-    /** 登录资产里的 username：mock 登录时写入 SP 的值，即长按删除门禁的比对基准。 */
-    private fun loginAssetUsername(): String =
-        Json { ignoreUnknownKeys = true }
+    /** 登录资产里的 mock 身份：uid/用户名/昵称的唯一事实源，评论回显必须与它一致 */
+    private fun loginAssetUser(): User =
+        assetJson
             .decodeFromString<RespDTO<LoginDTO>>(File(ASSET_DIR, "user_login.json").readText())
-            .data?.user?.username
+            .data?.user
             ?: error("user_login.json 应携带 mock 用户身份")
 
+    private fun loginAssetUsername(): String = loginAssetUser().username
+
     private companion object {
+        /** 资产解码统一用这一份配置：重复新建同配置 Json 会触发警告且无谓 */
+        val assetJson = Json { ignoreUnknownKeys = true }
+
         /** 相对模块目录的资产路径（见 [dataSource] 的工作目录说明） */
         const val ASSET_DIR = "src/main/assets"
 

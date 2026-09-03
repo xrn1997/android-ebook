@@ -7,7 +7,9 @@ import com.ebook.common.repository.BookShelfEvent
 import com.ebook.common.manager.BookShelfManager
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.SearchBookEntity
+import com.ebook.find.R
 import com.ebook.find.repository.BookSourceRepository
+import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel
 import com.xrn1997.common.mvvm.viewmodel.Overlay
 import com.xrn1997.common.util.Logger
@@ -108,7 +110,7 @@ class ChoiceBookViewModel @Inject constructor(
         updateOverlay(Overlay.Loading)
         viewModelScope.launch {
             bookShelfManager.addFromSearch(searchBook)
-                .onFailure { e -> sendToast(e.message ?: "网络请求超时") }
+                .onFailure { e -> sendToast(e.message ?: context.getString(R.string.network_request_timeout)) }
             updateOverlay(Overlay.None)
         }
     }
