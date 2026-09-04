@@ -5,17 +5,13 @@
         注意：业务 Activity 声明与 src/main/AndroidManifest.xml（library 集成模式）
         重复，新增/重命名/改 label 的页面时两处必须同步修改。
     -->
-    <!-- Devices running Android 12L (API level 32) or lower  -->
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-
-    <!-- Devices running Android 13 (API level 33) or higher -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-
-    <!-- To handle the reselection within the app on Android 14 (API level 34) -->
-    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    <!--
+        本模块**不声明任何权限**（判据见 ADR-0022）：头像流程相册走 PickVisualMedia
+        （免权限，系统按所选条目授予读取权）、拍照走 TakePicture + FileProvider 授权落盘 Uri，
+        均不需要 READ_MEDIA_*/READ_EXTERNAL_STORAGE。
+        此前本文件带着集成清单（src/main/AndroidManifest.xml）没有的四项存储权限，
+        正是 AGENTS.md 禁止的「两份清单权限面分裂」，已删至与集成清单一致。
+    -->
     <application
         android:name="debug.TestApplication"
         android:allowBackup="true"

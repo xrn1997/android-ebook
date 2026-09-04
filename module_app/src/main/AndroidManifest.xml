@@ -2,35 +2,32 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!--
+        权限最小化（逐条判据与取证见 ADR-0022）：本应用只声明用得到的四项。
+        已删除的都是「声明了但全仓无对应 API 调用」的遗留项：
+        - ACCESS_WIFI_STATE / CHANGE_WIFI_STATE：无任何 WifiManager 用法（Wi-Fi 状态判断走 ConnectivityManager）
+        - READ_PHONE_STATE / WAKE_LOCK：无 TelephonyManager、无 PowerManager.newWakeLock
+        - GET_ACCOUNTS / READ_PROFILE / READ_CONTACTS：IDE 登录表单自动补全模板遗留，全仓无 AccountManager/联系人查询
+        - READ_EXTERNAL_STORAGE / READ_MEDIA_IMAGES / READ_MEDIA_VISUAL_USER_SELECTED：
+          相册选取走 ActivityResultContracts.PickVisualMedia（Android 13+ 免权限，低版本回落 SAF 同样免权限）
+        - CAMERA：拍照走 TakePicture（由系统相机应用持权限，本应用只需 FileProvider 授权落盘 Uri）；
+          声明了却从不请求的 CAMERA 在部分 OEM 上反而会让拍照 Intent 失败
+    -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Devices running Android 12L (API level 32) or lower  -->
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+    <!--    允许前台服务-->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
-    <!-- Devices running Android 13 (API level 33) or higher -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-
-    <!-- To handle the reselection within the app on Android 14 (API level 34) -->
-    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
-
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <!-- To auto-complete the email text field in the login form with the user's emails -->
-    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
-    <uses-permission android:name="android.permission.READ_PROFILE" />
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
-    <uses-permission android:name="android.permission.CAMERA" />
-
-    <uses-feature android:name="android.hardware.camera" />
+    <!--
+        相机特性**只声明不要求**：原 `android.hardware.camera` 未写 required，默认即 true，
+        会把无相机的设备（部分模拟器/电视/平板）挡在安装过滤之外；本应用只是借系统相机拍照。
+    -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
     <uses-feature
         android:name="android.hardware.camera.autofocus"
         android:required="false" />
-    <!--    允许前台服务-->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <application
         android:name="com.ebook.MyApplication"
         android:allowBackup="true"

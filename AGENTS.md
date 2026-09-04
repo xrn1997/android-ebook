@@ -45,7 +45,7 @@ module_app        → 应用入口（@HiltApplication），组装所有功能模
 module_main       → 主页、启动页
 module_book       → 书籍阅读、管理、评论（含阅读器，全部 Compose）
 module_find       → 书城、搜索、书库浏览
-module_me         → 个人中心、头像、评论管理
+module_me         → 个人中心、头像、评论管理、版本更新检查（发布源策略与更新状态槽，见 ADR-0021）
 module_login      → 登录/注册/密码（Compose UI，Coroutines）
 lib_book_common   → 项目专属共享件：ebook 域共享 UI（com.ebook.common.ui，见 ADR-0006）与 Provider 接口；通用工具类与基类归口依赖的 lib_common（分界判据见 ADR-0015）
 lib_ebook_api     → 网络层：Retrofit 服务、数据实体、OkHttp 拦截器
@@ -85,9 +85,9 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 **跨模块路由在独立模式下的占位**：业务代码跳往其他模块的路由（如 `KeyCode.Main.MAIN_PATH`）在独立模块里不存在，TheRouter 找不到路由**只记一行日志、不报错不闪退**，跳转静默丢失。需要该链路的模块在 `src/main/test/debug/` 宿主上以 `@Route` 挂同名路径占位（该 source set 只在独立模式编译，不与集成模式抢路由），例：module\_login 的 `debug.MainActivity` 占 `MAIN_PATH` 供登录成功后 CLEAR\_TOP。另注：新增/改动 `@Route` 后，routeMap 资产由 TheRouter transform 回写，**当次构建的 APK 仍装旧路由表，需再构建一次**才生效。
 
-**新增接口同步**：新增 `DataSource` 接口方法时，必须同步更新对应的 `XxxNetworkTest` mock 实现。JSON 资产只适用于**返回固定结构的读接口**——这类方法同时要在 `lib_ebook_api/src/main/assets/` 补对应资产。**回显请求内容的写接口与文件上传接口**（如 `updateMe` 的部分更新回显、`uploadAvatar` 返回上传后的 URL）应在 mock 里以代码合成响应，并在实现上注释说明「为何无静态资产可对应」：静态资产表达不了「按入参变化」与「上传后真实地址」这类语义，禁止为凑规则造一份固定 JSON 去冒充响应。
+**新增接口同步**：新增 `DataSource` 接口方法时，必须同步更新对应的 `XxxNetworkTest` mock 实现。JSON 资产只适用于**返回固定结构的读接口**——这类方法同时要在 `lib_ebook_api/src/main/assets/` 补对应资产。**回显请求内容的写接口与文件上传接口**（如 `updateMe` 的部分更新回显、`uploadAvatar` 返回上传后的 URL）应在 mock 里以代码合成响应，并在实现上注释说明「为何无静态资产可对应」：静态资产表达不了「按入参变化」与「上传后真实地址」这类语义，禁止为凑规则造一份固定 JSON 去冒充响应。例外：`ReleaseDataSource` 的 mock（`ReleaseNetworkTest`）**忽略 endpoint 入参**、固定回一份资产，因此双源 failover 不在 mock 里验，由 `module_me` 的 `ReleaseRepositoryTest` 用假数据源锁住。
 
-**资产形态与解码类型同步**：mock 读资产用的是 `getDataFromJsonFile<T>` 的 reified 类型，它必须与资产的 `data` 实际形态一致（服务端把列表改成分页包裹时，`T` 要从 `List<X>` 换成包裹对象，只取 `.data?.items`）。错配抛的 `SerializationException` 会被 `CoroutineAdapter` 吞成「未知错误」，**页面不闪退、数据永远加载不出来**，只有一行看不出根因的 ERROR 日志——因此这类改动必须同步更新 `lib_ebook_api` 的 mock 资产契约测试（`CommentNetworkTestTest` 一类）。
+**资产形态与解码类型同步**：mock 读资产用的是 `getDataFromJsonFile<T>` 的 reified 类型，它必须与资产的 `data` 实际形态一致（服务端把列表改成分页包裹时，`T` 要从 `List<X>` 换成包裹对象，只取 `.data?.items`）。错配抛的 `SerializationException` 会被 `CoroutineAdapter` 吞成「未知错误」，**页面不闪退、数据永远加载不出来**，只有一行看不出根因的 ERROR 日志——因此这类改动必须同步更新 `lib_ebook_api` 的 mock 资产契约测试（`CommentNetworkTestTest` 一类）。**第三方平台的原始 JSON 资产**（`release_latest.json`）不带 `RespDTO` 信封，故不走 `getDataFromJsonFile<T>`，而是把整个资产直接解成实体；形态错配同样不闪退，表现为「永远检查更新失败」（见 ADR-0021）。
 
 ### 响应式编程约定
 
@@ -227,6 +227,10 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - 涉及书源改动时，先读 `default_sources.json` 获取**默认内置书源**实况（`JsoupBookParser` 按规则动态解析），适配新网站优先改 JSON 规则而不是硬编码选择器；当前书源来自随 APK 出货的 assets `default_sources.json`，运行时由 `BookSourceManagerImpl` 加载（用户导入书源的 Room 持久化尚未实现，属 ADR-0016 规划）
 
 - **书源架构现状：单书源**（多书源共存是 ADR-0016 规划的**未来项，尚未实现**）：书架/阅读/下载/搜索/书城各解析路径当前统一走 `bookSourceManager.requireParser()`（默认书源 parser），`requireParser()` **未废弃、仍是主路径**。ADR-0016 规划的按 `tag` 查 parser（`getParserFor`）、聚合搜索（`searchAcross`）、默认书源订阅（`observeDefaultSource`）、`BookSourceNotFoundException`、Room `book_source` 表等**当前代码中均不存在**；`BookSourceManager` 的 `importFromJson`/`exportToJson`/`switchSource`/`saveCurrentSource` 等是为该规划预留的脚手架，暂无业务调用方。实现 ADR-0016 前不要按多书源现状描述本模块
+
+- 涉及清单权限改动时，先读 ADR-0022（逐条判据与保留项理由）：删一条的前提是**全仓（含依赖的 `lib_common`）找不到需要它的 API**，不是"看着没用"；`src/main/AndroidManifest.xml` 与 `src/main/module/AndroidManifest.xml` 是**替换关系**，权限条目必须两份同步增删，否则集成态与独立态权限面分裂。改完必须读 `module_app/build/intermediates/merged_manifests/*/AndroidManifest.xml` 核对**合并结果**（库可能把自己声明的权限加回来，必要时才用 `tools:node="remove"` 覆盖）。存储三项（`MANAGE`/`WRITE`/`READ_EXTERNAL_STORAGE`）由 `module_book` 的导入本地书链路持有、`FOREGROUND_SERVICE*` 由 ADR-0018 持有，均不得顺手删；拍照/相册/导入/下载通知四条回归属人工装机验证项
+
+- 涉及版本更新检查改动时，先读 ADR-0021：发布源顺序/failover/`.apk` 过滤等**策略**在 `module_me/repository/ReleaseRepository`，HTTP 与接缝（`ReleaseDataSource`/`ReleaseNetwork`/`ReleaseResponse`）在 `lib_ebook_api/service/release`，**不得**把仓库层写回 `lib_ebook_api`；该请求走专属 `@Named("release")` 纯净客户端（不带 token、不套解 `RespDTO` 信封的 `CoroutineAdapter`），也不要改回去复用 `@Named("source")` 书源客户端。两条不变量：**判不出结论就不算检查成功**（远端 tag 解析不出版本、本地 `versionName` 读不到 → 按检查失败处置且不写限频时间戳）；**「是否有新版」是派生态**（由上次检查到的 tag vs 装机版本算，不落地成布尔量）
 
 - 涉及前台服务/离线下载改动时，先读 ADR-0018（dataSync 配额与启动被拒的收口方式）：新增启动点一律走 `DownloadService.start`，发起方先写 `download_chapter` 再拉服务；`foregroundServiceType="dataSync"` 与 `FOREGROUND_SERVICE_DATA_SYNC` 不得删除，两参 `startForeground` 无需改成三参
 

@@ -34,6 +34,22 @@
     <string name="setting_logout_success">退出登录成功</string>
     <string name="setting_check_update_title">检查更新</string>
     <string name="setting_check_update_message">当前版本 v%1$s，已是最新版本。</string>
+    <!-- 版本行角标：检测到新版本时在版本号后提示 -->
+    <string name="setting_new_version_badge">新版</string>
+    <!-- 检查中 -->
+    <string name="setting_check_update_checking">正在检查更新…</string>
+    <!-- 发现新版本弹窗：标题含远端版本号。%1$s 必须先经 normalizeVersionTag 去掉
+         tag 自带的 V/v 前缀，否则 "V1.2.0" 会渲染成 "vV1.2.0" -->
+    <string name="setting_check_update_found_title">发现新版本 v%1$s</string>
+    <string name="setting_check_update_no_body">暂无更新说明。</string>
+    <!-- 下载按钮：跳系统浏览器/下载器下载 APK -->
+    <string name="setting_check_update_download">下载</string>
+    <!-- 该次发布未带 APK 附件：不给假下载按钮，改提示去发布页取包 -->
+    <string name="setting_check_update_no_apk">本次发布未提供安装包，请到发布页获取。</string>
+    <!-- 「下载」跳外部应用失败（无浏览器/无法处理该 Intent）：与「检查失败」是两回事 -->
+    <string name="setting_check_update_open_failed">无法打开下载入口，请稍后重试。</string>
+    <!-- 检查失败 -->
+    <string name="setting_check_update_error">检查更新失败，请稍后重试。</string>
     <string name="setting_logout_confirm_message">确定要退出当前账号吗？</string>
 
     <!-- ===== 缓存管理页 ===== -->

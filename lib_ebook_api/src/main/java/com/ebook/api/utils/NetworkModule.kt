@@ -54,6 +54,21 @@ object NetworkModule {
         .readTimeout(10, TimeUnit.SECONDS)
         .addInterceptor(EncodingInterceptor("UTF-8"))
         .build()
+
+    /**
+     * 发布检查客户端：GitHub / Gitcode 公开 Releases API 的纯净 OkHttpClient。
+     *
+     * 不复用 [Named] "source" 那条：书源客户端按 AGENTS.md 专属「第三方书源抓取」，且带
+     * 面向中文 URL 的 EncodingInterceptor；发布 API 的端点全是 ASCII JSON，两条链路的超时
+     * 与拦截器演化方向不同，混用会让命名失真。与书源客户端一致的**唯一不变量是不带 token**。
+     */
+    @Provides
+    @Singleton
+    @Named("release")
+    fun provideReleaseOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .build()
 }
 
 fun interface TestAssetManager {

@@ -4,11 +4,17 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.common.domain.UserSessionManager
 import com.ebook.common.provider.ILoginProvider
 import com.ebook.me.repository.CacheModel
+import com.ebook.me.repository.ReleaseCheckResult
+import com.ebook.me.repository.ReleaseRepository
+import com.ebook.me.repository.ReleaseStateStore
 import com.ebook.me.repository.formatSize
+import com.ebook.me.util.AppVersion
+import com.ebook.me.util.isOlderThan
 import com.therouter.TheRouter
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import com.xrn1997.common.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,16 +24,33 @@ import javax.inject.Inject
 /**
  * 设置页 ViewModel。
  *
- * 职责（均为本地操作，无网络依赖）：
+ * 职责：
  * - 缓存：展示 cacheDir 总占用（点击入口跳缓存管理页做分类清理，本页不再直接清理）
+ * - 版本更新检查：主动（用户点「检查更新」即时）与静默（进设置页且距上次 ≥7 天）两种触发，
+ *   结果分两种消费：更新弹窗（主动检查）与版本行角标（每次由上次检查到的 tag 现场派生）
  * - 退出登录：经 UserSessionManager 单点清会话
  * - 登录态：控制「退出登录」区块的显隐
+ *
+ * 状态约定：**VM 不持有任何用户可见文本**，弹窗文案（"已是最新/发现新版本/检查失败"）由 UI 层
+ * 依据 [updateState] 的语义分支经字符串资源解析。分工：发布源顺序与 failover 归
+ * [ReleaseRepository]，tag 解析与比较归 [com.ebook.me.util.AppVersion]，落盘与限频窗口归
+ * [ReleaseStateStore]，本类只把它们串起来并决定 UI 状态。
+ *
+ * 一条贯穿检查链路的不变量：**判不出结论就不算检查成功**（远端 tag 解析不出版本、或本地
+ * 版本读不到 → 按 [UpdateState.CheckError] 处置且不写成功时间戳），否则一个假结论会占满
+ * 7 天限频窗口并把角标停在错误值上。
  */
 @HiltViewModel
 class SettingViewModel @Inject constructor(
     private val cacheModel: CacheModel,
     private val userSessionManager: UserSessionManager,
+    private val releaseRepository: ReleaseRepository,
+    private val releaseStateStore: ReleaseStateStore,
 ) : BaseViewModel<CacheModel>(cacheModel) {
+
+    private companion object {
+        const val TAG = "SettingViewModel"
+    }
 
     /** 当前登录态（控制退出登录区块显隐） */
     val isLoggedIn: StateFlow<Boolean> = userSessionManager.isLoggedIn
@@ -41,8 +64,45 @@ class SettingViewModel @Inject constructor(
     private val _cacheSize = MutableStateFlow("")
     val cacheSize: StateFlow<String> = _cacheSize.asStateFlow()
 
+    /**
+     * 版本检查的 UI 状态。初始为 [UpdateState.Idle] 表示「未检查/不展示弹窗」。
+     */
+    private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
+    val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
+
+    /**
+     * 在途的版本检查任务（主动与静默共用一条，同一时刻最多一个请求在跑）。
+     *
+     * 两个用途：
+     * - **重入保护**：连点版本行、或静默刷新尚未回来时用户又主动点，不再并发起第二次请求
+     *   （两次请求各自落盘 tag 与角标，后回来的那个会覆盖前一个的结论）；
+     * - **关窗即取消**：用户在「检查中」把弹窗关掉时取消任务，否则请求回来会把弹窗
+     *   重新推到用户脸上。取消能真正掐断备用源请求，靠的是 `ReleaseRepository`
+     *   把 [kotlinx.coroutines.CancellationException] 原样抛出（不当「该源失败」）。
+     */
+    private var checkJob: Job? = null
+
+    /**
+     * 版本行角标：是否「已有可更新的新版本」。
+     *
+     * 值由 [ReleaseStateStore.hasUpdateAvailable] **现场派生**（上次检查到的 tag vs 当前装机
+     * 版本），不存结论布尔量——升级安装后重新派生就自动纠正。见 [refreshUpdateBadge]。
+     */
+    private val _hasUpdateAvailable = MutableStateFlow(releaseStateStore.hasUpdateAvailable)
+    val hasUpdateAvailable: StateFlow<Boolean> = _hasUpdateAvailable.asStateFlow()
+
+    /**
+     * 版本行展示的本地版本号（读不到为空串，占位文案由 UI 层经字符串资源决定）。
+     *
+     * 由 VM 转发而不是页面自己读 PackageManager：比较基准与展示值必须同源，否则会出现
+     * 「页面上显示 A、按 A' 判有无更新」的漂移。
+     */
+    val appVersionName: String = releaseStateStore.currentVersionName.orEmpty()
+
     init {
         refreshCacheSize()
+        // 进设置页时按 7 天限频静默刷新「是否有新版本」的角标状态（不弹窗）
+        startSilentRefresh()
     }
 
     /**
@@ -55,6 +115,79 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             _cacheSize.value = formatSize(cacheModel.cacheSizeBytes())
         }
+    }
+
+    /**
+     * 重新派生角标。
+     *
+     * public 供 Activity 在 onResume 时刷新：本页可长期驻留在返回栈里，VM 由 ViewModelStore
+     * 持有、比 Compose 页面活得更久，只在构造时算一次不足以反映「装机版本已经变了」——
+     * 用户完全可能看到角标后去装新版本再回到本页。
+     */
+    fun refreshUpdateBadge() {
+        _hasUpdateAvailable.value = releaseStateStore.hasUpdateAvailable
+    }
+
+    /**
+     * 主动检查更新（用户点「检查更新」触发）：立即请求并展示结果弹窗。
+     *
+     * 「无法判定」（远端 tag 解析不出版本、或本地版本读不到）一律按 [UpdateState.CheckError]
+     * 处置，且**不写成功时间戳**：把它当成「已是最新」会用一个假结论占满 7 天限频窗口，
+     * 还会把角标停在错误值上——这正是「失败不覆盖旧结论」要求覆盖到的那条路径。
+     */
+    fun checkUpdate() {
+        if (checkJob?.isActive == true) return
+        checkJob = viewModelScope.launch {
+            _updateState.value = UpdateState.Checking
+            val result = releaseRepository.checkLatestRelease()
+            val hasUpdate = result?.let(::recordConclusion)
+            _updateState.value = when {
+                result == null || hasUpdate == null -> UpdateState.CheckError
+                hasUpdate -> UpdateState.HasUpdate(result)
+                else -> UpdateState.UpToDate
+            }
+        }
+    }
+
+    /**
+     * 进设置页时的静默刷新：距上次成功检查 ≥7 天才发起，否则角标沿用上次结论的派生值。
+     * 静默刷新**不**改变 [updateState]（不弹窗），只更新角标；失败则无声忽略。
+     */
+    private fun startSilentRefresh() {
+        if (checkJob?.isActive == true) return
+        if (!releaseStateStore.shouldAutoRefresh()) return
+        checkJob = viewModelScope.launch {
+            val result = releaseRepository.checkLatestRelease() ?: return@launch
+            recordConclusion(result)
+        }
+    }
+
+    /**
+     * 比较远端 tag 与本地版本，并把检查到的 tag 落盘、重派生角标。
+     *
+     * @return `true`/`false` 表示是否落后于远端；`null` 表示无法判定——此时**不写盘**，
+     *   既保有上次结论也保有上次检查时间，调用方按「检查失败」处置
+     */
+    private fun recordConclusion(result: ReleaseCheckResult): Boolean? {
+        val remote = AppVersion.parse(result.remoteTag) ?: return null
+        val current = releaseStateStore.currentVersion ?: return null
+        releaseStateStore.markCheckSuccess(result.remoteTag)
+        refreshUpdateBadge()
+        return current.isOlderThan(remote)
+    }
+
+    /**
+     * 主动检查弹窗关闭后，把状态复位回 Idle（下次点击重新进入 Checking）。
+     *
+     * 「检查中」关窗按**放弃本次检查**处理：取消在途任务，否则请求回来会把弹窗重新推到
+     * 已经关掉它的用户脸上。角标不受影响——结论只在 [recordConclusion] 里落盘。
+     */
+    fun consumeUpdateDialog() {
+        if (_updateState.value is UpdateState.Checking) {
+            checkJob?.cancel()
+            checkJob = null
+        }
+        _updateState.value = UpdateState.Idle
     }
 
     /**
@@ -79,4 +212,20 @@ class SettingViewModel @Inject constructor(
         }
         userSessionManager.clearSession()
     }
+}
+
+/**
+ * 版本检查弹窗的 UI 状态（语义分支，不含任何用户可见文本）。
+ */
+sealed interface UpdateState {
+    /** 未检查/弹窗已关闭 */
+    data object Idle : UpdateState
+    /** 检查中 */
+    data object Checking : UpdateState
+    /** 已是最新版本 */
+    data object UpToDate : UpdateState
+    /** 发现新版本，携带远端信息供弹窗展示与下载 */
+    data class HasUpdate(val result: ReleaseCheckResult) : UpdateState
+    /** 检查失败（网络/解析） */
+    data object CheckError : UpdateState
 }
