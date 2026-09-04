@@ -13,7 +13,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * [TokenRefresher] 的实现：双 token 静默刷新（对齐 ebook-server ADR-0001/0002）。
+ * [TokenRefresher] 的实现：双 token 静默刷新（对齐服务端刷新契约：`POST /api/auth/refresh`
+ * 只返回新双 token、不含用户资料）。
  *
  * 设计要点：
  * - **单飞互斥**：[Mutex] 串行化刷新；进锁后先比对「触发过期时的 token」与

@@ -86,7 +86,7 @@ class BookImportViewModel @Inject constructor(
             for (file in books) {
                 try {
                     val value = bookImportRepository.importBook(file)
-                    Logger.e(TAG, "onNext: " + value.new)
+                    Logger.i(TAG, "导入完成（新书=${value.new}）")
                     if (value.new) {
                         bookRepository.addToShelf(value.bookShelf)
                     }

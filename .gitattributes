@@ -1,0 +1,10 @@
+# 行尾策略：统一 LF 入库、LF 检出
+# 仓库内所有文本 blob 已是 LF，因此本文件不触发任何再规范化；它防的是将来：
+# Windows 贡献者全局 core.autocrlf=true 会把工作区检出成 CRLF，下一次编辑文件又整份翻回 LF，
+# 于是提交里出现与改动无关的"全文件 diff"，也把警告清洁度带崩（见 AGENTS.md「构建约定」）。
+* text=auto eol=lf
+
+# cmd.exe 对纯 LF 批处理的 goto/标签处理不可靠，这个文件必须在检出时保持 CRLF
+# （text 属性只影响检出，入库仍是 LF）
+*.bat text eol=crlf
+*.cmd text eol=crlf

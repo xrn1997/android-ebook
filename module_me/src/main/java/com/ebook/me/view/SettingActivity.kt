@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
+import com.ebook.common.domain.AndroidUserSessionManager
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
@@ -42,13 +44,12 @@ import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import com.xrn1997.common.util.ToastUtil
 import dagger.hilt.android.AndroidEntryPoint
-import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 
 /**
  * 设置页：通用（缓存管理）+ 关于（版本检查更新/关于我们）+ 账号（退出登录）。
  *
- * 缓存管理与关于内容可公开访问，无需登录；退出登录受 [isLoggedIn] 条件守卫，
+ * 缓存管理与关于内容可公开访问，无需登录；退出登录受 [AndroidUserSessionManager.isLoggedIn] 条件守卫，
  * 未登录时自动隐藏整个账号区块。
  *
  * 交互设计（箭头语义：带箭头=点进去看，不带=当场执行的动作）：
@@ -63,7 +64,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 @Route(path = KeyCode.Me.SETTING_PATH)
 class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
-    protected override val viewModel: SettingViewModel by viewModels()
+    override val viewModel: SettingViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,7 +86,7 @@ class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
         val appVersion = remember {
             try {
                 context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
-            } catch (e: PackageManager.NameNotFoundException) {
+            } catch (_: PackageManager.NameNotFoundException) {
                 ""
             }
         }

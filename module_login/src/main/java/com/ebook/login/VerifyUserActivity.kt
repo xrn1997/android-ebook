@@ -33,7 +33,7 @@ import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
- * 忘记密码流程第一步：邮箱验证码验证身份（对齐 ebook-server ADR-0002，纯邮箱、不依赖用户名）。
+ * 忘记密码流程第一步：邮箱验证码验证身份（纯邮箱验证，不依赖用户名）。
  *
  * 输入邮箱 → 获取验证码（服务端发邮件）→ 输入验证码 → 进入第二步 [ModifyPwdActivity]（RESET 模式）。
  * 验证码正确性由服务端在重置时校验（A0132 验证码错误 / A0241 尝试超限），客户端不做本地校验。

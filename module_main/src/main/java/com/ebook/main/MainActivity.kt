@@ -129,7 +129,7 @@ sealed class Screen(val route: String, @param:StringRes val titleRes: Int, val i
 /**
  * 主页骨架：底部导航 + 三个 Tab 的 NavHost。
  *
- * 选中态单一数据源为 [navController] 的回退栈（派生自 currentBackStackEntryAsState），
+ * 选中态单一数据源为 navController 的回退栈（派生自 currentBackStackEntryAsState），
  * 不再额外维护本地选中状态，避免双份状态在进程恢复等场景下不同步。
  *
  * insets 划分：[NavigationBar] 自行含手势条避让，故内容区不再叠加默认的

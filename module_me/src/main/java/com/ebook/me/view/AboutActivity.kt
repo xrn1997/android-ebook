@@ -1,6 +1,5 @@
 package com.ebook.me.view
 
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.util.DisplayMetrics
 import androidx.compose.foundation.Image
@@ -42,6 +41,7 @@ import com.ebook.me.R
 import com.therouter.TheRouter
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseActivity
+import androidx.core.graphics.createBitmap
 
 /**
  * 关于页：App 信息卡（图标/名称/版本/slogan）+ 内容入口（用户协议/隐私政策/开源许可）+ 版权。
@@ -107,7 +107,7 @@ class AboutActivity : BaseActivity() {
                 context.theme,
             ) ?: return null
             val size = 256
-            val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val bitmap = createBitmap(size, size)
             val canvas = Canvas(bitmap)
             drawable.setBounds(0, 0, size, size)
             drawable.draw(canvas)

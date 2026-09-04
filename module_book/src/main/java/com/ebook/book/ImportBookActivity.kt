@@ -3,13 +3,13 @@ package com.ebook.book
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Description
@@ -56,7 +55,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -64,8 +62,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.ebook.book.mvvm.viewmodel.BookImportViewModel
-import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.CommonItemCard
+import com.ebook.common.ui.CommonUiTokens
 import com.permissionx.guolindev.PermissionX
 import com.permissionx.guolindev.request.ExplainScope
 import com.permissionx.guolindev.request.ForwardScope
@@ -77,6 +75,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.DecimalFormat
+import androidx.core.net.toUri
 
 /**
  * 本地书籍导入页（Compose 版，替代原 ViewBinding + RotateLoading + MoProgressHUD 实现）。
@@ -93,11 +92,8 @@ import java.text.DecimalFormat
  */
 @AndroidEntryPoint
 class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
-    private companion object {
-        const val TAG = "ImportBookActivity"
-    }
 
-    protected override val viewModel: BookImportViewModel by viewModels()
+    override val viewModel: BookImportViewModel by viewModels()
 
     // 页面级状态由 Activity 持有：生命周期与 Composable 解耦，
     // 退场动画开关必须在 finish()（非组合期）可写
@@ -265,7 +261,10 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
                 onDismissImportError = { showImportError = false },
                 onConfirmFilesPermission = {
                     showFilesPermissionDialog = false
-                    launchFilesAccessSettings()
+                    // 弹窗只在 SDK_INT >= R 时展示，此处再守一道满足 @RequiresApi 契约
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        launchFilesAccessSettings()
+                    }
                 },
                 onCancelFilesPermission = {
                     showFilesPermissionDialog = false
@@ -298,10 +297,14 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
      * 旧写法附加 URI 会直接解析失败（ActivityNotFoundException）。
      *
      * 个别 ROM 若未注册 per-app action，回退到列表页保证流程不断。
+     *
+     * 仅 Android 11+ 需要此权限，调用方已保证 API 级别（见 [initPermission] 中
+     * `SDK_INT >= R` 分支），此处用 [RequiresApi] 将隐式约束提升为编译期契约。
      */
+    @RequiresApi(Build.VERSION_CODES.R)
     private fun launchFilesAccessSettings() {
         val direct = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-            .setData(Uri.parse("package:$packageName"))
+            .setData("package:$packageName".toUri())
         try {
             requestPermission.launch(direct)
         } catch (e: ActivityNotFoundException) {

@@ -148,7 +148,7 @@ class SearchViewModel @Inject constructor(
                     // 首屏按 noteUrl 去重：列表以 noteUrl 作 item key，重复 key 直接抛异常
                     updateList(value.distinctBy { it.noteUrl })
                 } else {
-                    // 没带来新条目（空页或整页重复）= 没有更多；刷新路径由状态机自动重置，ADR-0041
+                    // 没带来新条目（空页或整页重复）= 没有更多；刷新路径由状态机自动重置
                     val merged = mergeBookPage(list.value, value)
                     if (merged == null) updateHasMoreData(false) else updateList(merged)
                 }
@@ -159,6 +159,7 @@ class SearchViewModel @Inject constructor(
                 updateOverlay(Overlay.None)
                 updateStopLoadMore(true)
             } catch (e: Throwable) {
+                Logger.e(TAG, "searchBook onError: ", e)
                 updateOverlay(Overlay.None)
                 updateStopLoadMore(false)
             }

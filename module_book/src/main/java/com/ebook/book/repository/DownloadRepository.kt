@@ -153,11 +153,13 @@ class DownloadRepository @Inject constructor(
     }
 
     /**
-     * 非挂起发射下载状态：供服务超时回调（[com.ebook.book.service.DownloadService.onTimeout]）这类
-     * "来不及起协程、马上就要 stopSelf"的路径使用。
+     * 非挂起发射下载状态：供服务「马上就要 stopSelf/stopService，来不及赌协程调度」的收尾路径使用，
+     * 例如超时回调（[com.ebook.book.service.DownloadService.onTimeout]）、前台服务启动被拒、队列跑空。
      *
-     * 通道有 extraBufferCapacity，tryEmit 不经挂起队列，故能在服务被销毁前落入 replay 缓冲；
-     * 仅当缓冲（64）填满时返回 false，此时状态会被丢弃——超时场景下不致命（服务反正已停）。
+     * 通道有 extraBufferCapacity，tryEmit 不经挂起队列，故能在服务销毁前落入 replay 缓冲；
+     * 仅当缓冲（64）填满时返回 false，此时状态会被丢弃——收尾场景下不致命（服务反正已停）。
+     * 反之，已在某个协程里顺序执行的中间态（进度、暂停）继续用挂起的 [emitState] 即可：
+     * 它跟后续的 stopService 在同一个块里，不存在被取消的竞态。
      */
     fun tryEmitState(state: DownloadState): Boolean = _downloadState.tryEmit(state)
 }
@@ -168,11 +170,7 @@ class DownloadRepository @Inject constructor(
 data class CacheCoverage(
     val total: Int,
     val cached: Int,
-) {
-    /** 缓存比例（0..1）；无章节时视为 0，避免除零 */
-    val ratio: Float
-        get() = if (total > 0) cached.toFloat() / total else 0f
-}
+)
 
 /**
  * 下载状态（Service → UI）

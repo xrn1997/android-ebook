@@ -46,8 +46,4 @@ class LibraryViewModel @Inject constructor(
     override fun loadMore() {
         updateStopLoadMore(false)
     }
-
-    companion object {
-        val TAG: String = LibraryViewModel::class.java.simpleName
-    }
 }

@@ -86,7 +86,9 @@ Room `book_source` 表、schema v3 迁移等**均尚未落地**；`BookSourceMan
    业务代码全部改为 `getParserFor(entity.tag)`，迁移完成后删除。
 
 5. **业务解析路径按** **`tag`** **走独立 parser**
-   10 处 `bookSourceManager.requireParser()` 全部改造：
+   9 处 `bookSourceManager.requireParser()` 全部改造（截至 2026-09 的现状盘点：
+   `BookShelfManager`×2、`BookDetailViewModel`×2、`BookReadViewModel`、`DownloadService`、
+   `SearchViewModel`、`BookSourceRepository`×2；实施前先重新 grep 核实，勿按旧数核对）：
 
    - `BookShelfManager.addFromSearch`：`getParserFor(searchBook.tag)`
 

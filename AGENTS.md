@@ -57,13 +57,13 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 > 本节只记**稳定约束**；接线细节（具体调用方式、基类钩子、内部机制）以相关代码与 KDoc 为事实源，改动时不要求同步本文件。
 
-- **约定插件**：`build-logic/convention/` 提供统一构建配置，插件 ID 以 `xrn1997.` 为前缀；其中 `xrn1997.android.component` 支撑模块化开发（`gradle.properties` 的 `isModule=true` 时功能模块可独立运行，`false`（默认）时作为 library 被 `module_app` 依赖）。**提交态 `gradle.properties` 必须是 `isModule=false`**——`true` 时 `module_app` 不依赖任何功能模块，产出的是空壳 App。临时单模块独立运行：**直接把 `gradle.properties` 的 `isModule` 改成 `true`，调试完改回，不要提交**。**不要用 `./gradlew -PisModule=true` 覆盖**——命令行 `-P` 会渗进 `settings.gradle.kts` 的 `includeBuild(lib-common-build)`，让 `lib_common` 也按独立模块去套 `com.android.application`，与它的 library 插件冲突而构建失败（`'com.android.application' and 'com.android.library' plugins cannot be applied in the same project`）；根因是兼容别名 `xrn1997.android.compose` 复用了带 `isModule` 分支的插件类，待修项见 `docs/test-coverage-todo.md`。
+- **约定插件**：`build-logic/convention/` 提供统一构建配置，插件 ID 以 `xrn1997.` 为前缀；其中 `xrn1997.android.component` 支撑模块化开发（`gradle.properties` 的 `isModule=true` 时功能模块可独立运行，`false`（默认）时作为 library 被 `module_app` 依赖）。**提交态 `gradle.properties` 必须是 `isModule=false`**——`true` 时 `module_app` 不依赖任何功能模块，产出的是空壳 App。临时单模块独立运行：**直接把 `gradle.properties` 的 `isModule` 改成 `true`，调试完改回，不要提交**。**不要用 `./gradlew -PisModule=true` 覆盖**——命令行 `-P` 会渗进 `settings.gradle.kts` 的 `includeBuild(lib-common-build)`，让 `lib_common` 也按独立模块去套 `com.android.application`，与它的 library 插件冲突而构建失败（`'com.android.application' and 'com.android.library' plugins cannot be applied in the same project`）；根因是 `xrn1997.android.compose` 约定插件自带 `isModule` 分支、会重复应用基础插件（`lib_common` 已自行应用 `xrn1997.android.library`），待修项见 `docs/test-coverage-todo.md`。**该坑以 `includeBuild("lib-common-build")` 为启用态为前提**——当前它是注释态、lib\_common 走 Maven 中央坐标，故 `-PisModule=true` 暂不触发，取消注释恢复本地联动后即复现（两仓 compose 插件 ID 统一与其实现差异见 ADR-0020）。
 
 - **功能模块**依赖 `lib_book_common`，互不依赖；跨模块导航使用 TheRouter，服务经 `provider/` 接口暴露。
 
 - **跨模块页面**：主 Tab 页面（书架/书城/我的）由 Provider 接口暴露 `@Composable () -> Unit`（非 Fragment），由 module\_main 的 NavHost 直接组合；Provider 由 TheRouter 创建（非 Hilt），页面依赖经页面级 `@HiltViewModel` 注入。
 
-- **MVVM**：ViewModel 继承 lib\_common 的 `BaseViewModel`/`BaseRefreshViewModel`，经 Hilt 构造注入。lib\_common 经 `lib-common-build/` 迷你独立构建联动（根 `settings.gradle.kts` 的 `includeBuild` 当前为**启用态**，用本地 `:lib_common` 源码替换 `io.github.xrn1997:common` 坐标，两边可同步改）；`lib-common-build/settings.gradle.kts` 用**相对路径** `../../../CodeUp/android-practice` 定位 android-practice 源码，开发者需把 android-practice 克隆到相对本仓库匹配的位置（不绑定盘符/绝对路径，事实源以该 settings 脚本为准）。common 新版发布并升级 `libs.versions.toml` 后，注释掉 `includeBuild` 即改回 Maven 中央坐标解析
+- **MVVM**：ViewModel 继承 lib\_common 的 `BaseViewModel`/`BaseRefreshViewModel`，经 Hilt 构造注入。lib\_common 经 `lib-common-build/` 迷你独立构建联动（根 `settings.gradle.kts` 的 `includeBuild` 当前为**注释态**，lib\_common 走 `io.github.xrn1997:common` 中央坐标；需要本地源码联动时取消该注释即启用，两边可同步改）；`lib-common-build/settings.gradle.kts` 用**相对路径** `../../../CodeUp/android-practice` 定位 android-practice 源码，开发者需把 android-practice 克隆到相对本仓库匹配的位置（不绑定盘符/绝对路径，事实源以该 settings 脚本为准）。该切换是双向的：本地改完 common 就注释掉 `includeBuild` 回到 Maven 坐标（当前即此态，已随 common 0.3.1 做过一次），要联调再取消注释
 
 - **Activity 基类**：Compose 业务页面统一继承 lib\_common 的 `BaseActivity`（Compose 版）；例外场景（启动转场、模块独立运行的 test/debug 宿主）不继承基类的，**必须自行对齐基类行为**（主题、insets/沉浸式状态栏、状态覆盖层），以基类 KDoc 与现有宿主实现为准，禁止裸 `MaterialTheme` 造成配色分裂。
 
@@ -131,7 +131,7 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 - **评审/grill 驱动改动的沉淀**：由代码评审、grill 会话等驱动的架构级决定（依赖替换、体系迁移、组件归属等）必须沉淀为 `docs/adr/` 的 ADR，不能只留在提交信息与会话记录里
 
-- **跨仓库 ADR 编号**：本仓 `docs/adr/` 的序列编号目前到 0019。代码注释里出现的、`docs/adr/` 中**不存在**的编号不是悬空引用，也不属于本仓：不带限定的大编号（如 `ADR-0038` 主题装配点、`ADR-0040` Compose 原生绑定、`ADR-0041` 刷新协议 hasMore）属 **android-practice（lib\_common）** 的 ADR 序列；带「后端」限定的（如「后端 ADR-0011」）属 **ebook-server** 仓库。判定前先 `ls docs/adr/`，不要按"引用失效"去改注释或补建本仓 ADR
+- **跨仓库 ADR 编号**：android-ebook、android-practice（lib\_common）与 ebook-server 是三个独立项目，各有**连续递增、互不对齐**的 `docs/adr/` 编号序列（三仓都从 0001 起编，序列在 0001 段即已重叠）。**代码注释与文档中禁止引用其他仓库的 ADR 编号**（`lib_common ADR-xxxx` / `ebook-server ADR-xxxx` 一律不写）——跨仓编号对只看本仓的读者无意义、且随对侧重排失效；需要表达的外部决策把内容写成自足描述（不怕重复，如「服务端契约：邮箱为登录主标识」）。本仓自己的 ADR 编号裸写即可；`docs/adr/` 内做跨仓溯源时用提交 hash 等本仓可验证的锚点，不引外部编号
 
 - **认证体系约定**：**邮箱为登录主标识**（用户名仅展示用，可重复；注册三步不发 token，见 ADR-0009）；access token 运行时存放于 lib\_common 的 `TokenHolder`（内存单例），`AuthInterceptor` 只对 `@AuthAllowedHosts` 白名单内的 host 附加到请求头（白名单绑定在 lib\_ebook\_api 的 NetworkModule，值为 `BuildConfig.EBOOK_SERVER_HOST`；`AuthInterceptor`/`@AuthAllowedHosts` 属 lib\_common 侧约定）；双 token 持久化由 `AndroidUserSessionManager` 负责（密码不落盘），登录/登出/启动恢复/静默刷新时同步 TokenHolder。A0230 过期由 `CoroutineAdapter` 收口：单飞静默刷新（`TokenRefresher` 接缝，实现在 lib\_book\_common）→ 成功重放一次；刷新失败发 `SessionEventBus` 会话过期事件，由 module\_main `MainActivity` 订阅处置（清会话 + 提示 + 跳登录页，见 ADR-0010）。ebook-server 基址经 `local.properties` 的 `ebook.server.host` 注入 BuildConfig（缺省 10.0.2.2），不硬编码。**本地调试地址约定**：Android 17（targetSdk 37）起 `10.0.0.0/8`、`192.168.0.0/16`、`169.254.0.0/16` 等算“本地网络”，访问需 `ACCESS_LOCAL_NETWORK` 运行时权限，未授权时 OkHttp 直接报 `sendto failed: EPERM`（症状是“页面不闪退、数据永远加载不出来”）；本项目不申请该权限（普通用户用不到，Play 需额外论证），真机/模拟器连本机后端一律用 `adb reverse tcp:9090 tcp:9090` + `ebook.server.host=127.0.0.1`（回环不属本地网络），或直接用公网 IP。**书源请求（第三方网站）必须使用** **`@Named("source")`** **纯净客户端，不得携带 token**；服务端载荷为蛇形命名，DTO 边界翻译用逐字段 `@SerialName`，不开全局命名策略。**用户会话有三处镜像**（① `user_session` SP 文件；② `spUtils` 的 `SP_IS_LOGIN` 等，供 `LoginInterceptor` 读；③ `ProfileRepository` 的内存 StateFlow，装着昵称/头像供「我的」页渲染），**清会话一律只调 `userSessionManager.clearSession()`**，三处由它内部一并覆盖。**禁止调用方自行「成对」补调 `ProfileRepository` 的清理方法**：旧约定「两个方法必须成对调」是 SP 镜像（②）尚未收进 `clearSession()` 时的写法，如今既已多余、又会掩盖真正容易漏的③——漏掉③的表现是会话已过期、token 已清，但「我的」页仍显示上一个身份的昵称与头像。`ProfileRepository` 侧的清理方法现为 internal 的 `resetProfileState()`，只是 `clearSession()` 的内部实现细节，不作外部入口（见 CONTEXT.md「用户会话」）
 
@@ -145,7 +145,7 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 ### ViewBinding 体系（lib\_common 的双 UI 栈能力，本仓只用 Compose 分支）
 
-本节描述的是依赖库 `lib_common`（android-practice）仍同时提供的两套 UI 栈之一，**本仓库不使用**：全仓无任何 ViewBinding / XML 布局页面（见开头「项目概述」），勿据本节新建页面，新页面一律走下面的 Compose 体系。双栈并存的决定见 android-practice 仓库的 `ADR-0016-dual-ui-stacks-alignment`。保留本节只为说明基类层级事实：
+本节描述的是依赖库 `lib_common`（android-practice）仍同时提供的两套 UI 栈之一，**本仓库不使用**：全仓无任何 ViewBinding / XML 布局页面（见开头「项目概述」），勿据本节新建页面，新页面一律走下面的 Compose 体系。双 UI 栈并存是 `lib_common` 作为独立库的既有设计（它要同时服务仍以 View 体系为主的旧下游），本仓只取用其 Compose 分支。保留本节只为说明基类层级事实：
 
 ```
 BaseActivity<V : ViewBinding>

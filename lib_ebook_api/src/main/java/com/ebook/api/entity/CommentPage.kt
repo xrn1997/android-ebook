@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 评论列表分页响应（对齐 ebook-server ADR-0011：items/total/page/page_size 包裹结构）。
+ * 评论列表分页响应（对齐服务端分页包裹结构：items/total/page/page_size）。
  *
  * 服务端键为 page_size，Kotlin 属性保持驼峰 [pageSize]，边界翻译由 [SerialName] 完成。
  */

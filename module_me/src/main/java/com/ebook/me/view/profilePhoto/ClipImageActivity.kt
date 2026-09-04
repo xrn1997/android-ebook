@@ -52,6 +52,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
+import androidx.core.graphics.createBitmap
 
 /**
  * 头像裁剪页（Compose，替代原 ViewBinding 版）。
@@ -351,7 +352,7 @@ private fun cropBitmap(source: Bitmap, state: CropState, outputSize: Int = 200):
     val s = state.scale * outputSize / (2f * r)
     val tx = (state.offset.x - (c.x - r)) * outputSize / (2f * r)
     val ty = (state.offset.y - (c.y - r)) * outputSize / (2f * r)
-    val out = Bitmap.createBitmap(outputSize, outputSize, Bitmap.Config.ARGB_8888)
+    val out = createBitmap(outputSize, outputSize)
     val canvas = android.graphics.Canvas(out)
     canvas.translate(tx, ty)
     canvas.scale(s, s)

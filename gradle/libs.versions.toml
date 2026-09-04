@@ -222,7 +222,6 @@ therouter = { id = "cn.therouter", version.ref = "router" }
 # Plugins defined by this project
 xrn1997-android-application = { id = "xrn1997.android.application" }
 xrn1997-android-library = { id = "xrn1997.android.library" }
-xrn1997-android-library-compose = { id = "xrn1997.android.library.compose" }
 xrn1997-android-compose = { id = "xrn1997.android.compose" }
 xrn1997-android-lint = { id = "xrn1997.android.lint" }
 xrn1997-hilt = { id = "xrn1997.hilt" }

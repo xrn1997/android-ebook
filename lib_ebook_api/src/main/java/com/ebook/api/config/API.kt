@@ -12,13 +12,13 @@ import com.ebook.api.BuildConfig
  */
 object API {
     /** 用户/认证服务主机（开发期与评论服务同机部署） */
-    val URL_HOST_USER: String = BuildConfig.EBOOK_SERVER_HOST
+    const val URL_HOST_USER: String = BuildConfig.EBOOK_SERVER_HOST
 
     /** 用户/认证服务端口（对齐 ebook-server server.port=9090） */
     const val URL_PORT_USER = 9090
 
     /** 评论服务主机（开发期与用户服务同机部署） */
-    val URL_HOST_COMMENT: String = BuildConfig.EBOOK_SERVER_HOST
+    const val URL_HOST_COMMENT: String = BuildConfig.EBOOK_SERVER_HOST
 
     /** 评论服务端口（对齐 ebook-server server.port=9090） */
     const val URL_PORT_COMMENT = 9090

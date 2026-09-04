@@ -34,7 +34,6 @@ import com.ebook.book.manager.BitIntentDataManager
 import com.ebook.book.mvvm.viewmodel.BookDetailViewModel
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.common.event.FROM_BOOKSHELF
-import com.ebook.common.event.FROM_SEARCH
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.BookCover
 import com.ebook.common.ui.CommonCard
@@ -52,7 +51,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 @Route(path = KeyCode.Book.DETAIL_PATH)
 class BookDetailActivity : BaseMvvmActivity<BookDetailViewModel>() {
-    protected override val viewModel: BookDetailViewModel by viewModels()
+    override val viewModel: BookDetailViewModel by viewModels()
     @Autowired(name = "from")
     var openFrom = FROM_BOOKSHELF
 
@@ -99,9 +98,7 @@ class BookDetailActivity : BaseMvvmActivity<BookDetailViewModel>() {
                 val shelf = viewModel.mBookShelf ?: return@BookDetailScreen
                 val intent = Intent(this, ReadBookActivity::class.java)
                 intent.putExtra("from", OPEN_FROM_APP)
-                val key = System.currentTimeMillis().toString()
-                intent.putExtra("data_key", key)
-                BitIntentDataManager.putData(key, shelf.copy())
+                intent.putExtra("data_key", BitIntentDataManager.putData(shelf.copy()))
                 startActivity(intent)
                 finish()
             },

@@ -51,15 +51,18 @@
 
 ## 本轮（2026-09-03 评审）明确延后的技术债
 
-- [ ] **`xrn1997.android.compose` 跟随仓库级 `isModule` 开关，导致 `-PisModule=true` 弄坏复合构建**
-  —— `AndroidLibraryComposeConventionPlugin` 内部按 `findProperty("isModule")` 决定套
-  application 还是 library（该分支是为 `module_main` 同时应用两个约定插件而存在），但同一个类
-  又被注册成给 `lib_common` 用的兼容别名 `xrn1997.android.compose`。命令行 `-P` 会渗进
-  `includeBuild(lib-common-build)`，于是 `lib_common` 被套上 `com.android.application`，与它的
-  library 插件冲突：`'com.android.application' and 'com.android.library' plugins cannot be
-  applied in the same project`。根治方向：为兼容别名单列一个固定走 library 的插件类，
-  把 `isModule` 分支只留给 `xrn1997.android.library.compose`。当前规避方式见 `gradle.properties`
-  注释（独立调试直接改文件，勿用 `-P`）
+- [ ] **`xrn1997.android.compose` 约定插件自带 `isModule` 分支并重复应用基础插件（当前休眠：根 `includeBuild` 为注释态）**
+  —— 2026-09-04 两仓对齐后 `xrn1997.android.compose` 已是与 android-practice 一致的**唯一 ID（无别名）**，
+  但「同 ID」不等于「同实现」：android-practice 版不自套基础插件、且额外注入 compose ui-test 依赖，
+  本仓版按 `findProperty("isModule")` 自行应用 application/library（差异与影响见 ADR-0020）。
+  本仓实现里该分支原为 `module_main` 只挂组件插件时的便利，如今 `module_main` 已同时应用
+  `xrn1997.android.component`（它本就按 isModule 应用基础插件），compose 插件里的自套是冗余的。
+  一旦取消根 settings 的 `includeBuild("lib-common-build")` 注释恢复本地联动，命令行 `-P` 就会渗进去：
+  `lib_common` 已自行应用 `xrn1997.android.library`，又被 compose 插件套上 `com.android.application`——
+  `'com.android.application' and 'com.android.library' plugins cannot be applied in the same project`。
+  根治方向（对齐 android-practice 形态）：compose 插件不再自套基础插件、只加 compose 能力
+  （模块先应用 library/application），删掉 `isModule` 分支后该坑从根上消失。
+  当前规避方式见 `gradle.properties` 注释（独立调试直接改文件，勿用 `-P`）
 - [ ] **零调用方的 Room DAO 方法**（实测确认：`BookShelfDao.getAllBooksFlow`、`getBookFullInfoByUrl`、
   `getBooksByUrls`、`getCount`、`DownloadChapterDao.getFirst`）—— 按 ADR-0015「无任何调用方 → 删除」
   应删，但本轮不动：不影响 schema、无用户可见症状，删除需连带去掉刚补的注释并重跑回归，

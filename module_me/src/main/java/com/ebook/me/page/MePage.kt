@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -146,7 +145,7 @@ fun MainMeScreen(
  * 信息区（头像/昵称）为纯展示，不响应点击；点击事件只挂在右侧按钮上——
  * 已登录为编辑资料按钮，未登录为「立即登录」按钮，避免"整块可点"造成重复入口。
  *
- * 状态栏图标深浅由本页按渐变起始色亮度自适应（[adaptStatusBarIcons]）：图标压在饱和渐变上，
+ * 状态栏图标深浅由本页按渐变起始色亮度自适应（[AdaptStatusBarIcons]）：图标压在饱和渐变上，
  * 沿用宿主「跟随系统深浅色」的默认值会在浅色模式得到深色图标、几乎看不清。
  */
 @Composable
@@ -161,8 +160,8 @@ private fun MeHeader(
     val gradientStart = if (darkTheme) colorScheme.primaryContainer else colorScheme.primary
     val gradientEnd = if (darkTheme) colorScheme.tertiaryContainer else colorScheme.tertiary
     val onGradient = if (darkTheme) colorScheme.onPrimaryContainer else colorScheme.onPrimary
-    // 渐变压在状态栏后面，状态栏图标深浅需随渐变起始色调整（见 adaptStatusBarIcons）
-    adaptStatusBarIcons(gradientStart)
+    // 渐变压在状态栏后面，状态栏图标深浅需随渐变起始色调整（见 AdaptStatusBarIcons）
+    AdaptStatusBarIcons(gradientStart)
 
     Box(
         modifier = Modifier
@@ -274,7 +273,7 @@ private fun MeHeader(
  * @param gradientStart 头部渐变起始色（即状态栏区域实际着色的颜色）
  */
 @Composable
-private fun adaptStatusBarIcons(gradientStart: Color) {
+private fun AdaptStatusBarIcons(gradientStart: Color) {
     // 宿主上下文（集成宿主与独立宿主都是 Activity，预览等场景下为 null 则跳过）
     val activity = LocalActivity.current
     LaunchedEffect(gradientStart) {

@@ -20,9 +20,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * 密码管理 ViewModel：承载双路径（对齐 ebook-server ADR-0002）。
+ * 密码管理 ViewModel：承载双路径（已登录改密 / 忘记密码重置）。
  *
  * - 忘记密码路径：[sendForgotCode] 按邮箱发码 → [toResetPage] 携 email+验证码进入
  *   [ModifyPwdActivity] 的 RESET 模式 → [reset] 由服务端校验验证码并重置；
@@ -80,7 +81,7 @@ class ModifyPwdViewModel @Inject constructor(
         countdownJob = viewModelScope.launch {
             for (remain in CODE_RESEND_COUNTDOWN downTo 1) {
                 _codeCountdown.value = remain
-                delay(1_000L)
+                delay(1_000L.milliseconds)
             }
             _codeCountdown.value = 0
         }
@@ -187,7 +188,6 @@ class ModifyPwdViewModel @Inject constructor(
     }
 
     companion object {
-        private const val TAG = "ModifyPwdViewModel"
 
         /** 重发倒计时秒数，与服务端发码频控窗口一致 */
         private const val CODE_RESEND_COUNTDOWN = 60

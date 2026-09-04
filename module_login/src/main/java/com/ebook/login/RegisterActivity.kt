@@ -41,7 +41,7 @@ internal val AuthButtonHeight = 52.dp
 internal val AuthPagePadding = 24.dp
 
 /**
- * 注册页：对齐 ebook-server ADR-0002 的三步注册
+ * 注册页：三步注册
  * （邮箱 → 获取验证码 → 验证码 + 密码）。注册不发 token，成功后跳登录页。
  *
  * 必须继承 [BaseMvvmActivity] 而非裸 `BaseActivity`：ViewModel 的一次性命令通道
@@ -73,7 +73,7 @@ class RegisterActivity : BaseMvvmActivity<RegisterViewModel>() {
 /**
  * 注册表单：引导文案 + 邮箱 / 验证码（内嵌倒计时发码按钮）/ 密码 / 确认密码。
  *
- * 用户名不在注册时收集——服务端自动生成占位用户名，用户可后期自改（ADR-0002）。
+ * 用户名不在注册时收集——服务端自动生成占位用户名，用户可后期自改（对齐服务端注册契约）。
  *
  * @param countdownSeconds 发码倒计时剩余秒数，0 = 可发码（由 ViewModel 在发码成功后驱动）
  */

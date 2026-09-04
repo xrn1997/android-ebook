@@ -20,7 +20,7 @@ import retrofit2.http.PUT
 import retrofit2.http.Part
 
 interface UserService {
-    //登录（邮箱 + 密码，对齐 ebook-server ADR-0002）
+    //登录（邮箱 + 密码，邮箱为登录主标识）
     @POST("/api/auth/login")
     @Headers("Content-Type:application/json;charset=UTF-8")
     suspend fun login(@Body request: LoginRequest): RespDTO<LoginDTO>
@@ -60,7 +60,7 @@ interface UserService {
     @Headers("Content-Type:application/json;charset=UTF-8")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): RespDTO<Unit>
 
-    //更新当前用户信息（昵称/头像/邮箱部分更新，见后端 ADR-0011：昵称/头像独立端点已废弃）
+    //更新当前用户信息（昵称/头像/邮箱部分更新；昵称/头像独立端点已废弃，统一走本 PUT 端点的部分更新）
     @PUT("/api/users/me")
     @Headers("Content-Type:application/json;charset=UTF-8")
     suspend fun updateMe(@Body request: UpdateUserRequest): RespDTO<User>

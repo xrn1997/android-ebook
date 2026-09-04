@@ -20,7 +20,7 @@ object JsoupHelper {
         if (selector.isEmpty()) return ""
         return try {
             element.selectFirst(selector)?.text() ?: ""
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ""
         }
     }
@@ -40,7 +40,7 @@ object JsoupHelper {
             } else {
                 element.selectFirst(selector)?.text() ?: ""
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ""
         }
     }
@@ -55,7 +55,7 @@ object JsoupHelper {
         if (selector.isEmpty()) return emptyList()
         return try {
             element.select(selector)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }
@@ -77,7 +77,7 @@ object JsoupHelper {
             val host = try {
                 val uri = java.net.URI(base)
                 "${uri.scheme}://${uri.host}${if (uri.port > 0) ":${uri.port}" else ""}"
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 baseUrl
             }
             "$host$relative"
@@ -98,7 +98,7 @@ object JsoupHelper {
             if (!rule.enabled) continue
             try {
                 result = result.replace(Regex(rule.pattern), rule.replacement)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // 正则无效时跳过
             }
         }

@@ -3,7 +3,7 @@ package com.ebook.api.entity
 import kotlinx.serialization.Serializable
 
 /**
- * 登录请求（对齐 ebook-server ADR-0002：邮箱为登录主标识）。
+ * 登录请求（邮箱为登录主标识，对齐服务端登录契约）。
  *
  * @property email 邮箱（登录主标识）
  * @property password 密码

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -80,7 +79,7 @@ fun BookShelfPage(
     var isRefreshing by remember { mutableStateOf(false) }
     // 队列剩余数（下载图标角标）：任务增删时由 Room Flow 自动重推，无任务时为 0（角标隐藏）
     val downloadRemaining by downloadViewModel.remainingCount.collectAsState()
-    // 刷新信号绑定（@Composable 版，ADR-0040）：绑定生命周期归组合控制，进出 Tab 自动绑/解绑，
+    // 刷新信号绑定（@Composable 版）：绑定生命周期归组合控制，进出 Tab 自动绑/解绑，
     // 不再残留孤儿 collector（原 refreshVersion 自建模式已删除）。view 用 remember 稳定引用避免重组重绑
     val refreshView = remember {
         object : IBaseRefreshView {
@@ -154,14 +153,11 @@ fun BookShelfPage(
                 onItemClick = { bookShelf ->
                     val intent = Intent(context, ReadBookActivity::class.java)
                     intent.putExtra("from", OPEN_FROM_APP)
-                    val key = System.currentTimeMillis().toString()
-                    intent.putExtra("data_key", key)
-                    BitIntentDataManager.putData(key, bookShelf.copy())
+                    intent.putExtra("data_key", BitIntentDataManager.putData(bookShelf.copy()))
                     context.startActivity(intent)
                 },
                 onItemLongClick = { bookShelf ->
-                    val key = System.currentTimeMillis().toString()
-                    BitIntentDataManager.putData(key, bookShelf.copy())
+                    val key = BitIntentDataManager.putData(bookShelf.copy())
                     TheRouter.build(KeyCode.Book.DETAIL_PATH)
                         .withInt("from", FROM_BOOKSHELF)
                         .withString("data_key", key)
@@ -218,7 +214,7 @@ fun BookShelfItem(
             // 封面：共享 BookCover（条目内小封面用小圆角变体）
             BookCover(
                 url = bookShelf.bookInfo?.coverUrl ?: "",
-                contentDescription = stringResource(com.ebook.book.R.string.cover),
+                contentDescription = stringResource(R.string.cover),
                 modifier = Modifier.size(width = 72.dp, height = 105.dp),
                 shape = RoundedCornerShape(6.dp)
             )
@@ -243,7 +239,7 @@ fun BookShelfItem(
                     // 读 bookShelf.chapterList（书架查询时由 getAllBooksWithDetails() 回填；本地书由
                     // BookImportManager 回填），不用 bookInfo.chapterList——它是 @Ignore 不入库、书架流不填充，
                     // 会导致"读至："后为空。与 ReadBookActivity.kt 取章节列表的约定一致。
-                    text = stringResource(com.ebook.book.R.string.read_to) +
+                    text = stringResource(R.string.read_to) +
                             (bookShelf.chapterList.getOrNull(bookShelf.durChapter)?.durChapterName ?: ""),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

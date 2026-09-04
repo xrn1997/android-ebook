@@ -36,7 +36,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 @Route(path = KeyCode.Find.CHOICE_PATH)
 class ChoiceBookActivity : BaseMvvmRefreshActivity<ChoiceBookViewModel>() {
-    protected override val viewModel: ChoiceBookViewModel by viewModels()
+    override val viewModel: ChoiceBookViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         toolbarTitle.value = intent.extras?.getString("title").orEmpty()
@@ -48,7 +48,7 @@ class ChoiceBookActivity : BaseMvvmRefreshActivity<ChoiceBookViewModel>() {
     @Composable
     override fun PageContent(state: LazyListState) {
         val books by viewModel.list.collectAsState()
-        // 加载更多底部状态（ADR-0041）：由基类渲染镜像推导，失败可点重试
+        // 加载更多底部状态：由基类渲染镜像推导，失败可点重试
         val loadingMore by remember { isLoadingMoreState }
         val loadMoreFailed by remember { loadMoreFailedState }
         val hasMore by remember { hasMoreDataState }
@@ -76,7 +76,7 @@ class ChoiceBookActivity : BaseMvvmRefreshActivity<ChoiceBookViewModel>() {
                     onAddShelf = { viewModel.addBookToShelf(searchBook) }
                 )
             }
-            // 触底加载反馈：加载中 / 失败重试 / 没有更多（ADR-0041）
+            // 触底加载反馈：加载中 / 失败重试 / 没有更多
             item {
                 LoadMoreFooter(
                     isLoadingMore = loadingMore,

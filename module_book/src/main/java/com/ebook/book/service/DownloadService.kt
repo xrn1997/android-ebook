@@ -35,6 +35,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * 离线下载前台服务：逐章抽取正文入库（`book_content`）并维护 `download_chapter` 任务队列。
@@ -98,8 +99,9 @@ class DownloadService : Service() {
      * - 关掉 [isStartDownload]/[isDownloading] 并清空待执行回调，让按章推进的循环就地停住；
      * - 不动 `download_chapter` 队列：表里本就只存未完成任务，用户把应用切回前台（这会重置 24h 配额）
      *   后从下载管理页或通知「继续」即可续跑；
-     * - 状态改走 [DownloadRepository.tryEmitState] 同步写入 replay 缓冲，避免紧随的 stopSelf → [onDestroy]
-     *   取消 [serviceScope] 把异步发射吞掉（那会让界面一直停在"正在下载"）；
+     * - 状态改走 [DownloadRepository.tryEmitState] 同步写入 replay 缓冲：收尾路径不依赖协程
+     *   调度与消息队列顺序（`serviceScope` 虽为 Main、launch 块实际能先于 onDestroy 执行，
+     *   但此处不赌这个顺序），状态必在 stopSelf 前落入 replay；
      * - 提示以通知为主：超时多发生在应用已退到后台之后，Toast 用户根本看不到。
      */
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
@@ -177,13 +179,8 @@ class DownloadService : Service() {
                 // 任务仍在库里，用户回到前台重试即可
                 Logger.w(TAG, "前台态不可用，跳过自动续跑（任务保留）")
                 postAttentionNotification(getString(R.string.notification_fgs_timeout_text))
-                serviceScope.launch {
-                    try {
-                        downloadRepository.emitState(DownloadState.Paused)
-                    } catch (e: Throwable) {
-                        Logger.e(TAG, "onError: ", e)
-                    }
-                }
+                // 与 onTimeout 同一写法：tryEmitState 同步落 replay，不赌 serviceScope 调度顺序
+                downloadRepository.tryEmitState(DownloadState.Paused)
                 stopService(Intent(application, DownloadService::class.java))
                 return START_NOT_STICKY
             }
@@ -342,7 +339,7 @@ class DownloadService : Service() {
                     if (e is CancellationException) throw e
                     Logger.e(TAG, "章节下载失败（第 $attempt/$RETRY_TIMES 次）: ${data.durChapterUrl}", e)
                     if (attempt < RETRY_TIMES) {
-                        delay(RETRY_DELAY_MS) // 重试前等待，避开瞬时限流/抖动
+                        delay(RETRY_DELAY_MS.milliseconds) // 重试前等待，避开瞬时限流/抖动
                     }
                 }
             }
@@ -392,18 +389,26 @@ class DownloadService : Service() {
 
     /** 清空队列并收尾退出，供 [ACTION_CANCEL] 分支调用 */
     private fun cancelDownload() {
+        isStartDownload = false
+        skippedCount = 0
+        // 终态走 tryEmitState 同步落 replay（与 finishDownload、前台态不可用分支同一写法）：
+        // 不依赖协程调度，界面立刻收 Finished、通知即刻撤下，不用等 DB 清队耗时
+        downloadRepository.tryEmitState(DownloadState.Finished)
+        // 只撤常驻通知（不用 cancelAll）：保留同时存在于其它 id 上的结果通知
+        cancelNotify(ONGOING_NOTIFY_ID)
         serviceScope.launch {
             try {
                 downloadRepository.clearAllTasks()
-                isStartDownload = false
-                skippedCount = 0
-                // 取消是终态：补发 Finished，避免 replay 缓冲里的旧 Progress 被后续打开的弹窗回放成"幽灵进度"
-                downloadRepository.emitState(DownloadState.Finished)
-                // 只撤常驻通知（不用 cancelAll）：保留同时存在于其它 id 上的结果通知
-                cancelNotify(ONGOING_NOTIFY_ID)
-                stopService(Intent(application, DownloadService::class.java))
-            } catch (_: Throwable) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                // 清队失败不阻断停服（取消意图优先），但必须留痕：否则残留任务会在下次批次里
+                // 复活已取消的书，且无日志无从排查
+                Logger.w(TAG, "取消下载清空队列失败，任务可能残留", e)
             }
+            // stopService 必须跟在清队之后（同一协程内）：onDestroy → serviceScope.cancel
+            // 是清队协程唯一的取消源，停服先发出会让清队被吞 → 取消的书复活
+            stopService(Intent(application, DownloadService::class.java))
         }
     }
 
@@ -478,10 +483,10 @@ class DownloadService : Service() {
     /**
      * 构造常驻（进行中/已暂停）通知。
      *
-     * [setOngoing] 是关键：原实现用不带 ongoing、还带 `setAutoCancel(true)` 的进度通知
+     * [NotificationCompat.Builder.setOngoing] 是关键：原实现用不带 ongoing、还带 `setAutoCancel(true)` 的进度通知
      * 覆盖与 startForeground 同一 id 的常驻通知，等于把它降级成可划走的临时通知；
      * Android 13+ 本身就允许用户消除前台服务通知，一划掉后就再也看不到进度。
-     * [setOnlyAlertOnce] 避免每章更新都响一次。动作按钮直接指向本服务的 Intent action，
+     * [NotificationCompat.Builder.setOnlyAlertOnce] 避免每章更新都响一次。动作按钮直接指向本服务的 Intent action，
      * 暂停/取消不必回到书架弹窗才能操作。
      */
     private fun buildOngoingNotification(
@@ -627,9 +632,10 @@ class DownloadService : Service() {
      */
     private fun finishDownload() {
         val skipped = skippedCount
-        serviceScope.launch {
-            downloadRepository.emitState(DownloadState.Finished)
-        }
+        // 终态走 tryEmitState 同步落 replay（与 onTimeout、前台态不可用分支同一写法）：
+        // 不起协程就不赌调度顺序，避免紧随的 stopService → onDestroy 取消 serviceScope 把它吞掉，
+        // 那会让界面停在"正在下载"（同下方通知"必须同步发送"的理由）
+        downloadRepository.tryEmitState(DownloadState.Finished)
         // 完成通知走独立 id + 可弹横幅的通道：常驻通知会随服务停止被系统移除，
         // 若继续复用同一 id，用户回头看不到"下完了"（原先只有一条易错过的 Toast）。
         // 必须同步发送：紧接的 stopService → onDestroy 会 cancel serviceScope，异步发送可能被吞
@@ -736,7 +742,7 @@ class DownloadService : Service() {
                 intent.getParcelableArrayListExtra(EXTRA_CHAPTERS, DownloadChapterEntity::class.java)
             } else {
                 @Suppress("DEPRECATION")
-                intent.getParcelableArrayListExtra<DownloadChapterEntity>(EXTRA_CHAPTERS)
+                intent.getParcelableArrayListExtra(EXTRA_CHAPTERS)
             }
             return list.orEmpty()
         }

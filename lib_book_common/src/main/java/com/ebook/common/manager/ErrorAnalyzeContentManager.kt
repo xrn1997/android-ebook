@@ -69,30 +69,6 @@ object ErrorAnalyzeContentManager {
         }
     }
 
-    /**
-     * 记录一个「可能是网络原因」失败的 URL。
-     *
-     * 当前无调用方（预留给「区分书源规则失配与网络故障」的归因需求）；
-     * 与 [writeNewErrorUrl] 共用串行写与体积上限。
-     */
-    fun writeMayByNetError(context: Context, url: String) {
-        scope.launch {
-            try {
-                val dir = getExternalFilesDir(context)
-                if (dir == null) {
-                    Logger.e(TAG, "getExternalFilesDir is null")
-                    return@launch
-                }
-                writeMutex.withLock {
-                    val errorNetFile = File(dir, "ErrorNetUrl.txt")
-                    appendCapped(errorNetFile, "$url    \r\n")
-                }
-            } catch (ex: Exception) {
-                Logger.e(TAG, "Error in writeMayByNetError", ex)
-            }
-        }
-    }
-
     private fun getExternalFilesDir(context: Context): File? {
         val dir = context.getExternalFilesDir(null)
         if (dir != null && !dir.exists()) {

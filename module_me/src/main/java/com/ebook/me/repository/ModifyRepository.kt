@@ -5,7 +5,6 @@ import android.net.Uri
 import com.ebook.api.entity.UpdateUserRequest
 import com.ebook.api.service.user.UserDataSource
 import com.ebook.api.utils.CoroutineAdapter
-import com.ebook.common.domain.UserSessionManager
 import com.ebook.me.R
 import com.xrn1997.common.mvvm.model.BaseModel
 import com.xrn1997.common.util.FileUtil
@@ -21,7 +20,6 @@ import javax.inject.Singleton
 class ModifyRepository @Inject constructor(
     private val application: Application,
     private val dataSource: UserDataSource,
-    private val userSessionManager: UserSessionManager,
     private val coroutineAdapter: CoroutineAdapter
 ) : BaseModel() {
 
@@ -29,7 +27,7 @@ class ModifyRepository @Inject constructor(
      * 修改昵称
      *
      * 流程：PUT /api/users/me 部分更新（body 仅 nickname）→ 服务端返回更新后的用户。
-     * 历史独立端点 PUT /api/users/me/nickname 已废弃（见后端 ADR-0011）。
+     * 历史独立端点 PUT /api/users/me/nickname 已被服务端废弃（统一走本端点的部分更新）。
      *
      * @param nickname 新昵称（已由 UI 层校验：非空、长度合规）
      * @return Result<Unit> 成功返回 Unit，失败返回异常
@@ -44,7 +42,7 @@ class ModifyRepository @Inject constructor(
     }
 
     /**
-     * 修改头像（两步流程，对齐后端 ADR-0011）
+     * 修改头像（两步流程：上传拿 URL → 更新资料）
      *
      * 1. 读取图片字节（IO 线程）→ POST /api/uploads/avatar 上传拿 URL
      * 2. PUT /api/users/me 提交 avatar=url 更新资料

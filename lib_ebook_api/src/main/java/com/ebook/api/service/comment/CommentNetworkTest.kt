@@ -18,7 +18,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * 评论测试数据源：模拟服务端状态（内存态），对齐后端 ADR-0011 契约。
+ * 评论测试数据源：模拟服务端状态（内存态），对齐服务端评论契约（章节冗余快照 + 分页包裹）。
  *
  * 与真实后端一致：删除/添加会真正修改数据，getMyComments 返回变更后的列表；
  * 分页按 CommentPage 包裹结构返回（items/total/page/page_size）。

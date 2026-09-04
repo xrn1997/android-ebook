@@ -79,8 +79,4 @@ class SettingViewModel @Inject constructor(
         }
         userSessionManager.clearSession()
     }
-
-    companion object {
-        private const val TAG = "SettingViewModel"
-    }
 }

@@ -37,7 +37,7 @@ import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
- * 登录页：标准 M3 表单页（邮箱 + 密码，对齐 ebook-server ADR-0002：邮箱为登录主标识）。
+ * 登录页：标准 M3 表单页（邮箱 + 密码；邮箱为登录主标识）。
  *
  * 历史上本页使用固定品牌背景图 + inverse 语义色对；认证域 UI 统一改造时改为
  * 与应用主体一致的标准风格——background 底色 + OutlinedTextField + 语义色，

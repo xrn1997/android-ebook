@@ -20,7 +20,7 @@ import javax.inject.Inject
 /**
  * 分类选书页 VM。
  *
- * 首屏加载在 [init] 中自动驱动：分类 URL 经 [SavedStateHandle] 同步读取
+ * 首屏加载在 init 中自动驱动：分类 URL 经 [SavedStateHandle] 同步读取
  * （activity-scoped VM 的 SavedStateHandle 自动以 Activity intent extras 填充），
  * init 在 VM 生命周期内只执行一次——旋转重建时 VM 存活、不重复加载，
  * 天然幂等，无"先赋 url 后刷新"的线程调度竞态。
@@ -29,7 +29,7 @@ import javax.inject.Inject
 class ChoiceBookViewModel @Inject constructor(
     private val bookSourceRepository: BookSourceRepository,
     private val bookShelfManager: BookShelfManager,
-    private val savedStateHandle: SavedStateHandle,
+    savedStateHandle: SavedStateHandle,
     bookRepository: BookRepository,
 ) : BaseRefreshViewModel<SearchBookEntity, BookSourceRepository>(bookSourceRepository) {
 
@@ -129,10 +129,6 @@ class ChoiceBookViewModel @Inject constructor(
             currentList[index] = updatedBook
             updateList(currentList)
         }
-    }
-
-    companion object {
-        private val TAG = ChoiceBookViewModel::class.java.simpleName
     }
 
     override fun refreshData() {

@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -79,7 +78,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 @Route(path = KeyCode.Book.COMMENT_PATH, params = ["needLogin", "true"])
 class BookCommentsActivity : BaseMvvmActivity<BookCommentsViewModel>() {
-    protected override val viewModel: BookCommentsViewModel by viewModels()
+    override val viewModel: BookCommentsViewModel by viewModels()
 
     override fun initData() {
         // 路由携带的章节信息组装为评论载体（chapterUrl 是查询/新增评论的主键）
@@ -305,7 +304,7 @@ fun CommentItem(comment: BookComment, onLongClick: () -> Unit) {
                         .size(30.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
-                    placeholder = painterResource(com.ebook.book.R.drawable.image_default)
+                    placeholder = painterResource(R.drawable.image_default)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(

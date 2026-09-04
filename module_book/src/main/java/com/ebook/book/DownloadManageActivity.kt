@@ -62,7 +62,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 @Route(path = KeyCode.Book.DOWNLOAD_PATH)
 class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
-    protected override val viewModel: DownloadManageViewModel by viewModels()
+    override val viewModel: DownloadManageViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,7 +127,7 @@ fun DownloadManageScreen(viewModel: DownloadManageViewModel) {
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValuesForList(),
+                contentPadding = paddingValuesForList(),
                 verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing)
             ) {
                 items(groups, key = { it.noteUrl }) { group ->
@@ -192,7 +192,7 @@ fun DownloadManageScreen(viewModel: DownloadManageViewModel) {
 /**
  * 列表内容边距：页面水平边距与上下留白走 [CommonUiTokens]。
  */
-private fun PaddingValuesForList(): PaddingValues =
+private fun paddingValuesForList(): PaddingValues =
     PaddingValues(
         start = CommonUiTokens.pagePadding,
         end = CommonUiTokens.pagePadding,

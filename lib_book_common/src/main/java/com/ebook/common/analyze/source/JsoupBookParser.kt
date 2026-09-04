@@ -20,7 +20,6 @@ import com.ebook.db.entity.SearchBookEntity
 import com.ebook.db.entity.WebChapterEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import org.jsoup.Jsoup
@@ -44,6 +43,7 @@ class JsoupBookParser(
             val keyword = try {
                 URLEncoder.encode(content, rule.charset)
             } catch (e: Exception) {
+                Logger.w(TAG, "URLEncoder.encode failed for charset=${rule.charset}, falling back to raw content", e)
                 content
             }
 
@@ -61,8 +61,11 @@ class JsoupBookParser(
                 .replace("{{keyword}}", keyword)
                 .replace("{{page}}", ListPageUrl.actualPage(page, pageParam).toString())
 
+            Logger.d(TAG, "searchBook: url=$url, method=$method")
             val html = network.getPage(url, method, body)
-            parseSearchBook(html)
+            val results = parseSearchBook(html)
+            Logger.d(TAG, "searchBook: parsed ${results.size} results")
+            results
         } catch (e: Exception) {
             Logger.e(TAG, "searchBook: ", e)
             emptyList()
@@ -279,7 +282,7 @@ class JsoupBookParser(
     override suspend fun getLibraryData(aCache: ACache): LibraryEntity = withContext(Dispatchers.IO) {
         // 先检查缓存
         val cachedData = aCache.getAsString(LIBRARY_CACHE_KEY)
-        if (cachedData != null && cachedData.isNotEmpty()) {
+        if (!cachedData.isNullOrEmpty()) {
             try {
                 val library = deserializeLibrary(cachedData)
                 if (library.kindBooks?.isNotEmpty() == true) {
@@ -465,5 +468,7 @@ internal object ChapterPageMatcher {
     }
 
     /** 去掉章节 URL 末尾的分页后缀（兼容 -2、_2、_2.html 等形态），保留原扩展名 */
-    fun stripPageSuffix(url: String): String = PAGE_SUFFIX_REGEX.replace(url, "\$1")
+    // 多美元插值字符串（$$ 前缀下单个 $ 不开启插值）：IDE 推荐取代 \$1 转义写法；
+    // 这里的 $1 仍是字面替换串，由 Regex.replace 解释为捕获组引用
+    fun stripPageSuffix(url: String): String = PAGE_SUFFIX_REGEX.replace(url, $$"$1")
 }

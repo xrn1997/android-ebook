@@ -109,10 +109,6 @@ class BookCommentsViewModel @Inject constructor(
             sendToast("${exception.message}")
         }
     }
-
-    companion object {
-        private const val TAG = "BookCommentsViewModel"
-    }
 }
 
 /**

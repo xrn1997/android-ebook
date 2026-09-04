@@ -7,8 +7,8 @@ import com.ebook.book.repository.DownloadRepository
 import com.ebook.book.repository.DownloadState
 import com.ebook.book.service.DownloadService
 import com.ebook.db.entity.DownloadChapterEntity
-import com.xrn1997.common.util.ToastUtil
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
+import com.xrn1997.common.util.ToastUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -117,7 +117,8 @@ class DownloadManageViewModel @Inject constructor(
     }
 
     /**
-     * 发送下载控制动作（[DownloadService.ACTION_RESUME] / [ACTION_PAUSE] / [ACTION_CANCEL]）。
+     * 发送下载控制动作（[DownloadService.ACTION_RESUME] / [DownloadService.ACTION_PAUSE] /
+     * [DownloadService.ACTION_CANCEL]）。
      *
      * Intent 直达，服务已存活或被回收都能送达（见 DownloadService 类注释）。
      * 启动被拒只剩一种现实情形：dataSync 前台配额（24 小时/6 小时）已用尽——此时页内提示

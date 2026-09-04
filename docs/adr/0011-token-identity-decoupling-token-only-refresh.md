@@ -68,7 +68,7 @@
   `FakeUserSessionManager` 实现并记录轮换。
 
 * ebook-server：`Refresh` 改返回纯凭证载荷，登录保持 `TokenPair`（带 user）；
-  ADR-0001 补述 refresh 仅凭证。
+  服务端并在其刷新接口契约文档中补述「refresh 仅凭证」。
 
 ## 遗留
 

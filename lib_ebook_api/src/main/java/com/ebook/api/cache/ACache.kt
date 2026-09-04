@@ -3,18 +3,28 @@ package com.ebook.api.cache
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.xrn1997.common.util.Logger
 
 /**
  * 本地缓存   因本缓存只缓存书库主页 所以使用SP有条件可以替换成别的
  */
 class ACache private constructor(context: Context) {
+    companion object {
+        private const val TAG = "ACache"
+
+        fun get(context: Context): ACache {
+            return ACache(context)
+        }
+    }
+
     private val preference: SharedPreferences =
         context.getSharedPreferences("ACache", Context.MODE_PRIVATE)
 
     fun put(key: String, value: String) {
         try {
             preference.edit { putString(key, value) }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Logger.e(TAG, "缓存写入失败: key=$key", e)
         }
     }
 
@@ -27,13 +37,8 @@ class ACache private constructor(context: Context) {
         return try {
             preference.getString(key, null)
         } catch (e: Exception) {
+            Logger.e(TAG, "缓存读取失败: key=$key", e)
             null
-        }
-    }
-
-    companion object {
-        fun get(context: Context): ACache {
-            return ACache(context)
         }
     }
 }

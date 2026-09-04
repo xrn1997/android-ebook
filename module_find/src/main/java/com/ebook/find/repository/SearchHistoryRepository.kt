@@ -22,12 +22,8 @@ class SearchHistoryRepository @Inject constructor(
     /** 保存搜索记录：存在则更新时间戳，不存在则新建。返回插入/更新后的实体。 */
     suspend fun insertSearchHistory(type: Int, content: String): SearchHistoryEntity = withContext(Dispatchers.IO) {
         val existing = searchHistoryDao.findByTypeAndContent(type, content)
-        val searchHistory: SearchHistoryEntity
-        if (existing != null) {
-            searchHistory = existing.copy(date = System.currentTimeMillis())
-        } else {
-            searchHistory = SearchHistoryEntity(type = type, content = content, date = System.currentTimeMillis())
-        }
+        val searchHistory = existing?.copy(date = System.currentTimeMillis())
+            ?: SearchHistoryEntity(type = type, content = content, date = System.currentTimeMillis())
         searchHistoryDao.insert(searchHistory)
         searchHistory
     }

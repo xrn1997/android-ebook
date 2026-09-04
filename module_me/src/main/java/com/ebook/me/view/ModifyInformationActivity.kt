@@ -1,6 +1,5 @@
 package com.ebook.me.view
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -23,11 +22,9 @@ import androidx.compose.material.icons.outlined.Password
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -61,7 +58,7 @@ import dagger.hilt.android.AndroidEntryPoint
 /**
  * 编辑资料页：列表式条目（修改头像 / 修改昵称 / 修改密码），行内展示当前值。
  *
- * 密码行为条件展示：路由依赖 module_login，未集成时隐藏（见 [ModifyInformationScreen.showPassword]）。
+ * 密码行为条件展示：路由依赖 module_login，未集成时隐藏（见 [ModifyInformationScreen]）。
  *
  * 菜单样式与「我的」主页统一（CommonListItem），资料展示经 [ModifyViewModel.profileState]
  * 单一流驱动，Activity 不再直接注入 ProfileRepository。
@@ -73,7 +70,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 @Route(path = KeyCode.Me.MODIFY_PATH, params = ["needLogin", "true"])
 class ModifyInformationActivity : BaseMvvmActivity<ModifyViewModel>() {
-    protected override val viewModel: ModifyViewModel by viewModels()
+    override val viewModel: ModifyViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,7 +93,7 @@ class ModifyInformationActivity : BaseMvvmActivity<ModifyViewModel>() {
         val cropLauncher = rememberLauncherForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
+            if (result.resultCode == RESULT_OK) {
                 result.data?.data?.let { uri -> viewModel.modifyProfilePhoto(uri) }
             }
         }

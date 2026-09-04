@@ -63,7 +63,7 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * 独立宿主行为对齐基类（本页不继承 BaseActivity）：
  * 主题经装配点 [AppTheme.Content] 取用（裸 MaterialTheme 是固定浅紫 baseline，会与主页动态取色/深色跟随分裂；
- * 装配点与基类同一主题源，品牌策略变更自动跟随，见 ADR-0038）、
+ * 装配点与基类同一主题源，品牌策略变更自动跟随）、
  * `enableEdgeToEdge()` + [setStatusBarColor]（欢迎图延伸到状态栏后的沉浸式观感）。
  */
 @SuppressLint("CustomSplashScreen")
@@ -107,7 +107,7 @@ class SplashActivity : ComponentActivity() {
         }
 
         setContent {
-            // 主题经装配点取用（ADR-0038）：启动页与全 App 同一主题源，品牌策略变更自动跟随
+            // 主题经装配点取用：启动页与全 App 同一主题源，品牌策略变更自动跟随
             AppTheme.Content {
                 SplashScreen(
                     onSkip = {
@@ -191,7 +191,7 @@ fun SplashScreen(
     // 倒计时驱动：小步长递减保证读条平滑；归零后不再消耗帧调度（while 退出）
     LaunchedEffect(Unit) {
         while (remainingMs > 0L) {
-            delay(COUNTDOWN_STEP_MS)
+            delay(COUNTDOWN_STEP_MS.milliseconds)
             remainingMs = (remainingMs - COUNTDOWN_STEP_MS).coerceAtLeast(0L)
         }
     }

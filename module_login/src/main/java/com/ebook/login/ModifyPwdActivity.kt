@@ -31,7 +31,7 @@ import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
- * 密码设置页（双模式，对齐 ebook-server ADR-0002 的密码管理双路径）：
+ * 密码设置页（双模式：已登录改密走旧密码校验 / 忘记密码走邮箱验证码）：
  *
  * - [MODE_RESET]：忘记密码第二步，由 [VerifyUserActivity] 携 email+验证码跳入，
  *   只显示「新密码×2」，提交走验证码重置端点；

@@ -1,8 +1,9 @@
 package com.ebook.common.analyze.source
 
 import android.content.Context
-import com.xrn1997.common.util.Logger
+import androidx.core.content.edit
 import com.ebook.api.entity.BookSourceRule
+import com.xrn1997.common.util.Logger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
@@ -21,11 +22,12 @@ class BookSourceManagerImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     @Named("source") private val okHttpClient: OkHttpClient
 ) : BookSourceManager {
-
-    private val TAG = "BookSourceManager"
-    private val DEFAULT_SOURCES_FILE = "default_sources.json"
-    private val PREFS_NAME = "book_source_prefs"
-    private val KEY_CURRENT_SOURCE = "current_source_url"
+    companion object {
+        private const val TAG = "BookSourceManager"
+        private const val DEFAULT_SOURCES_FILE = "default_sources.json"
+        private const val PREFS_NAME = "book_source_prefs"
+        private const val KEY_CURRENT_SOURCE = "current_source_url"
+    }
 
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
@@ -97,9 +99,9 @@ class BookSourceManagerImpl @Inject constructor(
     override fun saveCurrentSource(context: Context) {
         currentSourceRule?.let {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
-                .putString(KEY_CURRENT_SOURCE, it.url)
-                .apply()
+                .edit {
+                    putString(KEY_CURRENT_SOURCE, it.url)
+                }
         }
     }
 }

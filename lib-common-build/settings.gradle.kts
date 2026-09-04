@@ -1,8 +1,10 @@
 // 迷你独立构建：只承载 android-practice 的 lib_common 模块
-// 替代 includeBuild("D:/develop/CodeUp/android-practice") 全量引入（17 个模块）
+// 替代 includeBuild(android-practice 全仓) 全量引入（17 个模块）
 // 说明：lib_common 无本地 project 依赖（全部第三方库），可独立构建；
-//       约定插件（xrn1997.*）由 android-ebook 的 build-logic 提供
-//       （android-ebook build-logic 已注册 xrn1997.android.compose 兼容别名）。
+//       约定插件（xrn1997.*）由 android-ebook 的 build-logic 提供：
+//       compose 插件 ID 已与 android-practice 统一为 xrn1997.android.compose（无别名），
+//       但注意 ID 相同≠实现相同——本复合构建里 lib_common 用的是 android-ebook 版实现
+//       （按 isModule 自套基础插件、不注入 compose ui-test 依赖），差异见 docs/adr/0020。
 
 pluginManagement {
     includeBuild("../build-logic")
@@ -37,7 +39,7 @@ dependencyResolutionManagement {
         maven("https://central.sonatype.com/repository/maven-snapshots/")
         mavenCentral()
     }
-    // lib_common 的依赖版本来自 android-practice 的版本目录（D:/develop/CodeUp/android-practice）
+    // lib_common 的依赖版本来自 android-practice 的版本目录（自本目录三级上溯 ../../../CodeUp/android-practice 定位源码，不绑定盘符）
     // Gradle 9 不支持多 toml 合并，缺失条目用 VersionCatalogBuilder 程序化补充
     // （kotlin-metadata：android-ebook 的 HiltConventionPlugin 需要，android-practice catalog 缺失）
     // （android-desugarJdkLibs：android-ebook 的 KotlinAndroid.kt 约定插件 coreLibraryDesugaring 需要，

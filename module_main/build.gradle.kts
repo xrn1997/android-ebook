@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.xrn1997.android.component)
-    alias(libs.plugins.xrn1997.android.library.compose)
+    alias(libs.plugins.xrn1997.android.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.xrn1997.hilt)
 }

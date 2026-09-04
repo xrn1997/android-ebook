@@ -92,7 +92,7 @@ class LoginActivity : BaseActivity() {
                     avatar = user.image,
                     token = "test-token"
                 ),
-                user.password
+                "test-refresh-token"
             )
             profileRepository.updatePicture(user.image)
             profileRepository.updateNickname(user.nickname)
@@ -119,7 +119,6 @@ class LoginActivity : BaseActivity() {
             id = 0
             nickname = "测试用户"
             image = ""
-            password = "123456"
             username = "test_user"
         }
     }

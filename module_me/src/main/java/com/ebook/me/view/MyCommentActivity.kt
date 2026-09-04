@@ -2,8 +2,6 @@ package com.ebook.me.view
 
 import android.os.Bundle
 import androidx.activity.viewModels
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,14 +9,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.ebook.common.domain.BookComment
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
+import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.InfoChip
 import com.ebook.me.R
 import com.ebook.me.mvvm.viewmodel.CommentViewModel
@@ -56,7 +51,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 @Route(path = KeyCode.Me.COMMENT_PATH, params = ["needLogin", "true"])
 class MyCommentActivity : BaseMvvmActivity<CommentViewModel>() {
-    protected override val viewModel: CommentViewModel by viewModels()
+    override val viewModel: CommentViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -152,27 +147,17 @@ fun MyCommentScreen(
 /**
  * 评论条目：书名 + 时间一行、章节 chip、内容摘要（最多 3 行）。
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CommentItem(
     comment: BookComment,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            // combinedClickable：onClick 跳章节评论区，onLongClick 触发删除确认
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(1.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
+    // 条目壳收口到共享 CommonItemCard（ADR-0006）：阴影与内边距都取 module_book 评论区条目的
+    // 同一套取值（shadowElevation = 0.dp + 组件默认 12.dp 内边距，原手绘 Card 为 1.dp/16.dp），
+    // 列表密排不叠阴影
+    CommonItemCard(onClick = onClick, onLongClick = onLongClick, shadowElevation = 0.dp) {
+        Column {
             // 书名 + 发表时间
             Row(
                 modifier = Modifier.fillMaxWidth(),

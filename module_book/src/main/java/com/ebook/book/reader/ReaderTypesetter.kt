@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-
+import com.ebook.book.ReadBookActivity
 /**
  * 正文排版的事实源：分页样式（字号/行高/对齐）+ 测量器 + 密度。
  *
@@ -82,11 +82,11 @@ internal class ReaderTypesetter(
 
     private companion object {
         /** 测算行高的探针：60 行同字高的行（覆盖任何屏幕高度），行间用硬换行分隔 */
-        const val ProbeLines = 60
+        const val PROBE_LINES = 60
 
         /** 探针字符取常用汉字，保证度量与真实正文同字体同字宽 */
         val probeText: String = buildString {
-            for (i in 0 until ProbeLines) {
+            for (i in 0 until PROBE_LINES) {
                 if (i > 0) append('\n')
                 append('一')
             }

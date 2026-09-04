@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // 状态栏图标浅色的初值（首帧前的窗口状态）：MePage 头部渐变在深浅色模式下均为深色调，
-        // 图标需浅色才可读；进入组合后由 MePage 的 adaptStatusBarIcons 按渐变亮度接管
+        // 图标需浅色才可读；进入组合后由 MePage 的 AdaptStatusBarIcons 按渐变亮度接管
         setStatusBarColor(isLight = false)
         setContent {
             MyApplicationTheme {

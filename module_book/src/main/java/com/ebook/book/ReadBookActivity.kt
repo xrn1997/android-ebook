@@ -1,8 +1,8 @@
 package com.ebook.book
 
-import android.os.Bundle
 import android.content.Context
 import android.content.res.Resources
+import android.os.Bundle
 import android.text.TextPaint
 import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
@@ -10,13 +10,11 @@ import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -36,17 +34,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.TextUnit
 import androidx.lifecycle.lifecycleScope
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.unit.dp
+import com.ebook.book.manager.BitIntentDataManager
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_OTHER
 import com.ebook.book.reader.AddShelfDialog
-import com.ebook.book.reader.ChapterListDrawer
 import com.ebook.book.reader.ChapterDownloadSheet
+import com.ebook.book.reader.ChapterListDrawer
 import com.ebook.book.reader.FontPanel
 import com.ebook.book.reader.LightPanel
 import com.ebook.book.reader.MoreSettingPanel
@@ -59,9 +53,6 @@ import com.ebook.book.reader.ReaderTypesetter
 import com.ebook.book.reader.applyReaderBrightness
 import com.ebook.book.reader.rememberReaderTypesetter
 import com.ebook.book.util.BookImportManager
-import com.ebook.book.R
-import com.ebook.book.manager.BitIntentDataManager
-import com.ebook.book.service.DownloadService
 import com.ebook.book.view.ReadBookControl
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
@@ -306,9 +297,9 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
             if (pageLineCount <= 0) return null
             val tempCount = ceil(lineStarts.size * 1.0 / pageLineCount).toInt() - 1
             if (tempCount < 0) return null
-            val resolved = when {
-                pageIndex == DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN -> 0
-                pageIndex == DBCode.BookContentView.DUR_PAGE_INDEX_END -> tempCount
+            val resolved = when (pageIndex) {
+                DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN -> 0
+                DBCode.BookContentView.DUR_PAGE_INDEX_END -> tempCount
                 else -> pageIndex.coerceAtMost(tempCount).coerceAtLeast(0)
             }
             val start = resolved * pageLineCount
@@ -376,10 +367,6 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         MaterialTheme(colorScheme = ReaderLightColorScheme) {
             ReadBookScreen(this, viewModel)
         }
-    }
-
-    companion object {
-        private const val TAG = "ReadBookActivity"
     }
 }
 
@@ -461,7 +448,12 @@ private fun ReadBookScreen(
     // 注意：canKeyTurn 不走此镜像——onKeyDown/onKeyUp 是 Activity 回调，运行时直读单例即最新值。
     var clickTurnEnabled by remember { mutableStateOf(ReadBookControl.canClickTurn) }
     var showMore by remember { mutableStateOf(false) } // 原 iv_menu_more：非本地书显示下载入口
-    var chapterTitle by remember { mutableStateOf(context.getString(R.string.no_chapter)) }
+    // 章节标题初值走 stringResource：context.getString 的读取不随 Configuration 变化失效
+    // （lint LocalContextGetResourceValueCall 判 Error）。刻意**不**把 noChapter 当 remember 的
+    // key——key 一变会把已加载的章节标题重置回占位文案；本页未声明 android:configChanges，
+    // 语言切换走 Activity 重建，重建后的新组合自然取到新语言初值。
+    val noChapter = stringResource(R.string.no_chapter)
+    var chapterTitle by remember { mutableStateOf(noChapter) }
     var sliderValue by remember { mutableFloatStateOf(1f) }
     var bookReady by remember { mutableStateOf(false) } // nextInShelfEvent 已到
     var pagerStarted by remember { mutableStateOf(false) }
@@ -747,7 +739,7 @@ private fun ReadBookScreen(
                 initialSelected = args.initialSelected,
                 onConfirm = { selected ->
                     panel = ReaderPanel.NONE
-                    startChapterDownload(activity, viewModel, context, selected)
+                    startChapterDownload(viewModel, context, selected)
                 },
                 onDismiss = { panel = ReaderPanel.NONE }
             )
@@ -780,7 +772,6 @@ private fun ReadBookScreen(
  * 行为与普通下载一致。任务列表按索引升序，保证下载顺序与目录一致。
  */
 private fun startChapterDownload(
-    activity: ReadBookActivity,
     viewModel: BookReadViewModel,
     context: Context,
     selected: Set<Int>

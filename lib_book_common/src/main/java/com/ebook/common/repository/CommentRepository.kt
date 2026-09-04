@@ -1,6 +1,5 @@
 package com.ebook.common.repository
 
-import com.ebook.api.entity.Comment
 import com.ebook.api.entity.CommentPage
 import com.ebook.api.service.comment.CommentDataSource
 import com.xrn1997.common.dto.RespDTO

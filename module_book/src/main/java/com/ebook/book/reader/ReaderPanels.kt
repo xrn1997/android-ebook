@@ -75,6 +75,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -90,8 +91,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
@@ -115,6 +116,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
+import androidx.core.content.edit
+import com.xrn1997.common.util.Logger
 
 /**
  * 阅读器面板枚举（原五个 PopupWindow 的显隐状态统一收口）。
@@ -496,7 +500,7 @@ private fun ChapterStepButton(
  * 选中态用 `secondaryContainer` 胶囊底 + `onSecondaryContainer` 前景，
  * 与 M3 NavigationBar 的选中语义一致；未选中保持透明底，避免四个入口同时"亮"。
  *
- * 等宽分配由调用侧在 RowScope 内传 [Modifier.weight]（weight 为作用域修饰符，
+ * 等宽分配由调用侧在 RowScope 内传 [Modifier]（weight 为作用域修饰符，
  * 不能在本函数内部直接使用）。
  */
 @Composable
@@ -723,8 +727,14 @@ fun ChapterListDrawer(
         }
     }
 
-    // 抽屉宽度：屏宽八成、上限 320dp（对齐原侧滑面板观感，兼容宽屏/平板）
-    val drawerWidth = min(320f, LocalConfiguration.current.screenWidthDp * 0.8f).dp
+    // 抽屉宽度：窗口宽度八成、上限 320dp（对齐原侧滑面板观感，兼容宽屏/平板）
+    // 使用 LocalWindowInfo 而非 LocalConfiguration：前者反映实际窗口尺寸，
+    // 在多窗口/分屏模式下不会取到全屏宽度导致抽屉溢出
+    val density = LocalDensity.current
+    val drawerWidth = with(density) {
+        val windowWidthDp = LocalWindowInfo.current.containerSize.width.toDp()
+        min(320f, windowWidthDp.value * 0.8f).dp
+    }
 
     // 遮罩：淡入淡出，点击空白关闭（对齐原侧滑面板外点击收起）
     AnimatedVisibility(
@@ -914,7 +924,7 @@ private fun ReaderFastScroll(
         visible = true
         hideJob?.cancel()
         hideJob = scope.launch {
-            delay(1000L)
+            delay(1000L.milliseconds)
             visible = false
         }
     }
@@ -935,9 +945,17 @@ private fun ReaderFastScroll(
     }
 
     // 滑块顶端比例 = 首可见项比例；高度比例 = 可视条目 / 总条目（下限 28dp 保证可点）
-    val visibleItems = listState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
-    val fraction = if (itemCount > 1)
-        listState.firstVisibleItemIndex.toFloat() / (itemCount - 1) else 0f
+    // layoutInfo / firstVisibleItemIndex 标注了 @FrequentlyChangingValue，
+    // 直接读取会让组合每帧重组；derivedStateOf 缓存结果，仅在派生值真正变化时触发重组
+    val visibleItems by remember {
+        derivedStateOf { listState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1) }
+    }
+    val fraction by remember {
+        derivedStateOf {
+            if (itemCount > 1)
+                listState.firstVisibleItemIndex.toFloat() / (itemCount - 1) else 0f
+        }
+    }
     val minThumbPx = with(density) { 28.dp.toPx() }
     val thumbHeightPx = if (boxHeightPx <= 0) {
         minThumbPx
@@ -1024,7 +1042,7 @@ private fun SheetHeader(
 /**
  * 面板开关行：36dp 彩色图标块 + 标题/说明 + 尾部 Switch。
  *
- * 图标块沿用 [CommonListItem] 的「圆角色块承载图标」语言（ADR-0006），让阅读器面板
+ * 图标块沿用 CommonListItem 的「圆角色块承载图标」语言（ADR-0006），让阅读器面板
  * 与设置页属同一视觉体系；说明文本用于交代开关的实际作用范围（音量键/点击区域/系统亮度），
  * 原实现只有标题，用户需要试了才知道开关干什么。
  * 整行可点（点标题区同样切换），Switch 与行点击共用同一入口保证状态同步。
@@ -1083,7 +1101,7 @@ private fun PanelSwitchRow(
  * - 「跟随系统」开关从卡片外的裸行收进同一张卡（与开关行统一为图标行语言），
  *   开启后恢复 BRIGHTNESS_OVERRIDE_NONE；关闭立即应用当前手动亮度，
  *   避免"关闭后屏幕亮度不变、必须拖一下滑条才生效"的错位；
- *   Switch 本体显式接线（onCheckedChange 传回调），与整行点击共用 [setFollowSys] 入口，
+ *   Switch 本体显式接线（onCheckedChange 传回调），与整行点击共用 setFollowSys 入口，
  *   保证开关状态与窗口实际亮度同步变化（对齐原 Checkbox 修复逻辑）
  * - 关闭面板时持久化到 SP（键与原实现一致，升级无感）；
  *   重新进入阅读器由 [applyReaderBrightness] 恢复手动亮度（窗口亮度不跨生命周期）
@@ -1094,7 +1112,7 @@ fun LightPanel(activity: Activity, onDismiss: () -> Unit) {
     val preferences = activity.getSharedPreferences(LIGHT_SP_NAME, Context.MODE_PRIVATE)
     var followSys by remember { mutableStateOf(preferences.getBoolean(KEY_FOLLOW_SYS, true)) }
     // 单一事实源：滑条与持久化共用 light，避免镜像状态漂移（对齐原 WindowLightPop）
-    var light by remember { mutableStateOf(preferences.getInt(KEY_LIGHT, getSystemBrightness(activity))) }
+    var light by remember { mutableIntStateOf(preferences.getInt(KEY_LIGHT, getSystemBrightness(activity))) }
 
     // 切换"跟随系统"的唯一入口：勾选恢复系统亮度；取消勾选立即应用手动亮度，
     // 保证复选框状态与窗口实际亮度同步变化（不依赖滑条拖动）
@@ -1113,10 +1131,10 @@ fun LightPanel(activity: Activity, onDismiss: () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = {
             // 对齐原 dismiss()：保存亮度配置
-            preferences.edit()
-                .putInt(KEY_LIGHT, light)
-                .putBoolean(KEY_FOLLOW_SYS, followSys)
-                .apply()
+            preferences.edit {
+                putInt(KEY_LIGHT, light)
+                    .putBoolean(KEY_FOLLOW_SYS, followSys)
+            }
             onDismiss()
         },
         // 面板自带标题且下滑/点遮罩/返回键均可关闭，默认拖动手柄横杠冗余，去掉
@@ -1202,12 +1220,14 @@ fun LightPanel(activity: Activity, onDismiss: () -> Unit) {
 private const val LIGHT_SP_NAME = "CONFIG"
 private const val KEY_LIGHT = "light"
 private const val KEY_FOLLOW_SYS = "is_follow_sys"
+private const val TAG = "ReaderPanels"
 
 /** 读取系统亮度（0~255），读取失败兜底 0（对齐原 WindowLightPop.screenBrightness） */
 private fun getSystemBrightness(context: Context): Int {
     return try {
         Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
     } catch (e: Settings.SettingNotFoundException) {
+        Logger.w(TAG, "系统亮度设置不存在，兜底 0", e)
         0
     }
 }
@@ -1266,8 +1286,8 @@ fun FontPanel(
     // 字号/背景档位用面板本地状态镜像 ReadBookControl：
     // ReadBookControl 是普通单例（非 Compose 状态），本地状态才能驱动重组；
     // 每次变更同步写回 ReadBookControl（内存 + SP 持久化）
-    var textKindIndex by remember { mutableStateOf(ReadBookControl.textKindIndex) }
-    var textDrawableIndex by remember { mutableStateOf(ReadBookControl.textDrawableIndex) }
+    var textKindIndex by remember { mutableIntStateOf(ReadBookControl.textKindIndex) }
+    var textDrawableIndex by remember { mutableIntStateOf(ReadBookControl.textDrawableIndex) }
     val kindList = ReadBookControl.getTextKindList()
     val drawableList = ReadBookControl.getTextDrawableList()
 
@@ -1434,7 +1454,7 @@ private fun ReaderThemeSwatch(
  *
  * 开关行收进 [CommonCard] 分组并补齐说明文案（对齐共享设计语言，ADR-0006）；
  * 行间分割线按本面板的图标列缩进（[ReaderChromeTokens.switchDividerIndent]），
- * 不用 [CommonListDivider] 的 64dp——本卡开关行的内边距基准与 CommonListItem 不同。
+ * 不用 CommonListDivider 的 64dp——本卡开关行的内边距基准与 CommonListItem 不同。
  *
  * @param onClickTurnChanged 点击翻页开关即时回调（面板开启期间正文不可点击，
  *   但 ReadBookScreen 需在切换瞬间同步本地 State 以消除"依赖 panel 变化才重组生效"的隐式耦合）
@@ -1587,7 +1607,9 @@ fun ChapterDownloadSheet(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             // 章节列表：高度限半屏，避免 ModalBottomSheet 被超长目录无限撑开（大目录快速滚动可加，
             // 本面板以选择为目的、逐行可视更重要，不引入 FastScroll）
-            val listHeight = (LocalConfiguration.current.screenHeightDp / 2).dp
+            val listHeight = with(LocalDensity.current) {
+                LocalWindowInfo.current.containerSize.height.toDp() / 2
+            }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()

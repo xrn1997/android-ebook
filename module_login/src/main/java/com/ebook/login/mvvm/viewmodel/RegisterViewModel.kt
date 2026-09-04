@@ -20,9 +20,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * 注册 ViewModel：对齐 ebook-server ADR-0002 的三步注册
+ * 注册 ViewModel：三步注册
  * （按邮箱发码 → register(邮箱+验证码+密码) → 用户主动登录）。
  *
  * 注册即激活但不发 token，因此注册成功不保存会话、直接引导去登录页。
@@ -80,7 +81,7 @@ class RegisterViewModel @Inject constructor(
         countdownJob = viewModelScope.launch {
             for (remain in CODE_RESEND_COUNTDOWN downTo 1) {
                 _codeCountdown.value = remain
-                delay(1_000L)
+                delay(1_000L.milliseconds)
             }
             _codeCountdown.value = 0
         }
@@ -147,7 +148,6 @@ class RegisterViewModel @Inject constructor(
     }
 
     companion object {
-        private const val TAG = "RegisterViewModel"
 
         /** 重发倒计时秒数，与服务端发码频控窗口一致 */
         private const val CODE_RESEND_COUNTDOWN = 60

@@ -5,9 +5,9 @@ import android.os.Bundle
 import android.text.TextUtils
 import androidx.lifecycle.viewModelScope
 import com.ebook.api.utils.CoroutineAdapter
-import com.ebook.common.domain.UserSession
 import com.ebook.common.domain.UserSessionManager
 import com.ebook.common.event.KeyCode
+import com.ebook.common.interceptor.LoginInterceptor
 import com.ebook.common.repository.ProfileRepository
 import com.ebook.login.R
 import com.ebook.login.repository.UserRepository
@@ -62,7 +62,7 @@ class LoginViewModel @Inject constructor(
                     // 保存会话信息到 UserSessionManager
                     // saveSession 会将 token 写入 TokenHolder，AuthInterceptor 自动附加到请求头
                     userSessionManager.saveSession(session, session.refreshToken)
-                    loginOnNext(session)
+                    loginOnNext()
                     profileRepository.updatePicture(session.avatar)
                     profileRepository.updateNickname(session.nickname)
                 }.onFailure { exception ->
@@ -95,7 +95,7 @@ class LoginViewModel @Inject constructor(
      * 独立模式（isModule=true）不编译 module\_main，由调试宿主 `src/main/test/debug/MainActivity`
      * 以同一路径占位（否则 TheRouter 找不到路由只会静默丢弃跳转，栈里未 finish 的中间页会被露出）。
      */
-    private fun loginOnNext(session: UserSession) {
+    private fun loginOnNext() {
         val path = bundle?.getString(KeyCode.Login.PATH)
         // 被拦截回跳的目标：非空且非 LOGIN_PATH（或其带参形式）→ 原始目标页
         val interceptTarget = path?.takeUnless {
@@ -113,9 +113,5 @@ class LoginViewModel @Inject constructor(
         }
         sendFinish()
         sendToast(context.getString(R.string.login_success))
-    }
-
-    companion object {
-        private const val TAG = "LoginViewModel"
     }
 }

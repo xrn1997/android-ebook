@@ -107,7 +107,7 @@ fun SearchBookItem(
                 Spacer(modifier = Modifier.height(4.dp))
                 // 最新章节（无章节时降级为简介）
                 Text(
-                    text = if (searchBook.lastChapter.isNotEmpty()) searchBook.lastChapter else searchBook.desc,
+                    text = searchBook.lastChapter.ifEmpty { searchBook.desc },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

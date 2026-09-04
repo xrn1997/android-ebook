@@ -27,11 +27,16 @@ class BookSourceRepository @Inject constructor(
     /** 书库数据磁盘缓存（解析器读取/写入，见 JsoupBookParser.getLibraryData） */
     private val cache: ACache = ACache.get(context)
 
-    /** 获取书籍类型列表：从当前书源规则的 `ruleFind.kinds` 映射，无书源时返回空列表。 */
+    /**
+     * 获取书籍类型列表：从当前书源规则的 `ruleFind.kinds` 映射，无书源时返回空列表。
+     *
+     * 过滤掉标题空白的条目：`KindItem` 的字段非空带默认值，书源规则少写字段时得到的是空串而非
+     * null，不过滤就会渲染出空白胶囊、并把空 url 传给分类选书页去请求。
+     */
     fun getBookTypeList(): List<BookType> {
         val source = bookSourceManager.currentSource ?: return emptyList()
         val kinds = source.ruleFind.kinds
-        return kinds.map { BookType(it.title, it.url) }
+        return kinds.filter { it.title.isNotBlank() }.map { BookType(it.title, it.url) }
     }
 
     /** 获取分类书籍列表（IO 线程），[page] 从 1 开始。 */

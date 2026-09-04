@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.content.edit
 
 /**
  * UserSessionManager 的 Android 实现
@@ -46,7 +47,7 @@ class AndroidUserSessionManager @Inject constructor(
         tokenHolder.setToken(_currentUser.value?.token)
         // 安全债清理（一次性、幂等）：旧版本会把明文密码落盘到两处 SP，
         // 密码改为彻底不落盘后，升级设备上遗留的旧键在此抹除（见 ADR-0008）
-        sp.edit().remove(LEGACY_KEY_PASSWORD).apply()
+        sp.edit { remove(LEGACY_KEY_PASSWORD) }
         SPUtil.remove(LEGACY_SP_PASSWORD)
     }
 
@@ -66,14 +67,14 @@ class AndroidUserSessionManager @Inject constructor(
         // 写入 user_session 文件
         // 注：access token 只驻内存（TokenHolder），不落盘——冷启动时为空，
         // 首个请求 A0230 会用 refresh token 静默轮换（见 ADR-0011 / Q2 权衡）
-        sp.edit()
-            .putBoolean(KEY_IS_LOGGED_IN, true)
-            .putString(KEY_REFRESH_TOKEN, refreshToken)
-            .putString(KEY_USER_ID, session.userId.toString())
-            .putString(KEY_USERNAME, session.username)
-            .putString(KEY_NICKNAME, session.nickname)
-            .putString(KEY_AVATAR, session.avatar)
-            .apply()
+        sp.edit {
+            putBoolean(KEY_IS_LOGGED_IN, true)
+                .putString(KEY_REFRESH_TOKEN, refreshToken)
+                .putString(KEY_USER_ID, session.userId.toString())
+                .putString(KEY_USERNAME, session.username)
+                .putString(KEY_NICKNAME, session.nickname)
+                .putString(KEY_AVATAR, session.avatar)
+        }
 
         // 兼容 LoginInterceptor：同时写入 spUtils 文件
         SPUtil.put(KeyCode.Login.SP_IS_LOGIN, true)
@@ -91,9 +92,9 @@ class AndroidUserSessionManager @Inject constructor(
         tokenHolder.setToken(accessToken)
 
         // 只落盘 refresh token（access 只驻内存）；绝不触碰身份键与兼容 SP_* 键
-        sp.edit()
-            .putString(KEY_REFRESH_TOKEN, refreshToken)
-            .apply()
+        sp.edit {
+            putString(KEY_REFRESH_TOKEN, refreshToken)
+        }
     }
 
     /**
@@ -113,15 +114,15 @@ class AndroidUserSessionManager @Inject constructor(
         tokenHolder.clear()
 
         // 清除 user_session 文件
-        sp.edit()
-            .remove(KEY_IS_LOGGED_IN)
-            .remove(KEY_TOKEN)
-            .remove(KEY_REFRESH_TOKEN)
-            .remove(KEY_USER_ID)
-            .remove(KEY_USERNAME)
-            .remove(KEY_NICKNAME)
-            .remove(KEY_AVATAR)
-            .apply()
+        sp.edit {
+            remove(KEY_IS_LOGGED_IN)
+                .remove(KEY_TOKEN)
+                .remove(KEY_REFRESH_TOKEN)
+                .remove(KEY_USER_ID)
+                .remove(KEY_USERNAME)
+                .remove(KEY_NICKNAME)
+                .remove(KEY_AVATAR)
+        }
 
         // 兼容 LoginInterceptor：同时清除 spUtils 文件
         SPUtil.clearAuthData()

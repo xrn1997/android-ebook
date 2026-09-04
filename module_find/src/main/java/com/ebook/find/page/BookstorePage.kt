@@ -73,7 +73,7 @@ fun BookstorePage(viewModel: LibraryViewModel = hiltViewModel()) {
     val kindBooks by viewModel.list.collectAsState()
     val bookTypes = viewModel.bookTypeList
     var isRefreshing by remember { mutableStateOf(false) }
-    // 刷新信号绑定（@Composable 版，ADR-0040）：绑定生命周期归组合控制，进出 Tab 自动绑/解绑——
+    // 刷新信号绑定（@Composable 版）：绑定生命周期归组合控制，进出 Tab 自动绑/解绑——
     // 旧写法把 binder 包进 DisposableEffect 无法取消其内部挂 lifecycleScope 的协程，会残留孤儿 collector
     val refreshView = remember {
         object : IBaseRefreshView {
@@ -158,8 +158,8 @@ private fun LibraryContent(
                             // 跳分类选书页（url/title 经 TheRouter withString 落到 intent extras，
                             // ChoiceBookActivity 直接读 extras：url 经 SavedStateHandle、title 在 onCreate 读取，不用 @Autowired）
                             TheRouter.build(KeyCode.Find.CHOICE_PATH)
-                                .withString("url", bookType.url.orEmpty())
-                                .withString("title", bookType.bookType.orEmpty())
+                                .withString("url", bookType.url)
+                                .withString("title", bookType.bookType)
                                 .navigation(context)
                         }
                     }
@@ -203,7 +203,7 @@ private fun LibraryContent(
 @Composable
 private fun BookTypeChip(bookType: BookType, onClick: () -> Unit) {
     InfoChip(
-        text = bookType.bookType ?: "",
+        text = bookType.bookType,
         shape = RoundedCornerShape(50),
         containerColor = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,

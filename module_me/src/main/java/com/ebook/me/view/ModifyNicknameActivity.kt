@@ -46,7 +46,7 @@ private const val NICKNAME_MAX_LENGTH = 12
 @AndroidEntryPoint
 @Route(path = KeyCode.Me.MODIFY_NICKNAME_PATH, params = ["needLogin", "true"])
 class ModifyNicknameActivity : BaseMvvmActivity<ModifyViewModel>() {
-    protected override val viewModel: ModifyViewModel by viewModels()
+    override val viewModel: ModifyViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)

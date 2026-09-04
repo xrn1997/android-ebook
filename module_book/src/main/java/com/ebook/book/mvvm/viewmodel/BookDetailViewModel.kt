@@ -12,12 +12,10 @@ import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.Collections
 import javax.inject.Inject
 
@@ -156,6 +154,7 @@ class BookDetailViewModel @Inject constructor(
                     bookRepository.addToShelf(shelf)
                     Logger.d(TAG, "addToBookShelf: ${shelf.noteUrl}")
                 } catch (e: Exception) {
+                    Logger.e(TAG, "addToBookShelf failed: ${shelf.noteUrl}", e)
                     // 一次性命令通道（sendToast）而非直调 Toast：MvvmBinder 在主线程消费，
                     // 文案走字符串资源（对齐 lib_common ViewModelNoDirectToastTest 门禁约定）
                     sendToast(context.getString(R.string.import_add_failed))
@@ -170,6 +169,7 @@ class BookDetailViewModel @Inject constructor(
                 try {
                     bookRepository.removeFromShelf(shelf)
                 } catch (e: Exception) {
+                    Logger.e(TAG, "removeFromBookShelf failed: ${shelf.noteUrl}", e)
                     sendToast(context.getString(R.string.remove_shelf_failed))
                 }
             }
@@ -190,6 +190,7 @@ class BookDetailViewModel @Inject constructor(
             )
             bookSourceManager.requireParser().getBookInfo(shelf)
         } catch (e: Exception) {
+            Logger.e(TAG, "fetchBookInfo failed: ${searchBook.noteUrl}", e)
             null
         }
     }
@@ -205,11 +206,8 @@ class BookDetailViewModel @Inject constructor(
             // 取消不是"取不到章节"：吞掉会让调用方把销毁中的页面渲染成空目录
             throw e
         } catch (e: Exception) {
+            Logger.e(TAG, "fetchChapterList failed: ${bookShelf.noteUrl}", e)
             null
         }
-    }
-
-    companion object {
-        const val TAG: String = "BookDetailViewModel"
     }
 }

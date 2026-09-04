@@ -72,7 +72,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 @Route(path = KeyCode.Me.CACHE_PATH)
 class CacheManageActivity : BaseMvvmActivity<CacheManageViewModel>() {
-    protected override val viewModel: CacheManageViewModel by viewModels()
+    override val viewModel: CacheManageViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)

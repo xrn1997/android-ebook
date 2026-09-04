@@ -116,8 +116,6 @@ object ReadBookControl {
     // ----------------------------
     // 工具方法
     // ----------------------------
-    fun getCurrentTextKind(): TextKind = textKindList[textKindIndex]
-    fun getCurrentTextDrawable(): TextDrawable = textDrawableList[textDrawableIndex]
     fun getTextKindList(): List<TextKind> = textKindList
     fun getTextDrawableList(): List<TextDrawable> = textDrawableList
 }

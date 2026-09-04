@@ -235,7 +235,7 @@ class SearchActivity : BaseMvvmRefreshActivity<SearchViewModel>() {
     @Composable
     override fun PageContent(state: LazyListState) {
         val books by viewModel.list.collectAsState()
-        // 加载更多底部状态（ADR-0041）：由基类渲染镜像推导，失败可点重试
+        // 加载更多底部状态：由基类渲染镜像推导，失败可点重试
         val loadingMore by remember { isLoadingMoreState }
         val loadMoreFailed by remember { loadMoreFailedState }
         val hasMore by remember { hasMoreDataState }
@@ -263,7 +263,7 @@ class SearchActivity : BaseMvvmRefreshActivity<SearchViewModel>() {
                     onAddShelf = { viewModel.addBookToShelf(searchBook) }
                 )
             }
-            // 触底加载反馈：加载中 / 失败重试 / 没有更多（ADR-0041）
+            // 触底加载反馈：加载中 / 失败重试 / 没有更多
             item {
                 LoadMoreFooter(
                     isLoadingMore = loadingMore,
@@ -368,7 +368,7 @@ class SearchActivity : BaseMvvmRefreshActivity<SearchViewModel>() {
  * 对齐旧 activity_search.xml 顶部 LinearLayout：13dp 上下边距、48dp 输入框高、
  * surfaceVariant 背景（原 bg_search_content）；圆角统一为全胶囊 50（对齐书城页搜索胶囊，
  * 全模块搜索入口同一形态）；空输入触发搜索时整体水平抖动（替代 YoYo Shake）。
- * 左侧放大镜用矢量 [Icons.Default.Search] + onSurfaceVariant 着色（替代固定色位图 icon_search_nor：
+ * 左侧放大镜用矢量 [Search] + onSurfaceVariant 着色（替代固定色位图 icon_search_nor：
  * 位图颜色无法适配深色模式，且与占位文字色割裂；paired 的 icon_search_sel 从未被引用，随迁移清理）。
  * 尺寸取 20dp 而非沿用旧布局的 15dp：矢量图标在 24×24 视口内自带留白，可见图形比尺寸值小一圈，
  * 而旧位图是满幅绘制，照搬 15dp 会显著偏小；20dp ≈ M3 搜索栏 56dp 高配 24dp 图标按 48dp 胶囊等比折算。

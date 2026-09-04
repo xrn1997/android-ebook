@@ -17,7 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ebook.common.event.KeyCode
@@ -48,11 +48,14 @@ class DocActivity : BaseActivity() {
 
     @Composable
     override fun PageContent() {
-        val context = LocalContext.current
-        // 文档文本为小型静态资源（约 1KB），remember 内一次性读取即可
-        val sections = remember(docType) {
+        // 走 LocalResources 而非 LocalContext.current.resources：后者对 Configuration 变化不敏感，
+        // 文案随语言限定符本地化时换语言不会重新取值（lint LocalContextResourcesRead）
+        val resources = LocalResources.current
+        // 文档文本为小型静态资源（约 1KB），一次性读取即可；resources 必须参与 key——
+        // Configuration 变化只让本组合失效，remember 不带 key 仍会复用失效前缓存的旧文案
+        val sections = remember(docType, resources) {
             parseDocSections(
-                context.resources.openRawResource(docRawRes(docType))
+                resources.openRawResource(docRawRes(docType))
                     .bufferedReader()
                     .use { it.readText() }
             )
