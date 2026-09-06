@@ -27,7 +27,8 @@ import javax.inject.Inject
  * 职责：
  * - 缓存：展示 cacheDir 总占用（点击入口跳缓存管理页做分类清理，本页不再直接清理）
  * - 版本更新检查：主动（用户点「检查更新」即时）与静默（进设置页且距上次 ≥7 天）两种触发，
- *   结果分两种消费：更新弹窗（主动检查）与版本行角标（每次由上次检查到的 tag 现场派生）
+ *   结果分两种消费：更新弹窗（主动检查，以及静默在途被点击**升级**为可见的检查）与
+ *   版本行角标（每次由上次检查到的 tag 现场派生）
  * - 退出登录：经 UserSessionManager 单点清会话
  * - 登录态：控制「退出登录」区块的显隐
  *
@@ -74,13 +75,22 @@ class SettingViewModel @Inject constructor(
      * 在途的版本检查任务（主动与静默共用一条，同一时刻最多一个请求在跑）。
      *
      * 两个用途：
-     * - **重入保护**：连点版本行、或静默刷新尚未回来时用户又主动点，不再并发起第二次请求
+     * - **单飞**：同一时刻最多一个请求；连点版本行不会并发第二个请求
      *   （两次请求各自落盘 tag 与角标，后回来的那个会覆盖前一个的结论）；
      * - **关窗即取消**：用户在「检查中」把弹窗关掉时取消任务，否则请求回来会把弹窗
      *   重新推到用户脸上。取消能真正掐断备用源请求，靠的是 `ReleaseRepository`
      *   把 [kotlinx.coroutines.CancellationException] 原样抛出（不当「该源失败」）。
      */
     private var checkJob: Job? = null
+
+    /**
+     * 在途检查完成后，结论是否推进 [updateState] 弹窗。
+     *
+     * 主动检查发起时为 true（结果要弹窗）；静默检查发起时为 false（只落盘不弹窗）。
+     * **静默在途期间用户点了版本行**则就地升级为 true：这次点击不能没有反馈，
+     * 但也不该并发第二个请求（单飞，理由见 [checkJob]），于是让在途请求的结果改道进弹窗。
+     */
+    private var resultToDialog = false
 
     /**
      * 版本行角标：是否「已有可更新的新版本」。
@@ -134,31 +144,53 @@ class SettingViewModel @Inject constructor(
      * 「无法判定」（远端 tag 解析不出版本、或本地版本读不到）一律按 [UpdateState.CheckError]
      * 处置，且**不写成功时间戳**：把它当成「已是最新」会用一个假结论占满 7 天限频窗口，
      * 还会把角标停在错误值上——这正是「失败不覆盖旧结论」要求覆盖到的那条路径。
+     *
+     * 静默检查在途时不发第二个请求，而是把在途检查**升级**为用户可见（见 [resultToDialog]）：
+     * 点击当场进入 Checking，请求回来后结论进弹窗。修复前这里直接 return，
+     * 慢网下用户点版本行会毫无反馈。
      */
     fun checkUpdate() {
-        if (checkJob?.isActive == true) return
-        checkJob = viewModelScope.launch {
-            _updateState.value = UpdateState.Checking
-            val result = releaseRepository.checkLatestRelease()
-            val hasUpdate = result?.let(::recordConclusion)
-            _updateState.value = when {
-                result == null || hasUpdate == null -> UpdateState.CheckError
-                hasUpdate -> UpdateState.HasUpdate(result)
-                else -> UpdateState.UpToDate
-            }
-        }
+        launchCheck(manual = true)
     }
 
     /**
      * 进设置页时的静默刷新：距上次成功检查 ≥7 天才发起，否则角标沿用上次结论的派生值。
      * 静默刷新**不**改变 [updateState]（不弹窗），只更新角标；失败则无声忽略。
+     * 在途期间若被用户手动点击，结果会升级进弹窗（见 [launchCheck]）。
      */
     private fun startSilentRefresh() {
-        if (checkJob?.isActive == true) return
         if (!releaseStateStore.shouldAutoRefresh()) return
+        launchCheck(manual = false)
+    }
+
+    /**
+     * 发起一次版本检查，主动与静默共用同一条在途任务（单飞）。
+     *
+     * - 无在途：按 [manual] 决定结论是否进弹窗，并发起请求；
+     * - 有在途且 [manual]（静默在途时用户点了版本行）：把在途检查升级为用户可见——
+     *   置 Checking、结论改道进弹窗，不并发第二个请求；
+     * - 有在途且静默（主动弹窗已在，又来一次静默判窗）：维持现状。
+     */
+    private fun launchCheck(manual: Boolean) {
+        if (checkJob?.isActive == true) {
+            if (manual) {
+                resultToDialog = true
+                _updateState.value = UpdateState.Checking
+            }
+            return
+        }
+        resultToDialog = manual
         checkJob = viewModelScope.launch {
-            val result = releaseRepository.checkLatestRelease() ?: return@launch
-            recordConclusion(result)
+            if (resultToDialog) _updateState.value = UpdateState.Checking
+            val result = releaseRepository.checkLatestRelease()
+            val hasUpdate = result?.let(::recordConclusion)
+            if (resultToDialog) {
+                _updateState.value = when {
+                    result == null || hasUpdate == null -> UpdateState.CheckError
+                    hasUpdate -> UpdateState.HasUpdate(result)
+                    else -> UpdateState.UpToDate
+                }
+            }
         }
     }
 
@@ -181,11 +213,16 @@ class SettingViewModel @Inject constructor(
      *
      * 「检查中」关窗按**放弃本次检查**处理：取消在途任务，否则请求回来会把弹窗重新推到
      * 已经关掉它的用户脸上。角标不受影响——结论只在 [recordConclusion] 里落盘。
+     *
+     * 取消时把 [resultToDialog] 一并复位：升级旗标只属于被放弃的那次在途检查，
+     * 跨任务残留会让未来的静默发起意外弹窗（当前调用图下静默只在 init 发起、观察不到，
+     * 纯属防御）。
      */
     fun consumeUpdateDialog() {
         if (_updateState.value is UpdateState.Checking) {
             checkJob?.cancel()
             checkJob = null
+            resultToDialog = false
         }
         _updateState.value = UpdateState.Idle
     }

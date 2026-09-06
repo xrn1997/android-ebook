@@ -2,6 +2,7 @@ package com.ebook.me.view.profilePhoto
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -356,7 +357,9 @@ private fun cropBitmap(source: Bitmap, state: CropState, outputSize: Int = 200):
     val canvas = android.graphics.Canvas(out)
     canvas.translate(tx, ty)
     canvas.scale(s, s)
-    canvas.drawBitmap(source, 0f, 0f, null)
+    // null Paint 会关掉双线性过滤：720px 采样源图最近邻缩到 200px 出锯齿
+    // （预览走 Compose drawImage 默认过滤，裁剪页看不出差异，上传后才显现）
+    canvas.drawBitmap(source, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
     return out
 }
 

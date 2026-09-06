@@ -299,7 +299,7 @@ private fun CacheDetailSheet(
                                     modifier = Modifier.weight(1f)
                                 )
                                 Text(
-                                    text = formatSizeText(entry.sizeBytes),
+                                    text = formatSize(entry.sizeBytes),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -355,6 +355,3 @@ private fun categoryColors(type: CacheType): Pair<Color, Color> = when (type) {
     CacheType.OTHER -> MaterialTheme.colorScheme.tertiaryContainer to
             MaterialTheme.colorScheme.onTertiaryContainer
 }
-
-/** 大小文案：转发 [formatSize]（Sheet 与列表共用同一格式） */
-private fun formatSizeText(bytes: Long): String = formatSize(bytes)

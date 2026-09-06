@@ -86,8 +86,8 @@ class ModifyInformationActivity : BaseMvvmActivity<ModifyViewModel>() {
 
         // 拍照临时文件：页面级唯一，多次拍照复用同一文件避免堆积
         val cameraFile = remember { FileUtil.privateFile(context, "profile_camera.jpg") }
-        // 拍照输出 Uri：同一文件反复使用，Uri 只算一次避免重复取
-        val cameraUri = FileUtil.contentUri(context, cameraFile)
+        // 拍照输出 Uri：只算一次（不 remember 的话每次重组都会重跑 FileProvider）
+        val cameraUri = remember(cameraFile) { FileUtil.contentUri(context, cameraFile) }
 
         // 裁剪页返回：拿到裁剪后的图片 Uri，交给 ViewModel 上传并刷新头像
         val cropLauncher = rememberLauncherForActivityResult(

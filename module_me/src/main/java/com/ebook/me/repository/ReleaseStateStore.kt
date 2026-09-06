@@ -116,8 +116,8 @@ class ReleaseStateStore @Inject constructor(
          * 限频窗口的纯算术：上次成功检查在 [lastSuccessMillis]（0 表示从未检查），
          * 现在是否已到 [intervalMillis] 窗口。
          *
-         * 抽成纯函数是因为本类要 Context，而 module_me 的单测只有 JUnit（无 Robolectric），
-         * 窗口边界这种「差一天就不该多发请求」的判断值得被锁住。
+         * 抽成纯函数让它不依赖 Robolectric 也能锁「差一天就不该多发请求」的边界
+         * （本类的读写路径要 Context，JVM 直测成本高）。
          */
         fun isRefreshDue(
             lastSuccessMillis: Long,
