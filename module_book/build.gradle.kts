@@ -74,4 +74,11 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
+    // 基线仪器测试（ImportBaselineTest）用的 Hilt 测试脚手架：@HiltAndroidTest 需要
+    // hilt-android-testing 提供 HiltTestApplication/HiltAndroidRule，且组件树要在
+    // androidTest 这次编译里由 KSP 生成。xrn1997.hilt 约定插件只给 main 挂了
+    // ksp/implementation，androidTest 的 kspAndroidTest 必须自行声明，
+    // 否则注解不被处理、注入点全部为空。
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
 }

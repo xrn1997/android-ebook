@@ -1,0 +1,58 @@
+schema_version: 1
+module_path: root
+title: Android 电子书阅读器多模块工程根（android-ebook）
+scope:
+    - .gradle/
+    - gradle/
+    - build/
+    - image/
+    - .idea/
+    - AGENTS.md
+    - CONTEXT.md
+    - settings.gradle.kts
+    - build.gradle.kts
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: 1bdbee76-3c0d-443d-8e80-761c78202b41
+kk_cards:
+    architecture_design:
+        id: 64d62069-6a17-45d5-9b02-abd1313d12e9
+        title: Android 电子书阅读器多模块工程根（android-ebook）
+    coding_conventions:
+        id: 15192b19-defb-4a67-93a8-524b33f6bc4a
+        title: Android 电子书阅读器多模块工程根（android-ebook）
+    overview:
+        id: 25b0a4fe-f9fe-40e9-85a1-5e3ce10bd9d7
+        title: Android 电子书阅读器多模块工程根（android-ebook）
+    tech_stack:
+        id: f78caff8-5571-4145-9822-cb98230df6f3
+        title: Android 电子书阅读器多模块工程根（android-ebook）
+    unique_setup_and_commands:
+        id: 91d778fc-2081-42b2-ab9a-74256076baf2
+        title: Android 电子书阅读器多模块工程根（android-ebook）
+    build_system:
+        id: 0416cf4f-a58c-43bc-b217-53eb55135ae4
+        title: 基于 Gradle 多模块与约定插件的构建系统
+    configuration_system:
+        id: 192d9c1f-5260-43b7-a048-182cc852e67e
+        title: 三层配置体系：版本目录 + 构建期 BuildConfig + SharedPreferences/DataStore 运行时配置
+    dependency_management:
+        id: 324098ba-0680-46e0-ba88-76daaed55f9f
+        title: Gradle 版本目录 + 约定插件的依赖管理体系
+    error_handling:
+        id: 99fb3df9-bfe9-4682-8c2d-f14cdd9f37d4
+        title: 网络层统一错误码封装 + Repository-ViewResult 结果传递链（含会话过期自动重放）
+    frontend_style:
+        id: 83975efc-b56b-495e-be66-335579fceb20
+        title: Material3 Compose 主题与共享设计令牌（lib_book_common/ui）
+    logging_system:
+        id: bca4044e-55a4-47f2-aed9-4f14cc08270c
+        title: 日志系统：基于 lib_common.Logger 的统一日志与 OkHttp 网络日志拦截器
+kk_repo_cards:
+    - build_system
+    - configuration_system
+    - dependency_management
+    - error_handling
+    - frontend_style
+    - logging_system

@@ -5,6 +5,9 @@ import com.ebook.db.dao.ChapterListDao
 import com.ebook.db.dao.DownloadChapterDao
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.DownloadChapterEntity
+import com.ebook.common.analyze.local.BookLocation
+import com.ebook.common.analyze.local.BookFormat
+import com.ebook.common.store.BookStore
 import com.xrn1997.common.mvvm.model.BaseModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -33,7 +36,8 @@ import javax.inject.Singleton
 class DownloadRepository @Inject constructor(
     private val downloadChapterDao: DownloadChapterDao,
     private val bookShelfDao: BookShelfDao,
-    private val chapterListDao: ChapterListDao
+    private val chapterListDao: ChapterListDao,
+    private val bookStore: BookStore,
 ) : BaseModel() {
     // ===== 事件通道 =====
 
@@ -140,12 +144,15 @@ class DownloadRepository @Inject constructor(
      *
      * 与"队列剩余"是两个口径：队列是"本次还没下完的"，覆盖率是"全书已可离线的比例"，
      * 后者不随批次变化、随阅读/下载增长，适合当进度条。
+     *
+     * 缓存判定改查章文件存在性（[BookStore.hasChapter]），不再依赖已移除的 `has_cache` 列。
      */
     suspend fun getCacheCoverage(noteUrl: String): CacheCoverage = withContext(Dispatchers.IO) {
-        CacheCoverage(
-            total = chapterListDao.countChaptersForBook(noteUrl),
-            cached = chapterListDao.countCachedChaptersForBook(noteUrl)
-        )
+        val total = chapterListDao.countChaptersForBook(noteUrl)
+        val location = BookLocation(noteUrl, BookFormat.NETWORK)
+        val chapters = chapterListDao.getChaptersForBook(noteUrl)
+        val cached = chapters.count { bookStore.hasChapter(location, it.durChapterIndex) }
+        CacheCoverage(total = total, cached = cached)
     }
 
     suspend fun emitState(state: DownloadState) {

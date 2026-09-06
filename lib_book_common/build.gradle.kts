@@ -64,6 +64,9 @@ dependencies {
     api(libs.dagger)
     ksp(libs.dagger.compiler)
 
+    // TransactionModule 需要 Room 的 withWriteTransaction 扩展（lib_ebook_db 用 implementation 声明，不传递）
+    implementation(libs.room.runtime)
+
     testImplementation(libs.junit)
     // Robolectric：AndroidUserSessionManager 需要真实 SharedPreferences 与 Application 上下文
     // （与 lib_ebook_db 的 SearchHistoryDaoTest 同一套跑法）

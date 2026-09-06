@@ -81,17 +81,23 @@ class BookCommentsActivity : BaseMvvmActivity<BookCommentsViewModel>() {
     override val viewModel: BookCommentsViewModel by viewModels()
 
     override fun initData() {
-        // 路由携带的章节信息组装为评论载体（chapterUrl 是查询/新增评论的主键）
+        // 路由携带的章节信息组装为评论载体（commentKey 是 M2 查询/新增评论的主键）
         val bundle = this.intent.extras
         if (bundle != null && !bundle.isEmpty) {
+            val rawKey = bundle.getString(RouteArgs.COMMENT_KEY)
+            // M2：阅读器传入逗号分隔的多个章键（跨源合并），我的评论页仍传单键——
+            // 统一按逗号拆分，单键场景拆出来就是单元素列表
+            val keys = rawKey?.split(",")?.filter { it.isNotEmpty() } ?: emptyList()
             val comment = BookComment(
                 id = 0, userId = 0, username = "", avatar = "",
+                commentKey = keys.firstOrNull(),
                 chapterUrl = bundle.getString(RouteArgs.CHAPTER_URL),
                 chapterName = bundle.getString(RouteArgs.CHAPTER_NAME),
                 bookName = bundle.getString(RouteArgs.BOOK_NAME),
                 content = null, addTime = ""
             )
             viewModel.comment = comment
+            viewModel.commentKeys = keys
         }
     }
 

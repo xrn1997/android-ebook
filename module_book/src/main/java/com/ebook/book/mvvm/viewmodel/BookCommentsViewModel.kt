@@ -35,14 +35,23 @@ class BookCommentsViewModel @Inject constructor(
     @JvmField
     var comment: BookComment = BookComment(
         id = 0, userId = 0, username = "", avatar = "",
+        commentKey = null,
         chapterUrl = null, chapterName = null, bookName = null,
         content = null, addTime = ""
     )
+
+    /**
+     * M2 查询用聚合键列表：阅读器传入多个章键（跨源合并）时全量查询；
+     * 与 [comment] 的 `commentKey` 分离——后者用于新发评论的归属键，前者用于查询范围。
+     */
+    var commentKeys: List<String> = emptyList()
+
     val mVoidSingleLiveEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     override fun refreshData() {
         viewModelScope.launch {
-            val result = commentRepository.getChapterComments(comment.chapterUrl)
+            // M2：按聚合键列表做并集查询；空列表时后端返回空结果
+            val result = commentRepository.getComments(commentKeys)
             result.onSuccess { data ->
                 val sortedComments = data.sortedByDescending {
                     DateUtil.parseTime(it.addTime, DateUtil.FormatType.yyyyMMddHHmm)

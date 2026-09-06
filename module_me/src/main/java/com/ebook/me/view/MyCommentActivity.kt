@@ -69,6 +69,7 @@ class MyCommentActivity : BaseMvvmActivity<CommentViewModel>() {
             comments = comments,
             onCommentClick = { comment ->
                 val bundle = Bundle().apply {
+                    putString(RouteArgs.COMMENT_KEY, comment.commentKey)
                     putString(RouteArgs.CHAPTER_URL, comment.chapterUrl)
                     putString(RouteArgs.CHAPTER_NAME, comment.chapterName)
                     putString(RouteArgs.BOOK_NAME, comment.bookName)

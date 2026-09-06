@@ -10,9 +10,19 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * 书架页 ViewModel。
+ *
+ * 职责：
+ * - 刷新书架列表（下拉刷新 + 事件驱动刷新，共用 [refreshData]）
+ * - 收集 [BookRepository.bookShelfEvents]（Added/Removed/ProgressUpdated → 自动刷新）
+ *
+ * 曾经还有「书架加载后扫重复对 + 推合并建议 + 执行合并」三项职责，已随 ADR-0023 移除：
+ * 重复处置前移到导入时点拦截（见 `BookImportViewModel`），书架侧不再事后 nag。
+ */
 @HiltViewModel
 class BookListViewModel @Inject constructor(
-    bookRepository: BookRepository
+    bookRepository: BookRepository,
 ) : BaseRefreshViewModel<BookShelfEntity, BookRepository>(bookRepository) {
 
     init {

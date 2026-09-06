@@ -1,5 +1,6 @@
 package com.ebook.common.repository
 
+import com.ebook.api.entity.CommentMigrateResponse
 import com.ebook.api.entity.CommentPage
 import com.ebook.api.service.comment.CommentDataSource
 import com.xrn1997.common.dto.RespDTO
@@ -40,10 +41,21 @@ class CommentRepository @Inject constructor(
             .mapCatching { it.toBookComment() }
 
     /**
-     * 获取章节评论列表（chapter_url 过滤；book_name 暂不传，由后端按 URL 聚合）。
+     * 获取评论列表（M2：按聚合键列表做并集查询）。
+     *
+     * 调用方传入一个或多个 `commentKey`（章键或书键），后端返回所有匹配的评论。
      */
-    suspend fun getChapterComments(chapterUrl: String?): Result<List<BookComment>> =
-        queryCommentPage { dataSource.getChapterComments(chapterUrl, null, 1, DEFAULT_PAGE_SIZE) }
+    suspend fun getComments(commentKeys: List<String>): Result<List<BookComment>> =
+        queryCommentPage { dataSource.getComments(commentKeys, 1, DEFAULT_PAGE_SIZE) }
+
+    /**
+     * 迁移当前用户的旧键评论到新键（M2：换源后保留评论历史）。
+     *
+     * 返回迁移条数，供调用方展示确认文案。
+     */
+    suspend fun migrateMyComments(oldKey: String, newKey: String): Result<CommentMigrateResponse> =
+        coroutineAdapter.safeApiCall { dataSource.migrateMyComments(oldKey, newKey) }
+            .mapCatching { resp -> resp.data ?: throw Exception("迁移评论失败") }
 
     /** 评论分页查询：从 [CommentPage.items] 取列表，data 为空时兜底为空列表 */
     private suspend fun queryCommentPage(

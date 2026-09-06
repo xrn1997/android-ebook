@@ -5,18 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.book.R
 import com.ebook.book.repository.DownloadRepository
 import com.ebook.book.service.DownloadService
-import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.local.ChapterContent
 import com.ebook.common.repository.BookRepository
-import com.ebook.db.entity.BookContentEntity
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.ChapterListEntity
 import com.ebook.db.entity.DownloadChapterEntity
 import com.xrn1997.common.util.ToastUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -25,7 +22,6 @@ import javax.inject.Inject
 class BookReadViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val bookRepository: BookRepository,
-    private val bookSourceManager: BookSourceManager,
     private val downloadRepository: DownloadRepository
 ) : BaseViewModel<BookRepository>(bookRepository) {
     var isAdd = false
@@ -93,39 +89,13 @@ class BookReadViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 从数据库加载章节内容
-     */
-    suspend fun loadBookContent(chapterUrl: String): BookContentEntity? {
-        return bookRepository.loadBookContent(chapterUrl)
-    }
-
-    /**
-     * 保存章节内容到数据库
-     */
-    suspend fun saveBookContent(content: BookContentEntity) {
-        bookRepository.saveBookContent(content)
-    }
-
-    /**
-     * 更新章节缓存状态
-     */
-    suspend fun updateChapterCache(chapterUrl: String, hasCache: Boolean) {
-        bookRepository.updateChapterCache(chapterUrl, hasCache)
-    }
-
-    /**
-     * 从网络获取章节内容
-     */
-    suspend fun fetchBookContent(chapterUrl: String, chapterIndex: Int): BookContentEntity {
-        return withContext(Dispatchers.IO) {
-            bookSourceManager.requireParser().getBookContent(
-                context,
-                chapterUrl,
-                chapterIndex
+    /** 统一章节正文读取（本地书与网络书同路径） */
+    suspend fun loadChapter(chapter: ChapterListEntity): ChapterContent? =
+        bookShelf?.let {
+            bookRepository.loadChapter(
+                it, chapter.durChapterIndex, chapter.durChapterName, chapter.contentRef,
             )
         }
-    }
 
     /**
      * 获取章节列表大小

@@ -19,8 +19,8 @@ import org.junit.Test
  * 存在意义：mock 的解码类型与 JSON 资产形态曾出现过一次分叉——资产按 ADR-0013 改成
  * `CommentPage` 分页包裹，mock 却仍按 `List<Comment>` 解码，`SerializationException`
  * 被 CoroutineAdapter 吞成「未知错误」，导致 mock 构建下评论页永远加载失败却无人察觉。
- * 本测试用真机 mock 读的同一批资产文件跑通生产代码路径，把「资产形态 ↔ 解码类型」
- * 「两份资产 chapter_url 交叉对齐」「服务端身份回显」这三条契约钉死。
+ * M2 后查询接口从 `chapter_url` 切到 `comment_key` 聚合键，本测试同步把「资产形态 ↔ 解码类型」
+ * 「两份资产 comment_key 交叉对齐」「服务端身份回显」「迁移接口」四条契约钉死。
  *
  * 命名遵循 `<Subject>Test`（Subject 即 [CommentNetworkTest]），故类名叠了 Test 后缀。
  */
@@ -45,10 +45,10 @@ class CommentNetworkTestTest {
     )
 
     /** 按客户端（BookCommentsViewModel）提交的形状构造一条待发表评论：id/作者/时间均为占位值。 */
-    private fun clientComment(chapterUrl: String?, content: String) = Comment().apply {
+    private fun clientComment(commentKey: String?, content: String) = Comment().apply {
         id = 0L
         user = User(id = 1L, username = "", image = "")
-        this.chapterUrl = chapterUrl
+        this.commentKey = commentKey
         chapterName = "第一章 序幕"
         bookName = "天启之书"
         this.content = content
@@ -70,43 +70,43 @@ class CommentNetworkTestTest {
     }
 
     @Test
-    fun `getChapterComments 按 CommentPage 包裹解码`() = runTest {
-        val resp = dataSource().getChapterComments(
-            chapterUrl = "https://example.com/books/1/chapter/5",
-            bookName = null,
+    fun `getComments 按 CommentPage 包裹解码`() = runTest {
+        val resp = dataSource().getComments(
+            commentKeys = listOf(CHAPTER_ZERO_KEY),
             page = 1,
             pageSize = 100
         )
 
-        assertEquals(3, requireNotNull(resp.data).items.size)
+        // ck1:tianqi#0 在两份资产共 5 条（chapter 3 + user 2），去重后应全部返回
+        assertEquals(5, requireNotNull(resp.data).items.size)
     }
 
-    // ===== 契约二：两份资产的 chapter_url 交叉对齐（点得通） =====
+    // ===== 契约二：两份资产的 comment_key 交叉对齐（点得通） =====
 
     @Test
-    fun `我的评论里每个章节都能进到有内容的评论区`() = runTest {
+    fun `我的评论里每个聚合键都能在章节评论资产中找到对应条目`() = runTest {
         val source = dataSource()
-        val myChapterUrls = source.getMyComments(page = 1, pageSize = 100)
+        val myKeys = source.getMyComments(page = 1, pageSize = 100)
             .let { requireNotNull(it.data).items }
-            .mapNotNull { it.chapterUrl }
+            .mapNotNull { it.commentKey }
             .distinct()
 
-        assertTrue("我的评论资产应至少覆盖多个章节", myChapterUrls.size >= 2)
-        myChapterUrls.forEach { url ->
-            val visible = source.getChapterComments(url, null, 1, 100)
+        assertTrue("我的评论资产应至少覆盖多个聚合键", myKeys.size >= 2)
+        myKeys.forEach { key ->
+            val visible = source.getComments(listOf(key), 1, 100)
                 .let { requireNotNull(it.data).items }
             assertTrue(
-                "chapter_url=$url 在章节评论资产里没有任何对应条目：从「我的评论」点进去会是空列表，" +
-                    "两份资产的 chapter_url 必须保持交叉对齐",
+                "comment_key=$key 在合并结果里没有任何对应条目：" +
+                    "两份资产的 comment_key 必须保持交叉对齐",
                 visible.isNotEmpty()
             )
         }
     }
 
     @Test
-    fun `章节评论严格过滤，未知章节不串数据`() = runTest {
+    fun `聚合键严格过滤，未知键不串数据`() = runTest {
         val items = dataSource()
-            .getChapterComments("https://example.com/books/9/chapter/9", null, 1, 100)
+            .getComments(listOf("ck1:unknown#999"), 1, 100)
             .let { requireNotNull(it.data).items }
 
         assertTrue(items.isEmpty())
@@ -118,8 +118,8 @@ class CommentNetworkTestTest {
     fun `连续发表两条评论由 mock 分配不同 id，不撞列表 key`() = runTest {
         val source = dataSource()
 
-        val first = source.addComment(clientComment("https://example.com/books/1/chapter/1", "第一条")).data
-        val second = source.addComment(clientComment("https://example.com/books/1/chapter/1", "第二条")).data
+        val first = source.addComment(clientComment(CHAPTER_ZERO_KEY, "第一条")).data
+        val second = source.addComment(clientComment(CHAPTER_ZERO_KEY, "第二条")).data
 
         // 客户端占位 id 恒为 0，原样回显会让评论列表 items(key = { it.id }) 撞 key 抛异常
         assertNotEquals(0L, requireNotNull(first).id)
@@ -130,7 +130,7 @@ class CommentNetworkTestTest {
     @Test
     fun `发表的评论被赋服务端身份与时间，本人判定按 userId 命中`() = runTest {
         val posted = requireNotNull(
-            dataSource().addComment(clientComment(CHAPTER_ONE, "我的评论")).data
+            dataSource().addComment(clientComment(CHAPTER_ZERO_KEY, "我的评论")).data
         )
         val me = loginAssetUser()
 
@@ -150,7 +150,7 @@ class CommentNetworkTestTest {
 
         val myAuthors = source.getMyComments(page = 1, pageSize = 100)
             .let { requireNotNull(it.data).items }.map { it.user.username }.distinct()
-        val ownChapterAuthors = source.getChapterComments(CHAPTER_ONE, null, page = 1, pageSize = 100)
+        val ownChapterAuthors = source.getComments(listOf(CHAPTER_ZERO_KEY), page = 1, pageSize = 100)
             .let { requireNotNull(it.data).items }.filter { it.user.id == 1L }.map { it.user.username }.distinct()
 
         // 资产里的作者名一旦与登录资产漂移，本人在评论区/章节区就再也删不掉种子评论
@@ -159,14 +159,13 @@ class CommentNetworkTestTest {
     }
 
     @Test
-    fun `发表的评论同时出现在我的评论与该章节评论区`() = runTest {
+    fun `发表的评论同时出现在我的评论与该聚合键评论区`() = runTest {
         val source = dataSource()
-        val url = "https://example.com/books/1/chapter/1"
 
-        source.addComment(clientComment(url, "发在第一章的评论"))
+        source.addComment(clientComment(CHAPTER_ZERO_KEY, "发在第一章的评论"))
 
         val mine = source.getMyComments(page = 1, pageSize = 100).let { requireNotNull(it.data).items }
-        val inChapter = source.getChapterComments(url, null, 1, 100).let { requireNotNull(it.data).items }
+        val inChapter = source.getComments(listOf(CHAPTER_ZERO_KEY), 1, 100).let { requireNotNull(it.data).items }
         assertTrue(mine.any { it.content == "发在第一章的评论" })
         assertTrue(inChapter.any { it.content == "发在第一章的评论" })
     }
@@ -178,7 +177,7 @@ class CommentNetworkTestTest {
         val source = dataSource()
 
         // 全新实例上先写后读：内存在态若被固定成「只含这一条」，后续读取会跳过资产加载
-        source.addComment(clientComment("https://example.com/books/1/chapter/1", "第一条"))
+        source.addComment(clientComment(CHAPTER_ZERO_KEY, "第一条"))
 
         val page = requireNotNull(source.getMyComments(page = 1, pageSize = 100).data)
         assertEquals("5 条种子 + 1 条新发表", 6, page.items.size)
@@ -209,6 +208,41 @@ class CommentNetworkTestTest {
         assertEquals(2, page.pageSize)
     }
 
+    // ===== 契约五：迁移接口按 commentKey 批量替换 =====
+
+    @Test
+    fun `migrateMyComments 把匹配旧键的种子全部换成新键`() = runTest {
+        val source = dataSource()
+        // ck1:tianqi#0 在 user_comments 里有 2 条种子
+        val oldKey = "ck1:tianqi#0"
+        val newKey = "ck1:tianqi#99"
+
+        // 迁移前旧键的合并结果（chapter_comments 3 条 + user_comments 2 条 = 5）
+        val beforeOld = source.getComments(listOf(oldKey), 1, 100)
+            .let { requireNotNull(it.data).items }
+        assertEquals(5, beforeOld.size)
+
+        val resp = source.migrateMyComments(oldKey, newKey)
+        val migrated = requireNotNull(resp.data)
+        assertEquals(2, migrated.migratedCount)
+
+        // 迁移后旧键只剩 chapter_comments 的 3 条（user_comments 的 2 条已迁走）
+        val afterOld = source.getComments(listOf(oldKey), 1, 100)
+            .let { requireNotNull(it.data).items }
+        assertEquals(3, afterOld.size)
+
+        // 新键拿到迁移来的 2 条 user_comments（chapter_comments 无此键，故仅 2 条）
+        val afterNew = source.getComments(listOf(newKey), 1, 100)
+            .let { requireNotNull(it.data).items }
+        assertEquals(2, afterNew.size)
+    }
+
+    @Test
+    fun `migrateMyComments 不匹配时计数为零`() = runTest {
+        val resp = dataSource().migrateMyComments("ck1:nonexistent#0", "ck1:new#0")
+        assertEquals(0, requireNotNull(resp.data).migratedCount)
+    }
+
     /** 登录资产里的 mock 身份：uid/用户名/昵称的唯一事实源，评论回显必须与它一致 */
     private fun loginAssetUser(): User =
         assetJson
@@ -225,8 +259,8 @@ class CommentNetworkTestTest {
         /** 相对模块目录的资产路径（见 [dataSource] 的工作目录说明） */
         const val ASSET_DIR = "src/main/assets"
 
-        /** 两份资产交叉对齐的示例章节（既有他人评论，也有本人评论 403） */
-        const val CHAPTER_ONE = "https://example.com/books/1/chapter/1"
+        /** 两份资产交叉对齐的示例聚合键（既有他人评论，也有本人评论） */
+        const val CHAPTER_ZERO_KEY = "ck1:tianqi#0"
 
         /** 服务端 add_time 契约格式 */
         val TIME_REGEX = Regex("""\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}""")

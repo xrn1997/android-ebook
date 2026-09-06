@@ -1,10 +1,14 @@
 package com.ebook.common.repository
 
-import com.ebook.db.dao.BookContentDao
-import com.ebook.db.dao.BookInfoDao
-import com.ebook.db.dao.BookShelfDao
-import com.ebook.db.dao.ChapterListDao
-import com.ebook.db.entity.BookContentEntity
+import com.ebook.common.analyze.local.BookFormat
+import com.ebook.common.analyze.local.BookLocation
+import com.ebook.common.analyze.local.ChapterContent
+import com.ebook.common.analyze.local.ChapterEntry
+import com.ebook.common.analyze.local.ChapterReader
+import com.ebook.common.domain.CommentKey
+import com.ebook.common.store.BookStore
+import com.ebook.common.store.ChapterContentCache
+import com.ebook.db.entity.BookGroupEntity
 import com.ebook.db.entity.BookInfoEntity
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.BookShelfFullInfo
@@ -16,144 +20,127 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 /**
  * [BookRepository] 的单元测试（纯 JVM，手写 Fake DAO，不依赖 Robolectric/Room）。
  *
  * 覆盖 `docs/test-coverage-todo.md` 点名的行为：
- * - 章节内容缓存：[BookRepository.loadBookContent] / [BookRepository.saveBookContent] /
- *   [BookRepository.updateChapterCache]
  * - 书架事件总线：[BookRepository.bookShelfEvents] 的 Added/Removed/ProgressUpdated 发射（见 ADR-0004）
  * - 级联写入/清理：[BookRepository.addToShelf] / [BookRepository.removeFromShelf]
- * - 已缓存章节查询：[BookRepository.getCachedChapterUrls]（空入参短路）
+ * - 关联查询与孤立记录清理：[BookRepository.getAllBooksWithDetails] / [BookRepository.observeBookShelf]
  *
  * 说明：[BookRepository] 继承 lib_common 的 `BaseModel`；本测试直接实例化，
  * 若 `BaseModel` 引入 Android 框架依赖会导致初始化失败——该风险由本测试类的可运行性本身兜底验证。
  */
 class BookRepositoryTest {
 
-    private lateinit var shelfDao: FakeBookShelfDao
-    private lateinit var infoDao: FakeBookInfoDao
-    private lateinit var chapterDao: FakeChapterListDao
-    private lateinit var contentDao: FakeBookContentDao
+    /** 补章用例会真的写章文件，根目录按用例隔离，避免用例之间互相看见 */
+    @get:Rule
+    val booksRoot = TemporaryFolder()
+
+    private lateinit var daos: FakeDaos
+    private lateinit var store: BookStore
     private lateinit var repository: BookRepository
 
     @Before
     fun setUp() {
-        shelfDao = FakeBookShelfDao()
-        infoDao = FakeBookInfoDao()
-        chapterDao = FakeChapterListDao()
-        contentDao = FakeBookContentDao()
-        repository = BookRepository(shelfDao, infoDao, chapterDao, contentDao)
-    }
-
-    // ===== 章节内容缓存 =====
-
-    @Test
-    fun `loadBookContent 命中已缓存正文`() = runTest {
-        val content = BookContentEntity(durChapterUrl = "http://a/1", durChapterContent = "正文")
-        contentDao.insert(content)
-
-        val loaded = repository.loadBookContent("http://a/1")
-
-        assertEquals("正文", loaded?.durChapterContent)
-    }
-
-    @Test
-    fun `loadBookContent 未命中返回 null`() = runTest {
-        assertNull(repository.loadBookContent("http://a/missing"))
-    }
-
-    @Test
-    fun `saveBookContent 写入后可被加载`() = runTest {
-        repository.saveBookContent(BookContentEntity(durChapterUrl = "http://a/2", durChapterContent = "第二章"))
-
-        assertEquals("第二章", repository.loadBookContent("http://a/2")?.durChapterContent)
-    }
-
-    @Test
-    fun `updateChapterCache 原地改写章节缓存标记`() = runTest {
-        val chapter = ChapterListEntity(noteUrl = "http://book", durChapterUrl = "http://a/1")
-        chapterDao.insertAll(listOf(chapter))
-
-        repository.updateChapterCache("http://a/1", true)
-
-        assertTrue(chapterDao.getChapterByUrl("http://a/1")?.hasCache == true)
-    }
-
-    @Test
-    fun `getCachedChapterUrls 空入参短路不查库`() = runTest {
-        val cached = repository.getCachedChapterUrls(emptyList())
-
-        assertTrue(cached.isEmpty())
-        assertEquals(0, contentDao.queryExistingCount)
-    }
-
-    @Test
-    fun `getCachedChapterUrls 只返回确有正文缓存的章节`() = runTest {
-        contentDao.insert(BookContentEntity(durChapterUrl = "http://a/1"))
-        contentDao.insert(BookContentEntity(durChapterUrl = "http://a/3"))
-
-        val cached = repository.getCachedChapterUrls(listOf("http://a/1", "http://a/2", "http://a/3"))
-
-        assertEquals(setOf("http://a/1", "http://a/3"), cached)
+        daos = FakeDaos()
+        store = BookStore(booksRoot.root)
+        val readers: Map<BookFormat, ChapterReader> = mapOf(
+            BookFormat.TXT to FakeChapterReader(),
+            BookFormat.NETWORK to FakeChapterReader(),
+        )
+        repository = BookRepository(
+            bookShelfDao = daos.shelf,
+            bookInfoDao = daos.info,
+            chapterListDao = daos.chapter,
+            bookGroupDao = daos.group,
+            chapterReaders = readers,
+            bookStore = store,
+            contentCache = ChapterContentCache(),
+            transactions = DirectTransactionRunner,
+        )
     }
 
     // ===== 级联写入 / 清理 =====
 
     @Test
-    fun `addToShelf 级联写入并回填 noteUrl 关联`() = runTest {
+    fun `addToShelf 级联写入并回填 noteUrl 关联`() : Unit = runTest {
         val shelf = BookShelfEntity(noteUrl = "http://book").apply {
             bookInfo = BookInfoEntity(name = "斗破苍穹") // noteUrl 故意留空，验证回填
             chapterList = listOf(
-                ChapterListEntity(durChapterUrl = "http://a/1", durChapterIndex = 0),
-                ChapterListEntity(durChapterUrl = "http://a/2", durChapterIndex = 1),
+                ChapterListEntity(contentRef = "http://a/1", durChapterIndex = 0),
+                ChapterListEntity(contentRef = "http://a/2", durChapterIndex = 1),
             )
         }
 
         repository.addToShelf(shelf)
 
         // bookInfo 落库且 noteUrl 被回填为书架 noteUrl
-        assertEquals("斗破苍穹", infoDao.getBookInfoByUrl("http://book")?.name)
+        assertEquals("斗破苍穹", daos.info.getBookInfoByUrl("http://book")?.name)
         // 书架落库
-        assertEquals("http://book", shelfDao.getBookByUrl("http://book")?.noteUrl)
+        assertEquals("http://book", daos.shelf.getBookByUrl("http://book")?.noteUrl)
         // 章节落库且每章 noteUrl 被回填
-        val chapters = chapterDao.getChaptersForBook("http://book")
+        val chapters = daos.chapter.getChaptersForBook("http://book")
         assertEquals(2, chapters.size)
         assertTrue(chapters.all { it.noteUrl == "http://book" })
+        // M2：book_group 关联行写入，commentKey 由书名算出
+        val groupRows = daos.group.storedValues()
+        assertEquals(1, groupRows.size)
+        assertEquals(CommentKey.compute("斗破苍穹", ""), groupRows[0].commentKey)
+        assertEquals("http://book", groupRows[0].noteUrl)
     }
 
     @Test
-    fun `removeFromShelf 级联清理章节正文与关联记录`() = runTest {
-        // 预置一本书：书架 + 信息 + 两章 + 两段正文缓存
+    fun `removeFromShelf 级联清理章节与关联记录`() : Unit = runTest {
         val shelf = BookShelfEntity(noteUrl = "http://book").apply {
             bookInfo = BookInfoEntity(name = "待删除")
             chapterList = listOf(
-                ChapterListEntity(durChapterUrl = "http://a/1"),
-                ChapterListEntity(durChapterUrl = "http://a/2"),
+                ChapterListEntity(contentRef = "http://a/1"),
+                ChapterListEntity(contentRef = "http://a/2"),
             )
         }
         repository.addToShelf(shelf)
-        contentDao.insert(BookContentEntity(durChapterUrl = "http://a/1"))
-        contentDao.insert(BookContentEntity(durChapterUrl = "http://a/2"))
 
         repository.removeFromShelf(shelf)
 
-        assertNull(shelfDao.getBookByUrl("http://book"))
-        assertNull(infoDao.getBookInfoByUrl("http://book"))
-        assertTrue(chapterDao.getChaptersForBook("http://book").isEmpty())
-        assertNull(contentDao.getContentByChapterUrl("http://a/1"))
-        assertNull(contentDao.getContentByChapterUrl("http://a/2"))
+        assertNull(daos.shelf.getBookByUrl("http://book"))
+        assertNull(daos.info.getBookInfoByUrl("http://book"))
+        assertTrue(daos.chapter.getChaptersForBook("http://book").isEmpty())
+        // M2：book_group 行随书删除
+        assertTrue(daos.group.storedValues().isEmpty())
+    }
+
+    @Test
+    fun `getCommentKeysForBook 返回 addToShelf 写入的评论聚合键`() : Unit = runTest {
+        val shelf = BookShelfEntity(noteUrl = "http://book").apply {
+            bookInfo = BookInfoEntity(name = "斗破苍穹", author = "天蚕土豆")
+        }
+        repository.addToShelf(shelf)
+
+        val keys = repository.getCommentKeysForBook("http://book")
+
+        assertEquals(1, keys.size)
+        assertEquals(CommentKey.compute("斗破苍穹", "天蚕土豆"), keys[0])
+    }
+
+    @Test
+    fun `getCommentKeysForBook 无匹配行时返回空列表`() : Unit = runTest {
+        val keys = repository.getCommentKeysForBook("http://nonexistent")
+        assertTrue(keys.isEmpty())
     }
 
     // ===== 事件总线（ADR-0004：SharedFlow 替代 RxBus） =====
 
     @Test
-    fun `addToShelf 发射 Added 事件`() = runTest {
+    fun `addToShelf 发射 Added 事件`() : Unit = runTest {
         val events = mutableListOf<BookShelfEvent>()
         backgroundScope.launch { repository.bookShelfEvents.toList(events) }
         runCurrent() // 先让订阅者完成订阅（SharedFlow 无 replay，晚订阅会丢事件）
@@ -165,7 +152,7 @@ class BookRepositoryTest {
     }
 
     @Test
-    fun `removeFromShelf 发射 Removed 事件`() = runTest {
+    fun `removeFromShelf 发射 Removed 事件`() : Unit = runTest {
         val shelf = BookShelfEntity(noteUrl = "http://book")
         repository.addToShelf(shelf)
 
@@ -180,7 +167,7 @@ class BookRepositoryTest {
     }
 
     @Test
-    fun `saveProgress 刷新最后阅读时间并发射 ProgressUpdated 事件`() = runTest {
+    fun `saveProgress 刷新最后阅读时间并发射 ProgressUpdated 事件`() : Unit = runTest {
         val shelf = BookShelfEntity(noteUrl = "http://book", finalDate = 0L)
         repository.addToShelf(shelf)
 
@@ -192,43 +179,43 @@ class BookRepositoryTest {
         runCurrent()
 
         assertTrue(shelf.finalDate > 0L)
-        assertEquals(shelf.finalDate, shelfDao.getBookByUrl("http://book")?.finalDate)
+        assertEquals(shelf.finalDate, daos.shelf.getBookByUrl("http://book")?.finalDate)
         assertTrue(events.any { it is BookShelfEvent.ProgressUpdated })
     }
 
     // ===== 关联查询与孤立记录清理 =====
 
     @Test
-    fun `getAllBooksWithDetails 过滤并清理 info 为空的孤立记录，且章节按序号排序`() = runTest {
+    fun `getAllBooksWithDetails 过滤并清理 info 为空的孤立记录，且章节按序号排序`() : Unit = runTest {
         val okShelf = BookShelfEntity(noteUrl = "http://ok")
         val orphanShelf = BookShelfEntity(noteUrl = "http://orphan")
         // 正常书：章节故意乱序（rowid 错序回归），验证按 durChapterIndex 显式排序
-        shelfDao.fullInfoSeed.add(
+        daos.shelf.fullInfoSeed.add(
             BookShelfFullInfo(
                 bookShelf = okShelf,
                 info = BookInfoEntity(noteUrl = "http://ok", name = "正常书"),
                 chapters = listOf(
-                    ChapterListEntity(noteUrl = "http://ok", durChapterUrl = "c2", durChapterIndex = 2),
-                    ChapterListEntity(noteUrl = "http://ok", durChapterUrl = "c0", durChapterIndex = 0),
-                    ChapterListEntity(noteUrl = "http://ok", durChapterUrl = "c1", durChapterIndex = 1),
+                    ChapterListEntity(noteUrl = "http://ok", contentRef = "c2", durChapterIndex = 2),
+                    ChapterListEntity(noteUrl = "http://ok", contentRef = "c0", durChapterIndex = 0),
+                    ChapterListEntity(noteUrl = "http://ok", contentRef = "c1", durChapterIndex = 1),
                 ),
             )
         )
         // 孤立书：info 为 null，应被过滤并触发 deleteByUrl 清理
-        shelfDao.fullInfoSeed.add(BookShelfFullInfo(bookShelf = orphanShelf, info = null, chapters = emptyList()))
+        daos.shelf.fullInfoSeed.add(BookShelfFullInfo(bookShelf = orphanShelf, info = null, chapters = emptyList()))
 
         val result = repository.getAllBooksWithDetails()
 
         assertEquals(1, result.size)
         assertEquals("http://ok", result[0].noteUrl)
-        assertEquals(listOf("c0", "c1", "c2"), result[0].chapterList.map { it.durChapterUrl })
-        assertTrue(orphanShelf.noteUrl in shelfDao.deletedUrls)
+        assertEquals(listOf("c0", "c1", "c2"), result[0].chapterList.map { it.contentRef })
+        assertTrue(orphanShelf.noteUrl in daos.shelf.deletedUrls)
     }
 
     @Test
-    fun `observeBookShelf 过滤 info 为空的条目并填充 bookInfo`() = runTest {
+    fun `observeBookShelf 过滤 info 为空的条目并填充 bookInfo`() : Unit = runTest {
         val shelf = BookShelfEntity(noteUrl = "http://ok")
-        shelfDao.fullInfoFlow.value = listOf(
+        daos.shelf.fullInfoFlow.value = listOf(
             BookShelfFullInfo(shelf, BookInfoEntity(noteUrl = "http://ok", name = "书名"), emptyList()),
             BookShelfFullInfo(BookShelfEntity(noteUrl = "http://orphan"), null, emptyList()),
         )
@@ -241,121 +228,143 @@ class BookRepositoryTest {
         assertEquals(1, latest.size)
         assertEquals("书名", latest[0].bookInfo?.name)
     }
+
+    // ===== M2：拆分/修键 =====
+
+    @Test
+    fun `absorbGroupKeys 吸收旧条目全部关联键含 secondary 且同名键不重复加行`() : Unit = runTest {
+        val ownKey = CommentKey.compute("斗破苍穹", "天蚕土豆")
+        val mergedKey = CommentKey.compute("斗破苍穹", "土豆")
+        daos.group.insert(BookGroupEntity(ownKey, "old", isPrimary = true))
+        daos.group.insert(BookGroupEntity(mergedKey, "old", isPrimary = false))
+        daos.group.insert(BookGroupEntity(ownKey, "new", isPrimary = true))
+
+        repository.absorbGroupKeys(targetNoteUrl = "new", sourceNoteUrl = "old")
+
+        val newRows = repository.getBookGroupRows("new")
+        assertEquals(setOf(ownKey, mergedKey), newRows.map { it.commentKey }.toSet())
+        assertEquals("与主键同名的那行不该被加成第二行", 1, newRows.count { it.commentKey == ownKey })
+        assertTrue(newRows.single { it.commentKey == mergedKey }.isPrimary.not())
+        assertEquals("吸收不搬行：旧条目自己的行保持原样", 2, repository.getBookGroupRows("old").size)
+    }
+
+    @Test
+    fun `mergeTailChapters 旧书是新书前缀时只补尾部多出的章`() : Unit = runTest {
+        seedLocalBook("old", 0 to "第一章 起", 1 to "第二章 承")
+        seedLocalBook("new", 0 to "第一章 起", 1 to "第二章 承", 2 to "第三章 转")
+
+        val outcome = repository.mergeTailChapters(newNoteUrl = "new", oldNoteUrl = "old")
+
+        assertTrue("应判为补章成功: $outcome", outcome is ImportMergeResult.Merged)
+        assertEquals(1, (outcome as ImportMergeResult.Merged).appendedChapters)
+        assertEquals(
+            listOf("第一章 起", "第二章 承", "第三章 转"),
+            daos.chapter.getChaptersForBook("old").map { it.durChapterName }
+        )
+        assertNull("新条目整本退场", daos.shelf.getBookByUrl("new"))
+        assertTrue(daos.chapter.getChaptersForBook("new").isEmpty())
+    }
+
+    @Test
+    fun `mergeTailChapters 章名序列分叉时既不补章也不删新条目`() : Unit = runTest {
+        // 阿拉伯数字 vs 汉字：normalize 不折叠数字形态，视为两套切分规则，宁可不补
+        seedLocalBook("old", 0 to "第1章 起", 1 to "第2章 承")
+        seedLocalBook("new", 0 to "第一章 起", 1 to "第二章 承", 2 to "第三章 转")
+
+        val outcome = repository.mergeTailChapters(newNoteUrl = "new", oldNoteUrl = "old")
+
+        assertEquals(ImportMergeResult.Diverged, outcome)
+        assertEquals(2, daos.chapter.getChaptersForBook("old").size)
+        assertNotNull("新条目必须留着——放弃补章就等于两本共存", daos.shelf.getBookByUrl("new"))
+    }
+
+    @Test
+    fun `mergeTailChapters 旧书索引有洞时接在末位之后不覆写既有章`() : Unit = runTest {
+        seedLocalBook("old", 0 to "第一章", 1 to "第二章", 5 to "第六章")
+        seedLocalBook("new", 0 to "第一章", 1 to "第二章", 5 to "第六章", 6 to "第七章")
+
+        val outcome = repository.mergeTailChapters(newNoteUrl = "new", oldNoteUrl = "old")
+
+        assertTrue("$outcome", outcome is ImportMergeResult.Merged)
+        val rows = daos.chapter.getChaptersForBook("old")
+        assertEquals(listOf(0, 1, 5, 6), rows.map { it.durChapterIndex })
+        assertEquals("索引不撞车，content_ref 也不该重复", rows.size, rows.map { it.contentRef }.toSet().size)
+    }
+
+    @Test
+    fun `mergeTailChapters 目标是网络书时拒绝补章`() : Unit = runTest {
+        daos.shelf.insert(BookShelfEntity(noteUrl = "old", tag = "书源A"))
+        seedLocalBook("new", 0 to "第一章", 1 to "第二章")
+
+        assertEquals(ImportMergeResult.TargetNotLocal, repository.mergeTailChapters("new", "old"))
+        assertNotNull("拒绝补章不得顺带把新导入的那本删掉", daos.shelf.getBookByUrl("new"))
+    }
+
+    /** 种一本本地书：书架行 + 按 (索引 to 章名) 播种章节行 */
+    private suspend fun seedLocalBook(noteUrl: String, vararg chapters: Pair<Int, String>) {
+        daos.shelf.insert(
+            BookShelfEntity(
+                noteUrl = noteUrl,
+                tag = BookShelfEntity.LOCAL_TAG,
+                bookFormat = BookFormat.TXT.name,
+            )
+        )
+        daos.chapter.insertAll(
+            chapters.map { (index, name) ->
+                ChapterListEntity(
+                    noteUrl = noteUrl,
+                    durChapterIndex = index,
+                    contentRef = store.chapterRef(noteUrl, index),
+                    durChapterName = name,
+                    tag = BookShelfEntity.LOCAL_TAG,
+                )
+            }
+        )
+    }
+
+    @Test
+    fun `splitBook removes specific key row without affecting others`() : Unit = runTest {
+        val shelf = BookShelfEntity(noteUrl = "http://book").apply {
+            bookInfo = BookInfoEntity(name = "斗破苍穹")
+        }
+        repository.addToShelf(shelf)
+        // 手动加一行 secondary
+        val secondaryKey = CommentKey.compute("斗破苍穹", "未知作者")
+        daos.group.insert(BookGroupEntity(secondaryKey, "http://book", isPrimary = false))
+
+        repository.splitBook("http://book", secondaryKey)
+
+        val rows = repository.getBookGroupRows("http://book")
+        assertEquals(1, rows.size)
+        assertEquals(CommentKey.compute("斗破苍穹", ""), rows[0].commentKey)
+    }
+
+    @Test
+    fun `updateMatchMeta recalculates key and switches primary`() : Unit = runTest {
+        val shelf = BookShelfEntity(noteUrl = "http://book").apply {
+            bookInfo = BookInfoEntity(name = "斗破苍穹", author = "天蚕土豆")
+        }
+        repository.addToShelf(shelf)
+        val oldKey = CommentKey.compute("斗破苍穹", "天蚕土豆")
+
+        repository.updateMatchMeta("http://book", "斗破苍穹", "土豆")
+
+        val rows = repository.getBookGroupRows("http://book")
+        // 旧键保留（降级为非主键），新键成为主键
+        assertEquals(2, rows.size)
+        val newPrimary = rows.single { it.isPrimary }
+        assertEquals(CommentKey.compute("斗破苍穹", "土豆"), newPrimary.commentKey)
+        assertTrue(rows.any { it.commentKey == oldKey && !it.isPrimary })
+    }
+
+    @Test
+    fun `getBookGroupRows returns empty for unknown book`() : Unit = runTest {
+        val rows = repository.getBookGroupRows("http://nonexistent")
+        assertTrue(rows.isEmpty())
+    }
 }
 
-// ===== 手写 Fake DAO（内存实现，对齐项目 FakeUserSessionManager 的手写 Fake 风格） =====
-
-private class FakeBookShelfDao : BookShelfDao {
-    private val shelfByNoteUrl = linkedMapOf<String, BookShelfEntity>()
-
-    /** 测试直接播种 getAllBooksFullInfo 的返回，用于构造关联/孤立场景 */
-    val fullInfoSeed = mutableListOf<BookShelfFullInfo>()
-
-    /** getAllBooksFullInfoFlow 的可控数据源 */
-    val fullInfoFlow = MutableStateFlow<List<BookShelfFullInfo>>(emptyList())
-
-    /** 记录被 deleteByUrl 删除的 noteUrl，供断言孤立清理 */
-    val deletedUrls = mutableListOf<String>()
-
-    override suspend fun getAllBooksFullInfo(): List<BookShelfFullInfo> = fullInfoSeed.toList()
-    override fun getAllBooksFullInfoFlow(): Flow<List<BookShelfFullInfo>> = fullInfoFlow
-    override suspend fun getBookFullInfoByUrl(noteUrl: String): BookShelfFullInfo? =
-        fullInfoSeed.firstOrNull { it.bookShelf.noteUrl == noteUrl }
-
-    override fun getAllBooksFlow(): Flow<List<BookShelfEntity>> =
-        MutableStateFlow(shelfByNoteUrl.values.sortedByDescending { it.finalDate })
-
-    override suspend fun getAllBooks(): List<BookShelfEntity> =
-        shelfByNoteUrl.values.sortedByDescending { it.finalDate }
-
-    override suspend fun getBookByUrl(noteUrl: String): BookShelfEntity? = shelfByNoteUrl[noteUrl]
-    override suspend fun getBooksByUrls(noteUrls: List<String>): List<BookShelfEntity> =
-        shelfByNoteUrl.values.filter { it.noteUrl in noteUrls }
-
-    override suspend fun insert(bookShelf: BookShelfEntity) {
-        shelfByNoteUrl[bookShelf.noteUrl] = bookShelf
-    }
-
-    override suspend fun insertAll(books: List<BookShelfEntity>) = books.forEach { insert(it) }
-    override suspend fun update(bookShelf: BookShelfEntity) {
-        shelfByNoteUrl[bookShelf.noteUrl] = bookShelf
-    }
-
-    override suspend fun delete(bookShelf: BookShelfEntity) {
-        shelfByNoteUrl.remove(bookShelf.noteUrl)
-    }
-
-    override suspend fun deleteByUrl(noteUrl: String) {
-        shelfByNoteUrl.remove(noteUrl)
-        deletedUrls.add(noteUrl)
-    }
-
-    override suspend fun getCount(): Int = shelfByNoteUrl.size
-}
-
-private class FakeBookInfoDao : BookInfoDao {
-    private val infoByNoteUrl = linkedMapOf<String, BookInfoEntity>()
-
-    override suspend fun getBookInfoByUrl(noteUrl: String): BookInfoEntity? = infoByNoteUrl[noteUrl]
-    override suspend fun insert(bookInfo: BookInfoEntity) {
-        infoByNoteUrl[bookInfo.noteUrl] = bookInfo
-    }
-
-    override suspend fun deleteByUrl(noteUrl: String) {
-        infoByNoteUrl.remove(noteUrl)
-    }
-}
-
-private class FakeChapterListDao : ChapterListDao {
-    private val chapterByUrl = linkedMapOf<String, ChapterListEntity>() // key = durChapterUrl（主键）
-
-    override suspend fun getChaptersForBook(bookNoteUrl: String): List<ChapterListEntity> =
-        chapterByUrl.values.filter { it.noteUrl == bookNoteUrl }.sortedBy { it.durChapterIndex }
-
-    override suspend fun getChapterByUrl(chapterUrl: String): ChapterListEntity? = chapterByUrl[chapterUrl]
-
-    override suspend fun insertAll(chapters: List<ChapterListEntity>) {
-        chapters.forEach { chapterByUrl[it.durChapterUrl] = it }
-    }
-
-    override suspend fun updateHasCache(chapterUrl: String, hasCache: Boolean) {
-        chapterByUrl[chapterUrl]?.hasCache = hasCache
-    }
-
-    override suspend fun countChaptersForBook(bookNoteUrl: String): Int =
-        chapterByUrl.values.count { it.noteUrl == bookNoteUrl }
-
-    override suspend fun countCachedChaptersForBook(bookNoteUrl: String): Int =
-        chapterByUrl.values.count { it.noteUrl == bookNoteUrl && it.hasCache }
-
-    override suspend fun deleteChaptersForBook(bookNoteUrl: String) {
-        chapterByUrl.entries.removeAll { it.value.noteUrl == bookNoteUrl }
-    }
-}
-
-private class FakeBookContentDao : BookContentDao {
-    private val contents = linkedMapOf<String, BookContentEntity>() // key = durChapterUrl（主键）
-
-    /** 统计 getExistingChapterUrls 被调用次数，用于验证空入参短路 */
-    var queryExistingCount = 0
-        private set
-
-    override suspend fun getContentByChapterUrl(chapterUrl: String): BookContentEntity? = contents[chapterUrl]
-
-    override suspend fun getExistingChapterUrls(chapterUrls: List<String>): List<String> {
-        queryExistingCount++
-        return contents.keys.filter { it in chapterUrls }
-    }
-
-    override suspend fun insert(content: BookContentEntity) {
-        contents[content.durChapterUrl] = content
-    }
-
-    override suspend fun deleteByChapterUrl(chapterUrl: String) {
-        contents.remove(chapterUrl)
-    }
-
-    override suspend fun deleteByChapterUrls(chapterUrls: List<String>) {
-        chapterUrls.forEach { contents.remove(it) }
-    }
+private class FakeChapterReader : ChapterReader {
+    override suspend fun readChapter(entry: ChapterEntry, location: BookLocation): ChapterContent =
+        ChapterContent(title = entry.title, paragraphs = listOf("fake content for ${entry.contentRef}"))
 }

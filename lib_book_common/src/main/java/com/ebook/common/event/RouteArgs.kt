@@ -9,7 +9,7 @@ package com.ebook.common.event
  */
 object RouteArgs {
 
-    /** 章节 URL（module_book 评论区定位章节用） */
+    /** 章节 URL（module_book 评论区定位章节用，已废弃，保留兼容） */
     const val CHAPTER_URL = "chapterUrl"
 
     /** 章节名（module_book 评论区展示用） */
@@ -17,4 +17,10 @@ object RouteArgs {
 
     /** 书名（module_book 评论区展示用） */
     const val BOOK_NAME = "bookName"
+
+    /** 评论聚合键（M2：章键或书键，评论区按此查询） */
+    const val COMMENT_KEY = "commentKey"
+
+    /** 书籍 noteUrl（修键面板定位书架条目用，见 EditBookMetaActivity） */
+    const val NOTE_URL = "note_url"
 }

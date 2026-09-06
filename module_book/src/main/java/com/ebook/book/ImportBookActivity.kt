@@ -10,12 +10,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +18,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,21 +28,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +52,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.ebook.book.mvvm.viewmodel.BookImportViewModel
+import com.ebook.book.mvvm.viewmodel.ImportDuplicateState
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
 import com.permissionx.guolindev.PermissionX
@@ -76,13 +67,12 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.text.DecimalFormat
 import androidx.core.net.toUri
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * 本地书籍导入页（Compose 版，替代原 ViewBinding + RotateLoading + MoProgressHUD 实现）。
  *
  * 行为对齐原实现：
- * - 入场/退场为整页水平滑入滑出；[finish] 先触发退场动画，动画结束后才真正结束
- *   Activity（`isExiting` 防重入，语义同原版）
  * - 存储权限链：Android 11+ 跳过常规存储权限（scoped storage 下不可授予，申请只会死循环）
  *   → 全部文件访问弹窗 → ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION（带 package URI）
  *   直达本应用授权页，解析失败时回退列表页（见 [launchFilesAccessSettings]）
@@ -95,9 +85,7 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
 
     override val viewModel: BookImportViewModel by viewModels()
 
-    // 页面级状态由 Activity 持有：生命周期与 Composable 解耦，
-    // 退场动画开关必须在 finish()（非组合期）可写
-    private var exiting by mutableStateOf(false)
+    // 页面级状态由 Activity 持有：生命周期与 Composable 解耦
     private var scanning by mutableStateOf(false)
     private var canCheck by mutableStateOf(false)
     private var importing by mutableStateOf(false)
@@ -138,9 +126,10 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
         return permissions
     }
 
-    override fun enableToolbar(): Boolean = false
+    override fun showBackButton(): Boolean = true
 
     override fun initData() {
+        toolbarTitle.value = getString(com.ebook.common.R.string.local_file)
         initPermission()
         // LiveData 镜像为 Compose state（避免引入 runtime-livedata 依赖）
         viewModel.mImportBookList.observe(this) { books = it }
@@ -175,25 +164,6 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
                 }
             }
         }
-    }
-
-    /**
-     * 覆写 finish：先触发退场动画，动画结束后经 [finishImmediately] 真正结束。
-     * `exiting` 即原实现的 isExiting 防重入标志。
-     */
-    override fun finish() {
-        if (!exiting) {
-            exiting = true
-        } else {
-            super.finish()
-        }
-    }
-
-    /** 退场动画结束后的真实收尾（对齐原 animOut.onAnimationEnd） */
-    private fun finishImmediately() {
-        super.finish()
-        @Suppress("DEPRECATION") // 对齐原实现：无过渡动画收尾
-        overridePendingTransition(0, 0)
     }
 
     private fun initPermission() {
@@ -232,59 +202,48 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
 
     @Composable
     override fun PageContent() {
-        // 整页滑入滑出：visibleState 由 exiting 驱动，动画静止（Idle）且已退出时真正结束
-        val visibleState = remember { MutableTransitionState(true) }
-        LaunchedEffect(exiting) {
-            visibleState.targetState = !exiting
-        }
-        AnimatedVisibility(
-            visibleState = visibleState,
-            enter = slideInHorizontally { it } + fadeIn(),
-            exit = slideOutHorizontally { it } + fadeOut()
-        ) {
-            ImportBookScreen(
-                books = books,
-                scanning = scanning,
-                canCheck = canCheck,
-                importing = importing,
-                showImportError = showImportError,
-                showFilesPermissionDialog = showFilesPermissionDialog,
-                onStartScan = {
-                    viewModel.searchLocationBook()
-                    scanning = true
-                },
-                onCancelScan = { viewModel.scanCancel() },
-                onAddShelf = { selected ->
-                    importing = true
-                    viewModel.importBooks(selected)
-                },
-                onDismissImportError = { showImportError = false },
-                onConfirmFilesPermission = {
-                    showFilesPermissionDialog = false
-                    // 弹窗只在 SDK_INT >= R 时展示，此处再守一道满足 @RequiresApi 契约
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        launchFilesAccessSettings()
-                    }
-                },
-                onCancelFilesPermission = {
-                    showFilesPermissionDialog = false
-                    finish()
-                },
-                onBack = {
-                    viewModel.scanCancel()
-                    onBackPressedDispatcher.onBackPressed()
+        val progress by viewModel.importProgress.collectAsStateWithLifecycle()
+        val duplicateState by viewModel.duplicateState.collectAsStateWithLifecycle()
+        // totalCount 在导入开始时锁定（onAddShelf 时 selected 的大小）
+        var totalCount by remember { mutableStateOf(0) }
+
+        ImportBookScreen(
+            books = books,
+            scanning = scanning,
+            canCheck = canCheck,
+            importing = importing,
+            progress = progress,
+            totalCount = totalCount,
+            showImportError = showImportError,
+            showFilesPermissionDialog = showFilesPermissionDialog,
+            duplicateState = duplicateState,
+            onStartScan = {
+                viewModel.searchLocationBook()
+                scanning = true
+            },
+            onCancelScan = { viewModel.scanCancel() },
+            onAddShelf = { selected ->
+                totalCount = selected.size
+                importing = true
+                viewModel.importBooks(selected)
+            },
+            onDismissImportError = { showImportError = false },
+            onConfirmFilesPermission = {
+                showFilesPermissionDialog = false
+                // 弹窗只在 SDK_INT >= R 时展示，此处再守一道满足 @RequiresApi 契约
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    launchFilesAccessSettings()
                 }
-            )
-        }
-        // 退场动画播完（状态静止于已退出）→ 真正结束 Activity
-        LaunchedEffect(visibleState.currentState, visibleState.targetState, exiting) {
-            if (exiting &&
-                !visibleState.targetState &&
-                visibleState.currentState == visibleState.targetState
-            ) {
-                finishImmediately()
-            }
-        }
+            },
+            onCancelFilesPermission = {
+                showFilesPermissionDialog = false
+                finish()
+            },
+            onResolveKeepBoth = { viewModel.resolveKeepBoth() },
+            onResolveOverwrite = { viewModel.resolveOverwrite() },
+            onResolveMerge = { viewModel.resolveMerge() },
+            onResolveCancel = { viewModel.resolveCancel() }
+        )
     }
 
     /**
@@ -315,27 +274,32 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
 }
 
 /**
- * 导入页内容（对齐原 activity_importbook.xml 三段结构：顶栏 / 列表 / 底栏）。
+ * 导入页内容（两段结构：文件列表 / 底栏）。
  *
  * 纯状态 + 回调（不持有 ViewModel），勾选集合由本页内部状态维护。
- * 顶栏使用 Material3 [TopAppBar]（对齐书架页形态，ADR-0006 共享设计语言）。
+ * 顶栏由基类 [BaseMvvmActivity] Toolbar 提供（ADR-0006 共享设计语言）。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ImportBookScreen(
     books: List<File>,
     scanning: Boolean,
     canCheck: Boolean,
     importing: Boolean,
+    progress: Int,
+    totalCount: Int,
     showImportError: Boolean,
     showFilesPermissionDialog: Boolean,
+    duplicateState: ImportDuplicateState,
     onStartScan: () -> Unit,
     onCancelScan: () -> Unit,
     onAddShelf: (List<File>) -> Unit,
     onDismissImportError: () -> Unit,
     onConfirmFilesPermission: () -> Unit,
     onCancelFilesPermission: () -> Unit,
-    onBack: () -> Unit
+    onResolveKeepBoth: () -> Unit,
+    onResolveOverwrite: () -> Unit,
+    onResolveMerge: () -> Unit,
+    onResolveCancel: () -> Unit
 ) {
     val selected = remember { mutableStateListOf<File>() }
 
@@ -343,119 +307,53 @@ private fun ImportBookScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
         ) {
-            // 顶栏（对齐书架页：TopAppBar 文字标题 + 返回 + 加入书架 action，ADR-0006）
-            TopAppBar(
-                title = { Text(stringResource(com.ebook.common.R.string.local_file)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(com.ebook.common.R.string.back),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                actions = {
-                    if (selected.isNotEmpty()) {
-                        TextButton(onClick = { onAddShelf(selected.toList()) }) {
-                            Text(
-                                text = stringResource(com.ebook.common.R.string.add_book),
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-
             // 文件列表：12dp 圆角条目卡，页面边距/条目间距走共享 tokens
-            Box(
+            LazyColumn(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(
+                    start = CommonUiTokens.pagePadding,
+                    end = CommonUiTokens.pagePadding,
+                    top = CommonUiTokens.listSpacing,
+                    bottom = CommonUiTokens.listSpacing
+                ),
+                verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing)
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = CommonUiTokens.pagePadding,
-                        end = CommonUiTokens.pagePadding,
-                        top = CommonUiTokens.listSpacing,
-                        bottom = CommonUiTokens.listSpacing
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing)
-                ) {
-                    items(books, key = { it.absolutePath }) { file ->
-                        ImportBookItem(
-                            file = file,
-                            canCheck = canCheck,
-                            checked = file in selected,
-                            onToggle = { checked ->
-                                if (checked) selected.add(file) else selected.remove(file)
-                            }
-                        )
-                    }
-                }
-            }
-
-            // 底栏（48dp）：扫描中显示转圈+停止扫描，否则显示智能扫描按钮
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .background(
-                        if (scanning || books.isNotEmpty()) {
-                            // 扫描中/扫描完成（计数态）用 primary 底（M3 FilledButton 语义）
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
+                items(books, key = { it.absolutePath }) { file ->
+                    ImportBookItem(
+                        file = file,
+                        canCheck = canCheck,
+                        checked = file in selected,
+                        onToggle = { checked ->
+                            if (checked) selected.add(file) else selected.remove(file)
                         }
                     )
-                    .clickable {
-                        if (scanning) onCancelScan() else onStartScan()
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                if (scanning) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = stringResource(com.ebook.api.R.string.scan_cancel),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-                } else if (books.isNotEmpty()) {
-                    // 扫描完成：展示结果计数（对齐原 searchFinish 的 tvCount 文案）
-                    Text(
-                        text = stringResource(com.ebook.common.R.string.tv_importbook_count, books.size),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                } else {
-                    Text(
-                        text = stringResource(com.ebook.common.R.string.scan),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelLarge
-                    )
                 }
             }
+
+            // 底栏：左侧「加入书架」（有选中项时）、右侧扫描/停止扫描
+            BottomBar(
+                scanning = scanning,
+                books = books,
+                selected = selected,
+                onStartScan = onStartScan,
+                onCancelScan = onCancelScan,
+                onAddShelf = onAddShelf
+            )
         }
 
-        // 导入中遮罩：共享 LoadingView（透明遮罩 + 居中卡片 + 吞触摸，语义对齐原 MoProgressHUD.showLoading）
+        // 导入中遮罩：复用 LoadingView 卡片样式，文案随进度更新
+        // 同名检测弹窗期间隐藏遮罩，避免盖住对话框
+        val isDuplicateDialog = duplicateState is ImportDuplicateState.Detected
         LoadingView(
-            visible = importing,
+            visible = importing && !isDuplicateDialog,
             modifier = Modifier.fillMaxSize(),
-            txt = stringResource(R.string.import_adding),
+            txt = if (progress > 0)
+                stringResource(R.string.importing_progress, progress, totalCount)
+            else
+                stringResource(R.string.import_adding),
         )
 
         // 导入失败信息弹窗（替代 MoProgressHUD.showInfo("放入书架失败!")）
@@ -487,6 +385,186 @@ private fun ImportBookScreen(
                     }
                 }
             )
+        }
+
+        // 导入判重处置框
+        (duplicateState as? ImportDuplicateState.Detected)?.let { detected ->
+            DuplicateDispositionDialog(
+                detected = detected,
+                onKeepBoth = onResolveKeepBoth,
+                onMerge = onResolveMerge,
+                onOverwrite = onResolveOverwrite,
+                onCancel = onResolveCancel,
+            )
+        }
+    }
+}
+
+/**
+ * 判重处置框（spec §6 重复检测的「模糊」一级，处置语义见 ADR-0023）。
+ *
+ * 几个刻意的地方：
+ * - **列全部命中项**：同一 `comment_key` 下可能已挂着多个条目，而「覆盖」会删掉全部命中项，
+ *   只展示第一条等于让用户在看不见后果的情况下按按钮。
+ * - **「继续添加」占主按钮位**：共存不是需要被打扰的缺陷——同键条目读评论取并集，本来就是
+ *   §9 这套模型支持的正常形态；破坏性与改数据的动作全部降到次要位。
+ * - **「智能合并」只在有本地命中时出现**：补章的载体是本机章文件，网络书的正文在书源那边。
+ * - 点框外不关闭：四个动作语义差别太大，误触的代价不对等。
+ */
+@Composable
+private fun DuplicateDispositionDialog(
+    detected: ImportDuplicateState.Detected,
+    onKeepBoth: () -> Unit,
+    onMerge: () -> Unit,
+    onOverwrite: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val canMerge = detected.matches.any { it.isLocal }
+    AlertDialog(
+        onDismissRequest = { },
+        title = { Text(stringResource(R.string.import_duplicate_title)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.import_duplicate_summary, detected.meta.title),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                detected.matches.forEach { match ->
+                    Text(
+                        text = stringResource(
+                            R.string.import_duplicate_match_item,
+                            match.title,
+                            match.author,
+                            stringResource(
+                                if (match.isLocal) R.string.import_duplicate_source_local
+                                else R.string.import_duplicate_source_network
+                            ),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(
+                        if (canMerge) R.string.import_duplicate_merge_desc
+                        else R.string.import_duplicate_no_merge_desc
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = stringResource(R.string.import_duplicate_overwrite_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onKeepBoth) {
+                Text(stringResource(R.string.import_duplicate_keep_both))
+            }
+        },
+        dismissButton = {
+            Column(horizontalAlignment = Alignment.End) {
+                if (canMerge) {
+                    TextButton(onClick = onMerge) {
+                        Text(stringResource(R.string.import_duplicate_merge))
+                    }
+                }
+                TextButton(onClick = onOverwrite) {
+                    Text(
+                        text = stringResource(R.string.import_duplicate_overwrite),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                TextButton(onClick = onCancel) {
+                    Text(stringResource(com.ebook.common.R.string.cancel))
+                }
+            }
+        }
+    )
+}
+
+/**
+ * 导入页底栏：左侧「加入书架」（有选中项时）、右侧扫描/停止扫描/扫描结果计数。
+ *
+ * 无选中项时扫描区占满全宽居中；有选中项时两区并排各占一半。
+ */
+@Composable
+private fun BottomBar(
+    scanning: Boolean,
+    books: List<File>,
+    selected: List<File>,
+    onStartScan: () -> Unit,
+    onCancelScan: () -> Unit,
+    onAddShelf: (List<File>) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = CommonUiTokens.pagePadding),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 左侧「加入书架」：仅选中项时显示
+            if (selected.isNotEmpty()) {
+                Button(
+                    onClick = { onAddShelf(selected) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(com.ebook.common.R.string.add_book))
+                }
+            }
+
+            // 右侧扫描区（无选中项时占满全宽居中）
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clickable(
+                        enabled = scanning || books.isNotEmpty() || selected.isNotEmpty(),
+                        onClick = { if (scanning) onCancelScan() else onStartScan() }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (scanning) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(com.ebook.api.R.string.scan_cancel),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                } else if (books.isNotEmpty()) {
+                    Text(
+                        text = stringResource(
+                            com.ebook.common.R.string.tv_importbook_count,
+                            books.size
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                } else {
+                    Text(
+                        text = stringResource(com.ebook.common.R.string.scan),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
         }
     }
 }

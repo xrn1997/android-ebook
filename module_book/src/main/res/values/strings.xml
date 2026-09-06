@@ -55,6 +55,7 @@
     <string name="import_permission_forward">您需要去应用程序设置当中手动开启权限</string>
     <string name="permission_understood">我已明白</string>
     <string name="import_adding">放入书架中...</string>
+    <string name="importing_progress">正在导入 %1$d/%2$d…</string>
     <string name="import_add_failed">放入书架失败!</string>
     <string name="import_android11_files_permission">在Android11及以上的版本中，本程序还需要您同意允许访问所有文件权限，不然无法扫描本地文件</string>
     <string name="confirm">确定</string>
@@ -122,4 +123,36 @@
     <string name="import_result_format">成功导入 %1$d 本，失败 %2$d 本</string>
     <string name="comment_empty">不能为空哦！</string>
     <string name="comment_delete_success">删除成功！</string>
+
+    <!-- 修键面板（书籍详情页「编辑匹配信息」进入，见 EditBookMetaActivity） -->
+    <string name="edit_book_meta_title">编辑匹配信息</string>
+    <string name="edit_book_meta_section">匹配信息（不影响书架显示名）</string>
+    <string name="edit_book_meta_match_name">匹配书名</string>
+    <string name="edit_book_meta_match_author">匹配作者（可空）</string>
+    <string name="edit_book_meta_primary_key">当前主键</string>
+    <string name="edit_book_meta_associated_keys">已关联的其他键（合并历史）</string>
+    <string name="edit_book_meta_remove">移除</string>
+    <string name="edit_book_meta_save">保存并迁移评论</string>
+    <string name="edit_book_meta_migrated_toast">你的 %1$d 条评论已随之迁移；该桶内他人评论不会移动</string>
+    <!-- 键已切换但评论没搬走，这个不一致只有用户能补救，必须说出来 -->
+    <string name="edit_book_meta_migrate_failed">评论键已更新，但你的旧评论迁移失败，可在网络恢复后再试一次</string>
+
+    <!-- 导入时判重处置框（见 BookImportViewModel / DuplicateDispositionDialog） -->
+    <string name="import_duplicate_title">书架上已有同一作品</string>
+    <string name="import_duplicate_summary">「%1$s」与下面的条目指向同一作品，请选择处置方式</string>
+    <string name="import_duplicate_match_item">· %1$s %2$s（%3$s）</string>
+    <string name="import_duplicate_source_local">本地书</string>
+    <string name="import_duplicate_source_network">网络书</string>
+    <string name="import_duplicate_keep_both">继续添加</string>
+    <string name="import_duplicate_merge">智能合并</string>
+    <string name="import_duplicate_overwrite">覆盖</string>
+    <string name="import_duplicate_merge_desc">智能合并：保留原书阅读进度，只把新文件多出的尾部章节补进去</string>
+    <string name="import_duplicate_no_merge_desc">命中的条目是网络书，章节正文由书源提供，无法补章</string>
+    <string name="import_duplicate_overwrite_desc">覆盖：被命中的旧条目将从书架移除，其阅读进度不保留</string>
+    <!-- 智能合并结局：四种结局都要说得出人话，禁止把「没做成」报成「已合并」 -->
+    <string name="import_merge_appended">已补进 %1$d 章，原书阅读进度保留</string>
+    <string name="import_merge_equivalent">两份内容等价，多余条目已移除</string>
+    <string name="import_merge_diverged">两本章节命名不一致，未补章，条目继续共存</string>
+    <string name="import_merge_target_network">网络书的章节由书源提供，未补章，条目继续共存</string>
+    <string name="import_merge_entry_gone">条目已不在书架，操作未执行</string>
 </resources>

@@ -1,0 +1,25 @@
+schema_version: 1
+module_path: feature_modules/app_entry
+title: 应用入口模块 (module_app)
+scope:
+    - module_app/
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: 90a0a5b9-bc3e-4e3f-af77-596cd68f33d2
+kk_cards:
+    architecture_design:
+        id: 82ff85f9-6bc9-41c1-b6e1-6b647a8e491c
+        title: 应用入口模块 (module_app)
+    coding_conventions:
+        id: 486b58e0-5289-44d6-9468-7eeae9e6b45f
+        title: 应用入口模块 (module_app)
+    overview:
+        id: 37a35846-f7a7-4087-98d6-a257eed8234e
+        title: 应用入口模块 (module_app)
+    tech_stack:
+        id: b84c7fad-9d7e-4345-88c4-0ee64580eba5
+        title: 应用入口模块 (module_app)
+    unique_setup_and_commands:
+        id: f1b6f5e8-cf0a-4127-a516-40e97f571d4d
+        title: 应用入口模块 (module_app)

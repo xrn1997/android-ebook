@@ -17,14 +17,14 @@ import com.xrn1997.common.util.Logger
 import com.xrn1997.common.util.ToastUtil
 import androidx.core.app.NotificationCompat
 import com.ebook.book.R
-import com.ebook.common.analyze.source.BookSourceManager
-import com.ebook.common.analyze.source.JsoupBookParser
 import com.ebook.book.repository.DownloadRepository
 import com.ebook.book.repository.DownloadState
-import com.ebook.common.repository.BookRepository
-import com.ebook.db.entity.BookContentEntity
+import com.ebook.common.analyze.local.BookLocation
+import com.ebook.common.analyze.local.BookFormat
+import com.ebook.common.analyze.local.ChapterEntry
+import com.ebook.common.analyze.source.JsoupSourceReader
+import com.ebook.common.store.BookStore
 import com.ebook.db.entity.DownloadChapterEntity
-import com.xrn1997.common.BaseApplication
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -33,12 +33,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * 离线下载前台服务：逐章抽取正文入库（`book_content`）并维护 `download_chapter` 任务队列。
+ * 离线下载前台服务：逐章抽取正文写入章文件并维护 `download_chapter` 任务队列。
  *
  * 对外契约全部是 Intent（无 binder，[onBind] 返回 null）：
  * - 携带任务启动：[buildStartIntent]（阅读器确认下载范围后直达）
@@ -53,8 +52,8 @@ import kotlin.time.Duration.Companion.milliseconds
 @AndroidEntryPoint
 class DownloadService : Service() {
     @Inject lateinit var downloadRepository: DownloadRepository
-    @Inject lateinit var bookRepository: BookRepository
-    @Inject lateinit var bookSourceManager: BookSourceManager
+    @Inject lateinit var jsoupSourceReader: JsoupSourceReader
+    @Inject lateinit var bookStore: BookStore
     private lateinit var notifyManager: NotificationManager
     private var isStartDownload = false
     private var isInit = false
@@ -227,7 +226,7 @@ class DownloadService : Service() {
                 try {
                     val nextChapter = findNextDownloadChapter()
                     if (nextChapter != null && nextChapter.noteUrl.isNotEmpty()) {
-                        downloading(BaseApplication.context, nextChapter)
+                        downloading(nextChapter)
                     } else {
                         downloadRepository.clearAllTasks()
                         isDownloading = false
@@ -251,13 +250,12 @@ class DownloadService : Service() {
     }
 
     /**
-     * 抓取单章正文并入库，失败重试至多 [RETRY_TIMES] 次。
+     * 抓取单章正文并写入章文件，失败重试至多 [RETRY_TIMES] 次。
      *
      * **重试耗尽必须把任务出队**：[findNextDownloadChapter] 取的是「书架第一本非本地书里
      * dur_chapter_index 最小」的任务，失败任务留在表里会让下一轮 [toDownload] 拿到同一章再重试——
      * 外层既无退避也无上限，等于无限循环（常驻通知永不消失、前台服务永不停止、持续耗电），
-     * 且队头被堵住后该书后续章节一章也下不了。历史上重试计数靠递归参数 `durTime` 透出，
-     * 改成内部 while 循环后计数不再外传，外层「耗尽即删任务」的分支沦为死代码，故一并删除。
+     * 且队头被堵住后该书后续章节一章也下不了。
      *
      * 失败章按「跳过」而非「永久失败」处理：只出队、不写正文，用户重新发起下载或直接阅读该章
      * 仍会重抓；本批结束时把跳过章数带进提示（见 [finishDownload]），避免静默丢章。
@@ -265,7 +263,7 @@ class DownloadService : Service() {
      * 暂停（[isStartDownload] 置 false）会中断重试循环，此时**不出队**：任务保留，
      * 点「继续」后从头重试，符合暂停语义。
      */
-    private fun downloading(context: Context, data: DownloadChapterEntity) {
+    private fun downloading(data: DownloadChapterEntity) {
         if (!isStartDownload) {
             isPause()
             return
@@ -277,61 +275,43 @@ class DownloadService : Service() {
             while (attempt < RETRY_TIMES && isStartDownload && !success) {
                 attempt++
                 try {
-                    val bookContentEntity = bookRepository.loadBookContent(data.durChapterUrl)
+                    val location = BookLocation(data.noteUrl, BookFormat.NETWORK)
 
-                    val bookContent = bookContentEntity?.let {
-                        BookContentEntity().apply {
-                            durChapterUrl = it.durChapterUrl
-                            durChapterIndex = it.durChapterIndex
-                            durChapterContent = it.durChapterContent
-                            tag = it.tag
-                        }
+                    // 已有章文件且非强制刷新：命中即视为完成，直接出队
+                    if (!data.forceRefresh && bookStore.hasChapter(location, data.durChapterIndex)) {
+                        downloadRepository.deleteTask(data)
+                        success = true
+                        continue
                     }
 
-                    if (bookContent == null || bookContent.durChapterUrl.isEmpty() || data.forceRefresh) {
-                        // 章节内容不存在，或任务带强制刷新标记（阅读器下载面板勾中了已缓存章节）。
-                        // 强制刷新先删旧内容：不删的话阅读器/本服务后续命中旧缓存，重抓结果永远不生效；
-                        // 删后走网络重抓并保存，满足用户明确的重复下载需求。
-                        // 无标记任务（v2 之前落库的旧行 force_refresh=0）仍保持命中即跳过，不重复下载。
-                        if (data.forceRefresh && bookContent != null) {
-                            bookRepository.deleteBookContent(data.durChapterUrl)
-                        }
-                        val result = withContext(Dispatchers.IO) {
-                            bookSourceManager.requireParser()
-                                .getBookContent(context, data.durChapterUrl, data.durChapterIndex)
-                        }
-
-                        // 内容校验：解析器抓不到正文有两种形态，都必须走重试而不能入库——
-                        // 1) 正文选择器失配（反爬页/改版页，HTTP 200）→ 返回空串；
-                        // 2) 解析过程抛异常 → 返回「书源 URL + 占位标记」的**非空**文案
-                        //    （[JsoupBookParser.UNSUPPORTED_CONTENT_MARKER]），仅靠 isBlank() 判不出来。
-                        // 照单入库会把占位文案当正文永久缓存、任务还被删（用户以为下好了，
-                        // 离线打开只见一行「站点暂时不支持解析」）；此处抛错走重试，
-                        // 重试耗尽只出队不污染缓存，后续阅读/下载仍可重新拉取
-                        val text = result.durChapterContent
-                        if (text.isBlank() || text.contains(JsoupBookParser.UNSUPPORTED_CONTENT_MARKER)) {
-                            throw IllegalStateException("章节内容解析失败: ${data.durChapterUrl}")
-                        }
-
-                        // 先入库、后出队：反过来的话保存失败（磁盘满等）会让任务已删而正文未存，
-                        // 该章静默丢失且不再重试；现在保存失败会走重试，出队失败下一轮命中缓存分支再删
-                        bookRepository.saveBookContent(
-                            BookContentEntity(
-                                durChapterUrl = result.durChapterUrl,
-                                durChapterIndex = result.durChapterIndex,
-                                durChapterContent = result.durChapterContent,
-                                tag = result.tag
-                            )
-                        )
-                        // 标缓存走 UPDATE 原地改写（不能 insert REPLACE：会把 rowid 移到表尾，
-                        // 书架章节关联查询无 ORDER BY 会错序，见 ChapterListDao.updateHasCache）
-                        bookRepository.updateChapterCache(data.durChapterUrl, true)
-                        downloadRepository.deleteTask(data)
-                        Logger.d(TAG, "downloading: ${result.durChapterUrl}")
-                    } else {
-                        // 已有正文缓存且非强制刷新：命中即视为完成，直接出队
-                        downloadRepository.deleteTask(data)
+                    // 强制刷新时先删旧章文件：不删的话 JsoupSourceReader.readChapter 命中旧文件，
+                    // 重抓结果永远不生效；删后走网络重抓并写入，满足用户明确的重复下载需求
+                    if (data.forceRefresh && bookStore.hasChapter(location, data.durChapterIndex)) {
+                        bookStore.deleteBook(location)
                     }
+
+                    // 从网络抓取正文并写入章文件（JsoupSourceReader 内部完成文件写入）
+                    val entry = ChapterEntry(
+                        index = data.durChapterIndex,
+                        title = data.durChapterName,
+                        contentRef = data.durChapterUrl,
+                    )
+                    val content = jsoupSourceReader.readChapter(entry, location)
+
+                    // 内容校验：解析器抓不到正文有两种形态，都必须走重试而不能入库——
+                    // 1) 正文选择器失配（反爬页/改版页，HTTP 200）→ 返回空串；
+                    // 2) 解析过程抛异常 → 返回「书源 URL + 占位标记」的非空文案
+                    //    （[JsoupSourceReader.UNSUPPORTED_CONTENT_MARKER]），仅靠 isBlank() 判不出来。
+                    // 照单入库会把占位文案当正文永久缓存、任务还被删（用户以为下好了，
+                    // 离线打开只见一行「站点暂时不支持解析」）；此处抛错走重试，
+                    // 重试耗尽只出队不污染缓存，后续阅读/下载仍可重新拉取
+                    val text = content.displayText
+                    if (text.isBlank() || text.contains(JsoupSourceReader.UNSUPPORTED_CONTENT_MARKER)) {
+                        throw IllegalStateException("章节内容解析失败: ${data.durChapterUrl}")
+                    }
+
+                    downloadRepository.deleteTask(data)
+                    Logger.d(TAG, "downloading: ${data.durChapterUrl}")
                     success = true
                 } catch (e: Throwable) {
                     // 服务销毁/作用域取消时必须放行取消异常：吞掉它会让循环在已取消的作用域里

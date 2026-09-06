@@ -63,15 +63,35 @@
                 <data android:mimeType="text/plain" />
                 <data android:scheme="file" />
             </intent-filter>
+            <!-- EPUB：系统按 MIME 类型分发，content/file 两种 scheme 都需声明 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="application/epub+zip" />
+                <data android:scheme="content" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="application/epub+zip" />
+                <data android:scheme="file" />
+            </intent-filter>
         </activity>
         <activity
             android:name="com.ebook.book.ImportBookActivity"
-            android:theme="@style/CAppTransparentTheme" />
+            android:theme="@style/ToolbarTheme.BackBar" />
         <activity
             android:name="com.ebook.book.BookDetailActivity"
-            android:theme="@style/CAppTransparentTheme" />
+            android:theme="@style/ToolbarTheme.BackBar" />
         <activity
             android:name="com.ebook.book.DownloadManageActivity"
             android:label="下载管理" />
+        <activity
+            android:name=".EditBookMetaActivity"
+            android:exported="false"
+            android:label="编辑匹配信息"
+            android:theme="@style/ToolbarTheme.BackBar" />
     </application>
 </manifest>

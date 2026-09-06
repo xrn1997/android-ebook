@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
  *
  * 双用途：创建评论请求体（[content] 必填，章节字段可选）+ 评论响应项。
  * 服务端载荷为蛇形命名，Kotlin 属性保持驼峰，边界翻译由 [SerialName] 完成：
+ * - [commentKey] ↔ comment_key（评论聚合键，M2 新增）
  * - [chapterUrl]/[chapterName]/[bookName] ↔ chapter_url/chapter_name/book_name
  * - [content] ↔ content（内容字段，与旧契约的 comment 键不同）
  * - [addTime] ↔ add_time（Asia/Shanghai，yyyy-MM-dd HH:mm:ss）
@@ -23,8 +24,10 @@ data class Comment(
     var id: Long = 0L,
     @JvmField
     var user: User = User(),
+    @SerialName("comment_key")
+    var commentKey: String? = null, // 评论聚合键（M2）：ck1:hash 或 ck1:hash#章序号
     @SerialName("chapter_url")
-    var chapterUrl: String? = null, //对应BookInfo noteUrl;
+    var chapterUrl: String? = null, //对应BookInfo noteUrl（已废弃，保留兼容）;
     @SerialName("chapter_name")
     var chapterName: String? = null, //当前章节名称
     @SerialName("book_name")

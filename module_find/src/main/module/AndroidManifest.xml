@@ -32,7 +32,7 @@
         <activity
             android:name=".SearchActivity"
             android:configChanges="locale|keyboardHidden|orientation|screenSize"
-            android:theme="@style/CAppTransparentTheme"
+            android:theme="@style/ToolbarTheme.BackBar"
             android:windowSoftInputMode="stateHidden|adjustResize" />
         <activity android:name="debug.TestDetailActivity" />
     </application>

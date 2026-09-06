@@ -39,6 +39,8 @@ import com.ebook.book.mvvm.viewmodel.BookReadViewModel
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_OTHER
 import com.ebook.book.reader.AddShelfDialog
+import com.ebook.book.reader.ChapterLayoutCache
+import com.ebook.book.reader.ChapterLayoutKey
 import com.ebook.book.reader.ChapterDownloadSheet
 import com.ebook.book.reader.ChapterListDrawer
 import com.ebook.book.reader.FontPanel
@@ -52,8 +54,9 @@ import com.ebook.book.reader.ReaderTopBar
 import com.ebook.book.reader.ReaderTypesetter
 import com.ebook.book.reader.applyReaderBrightness
 import com.ebook.book.reader.rememberReaderTypesetter
-import com.ebook.book.util.BookImportManager
+import com.ebook.book.repository.BookImportRepository
 import com.ebook.book.view.ReadBookControl
+import com.ebook.common.domain.CommentKey
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
 import com.ebook.common.repository.BookRepository
@@ -91,7 +94,7 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     override val viewModel: BookReadViewModel by viewModels()
 
     @Inject
-    lateinit var bookImportManager: BookImportManager
+    lateinit var bookImportRepository: BookImportRepository
 
     @Inject
     lateinit var bookRepository: BookRepository
@@ -116,6 +119,9 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
      */
     internal var readerTypesetter: ReaderTypesetter? = null
         private set
+
+    /** 排版偏移缓存：同章翻页不重复整章重排（见 ChapterLayoutCache） */
+    private val layoutCache = ChapterLayoutCache()
 
     override fun enableToolbar(): Boolean = false
 
@@ -175,10 +181,8 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         lifecycleScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
-                    bookImportManager.importBook(this@ReadBookActivity, uri)
+                    bookImportRepository.import(uri)
                 }
-                // 通知书籍添加事件
-                bookRepository.addToShelf(result.bookShelf)
                 viewModel.bookShelf = result.bookShelf
                 onImporting(false)
                 viewModel.checkInShelf()
@@ -204,11 +208,17 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
             .request { _: Boolean, _: List<String?>?, _: List<String?>? -> onResult() }
     }
 
-    /** 跳转章节评论区（对齐原评论入口的 TheRouter 传参） */
-    fun navToComment(bookShelf: BookShelfEntity) {
+    /**
+     * 跳转章节评论区（M2：跨源评论合并——同一作品多个书源各有 book_group 行，
+     * [bookKeys] 为所有关联的书级聚合键，逐一拼章索引后逗号分隔传给评论区做并集查询）。
+     */
+    fun navToComment(bookShelf: BookShelfEntity, bookKeys: List<String>) {
         val chapter = viewModel.getChapter(bookShelf.durChapter)
+        // 章级聚合键：每个 bookKey 都拼 "#" + chapterIndex，逗号分隔传给接收方
+        val chapterKeys = bookKeys.joinToString(",") { "$it#${bookShelf.durChapter}" }
         val bundle = Bundle().apply {
-            putString(RouteArgs.CHAPTER_URL, chapter?.durChapterUrl ?: "")
+            putString(RouteArgs.COMMENT_KEY, chapterKeys)
+            putString(RouteArgs.CHAPTER_URL, chapter?.contentRef ?: "")
             putString(RouteArgs.CHAPTER_NAME, chapter?.durChapterName ?: getString(R.string.unknown_chapter))
             putString(RouteArgs.BOOK_NAME, bookShelf.bookInfo?.name ?: getString(R.string.unknown_book))
         }
@@ -248,7 +258,7 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
 
     /**
      * 加载单页内容（原 loadContent 的 suspend 化）：
-     * 1. DB 缓存 → 2. 网络拉取并存库 → 3. 按当前排版求渲染行偏移 → 4. 分页切片取原文子串。
+     * 1. 按来源取正文（本地书走章文件、网络书走 DB 缓存→网络） → 2. 排版偏移缓存 → 3. 分页切片取原文子串。
      *
      * 断行走 [readerTypesetter]（与页面渲染同一引擎、同一份样式）——见
      * [ReaderTypesetter] 里「分页与渲染必须同源」的契约：两套引擎判定的行数不一致时，
@@ -265,31 +275,23 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         val typesetter = readerTypesetter ?: return null
 
         return try {
-            // 1. 尝试从数据库加载缓存内容
-            var bookContent = viewModel.loadBookContent(chapter.durChapterUrl)
+            // 取正文：本地书与网络书统一走 BookRepository.loadChapter（章文件 + 内存缓存）
+            val chapterText: String? = viewModel.loadChapter(chapter)?.displayText
+            if (chapterText.isNullOrEmpty()) return null
 
-            // 2. 缓存不存在则从网络获取并保存
-            if (bookContent == null || bookContent.durChapterContent.isEmpty()) {
-                bookContent = viewModel.fetchBookContent(chapter.durChapterUrl, chapterIndex)
-                if (bookContent.durChapterContent.isNotEmpty()) {
-                    viewModel.saveBookContent(bookContent)
-                    viewModel.updateChapterCache(chapter.durChapterUrl, true)
-                }
-            }
-            if (bookContent.durChapterContent.isEmpty()) return null
-
-            // 3. 按当前排版求渲染行起始偏移。注意这里**每页都整章重排**（不缓存）：
-            //    同章的每一页各自调用 lineStartOffsets 重算整章，而非如旧的 lineContent 缓存
-            //    在跨页间复用。取舍：实体每查一次都是新对象（断行结果是运行期的，不落库），
-            //    单章数千字量级重排各页都能在 Default 线程快速完成；但若出现超长章（几十页），
-            //    页数 N 会把整章重排放大到 N 次，成为可见的 CPU 开销——若后续有性能诉求，
-            //    应按（章节，字号）粒度缓存这份偏移而非逐页重算，现未做是鉴于本章节规模可控。
+            // 3. 按当前排版求渲染行起始偏移。排版结果走 [layoutCache] 按（章, 字号, 宽度）缓存，
+            //    同章翻页只重排一次；改字号或宽度会因键不同而自动重算。
             val width = readerContentWidthPx
             if (width <= 0) return null
-            // CPU 密集：切到 Default 线程（对齐原实现）
-            val content = bookContent.durChapterContent
+            // 排版结果按（章, 字号, 宽度）缓存：同章翻页不再整章重排（见 ChapterLayoutCache）
+            val content = chapterText
+            val layoutKey = ChapterLayoutKey(
+                contentRef = chapter.contentRef,
+                fontSizeSp = ReadBookControl.textSize.toFloat(),
+                widthPx = width,
+            )
             val lineStarts = withContext(Dispatchers.Default) {
-                typesetter.lineStartOffsets(content, width)
+                layoutCache.getOrCompute(layoutKey) { typesetter.lineStartOffsets(content, width) }
             }
 
             // 4. 分页切片
@@ -375,7 +377,7 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
  * 避免面板先弹出后闪烁刷新）。
  */
 private data class DownloadSheetArgs(
-    val cachedUrls: Set<String>,
+    val cachedIndices: Set<Int>,
     val initialSelected: Set<Int>
 )
 
@@ -554,7 +556,7 @@ private fun ReadBookScreen(
     }
 
     // ---------------- 下载面板（章节多选，缓存感知） ----------------
-    // 统一入口：请通知权限 → 从内容表查缓存事实集 → 预勾选 → 开面板。
+    // 统一入口：请通知权限 → 从章文件查缓存事实集 → 预勾选 → 开面板。
     // 预勾选沿用原默认范围语义（当前章 +50 章）：默认勾范围内未缓存章节（一键下载习惯）；
     // 想刷新缓存就改勾已缓存章节——任务统一带 forceRefresh（见 startChapterDownload）
     val openDownloadSheet: () -> Unit = {
@@ -564,14 +566,14 @@ private fun ReadBookScreen(
             val chapterList = shelf?.chapterList
             if (shelf == null || chapterList.isNullOrEmpty()) return@requestDownloadPermission
             scope.launch {
-                val cachedUrls = activity.bookRepository.getCachedChapterUrls(
-                    chapterList.map { it.durChapterUrl }
+                val cachedIndices = activity.bookRepository.getCachedChapterIndices(
+                    shelf, chapterList
                 )
                 val endIndex = (shelf.durChapter + 50).coerceAtMost(chapterList.size - 1)
                 val initialSelected = (shelf.durChapter..endIndex).filterTo(mutableSetOf()) { i ->
-                    chapterList[i].durChapterUrl !in cachedUrls
+                    i !in cachedIndices
                 }
-                downloadArgs = DownloadSheetArgs(cachedUrls, initialSelected)
+                downloadArgs = DownloadSheetArgs(cachedIndices, initialSelected)
                 panel = ReaderPanel.DOWNLOAD
             }
         }
@@ -579,7 +581,7 @@ private fun ReadBookScreen(
 
     // ---------------- 布局 ----------------
     // 章节列表取 bookShelf.chapterList（书架页经 getAllBooksWithDetails() 填充；
-    // 本地导入书由 BookImportManager 回填）；不用 bookInfo.chapterList（仅网络书解析时填充）
+    // 本地导入书由 LocalBookImporter 回填）；不用 bookInfo.chapterList（仅网络书解析时填充）
     val chapters = bookShelf?.chapterList ?: emptyList()
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -632,7 +634,21 @@ private fun ReadBookScreen(
                 onDownload = openDownloadSheet,
                 onComment = {
                     menuVisible = false
-                    viewModel.bookShelf?.let { shelf -> activity.navToComment(shelf) }
+                    viewModel.bookShelf?.let { shelf ->
+                        scope.launch {
+                            val keys = activity.bookRepository.getCommentKeysForBook(shelf.noteUrl)
+                            // 兜底：book_group 无行时（旧数据未迁移）退回当前书信息算一个键
+                            val effectiveKeys = keys.ifEmpty {
+                                val name = shelf.matchName ?: shelf.bookInfo?.name
+                                if (!name.isNullOrEmpty()) {
+                                    listOf(CommentKey.compute(name, shelf.matchAuthor ?: shelf.bookInfo?.author))
+                                } else {
+                                    emptyList()
+                                }
+                            }
+                            activity.navToComment(shelf, effectiveKeys)
+                        }
+                    }
                 }
             )
         }
@@ -735,7 +751,7 @@ private fun ReadBookScreen(
         ReaderPanel.DOWNLOAD -> downloadArgs?.let { args ->
             ChapterDownloadSheet(
                 chapters = chapters,
-                cachedUrls = args.cachedUrls,
+                cachedIndices = args.cachedIndices,
                 initialSelected = args.initialSelected,
                 onConfirm = { selected ->
                     panel = ReaderPanel.NONE
@@ -786,7 +802,7 @@ private fun startChapterDownload(
                         noteUrl = shelf.noteUrl,
                         durChapterIndex = chapter.durChapterIndex,
                         durChapterName = chapter.durChapterName,
-                        durChapterUrl = chapter.durChapterUrl,
+                        durChapterUrl = chapter.contentRef,
                         tag = shelf.tag,
                         bookName = bookInfo?.name ?: context.getString(R.string.unknown_book),
                         coverUrl = bookInfo?.coverUrl ?: "",

@@ -236,11 +236,25 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 - 涉及 Room 实体操作，注意主键策略：自然键（note\_url/dur\_chapter\_url）与自增键并存，upsert 用 `existing?.id ?: 0L`（见 ADR-0003）
 
-- **改实体必须接迁移链**：当前 `AppDatabase` 为 version = 2（`download_chapter.force_refresh`，`DatabaseModule.MIGRATION_1_2`）。再改动实体要同时做三件事——version +1、在链上追加紧邻的 `MIGRATION_n_n+1`（不跳版、不删旧迁移）、提交 Room 生成的新 schema JSON；禁止启用 `fallbackToDestructiveMigration`（ADR-0003「Schema 演进」）
+- **改实体必须接迁移链**：当前 `AppDatabase` 为 version = 3（`content_ref` 改名、`book_group` 表、`book_shelf` 新增列，`DatabaseModule.MIGRATION_2_3`）。再改动实体要同时做三件事——version +1、在链上追加紧邻的 `MIGRATION_n_n+1`（不跳版、不删旧迁移）、提交 Room 生成的新 schema JSON；禁止启用 `fallbackToDestructiveMigration`（ADR-0003「Schema 演进」）
 
 - 涉及正文分页跟进（`JsoupBookParser.getBookContent` / `ChapterPageMatcher`）时：判定基准是**目录页给出的原始章节 URL**（不对入口剥后缀），只对「下一页」候选链接剥一次分页后缀再比（扩展名形态不一致时再去扩展名兜底比一次）。对入口也剥离会让「章节号写在连字符后」的站点（`/1234-15.html` 与 `/1234-16.html`）剥后同形而串章（一路跟进后续章节直到页数上限，正文错乱 + 数十次冗余请求）。「第 1 页也带后缀」的站点与此结构同形、无法靠 URL 区分，取舍是**宁漏页不串章**，真要支持需在书源规则里声明分页模板（属 ADR-0016）；边界形态已由 `ChapterPageMatcherTest` 锁死
 
 - 涉及列表分页（分类页 `ruleFind.url` / 搜索页 `searchUrl`）时：模板**必须带 `{{page}}`**，否则「加载更多」每页都在请求同一个首页（内置书源曾如此）；页码换算与渲染统一走 `JsoupBookParser` 的 `ListPageUrl`，它把以 `/{{page}}` 结尾的模板在**首页裁掉页码段**（笔趣阁式站点首页是裸路径 `/xuanhuan`、`/so/关键词`，`/xuanhuan/1` 与 `/xuanhuan/` 都是 404），故 `getLibraryData` 等取首页的调用也必须经它，不要自己 `replace("{{page}}", "1")`。判「到底」不能只看空页：**越界页会以 HTTP 200 重复返回首页书目**（软 404），因此追加页一律走 `mergeBookPage` 按 `noteUrl` 去重、无新条目即置 `hasMore=false`——列表页的 `LazyColumn` 以 `noteUrl` 作 item key，重复条目直接抛异常。形态由 `ListPageUrlTest` 与 `BookPageMergeTest` 锁死
+
+- 涉及本地书籍导入或章节正文读取时，先读 `docs/superpowers/specs/2026-09-04-local-book-import-design.md`；
+  M1b 起本地书与网络书正文统一走 `BookStore` 章文件 + `ChapterContentCache`，
+  `BookRepository.loadChapter` 是唯一入口。`book_content` 表已在 v3→v4 迁移中删除。
+  本地导入支持 TXT 与 EPUB 两种格式（`TxtSourceReader` / `EpubSourceReader`），
+  格式路由经 `ContentStoreModule` 双 map（`provideChapterReaders` 含网络、`provideSourceReaders` 仅本地）；
+  封面提取走 `SourceReader.extractCover`（TXT 默认无操作，EPUB 支持 EPUB3/EPUB2 两种封面声明方式）。
+  **导入判重（见 ADR-0023）**：口径是待导入文件的 `comment_key` 等于书架某条目的**当前主键**
+  （`book_group` 的 `is_primary` 行），不是比 `book_info.name` 书名——键含作者，只比书名会把同名
+  不同作者的两本书判成一本并给出删除入口。处置四个动作（继续添加 / 智能合并 / 覆盖 / 跳过），
+  非破坏的「继续添加」占主按钮位；顺序一律**先导入新条目、后处置旧条目**，覆盖删旧之前先
+  `absorbGroupKeys` 吸收旧条目的关联键（`book_group` 行随书删）。补章只对本地目标书，且要求旧书
+  归一化章名序列是新书的**前缀**，分叉即整笔放弃；新索引取现有最大 `durChapterIndex + 1`，
+  不用 `size`（历史删章留下的洞会让二者不等，从而覆写既有章文件）
 
 - 跨模块导航使用 TheRouter，不直接依赖其他模块
 

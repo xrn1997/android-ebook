@@ -2,6 +2,7 @@ package com.ebook.api.service.comment
 
 import com.xrn1997.common.dto.RespDTO
 import com.ebook.api.entity.Comment
+import com.ebook.api.entity.CommentMigrateResponse
 import com.ebook.api.entity.CommentPage
 import com.ebook.api.entity.LoginDTO
 import com.ebook.api.entity.User
@@ -18,7 +19,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * 评论测试数据源：模拟服务端状态（内存态），对齐服务端评论契约（章节冗余快照 + 分页包裹）。
+ * 评论测试数据源：模拟服务端状态（内存态），对齐 M2 评论聚合键契约。
  *
  * 与真实后端一致：删除/添加会真正修改数据，getMyComments 返回变更后的列表；
  * 分页按 CommentPage 包裹结构返回（items/total/page/page_size）。
@@ -30,10 +31,10 @@ import javax.inject.Singleton
  *   「未知错误」，表现为 mock 构建下评论页永远加载失败（不闪退，故极易漏诊）。
  * - **种子只读一次**：首次访问时取 `data.items` 摊平成内存列表缓存，之后按调用方传入的
  *   page/pageSize 本地重切；资产里的 total/page 属于服务端那一页的元数据，不参与缓存。
- * - **章节过滤严格**：[getChapterComments] 只认 chapter_url 完全相等的条目（与后端同语义）。
- *   为此两份资产的 chapter_url 是**交叉对齐**编排的：从「我的评论」点任意一条进评论区，
+ * - **聚合键过滤（M2）**：[getComments] 按 `commentKey` 列表做并集查询（与后端同语义）。
+ *   两份资产的 `comment_key` 是**交叉对齐**编排的：从「我的评论」点任意一条进评论区，
  *   都能看到该章节的对话串（含一条本人可长按删除的）。改资产时须保持这份对齐关系，
- *   否则 mock 章节评论区会空。
+ *   否则 mock 评论区会空。
  * - **新增评论按服务端方式回显**：id/作者/时间由 mock 赋值，不信任客户端占位值
  *   （见 [stampAsServer]）。
  * - **作者名以 `user_login.json` 为事实源**：评论里的 username 必须等于登录资产返回的
@@ -64,12 +65,12 @@ class CommentNetworkTest @Inject constructor(
     override suspend fun addComment(comment: Comment): RespDTO<Comment> {
         // 种子必须先就位：否则内存态被固定成「只含这一条」，后续访问跳过资产加载，种子永久消失
         ensureUserComments()
-        if (comment.chapterUrl != null) ensureChapterComments()
+        if (comment.commentKey != null) ensureChapterComments()
         val posted = stampAsServer(comment)
         synchronized(this) {
             userComments = userComments.orEmpty() + posted
-            // 章节评论区同步追加，保证「发表后能查到自己刚发的」语义一致
-            if (posted.chapterUrl != null) {
+            // 评论池同步追加，保证「发表后能查到自己刚发的」语义一致
+            if (posted.commentKey != null) {
                 chapterComments = chapterComments.orEmpty() + posted
             }
         }
@@ -91,16 +92,37 @@ class CommentNetworkTest @Inject constructor(
     override suspend fun getMyComments(page: Int, pageSize: Int): RespDTO<CommentPage> =
         pageOf(ensureUserComments(), page, pageSize)
 
-    override suspend fun getChapterComments(
-        chapterUrl: String?,
-        bookName: String?,
+    override suspend fun getComments(
+        commentKeys: List<String>,
         page: Int,
         pageSize: Int
     ): RespDTO<CommentPage> {
-        // bookName 刻意不参与过滤：与后端一致，章节评论区只按 chapter_url 聚合
-        val list = ensureChapterComments()
-            .filter { chapterUrl == null || it.chapterUrl == chapterUrl }
-        return pageOf(list, page, pageSize)
+        // M2：按聚合键列表做并集查询，从两份数据源合并后去重（与后端同语义）
+        val keySet = commentKeys.toSet()
+        val merged = (ensureUserComments() + ensureChapterComments())
+            .filter { it.commentKey in keySet }
+            .distinctBy { it.id }
+        return pageOf(merged, page, pageSize)
+    }
+
+    override suspend fun migrateMyComments(
+        oldKey: String,
+        newKey: String
+    ): RespDTO<CommentMigrateResponse> {
+        // 仅迁移当前用户的评论（userComments），按 commentKey 匹配并批量替换
+        ensureUserComments()
+        var count = 0
+        synchronized(this) {
+            userComments = userComments?.map { comment ->
+                if (comment.commentKey == oldKey) {
+                    count++
+                    comment.copy(commentKey = newKey)
+                } else {
+                    comment
+                }
+            }
+        }
+        return RespDTO(code = "00000", error = "", data = CommentMigrateResponse(migratedCount = count))
     }
 
     /** 按 page/page_size 切页，返回后端同构的分页包裹。 */

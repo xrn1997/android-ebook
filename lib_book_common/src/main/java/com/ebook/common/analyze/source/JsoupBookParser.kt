@@ -1,6 +1,5 @@
 package com.ebook.common.analyze.source
 
-import android.content.Context
 import com.xrn1997.common.util.Logger
 import com.ebook.api.cache.ACache
 import com.ebook.api.entity.BookSourceRule
@@ -9,8 +8,6 @@ import com.ebook.api.entity.SearchRule
 import com.ebook.api.service.source.BookSourceNetwork
 import com.ebook.api.utils.JsoupHelper
 import com.ebook.common.event.LIBRARY_CACHE_KEY
-import com.ebook.common.manager.ErrorAnalyzeContentManager
-import com.ebook.db.entity.BookContentEntity
 import com.ebook.db.entity.BookInfoEntity
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.ChapterListEntity
@@ -30,7 +27,7 @@ import java.net.URLEncoder
  * 根据 BookSourceRule 动态解析 HTML，支持通用书源配置
  */
 class JsoupBookParser(
-    private val rule: BookSourceRule,
+    internal val rule: BookSourceRule,
     okHttpClient: OkHttpClient
 ) : BookParser {
     private val TAG = "JsoupBookParser[${rule.name}]"
@@ -150,7 +147,7 @@ class JsoupBookParser(
 
         for ((index, el) in elements.withIndex()) {
             val chapter = ChapterListEntity()
-            chapter.durChapterUrl = JsoupHelper.parseUrl(rule.url, JsoupHelper.selectAttr(el, ruleToc.url))
+            chapter.contentRef = JsoupHelper.parseUrl(rule.url, JsoupHelper.selectAttr(el, ruleToc.url))
             chapter.durChapterIndex = index
             chapter.durChapterName = JsoupHelper.selectText(el, ruleToc.name)
             chapter.noteUrl = bookShelf.noteUrl
@@ -167,89 +164,6 @@ class JsoupBookParser(
         bookShelf.chapterList = chapters
         WebChapterEntity(bookShelf, false)
     }
-    // endregion
-
-    // region 正文内容
-    override suspend fun getBookContent(
-        context: Context,
-        durChapterUrl: String,
-        durChapterIndex: Int
-    ): BookContentEntity = withContext(Dispatchers.IO) {
-        val bookContent = BookContentEntity()
-        bookContent.durChapterIndex = durChapterIndex
-        bookContent.durChapterUrl = durChapterUrl
-        bookContent.tag = rule.url
-
-        try {
-            val contentRule = rule.ruleContent
-            val content = StringBuilder()
-            // 章节分页基准 = 目录页给出的原始章节 URL（即本章第一页），**不对入口做后缀剥离**。
-            // 此类站点一章拆多页（/5/3943720、/5/3943720-2…），且**最后一页的"下一页"链接指向下一章首页**，
-            // 盲目跟进会把后续多章拼进本章（正文错乱 + 海量冗余请求），故仅跟进同章分页链接，
-            // 判定见 [ChapterPageMatcher.isSameChapterPage]。
-            // 为何不剥离入口：入口自身就以「-数字」结尾时（章节号写在连字符后，如 /1234-15.html），
-            // 剥离会把基准裁成 /1234，与相邻章 /1234-16.html 剥离后同形 → 判等成立 → 一路跟进后续章节
-            // 直到 MAX_CONTENT_PAGES（正文串章 + 数十次冗余请求），恰是本段注释要防的场景。
-            val chapterBaseUrl = durChapterUrl
-            // 已访问页集合：既防翻页链接回环死循环，又兼作单章抓页数上限的计数依据（MAX_CONTENT_PAGES）
-            val visited = mutableSetOf(durChapterUrl)
-            var currentUrl: String? = durChapterUrl
-
-            while (currentUrl != null && visited.size <= MAX_CONTENT_PAGES) {
-                val relativeUrl = currentUrl.replace(rule.url, "")
-                val html = network.getPage(relativeUrl)
-                val doc = Jsoup.parse(html)
-                val contentElement = doc.selectFirst(contentRule.content)
-
-                if (contentElement != null) {
-                    // 提取正文文本：优先使用 p 标签，否则使用 wholeText
-                    val paragraphs = contentElement.select("p")
-                    val text = if (paragraphs.isNotEmpty()) {
-                        paragraphs.mapNotNull { p ->
-                            val t = p.text().trim()
-                            if (t.isNotEmpty()) "　　$t" else null
-                        }.joinToString("\r\n")
-                    } else {
-                        contentElement.wholeText()
-                            .replace("&nbsp;", "　")
-                            .trim()
-                    }
-                    if (content.isNotEmpty() && text.isNotEmpty()) {
-                        content.append("\r\n")
-                    }
-                    content.append(text)
-                }
-
-                // 查找下一页：仅当链接属于本章分页且未访问过时才跟进，否则结束（视为本章最后一页）
-                currentUrl = if (contentRule.nextPage.isNotEmpty()) {
-                    val next = JsoupHelper.parseUrl(rule.url, JsoupHelper.selectAttr(doc, contentRule.nextPage))
-                    if (next.isNotEmpty() &&
-                        ChapterPageMatcher.isSameChapterPage(next, chapterBaseUrl) &&
-                        visited.add(next)
-                    ) {
-                        next
-                    } else {
-                        null
-                    }
-                } else {
-                    null
-                }
-            }
-
-            // 应用清理规则
-            bookContent.durChapterContent = JsoupHelper.applyReplaceRules(
-                content.toString(),
-                contentRule.replaceRules.filter { it.enabled }
-            )
-        } catch (e: Exception) {
-            Logger.e(TAG, "getBookContent: ", e)
-            ErrorAnalyzeContentManager.writeNewErrorUrl(context, durChapterUrl)
-            bookContent.durChapterContent = rule.url + UNSUPPORTED_CONTENT_MARKER
-        }
-
-        bookContent
-    }
-
     // endregion
 
     // region 分类书籍（发现）
@@ -364,7 +278,7 @@ class JsoupBookParser(
 
     companion object {
         /**
-         * 解析失败时的占位文案标记（正文 = 书源 URL + 本标记，见 [getBookContent] 的 catch 分支）。
+         * 解析失败时的占位文案标记（正文 = 书源 URL + 本标记，见 `JsoupSourceReader` 的 catch 分支）。
          *
          * 抽成常量是为了让下载侧能把它与真正文区分开：占位文案**非空**，仅靠 `isBlank()` 判不出来，
          * 照单入库会把「站点暂时不支持解析」当正文永久缓存、任务还被删掉（用户以为下好了，

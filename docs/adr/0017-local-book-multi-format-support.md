@@ -39,4 +39,4 @@
 
 ## 落地状态
 
-本 ADR 为**方案记录，尚未实现**（当前仅 TXT 链路在产）。实现前需人工确认：EPUB 扫描白名单是否含 `EPUB` 大小写变体、封面导出目录与既有书源封面缓存的关系、以及 `BookImportManager` 内两解析器代码组织（私有方法 vs 独立类）的取舍。
+**已实现**（2026-09-05）。`EpubSourceReader`（`java.util.zip` + jsoup）走 `SourceReader` 接口，封面提取（EPUB3 `properties="cover-image"` / EPUB2 `<meta name="cover">`）经 `extractCover` 独立方法由 `LocalBookImporter` 在暂存目录调用；扫描白名单扩 `epub`（大小写不敏感）；`ContentStoreModule` 双 map 均注册 EPUB；`ReadBookActivity` 两份清单同步挂 `application/epub+zip` Intent 过滤器；9 个单元测试锁死元数据提取、spine 顺序、封面导出、空章跳过等关键行为。

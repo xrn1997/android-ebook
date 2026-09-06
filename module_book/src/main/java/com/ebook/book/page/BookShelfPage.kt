@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -90,13 +93,16 @@ fun BookShelfPage(
     }
     MvvmBinder.bindRefresh(view = refreshView, viewModel = viewModel)
 
-    // 首次进入自动刷新（置转圈 → refreshData → stopRefresh 信号复位）
+    // 书架首次加载：拉一次数据
     LaunchedEffect(Unit) {
         isRefreshing = true
         viewModel.refreshData()
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
+    ) { innerPadding ->
+    Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
         // 顶栏（对齐书城页：TopAppBar 文字标题 + 导入/下载 actions）
         TopAppBar(
             title = { Text(stringResource(R.string.my_book_shelf)) },
@@ -165,7 +171,8 @@ fun BookShelfPage(
                 }
             )
         }
-    }
+    } // Column
+    } // Scaffold
 }
 
 /**
@@ -202,14 +209,19 @@ fun BookShelfList(
 /**
  * 书架条目（ADR-0006 共享设计语言重设计，替代原 adapter_book_list_item.xml 的
  * 重阴影卡 + 等宽字体样式）：12dp 圆角条目卡 + [BookCover] 封面 + Material typography。
+ *
+ * 点击进阅读器，长按进详情页（修键面板的入口在详情页正文底部）。
  */
 @Composable
 fun BookShelfItem(
     bookShelf: BookShelfEntity,
     onItemClick: () -> Unit,
-    onItemLongClick: () -> Unit
+    onItemLongClick: () -> Unit,
 ) {
-    CommonItemCard(onClick = onItemClick, onLongClick = onItemLongClick) {
+    CommonItemCard(
+        onClick = onItemClick,
+        onLongClick = onItemLongClick,
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // 封面：共享 BookCover（条目内小封面用小圆角变体）
             BookCover(
@@ -237,7 +249,7 @@ fun BookShelfItem(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     // 读 bookShelf.chapterList（书架查询时由 getAllBooksWithDetails() 回填；本地书由
-                    // BookImportManager 回填），不用 bookInfo.chapterList——它是 @Ignore 不入库、书架流不填充，
+                    // LocalBookImporter 回填），不用 bookInfo.chapterList——它是 @Ignore 不入库、书架流不填充，
                     // 会导致"读至："后为空。与 ReadBookActivity.kt 取章节列表的约定一致。
                     text = stringResource(R.string.read_to) +
                             (bookShelf.chapterList.getOrNull(bookShelf.durChapter)?.durChapterName ?: ""),

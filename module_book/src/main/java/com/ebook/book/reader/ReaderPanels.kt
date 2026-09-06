@@ -1515,8 +1515,8 @@ fun MoreSettingPanel(onDismiss: () -> Unit, onClickTurnChanged: (Boolean) -> Uni
 /**
  * 章节多选下载面板（替代原 DownloadRangeDialog 的起止章号输入框）。
  *
- * 缓存感知：逐章按 [cachedUrls]（以 book_content 内容表为事实源，调用方经
- * BookRepository.getCachedChapterUrls 查询）绘制"已缓存"徽章；默认预勾选集合由调用方传入。
+ * 缓存感知：逐章按 [cachedIndices]（以章文件存在性为事实源，调用方经
+ * BookRepository.getCachedChapterIndices 查询）绘制"已缓存"徽章；默认预勾选集合由调用方传入。
  * 已缓存章节勾上即重下：下发任务统一带 forceRefresh 标记（服务端先删旧内容再重抓），
  * 故不再区分"下载"与"强制刷新缓存"两种模式（对未缓存章节该标记为空操作），
  * 刷新缓存的能力已合并进本面板。
@@ -1530,19 +1530,16 @@ fun MoreSettingPanel(onDismiss: () -> Unit, onClickTurnChanged: (Boolean) -> Uni
 @Composable
 fun ChapterDownloadSheet(
     chapters: List<ChapterListEntity>,
-    cachedUrls: Set<String>,
+    cachedIndices: Set<Int>,
     initialSelected: Set<Int>,
     onConfirm: (selected: Set<Int>) -> Unit,
     onDismiss: () -> Unit
 ) {
     var selected by remember { mutableStateOf(initialSelected) }
 
-    // 缓存/未缓存索引集：列表打开期间不变，remember 避免每次勾选重算
-    val cachedIndices = remember(chapters, cachedUrls) {
-        chapters.indices.filterTo(mutableSetOf()) { chapters[it].durChapterUrl in cachedUrls }
-    }
-    val uncachedIndices = remember(chapters, cachedUrls) {
-        chapters.indices.filterTo(mutableSetOf()) { chapters[it].durChapterUrl !in cachedUrls }
+    // 未缓存索引集：列表打开期间不变，remember 避免每次勾选重算
+    val uncachedIndices = remember(chapters, cachedIndices) {
+        chapters.indices.filterTo(mutableSetOf()) { it !in cachedIndices }
     }
 
     // 跳过数 = 已缓存但未勾选的章节（本次不会下发任务）；确认文案实时反映选择结果

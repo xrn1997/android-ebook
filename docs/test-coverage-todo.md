@@ -41,6 +41,15 @@
   书目，只看空页判不到底；重复条目还会撞 `LazyColumn` 的 item key 而抛异常）。
   **仍未覆盖**：ViewModel 侧的页码递增、`hasMore` 信号与刷新状态机的接线（需 Robolectric + 假仓库，
   或直接人工装机验证），本轮按人工验证处理
+- [x] 为导入判重与处置添加回归测试（ADR-0023）
+  —— 判重口径由 `lib_book_common/src/test/.../domain/DuplicateBookDetectorTest.kt` 锁死（6 例，纯 JVM）：
+  同名同作者命中、**同名不同作者不命中**（命中即给删除入口，误判等于删掉另一本书）、作者占位词两边归空、
+  比对的是当前主键而非 `book_info.name`（改过匹配名后检测跟随）、secondary 键不参与判重、多命中全部返回并按来源标注。
+  处置原语由 `BookRepositoryTest` 锁死：`absorbGroupKeys` 吸收含 secondary 且同名键不重复加行；
+  `mergeTailChapters` 前缀对齐只补尾 / 序列分叉整笔放弃且不删新条目 / 索引有洞时接末位之后不覆写 /
+  目标是网络书时拒绝。`LocalBookImporterTest` 补 `parseMetadata` 两例（解出书名作者、不写任何表）。
+  **仍未覆盖**：`BookImportViewModel` 的暂停门（IO 线程置门、主线程 `getAndSet` 了结、连点幂等）与处置框交互
+  ——需要 Robolectric + 假 importer，本轮按人工装机验证处理（清单见 ADR-0023「验证」）
 - [ ] 为下载队列的失败重试/出队语义添加测试
   —— `DownloadService.downloading` 的不变式（重试 `RETRY_TIMES` 次耗尽后必须 `deleteTask` 出队、
   暂停中断时不出队、解析占位文案与空正文都不得入库）目前**无自动化覆盖**，只能靠人工装机验证。
@@ -73,3 +82,17 @@
   与本轮修掉的「会话三处镜像未一并失效」是同一类缺陷（仅影响独立调试宿主，不影响集成构建）。
   修法：改调 `userSessionManager.clearSession()`；同批已把 `module_book` 调试宿主的模拟登录改成走
   `saveSession`（见其类 KDoc）
+
+## Room v2→v3 覆盖安装验证（M1a）
+
+前置：装的是改动前的包，且书架上同时有 ①至少一本本地导入的 TXT ②至少一本网络书源加进
+书架的书。
+
+1. 记下网络书的阅读进度与"已缓存 y/z"数字。
+2. 覆盖安装改动后的包（不要清数据）。
+3. 打开书架：本地书应全部消失，网络书仍在、进度与缓存数字不变。
+   —— 本地书消失是设计如此（spec §2 决定 9：可再生数据不背兼容），不是 bug。
+4. 重新导入那本 TXT：应在数秒内出现在书架上，点开能翻页。
+5. `adb logcat -b crash` 应无 FATAL EXCEPTION。
+6. `adb shell run-as <包名> ls files/books` 应看到以 32 位 md5 命名的目录，里面是
+   c00000.txt、c00001.txt …

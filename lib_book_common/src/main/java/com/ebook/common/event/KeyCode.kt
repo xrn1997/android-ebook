@@ -50,6 +50,9 @@ interface KeyCode {
             /** 下载管理页（书架下载图标入口，管理队列进度，见 DownloadManageActivity） */
             const val DOWNLOAD_PATH = BASE_PATH + "download"
 
+            /** 修键面板（长按书架书籍 → 编辑匹配信息，spec §9.3） */
+            const val EDIT_BOOK_META_PATH = BASE_PATH + "edit_meta"
+
             const val TEST_LOGIN_PATH = BASE_PATH + "test_login"
         }
     }
