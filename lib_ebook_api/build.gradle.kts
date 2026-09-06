@@ -22,15 +22,7 @@ android {
     namespace = "com.ebook.api"
     defaultConfig {
         buildConfigField("String", "EBOOK_SERVER_HOST", "\"$ebookServerHost\"")
-    }
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
+        consumerProguardFiles("proguard-rules.pro")
     }
     buildFeatures {
         buildConfig = true

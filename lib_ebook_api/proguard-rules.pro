@@ -1,21 +1,10 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.kts.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
-
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
-
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# lib_ebook_api 混淆规则（一份文件、双声明；本模块恒为 library，规则经
+# consumerProguardFiles 传播给消费方的 R8）。
+# 当前无需任何手写规则，依据：
+# - DTO 反射式 serializer 查找（JsonUtils.parseJson 的 clazz.kotlin.serializer()）
+#   由 kotlinx-serialization-core jar 内置的
+#   META-INF/proguard/kotlinx-serialization-common.pro 覆盖（已核对该文件内容）；
+# - Retrofit 接口反射由 retrofit jar 内置 META-INF/proguard/retrofit2.pro 覆盖；
+# - EncodingInterceptor 已去除对 OkHttp 私有字段 contentTypeString 的反射，
+#   改为公开 API 等价实现。
+# 新增反射面时把 keep 规则写进本文件并注明证据；禁止无证据的 -keep/-dontwarn。
