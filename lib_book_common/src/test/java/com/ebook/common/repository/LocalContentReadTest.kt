@@ -10,6 +10,7 @@ import com.ebook.common.store.ChapterContentCache
 import com.ebook.db.entity.BookShelfEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import java.io.File
@@ -90,6 +91,53 @@ class LocalContentReadTest {
         assertEquals(1, reader.callCount)
         assertEquals(listOf("段落一", "段落二"), result?.paragraphs)
     }
+
+    @Test
+    fun `loadChapter normalizes raw chapter text before caching`() = runTest {
+        val rawReader = RecordingReader(
+            ChapterContent("第一章", listOf("　　正文  双空格  ", "　　第二段"))
+        )
+        val repository = repositoryWith(rawReader)
+        val shelf = BookShelfEntity(
+            noteUrl = "local-book-id",
+            tag = BookShelfEntity.LOCAL_TAG,
+            bookFormat = "TXT",
+        )
+
+        val result = repository.loadChapter(shelf, index = 0, title = "第一章")
+
+        // 章文件里是原文；出 loadChapter 必须是清洗后的段落数据（渲染与段评锚点的输入）
+        assertEquals(listOf("正文 双空格", "第二段"), result?.paragraphs)
+        // 缩进由渲染层补，且只补一份（原文自带的已被吸收）
+        assertEquals("　　正文 双空格\n　　第二段", result?.displayText)
+    }
+
+    @Test
+    fun `blank-only chapter is treated as missing content`() = runTest {
+        val blankReader = RecordingReader(ChapterContent("第一章", listOf("   ", "　　")))
+        val repository = repositoryWith(blankReader)
+        val shelf = BookShelfEntity(
+            noteUrl = "local-book-id",
+            tag = BookShelfEntity.LOCAL_TAG,
+            bookFormat = "TXT",
+        )
+
+        assertNull(repository.loadChapter(shelf, index = 0, title = "第一章"))
+        // 空判定在规范化之后：整章空白清洗完就是空集，按内容缺失处理
+        assertEquals(1, blankReader.callCount)
+    }
+
+    /** 换一个 reader 实例重建仓库：规范化用例要喂原文段落，公共 setUp 的 reader 返回已清洗数据 */
+    private fun repositoryWith(chapterReader: ChapterReader): BookRepository = BookRepository(
+        bookShelfDao = daos.shelf,
+        bookInfoDao = daos.info,
+        chapterListDao = daos.chapter,
+        bookGroupDao = daos.group,
+        chapterReaders = mapOf(BookFormat.TXT to chapterReader),
+        bookStore = BookStore(File(System.getProperty("java.io.tmpdir"), "test-books")),
+        contentCache = ChapterContentCache(capacity = 3),
+        transactions = DirectTransactionRunner,
+    )
 
     /**
      * 记录调用的假 reader：返回固定 [ChapterContent]，统计 `readChapter` 被调用次数。

@@ -150,10 +150,6 @@ internal class FakeBookGroupDao : BookGroupDao {
         }
     }
 
-    override suspend fun promotePrimary(noteUrl: String, commentKey: String) {
-        rows["$commentKey|$noteUrl"]?.isPrimary = true
-    }
-
     override suspend fun addSecondary(row: BookGroupEntity) {
         val key = "${row.commentKey}|${row.noteUrl}"
         if (key !in rows) {

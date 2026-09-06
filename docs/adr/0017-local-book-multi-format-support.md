@@ -40,3 +40,5 @@
 ## 落地状态
 
 **已实现**（2026-09-05）。`EpubSourceReader`（`java.util.zip` + jsoup）走 `SourceReader` 接口，封面提取（EPUB3 `properties="cover-image"` / EPUB2 `<meta name="cover">`）经 `extractCover` 独立方法由 `LocalBookImporter` 在暂存目录调用；扫描白名单扩 `epub`（大小写不敏感）；`ContentStoreModule` 双 map 均注册 EPUB；`ReadBookActivity` 两份清单同步挂 `application/epub+zip` Intent 过滤器；9 个单元测试锁死元数据提取、spine 顺序、封面导出、空章跳过等关键行为。
+
+**决策正文中的载体类已不存在**（补记 2026-09-06）：上文以 `BookImportManager` 为格式分派落点、以 `BookContentEntity` 为正文存储，两者都已在本地书内容基座重构中删除——分派改由 `ContentStoreModule` 的 `Map<BookFormat, SourceReader>` 承担，导入流水线是 `LocalBookImporter`，正文出 SQLite 改落 `BookStore` 章文件（迁移见 ADR-0003 的 v2→v4 补记）。读决策正文时按此对照，不要去找那两个类。

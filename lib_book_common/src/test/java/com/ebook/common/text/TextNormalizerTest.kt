@@ -17,37 +17,37 @@ import org.junit.Test
 class TextNormalizerTest {
 
     @Test
-    fun cleanParagraphKeepsSingleSpaceBetweenWords() {
+    fun `cleanParagraph 行内空白折叠为单个空格而非删光`() {
         assertEquals("Sherlock 1 000", TextNormalizer.cleanParagraph("Sherlock   1 000"))
     }
 
     @Test
-    fun cleanParagraphStripsLeadingIndentAndTrailingSpace() {
+    fun `cleanParagraph 去掉行首缩进与行尾空白`() {
         assertEquals("正文开头", TextNormalizer.cleanParagraph("　　正文开头   "))
     }
 
     @Test
-    fun cleanParagraphStripsBom() {
+    fun `cleanParagraph 剥离 BOM`() {
         assertEquals("第一段", TextNormalizer.cleanParagraph("\uFEFF第一段"))
     }
 
     @Test
-    fun unifyNewlinesNormalisesCrlfAndCr() {
+    fun `unifyNewlines 把 CRLF 与 CR 统一为 LF`() {
         assertEquals(listOf("a", "b", "c"), TextNormalizer.unifyNewlines("a\r\nb\rc").split("\n"))
     }
 
     @Test
-    fun cleanParagraphsDropsBlankLines() {
+    fun `cleanParagraphs 丢弃空白行`() {
         assertEquals(listOf("甲", "乙"), TextNormalizer.cleanParagraphs(listOf("甲", "   ", "乙")))
     }
 
     @Test
-    fun toDisplayTextIndentsEveryParagraph() {
+    fun `toDisplayText 为每段补全角缩进`() {
         assertEquals("　　甲\n　　乙", TextNormalizer.toDisplayText(listOf("甲", "乙")))
     }
 
     @Test
-    fun cleanParagraphAbsorbsLegacyFullWidthIndent() {
+    fun `cleanParagraph 吸收历史数据里已有的全角缩进`() {
         // 历史章文件若已带缩进，读取时先吸收再统一补，避免出现四个全角空格
         assertEquals("老数据", TextNormalizer.cleanParagraph("　　　　老数据"))
     }

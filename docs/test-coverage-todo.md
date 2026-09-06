@@ -55,6 +55,15 @@
   暂停中断时不出队、解析占位文案与空正文都不得入库）目前**无自动化覆盖**，只能靠人工装机验证。
   障碍：重试循环与 `Handler.postDelayed`、前台通知、`serviceScope` 绑在 Service 上。补测前需先把
   「取任务 → 重试 → 出队/入库」抽成可注入假仓库与假时钟的纯挂起函数（或改用 Robolectric + 假 `DownloadRepository`）
+- [ ] 为 `CommentRepository` 添加单元测试（当前**零覆盖**）
+  —— 本轮补的空聚合键守卫无自动化覆盖：`getComments(emptyList())` 必须**不发请求**直接返回空结果，
+  否则会命中契约（M2 spec §3.2.1）里「`comment_keys` 缺失 → 返回全局最新列表」的分支，
+  章评论区在旧数据 `commentKey` 为 null 时会显示全站最新评论。该分支此前正是靠一条与契约相反的
+  注释掩盖着（`CommentNetwork` 的 `.ifEmpty { null }` 翻译把空列表送进了这个分支）。
+  障碍：构造 `CoroutineAdapter` 需要 `TokenRefresher`/`SessionEventBus`/`TokenHolder` 三个假件，
+  仓内已有先例刻意不为此引入 Robolectric（见 `SessionTokenRefresherTest` 的类注释）。
+  补测时优先锁「空键不发请求」（守卫在触碰 adapter 之前短路，假件可为惰性构造），
+  再考虑 `queryCommentPage` 的空 data 兜底与 `migrateMyComments` 的条数透传
 - [ ] 为 Compose 页面添加 UI 测试
 - [ ] `AuthInterceptor` 测试归属 lib_common（android-practice 仓库，随认证体系对齐后不再在本仓库维护）
 
@@ -83,16 +92,72 @@
   修法：改调 `userSessionManager.clearSession()`；同批已把 `module_book` 调试宿主的模拟登录改成走
   `saveSession`（见其类 KDoc）
 
-## Room v2→v3 覆盖安装验证（M1a）
+## 人工装机验证清单（本轮未提交改动，2026-09-06）
 
-前置：装的是改动前的包，且书架上同时有 ①至少一本本地导入的 TXT ②至少一本网络书源加进
-书架的书。
+自动测试已锁死的不重复列：判重口径与处置原语（`DuplicateBookDetectorTest` / `BookRepositoryTest`
+含 `updateMatchMeta` 修键与事务性）、TXT/EPUB 解析与封面、编码探测与规范化、章文件与两层缓存、
+md5 短路、mock 评论契约含迁移计数（`CommentNetworkTestTest`）——本轮共 205 例全绿。
+以下只列自动化够不到的**设备项**，按风险排序。
+
+### 1. Room v2→v4 覆盖安装（迁移链 `MIGRATION_2_3` → `MIGRATION_3_4`）
+
+前置：装的是改动前版本（v2，仍含 `book_content` 表），书架上同时有 ①至少一本本地导入的
+TXT ②至少一本网络书源加进书架的书。
 
 1. 记下网络书的阅读进度与"已缓存 y/z"数字。
-2. 覆盖安装改动后的包（不要清数据）。
-3. 打开书架：本地书应全部消失，网络书仍在、进度与缓存数字不变。
-   —— 本地书消失是设计如此（spec §2 决定 9：可再生数据不背兼容），不是 bug。
-4. 重新导入那本 TXT：应在数秒内出现在书架上，点开能翻页。
+2. 覆盖安装改动后的包（不要清数据），迁移自动连跑 v2→v3→v4。
+3. 打开书架：本地书应全部消失——设计如此（spec §2 决定 9：可再生数据不背兼容），不是 bug。
+   网络书仍在、**阅读进度不变**。
+4. 网络书"已缓存"数字预期**归零**：`MIGRATION_3_4` 只删 `book_content` 表与 `has_cache` 列，
+   **不把旧正文搬成章文件**（正文属可再生数据，迁移不搬运，与上一步本地书消失同一取舍）。
+   重新发起下载即可恢复，之后 `files/books/<noteUrl>/` 下应重新出现 `cNNNNN.txt`。
 5. `adb logcat -b crash` 应无 FATAL EXCEPTION。
-6. `adb shell run-as <包名> ls files/books` 应看到以 32 位 md5 命名的目录，里面是
-   c00000.txt、c00001.txt …
+6. 重新导入那本 TXT（顺带走 §3 的判重链路）：数秒内出现在书架、点开能翻页；
+   `adb shell run-as <包名> ls files/books` 应看到以 32 位 md5 命名的目录。
+
+### 2. 外部打开（本轮修复项，`BookImportRepository` 零自动化覆盖）
+
+1. 文件管理器对 `.txt` 用「打开方式」选本应用 → 应导入并直接进阅读器，书名来自**真实文件名**
+   （不是 `import-<数字>`），作者按文件名解析或显示占位词。
+2. 同样路径打开 `.epub` → 同上。两份清单（`src/main/` 与 `src/main/module/`）都挂了
+   `application/epub+zip` 过滤器，content/file 两种 scheme 最好都过一遍。
+3. 外部打开同一文件两次 → 第二次不产生重复条目（md5 短路逻辑已由单元测试锁死，
+   这里验的是 Uri→暂存链路保真名）。
+4. 导入结束后 `adb shell run-as <包名> ls cache` 不应残留 `import-<数字>` 目录
+   （暂存目录随成功失败都会清）。
+
+### 3. 强制刷新与两层缓存失效（本轮修复项）
+
+1. 打开一本**网络书**某章 → 菜单「强制刷新缓存」→ 重抓完成后正文为新内容，且**翻页页序不错乱**
+   ——旧行偏移配上新正文的症状是"页数没变但内容接不上"，正是本轮修的缺陷。
+2. 强刷失败（可断网模拟）→ 提示跳过章数、常驻通知消失，不崩溃也不空转。
+3. 阅读中换字体字号 → 立即按新字号重排（`ChapterLayoutKey` 已把字号编进键，
+   自动化锁的是缓存行为本身，这里验阅读器接线）。
+
+### 4. 评论链路（M2；空键守卫为本轮修复、无自动化覆盖）
+
+1. 章评论区**空聚合键**入口应显示空态、不发请求。注意：mock 资产的评论全带 `comment_key`，
+   此路径在 mock 下不可达，需连真实后端用 `comment_key` 为 null 的旧数据验
+   （契约 §3.3 允许旧数据为 null）。
+2. mock 构建（`assembleMockDebug`）下走一遍发表/删除/长按删本人评论。
+3. 详情页进「编辑作品信息」（新页面 `EditBookMetaActivity`）：改主匹配名 → toast 的迁移条数
+   应等于本人该键的全部行数；返回章评论区，旧键评论仍在（读并集）。
+   键重算与切主键逻辑已由 `updateMatchMeta` 两条测试锁死，这里只验 UI 接线与文案。
+
+### 5. 导入判重与处置框
+
+6 条见 ADR-0023「验证」节，不在此重复。
+
+### 6. 性能基线回填（spec §6 仍空着）
+
+`./gradlew :module_book:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.ebook.book.ImportBaselineTest`
+（夹具由测试自建：2000 章 / 约 6MB），从输出 `BASELINE elapsed=… chapters=… fileKb=… memDeltaKb=…`
+行回填 spec §6；**改前**侧须切 develop_book 分支跑（夹具随旧链路留在该分支，提交 2f248fa）。
+EPUB 手工夹具：`node scripts/generate_test_epub.js` 在仓库根生成 `test_book.epub`（已 gitignore），
+push 到设备后供第 2 项的 EPUB 入口使用。
+
+### 7. 既有待办（引用，不重复展开）
+
+- 下载服务失败重试/出队语义（本文件上方待办条目）
+- 导入页暂停门与处置框交互（本文件上方待办条目）
+- 权限四条回归：拍照/相册/导入/下载通知（ADR-0022）

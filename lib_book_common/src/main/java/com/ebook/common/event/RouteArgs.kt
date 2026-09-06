@@ -18,9 +18,16 @@ object RouteArgs {
     /** 书名（module_book 评论区展示用） */
     const val BOOK_NAME = "bookName"
 
-    /** 评论聚合键（M2：章键或书键，评论区按此查询） */
+    /** 评论聚合键（M2：章键或书键，评论区按此做并集查询） */
     const val COMMENT_KEY = "commentKey"
 
+    /**
+     * 写入用评论聚合键（M2，spec §9.2）：`is_primary` 那行的键。
+     *
+     * 与 [COMMENT_KEY]（读并集）分开传：并集列表的顺序不保证，新评论的归属键必须显式给出。
+     */
+    const val PRIMARY_COMMENT_KEY = "primaryCommentKey"
+
     /** 书籍 noteUrl（修键面板定位书架条目用，见 EditBookMetaActivity） */
-    const val NOTE_URL = "note_url"
+    const val NOTE_URL = "noteUrl"
 }

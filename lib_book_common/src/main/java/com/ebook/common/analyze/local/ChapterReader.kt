@@ -13,7 +13,8 @@ interface ChapterReader {
      *
      * @param entry 章节索引（含 title 与 contentRef）
      * @param location 该书的内容仓库定位
-     * @return 规范化后的段落数据，缺章时返回空段落列表
+     * @return 章文件里的**原文**段落数据（存储层不清洗，spec §4）；缺章时返回空段落列表。
+     *   规范化不在此做——[BookRepository.loadChapter] 在入缓存前统一清洗。
      */
     suspend fun readChapter(entry: ChapterEntry, location: BookLocation): ChapterContent
 }

@@ -109,20 +109,39 @@ class CommentNetworkTest @Inject constructor(
         oldKey: String,
         newKey: String
     ): RespDTO<CommentMigrateResponse> {
-        // 仅迁移当前用户的评论（userComments），按 commentKey 匹配并批量替换
+        // 契约是单表 `UPDATE comments SET comment_key=:new WHERE user_id=:当前用户 AND comment_key=:old`
+        // ——覆盖本人**全部**行。mock 把评论池拆成两份内存列表，故两份都要过：只改 userComments
+        // 会让 chapter_comments 里本人的种子留在旧键，与真实后端分叉（分叉还会被契约测试钉死）
+        val me = mockCurrentUser()
         ensureUserComments()
-        var count = 0
+        ensureChapterComments()
+        val migratedIds = mutableSetOf<Long>()
         synchronized(this) {
-            userComments = userComments?.map { comment ->
-                if (comment.commentKey == oldKey) {
-                    count++
-                    comment.copy(commentKey = newKey)
-                } else {
-                    comment
-                }
-            }
+            userComments = userComments?.map { it.rekeyIfMine(me.id, oldKey, newKey, migratedIds) }
+            chapterComments = chapterComments?.map { it.rekeyIfMine(me.id, oldKey, newKey, migratedIds) }
         }
-        return RespDTO(code = "00000", error = "", data = CommentMigrateResponse(migratedCount = count))
+        return RespDTO(
+            code = "00000",
+            error = "",
+            data = CommentMigrateResponse(migratedCount = migratedIds.size)
+        )
+    }
+
+    /**
+     * 命中「本人的 + 旧键」就换成新键，并把 id 记进 [migratedIds]。
+     *
+     * 按 id 去重计数是必须的：[addComment] 会把新发评论以**同一 id** 同时追加进两份列表，
+     * 而服务端是单表单行、只计一次——两份各计一次会回一个翻倍的 `migrated_count`。
+     */
+    private fun Comment.rekeyIfMine(
+        myUid: Long,
+        oldKey: String,
+        newKey: String,
+        migratedIds: MutableSet<Long>,
+    ): Comment {
+        if (commentKey != oldKey || user.id != myUid) return this
+        migratedIds += id
+        return copy(commentKey = newKey)
     }
 
     /** 按 page/page_size 切页，返回后端同构的分页包裹。 */

@@ -49,16 +49,13 @@ interface BookGroupDao {
     suspend fun deleteSpecific(noteUrl: String, commentKey: String)
 
     /**
-     * 切主键第一步：把 noteUrl 下所有行的 is_primary 清零。
+     * 把 noteUrl 下所有行的 is_primary 清零。
      *
-     * 两步操作必须在调用方的 `withWriteTransaction` 内执行，保证"恰好一行 primary"。
+     * 与调用方随后插入/提升的新主键行必须在同一个 `withWriteTransaction` 内执行，
+     * 否则中途失败会留下「零行 primary」的状态（SQLite 无部分唯一索引可表达该不变式）。
      */
     @Query("UPDATE book_group SET is_primary = 0 WHERE note_url = :noteUrl")
     suspend fun clearPrimary(noteUrl: String)
-
-    /** 切主键第二步：把目标行设为 primary */
-    @Query("UPDATE book_group SET is_primary = 1 WHERE note_url = :noteUrl AND comment_key = :commentKey")
-    suspend fun promotePrimary(noteUrl: String, commentKey: String)
 
     /** 添加非主键关联行（合并操作：把另一个键加到当前来源的并集里） */
     @Insert(onConflict = OnConflictStrategy.IGNORE)

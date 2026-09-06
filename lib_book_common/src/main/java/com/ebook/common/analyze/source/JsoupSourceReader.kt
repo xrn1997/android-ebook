@@ -9,6 +9,7 @@ import com.ebook.common.analyze.local.ChapterEntry
 import com.ebook.common.analyze.local.ChapterReader
 import com.ebook.common.manager.ErrorAnalyzeContentManager
 import com.ebook.common.store.BookStore
+import com.ebook.common.text.TextNormalizer
 import com.xrn1997.common.util.Logger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -59,12 +60,6 @@ class JsoupSourceReader @Inject constructor(
         const val MAX_CONTENT_PAGES = 50
 
         /**
-         * 解析失败时的占位文案标记。与 [JsoupBookParser.UNSUPPORTED_CONTENT_MARKER] 同义，
-         * 抽出供下载侧校验使用。
-         */
-        const val UNSUPPORTED_CONTENT_MARKER = "站点暂时不支持解析"
-
-        /**
          * 从章文件读取正文（无网络 I/O）。
          *
          * @param entry 章节索引
@@ -86,9 +81,13 @@ class JsoupSourceReader @Inject constructor(
      * 从网络抓取正文并写入章文件。
      *
      * 抓取逻辑从 `JsoupBookParser.getBookContent` 搬来：多页拼接 + 同章分页判定 + 清理规则。
-     * 抓取结果以**单段落**存储（`listOf(fullText)`），保持与旧 `durChapterContent` 行为一致——
-     * `ReadBookActivity` 的排版管线（`ReaderTypesetter.lineStartOffsets`）按 `\n` 分段，
-     * 单段落的 `displayText` 等于原文，排版结果与旧实现完全一致。
+     * 清理规则跑在拼接后的整章串上（规则可能跨段），再按行切回段落存储；**不写缩进**——
+     * 章文件是「抓取后、清洗前」的原文切片，缩进与空白折叠由读取层的 `TextNormalizer` 补
+     * （spec §4 §8）。段落按 `\n` 分行存储，章内不再出现 `\r`，排版管线的 CRLF 缺陷无触发面。
+     *
+     * 空正文**不落盘**：正文选择器失配时站点往往回 HTTP 200 的空壳页，写下去就得到一个
+     * "看着已缓存"的空章文件——[BookStore.hasChapter] 会让重试与后续阅读把它当成功短路，
+     * 用户侧表现为"显示已下载、翻开是空白页"。此时返回空段落，由调用方判失败。
      */
     private suspend fun fetchAndStore(
         entry: ChapterEntry,
@@ -117,20 +116,21 @@ class JsoupSourceReader @Inject constructor(
                 val contentElement = doc.selectFirst(contentRule.content)
 
                 if (contentElement != null) {
-                    // 提取正文文本：优先使用 p 标签，否则使用 wholeText
+                    // 提取正文文本：优先使用 p 标签，否则使用 wholeText。
+                    // 这里**不补缩进**——段首缩进是表现层，由读取层的 TextNormalizer.toDisplayText
+                    // 统一补（spec §8），写进存储就不可逆了
                     val paragraphs = contentElement.select("p")
                     val text = if (paragraphs.isNotEmpty()) {
-                        paragraphs.mapNotNull { p ->
-                            val t = p.text().trim()
-                            if (t.isNotEmpty()) "　　$t" else null
-                        }.joinToString("\r\n")
+                        paragraphs.map { it.text().trim() }
+                            .filter { it.isNotEmpty() }
+                            .joinToString("\n")
                     } else {
                         contentElement.wholeText()
                             .replace("&nbsp;", "　")
                             .trim()
                     }
                     if (content.isNotEmpty() && text.isNotEmpty()) {
-                        content.append("\r\n")
+                        content.append("\n")
                     }
                     content.append(text)
                 }
@@ -154,16 +154,21 @@ class JsoupSourceReader @Inject constructor(
                 }
             }
 
-            // 应用清理规则
+            // 应用清理规则（跑在整章串上，规则可能跨段）
             val rawText = JsoupHelper.applyReplaceRules(
                 content.toString(),
                 contentRule.replaceRules.filter { it.enabled }
             )
+            // 统一换行后按行切回段落：存储层只切不洗（spec §4 §8），读取层再规范化
+            val stored = TextNormalizer.unifyNewlines(rawText).split('\n')
+            if (stored.none { it.isNotBlank() }) {
+                // 空正文不落盘，也不覆盖既有章文件：让调用方按失败处理并重试
+                Logger.w(TAG, "正文为空，不写章文件: ${entry.contentRef}")
+                return ChapterContent(title = entry.title, paragraphs = emptyList())
+            }
+            store.writeChapter(location, entry.index, stored)
 
-            // 以单段落存储，保持与旧 durChapterContent 排版行为一致
-            store.writeChapter(location, entry.index, listOf(rawText))
-
-            return ChapterContent(title = entry.title, paragraphs = listOf(rawText))
+            return ChapterContent(title = entry.title, paragraphs = stored)
         } catch (e: Exception) {
             Logger.e(TAG, "fetchAndStore: ", e)
             ErrorAnalyzeContentManager.writeNewErrorUrl(context, entry.contentRef)

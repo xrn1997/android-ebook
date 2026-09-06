@@ -4,7 +4,6 @@ import com.ebook.common.domain.FileNameMetadata
 import com.ebook.common.store.BookStore
 import com.ebook.common.text.EncodingProbe
 import com.ebook.common.text.StrictTextReader
-import com.ebook.common.text.TextNormalizer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.io.File
@@ -27,8 +26,8 @@ class TxtSourceReader @Inject constructor(
         readMetadataOf(source.file)
 
     override fun buildChapters(source: BookSourceFile, sink: ChapterSink): Flow<ChapterEntry> = flow {
+        // 原文行直接喂切分器：清洗属于读取层（spec §4 §8），此处落盘的必须是"切分后、清洗前"
         val lines = StrictTextReader.lines(source.file, source.charset)
-            .map { TextNormalizer.cleanParagraph(it) }
         splitter.split(lines).collect { raw ->
             emit(ChapterEntry(index = raw.index, title = raw.title, contentRef = sink.write(raw.index, raw.paragraphs)))
         }

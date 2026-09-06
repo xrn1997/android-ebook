@@ -11,7 +11,8 @@ import kotlinx.coroutines.flow.Flow
  * 没有对应的文件扩展名，`fromExtension` 对 "network" 返回 null——调用方不应把网络书当成
  * "未知格式"报错。[isFileBased] 区分这两种语义。
  *
- * M1a 只有 [TXT]；[EPUB] 在 M3 落地前先占位；[NETWORK] 在 M1b 新增。
+ * 三个值各有对应 reader，装配见 `ContentStoreModule`：[TXT]→`TxtSourceReader`、
+ * [EPUB]→`EpubSourceReader`、[NETWORK]→`JsoupSourceReader`。
  * `book_shelf.book_format` 存的是枚举名字，加枚举值不需要迁移。
  */
 enum class BookFormat(val extension: String, val isFileBased: Boolean) {
@@ -48,7 +49,11 @@ data class BookSourceFile(val file: File, val charset: String)
 data class ChapterEntry(val index: Int, val title: String, val contentRef: String)
 
 /**
- * 一章的内容。[paragraphs] 是**规范化后的纯段落数据**，不含缩进等表现层字符——
+ * 一章的内容。
+ *
+ * [paragraphs] 从 reader 出来时是**章文件里的原文**（存储层不清洗，spec §4）；
+ * 规范化由读取管线在入缓存之前做一次（`BookRepository.loadChapter` → `TextNormalizer`），
+ * 所以下游（分页渲染、段评锚点）拿到的始终是「规范化后的纯段落」，不含缩进等表现层字符——
  * 段评锚点建立在它之上（spec §9.1），掺进表现层会让锚点随渲染规则漂移。
  * [displayText] 才是给分页与渲染共用的文本（spec §8）。
  */

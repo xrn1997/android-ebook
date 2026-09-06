@@ -31,8 +31,9 @@ class EditBookMetaViewModel @Inject constructor(
     private val commentRepository: CommentRepository,
 ) : BaseViewModel<NoOpModel>(NoOpModel()) {
 
-    private val _state = MutableStateFlow(EditBookMetaState())
-    val state: StateFlow<EditBookMetaState> = _state.asStateFlow()
+    /** 页面状态流。不叫 `uiState`——那是基类覆盖层专用（见 AGENTS.md MVVM 约定） */
+    private val _editMetaState = MutableStateFlow(EditBookMetaState())
+    val editMetaState: StateFlow<EditBookMetaState> = _editMetaState.asStateFlow()
 
     /** 当前书的 noteUrl，由 Activity initData 从路由参数写入 */
     var noteUrl: String = ""
@@ -49,7 +50,7 @@ class EditBookMetaViewModel @Inject constructor(
                 val rows = bookRepository.getBookGroupRows(noteUrl)
                 val shelf = bookRepository.getBookByUrl(noteUrl)
                 val primary = rows.firstOrNull { it.isPrimary }?.commentKey
-                _state.value = EditBookMetaState(
+                _editMetaState.value = EditBookMetaState(
                     matchName = shelf?.matchName ?: shelf?.bookInfo?.name ?: "",
                     matchAuthor = shelf?.matchAuthor ?: shelf?.bookInfo?.author ?: "",
                     primaryKey = primary ?: "",
@@ -79,9 +80,9 @@ class EditBookMetaViewModel @Inject constructor(
                 )
                 if (oldKey != newKey) {
                     val result = commentRepository.migrateMyComments(oldKey, newKey)
-                    result.onSuccess { resp ->
+                    result.onSuccess { migratedCount ->
                         sendToast(
-                            context.getString(R.string.edit_book_meta_migrated_toast, resp.migratedCount)
+                            context.getString(R.string.edit_book_meta_migrated_toast, migratedCount)
                         )
                     }
                     // 键已经切过去了、评论还留在旧桶：这个不一致只有用户能补救（再改回去或手动

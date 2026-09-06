@@ -50,7 +50,6 @@ class BookCommentsViewModel @Inject constructor(
 
     override fun refreshData() {
         viewModelScope.launch {
-            // M2：按聚合键列表做并集查询；空列表时后端返回空结果
             val result = commentRepository.getComments(commentKeys)
             result.onSuccess { data ->
                 val sortedComments = data.sortedByDescending {

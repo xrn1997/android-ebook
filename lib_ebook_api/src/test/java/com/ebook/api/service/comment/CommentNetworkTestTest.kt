@@ -211,30 +211,59 @@ class CommentNetworkTestTest {
     // ===== 契约五：迁移接口按 commentKey 批量替换 =====
 
     @Test
-    fun `migrateMyComments 把匹配旧键的种子全部换成新键`() = runTest {
+    fun `migrateMyComments 迁走本人在两份资产里的全部行`() = runTest {
         val source = dataSource()
-        // ck1:tianqi#0 在 user_comments 里有 2 条种子
+        // ck1:tianqi#0 上共 5 条：user_comments 的 201/205 与 chapter_comments 的 401/402/403
         val oldKey = "ck1:tianqi#0"
         val newKey = "ck1:tianqi#99"
 
-        // 迁移前旧键的合并结果（chapter_comments 3 条 + user_comments 2 条 = 5）
         val beforeOld = source.getComments(listOf(oldKey), 1, 100)
             .let { requireNotNull(it.data).items }
         assertEquals(5, beforeOld.size)
 
+        // 契约是单表 UPDATE ... WHERE user_id=当前用户 AND comment_key=旧键，覆盖本人**全部**行：
+        // 201/205 在 user_comments、403 在 chapter_comments，三份都要迁走。
+        // 只迁 user_comments 的话计数是 2，与真实后端分叉
         val resp = source.migrateMyComments(oldKey, newKey)
-        val migrated = requireNotNull(resp.data)
-        assertEquals(2, migrated.migratedCount)
+        assertEquals(3, requireNotNull(resp.data).migratedCount)
 
-        // 迁移后旧键只剩 chapter_comments 的 3 条（user_comments 的 2 条已迁走）
+        // 旧键只剩他人的 401/402
         val afterOld = source.getComments(listOf(oldKey), 1, 100)
             .let { requireNotNull(it.data).items }
-        assertEquals(3, afterOld.size)
+        assertEquals(listOf(401L, 402L), afterOld.map { it.id }.sorted())
 
-        // 新键拿到迁移来的 2 条 user_comments（chapter_comments 无此键，故仅 2 条）
+        // 新键拿到迁来的 3 条本人评论
         val afterNew = source.getComments(listOf(newKey), 1, 100)
             .let { requireNotNull(it.data).items }
-        assertEquals(2, afterNew.size)
+        assertEquals(listOf(201L, 205L, 403L), afterNew.map { it.id }.sorted())
+    }
+
+    @Test
+    fun `migrateMyComments 不动他人的评论`() = runTest {
+        val source = dataSource()
+
+        source.migrateMyComments(CHAPTER_ZERO_KEY, "ck1:tianqi#99")
+
+        // 401/402 属 uid 13/11，契约的 WHERE user_id=:current_user 把它们排除在外
+        val remaining = source.getComments(listOf(CHAPTER_ZERO_KEY), 1, 100)
+            .let { requireNotNull(it.data).items }
+        assertEquals(
+            "他人的行不得被改键",
+            listOf(401L, 402L),
+            remaining.map { it.id }.sorted()
+        )
+    }
+
+    @Test
+    fun `migrateMyComments 对刚发表的评论只计一次`() = runTest {
+        val source = dataSource()
+        source.addComment(clientComment(CHAPTER_ZERO_KEY, "迁移前先发一条"))
+
+        // addComment 把新评论以同一 id 同时追加进两份内存列表，而服务端是单表单行、只计一次。
+        // 该键上原有本人 3 条（201/205/403）+ 刚发的 1 条 = 4；两份各计一次会回 5
+        val resp = source.migrateMyComments(CHAPTER_ZERO_KEY, "ck1:tianqi#99")
+
+        assertEquals(4, requireNotNull(resp.data).migratedCount)
     }
 
     @Test

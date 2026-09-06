@@ -82,6 +82,16 @@ class BookStore(private val booksRoot: File) {
     }
 
     /**
+     * 删一章正文文件（强制重抓单章用）。
+     *
+     * 与 [deleteBook] 的区别就是这一章与整本书：重下第 N 章只需让第 N 章的缓存失效，
+     * 拿 deleteBook 会把该书其余已缓存章节一并清掉。
+     */
+    fun deleteChapter(location: BookLocation, index: Int) {
+        chapterFile(location, index).delete()
+    }
+
+    /**
      * 对账：删除"DB 里已不存在的书"的目录、所有 `.tmp` 残留目录，以及散落在仓库根的文件。
      *
      * 存在理由是删书与导入中断都会留下无主文件，而没有对账就没人再发现它们（用户侧表现为
@@ -104,5 +114,18 @@ class BookStore(private val booksRoot: File) {
 
         /** 序号零填充到 5 位，保证字典序等于数值序；上限 99999 章足够 */
         fun chapterFileName(index: Int): String = "c%05d.txt".format(index)
+
+        /**
+         * 缓存失效用的书级片段：`content_ref` 形如 `books/<bookId>/cNNNNN.txt`，
+         * 按 `/<bookId>/` 剔除即覆盖一本书的全部条目。
+         *
+         * 只有正文缓存 [ChapterContentCache] 用它——该缓存的键由 `BookRepository.loadChapter`
+         * 统一取 `chapterRef(noteUrl, index)`，本地书与网络书都是上面这个形状，故按书剔除两者都命中。
+         *
+         * **排版缓存不要照搬这条规则**：`ChapterLayoutCache` 的键取自 `chapter_list.content_ref`，
+         * 网络书那一列存的是章节 URL，不含 `/<bookId>/` 片段，按书剔除对网络书永远匹配不上
+         * （而「强制刷新缓存」恰恰只发生在网络书上）。它的失效改由键内的内容指纹承担。
+         */
+        fun cacheMarker(bookId: String): String = "/$bookId/"
     }
 }

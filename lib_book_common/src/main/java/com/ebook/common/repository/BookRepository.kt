@@ -9,6 +9,7 @@ import com.ebook.common.domain.CommentKey
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
 import com.ebook.common.store.WriteTransactionRunner
+import com.ebook.common.text.TextNormalizer
 import com.ebook.db.dao.BookGroupDao
 import com.ebook.db.dao.BookInfoDao
 import com.ebook.db.dao.BookShelfDao
@@ -33,7 +34,10 @@ import javax.inject.Singleton
  * 职责：
  * - 书架 CRUD 操作
  * - 阅读进度保存
- * - 章节正文统一读取（经 [ChapterReader] 路由，本地书与网络书走同一管线）
+ * - 章节正文统一读取（经 [ChapterReader] 路由，本地书与网络书走同一管线；
+ *   规范化也收口在 [loadChapter]——存储层不清洗）
+ * - 评论聚合键（M2）：读并集 / 写主键 / 合并、拆分、修键（`book_group` 的唯一业务入口）
+ * - 内容仓库对账（[reconcileContentStore]，启动时调用）
  * - 书架变化事件发布（替代原 RxBus 的书籍相关事件）
  */
 @Singleton
@@ -165,8 +169,13 @@ class BookRepository @Inject constructor(
     /**
      * 章节正文统一读取入口（spec §7 §10 M1b）。
      *
-     * 本地书与网络书走同一条路径：按 bookFormat 路由到对应 ChapterReader → 经 ChapterContentCache
-     * 内存缓存 → reader 内部判章文件存在性（存在则读盘，不存在则网络抓取并写文件）。
+     * 本地书与网络书走同一条路径：按 bookFormat 路由到对应 ChapterReader → 规范化 →
+     * 经 ChapterContentCache 内存缓存 → reader 内部判章文件存在性（存在则读盘，不存在则网络抓取并写文件）。
+     *
+     * **规范化就在这一层**（spec §4 §8：存储层不清洗）：章文件存的是"切分后、清洗前"的原文，
+     * 这里过一次 [TextNormalizer.cleanParagraphs] 才交给渲染与段评锚点。放在缓存之前，
+     * 于是每章只清洗一次、缓存里存的就是可直接排版的数据；改规范化规则也只改这一处，
+     * 不必重导书籍。
      *
      * 旧实现的 loadBookContent / saveBookContent / deleteBookContent / updateChapterCache 全部删除：
      * book_content 表已在 v3→v4 迁移中删除，缓存存在性由 BookStore 章文件存在性判定。
@@ -187,7 +196,9 @@ class BookRepository @Inject constructor(
                 ChapterEntry(index = index, title = title, contentRef = entryContentRef),
                 location,
             )
-            content.takeIf { it.paragraphs.isNotEmpty() }
+            val normalized = content.copy(paragraphs = TextNormalizer.cleanParagraphs(content.paragraphs))
+            // 全空白的一章按"内容缺失"处理（不落缓存），否则页面会拿到一个空页而不是错误态
+            normalized.takeIf { it.paragraphs.isNotEmpty() }
         }
     }
 
@@ -229,6 +240,19 @@ class BookRepository @Inject constructor(
     suspend fun getCommentKeysForBook(noteUrl: String): List<String> =
         withContext(Dispatchers.IO) {
             bookGroupDao.getKeysForNoteUrl(noteUrl)
+        }
+
+    /**
+     * 取某本书的**写入键**（`is_primary` 那行的键），供发评论用。
+     *
+     * 不能拿 [getCommentKeysForBook] 的首元素代替：`getKeysForNoteUrl` 的 SELECT 没有
+     * ORDER BY，返回顺序不保证；修键后新主键是后插入的那行，取首元素会把新评论写进旧桶
+     * （spec §9.2「读评论 = 并集、写评论 = 只用主键」）。无 book_group 行时返回 null，
+     * 由调用方决定是否回落。
+     */
+    suspend fun getPrimaryKeyForBook(noteUrl: String): String? =
+        withContext(Dispatchers.IO) {
+            bookGroupDao.getPrimaryForNoteUrl(noteUrl)
         }
 
     // ===== M2：合并/拆分/修键 =====
@@ -360,20 +384,40 @@ class BookRepository @Inject constructor(
         val newKey = CommentKey.compute(newMatchName, newMatchAuthor)
         if (newKey == oldPrimary) return@withContext oldPrimary to newKey
 
-        // 更新 book_shelf 的 matchName/matchAuthor
-        val shelf = bookShelfDao.getBookByUrl(noteUrl)
-        if (shelf != null) {
-            shelf.matchName = newMatchName
-            shelf.matchAuthor = newMatchAuthor
-            bookShelfDao.update(shelf)
+        // 元数据与主键是同一个 comment_key 的两半，必须同事务提交：分开写会在中途失败时
+        // 留下「匹配名已改、主键仍是旧键」的静默不一致（下次导入判重比的正是旧键）
+        transactions.run {
+            val shelf = bookShelfDao.getBookByUrl(noteUrl)
+            if (shelf != null) {
+                shelf.matchName = newMatchName
+                shelf.matchAuthor = newMatchAuthor
+                bookShelfDao.update(shelf)
+            }
+            // 旧主键降级，新键成为主键（旧行保留）。SQLite 表达不了「一个 note_url 恰好一行
+            // is_primary」（无部分唯一索引），裸调中途失败会留下零主键行——此后这本书写评论
+            // 取不到主键（spec §5 §9.2）
+            bookGroupDao.clearPrimary(noteUrl)
+            bookGroupDao.insert(
+                BookGroupEntity(commentKey = newKey, noteUrl = noteUrl, isPrimary = true)
+            )
         }
-
-        // 旧主键降级，新键成为主键（旧行保留）
-        bookGroupDao.clearPrimary(noteUrl)
-        bookGroupDao.insert(
-            BookGroupEntity(commentKey = newKey, noteUrl = noteUrl, isPrimary = true)
-        )
         oldPrimary to newKey
+    }
+
+    /**
+     * 内容仓库对账（spec §4）：回收"DB 里已无书"的目录、导入中断的 `.tmp` 残留与散落文件。
+     *
+     * 为什么必须由人调：删书与导入中断都会留下无主文件（`removeFromShelf` 只在正常路径删目录，
+     * 进程被杀时来不及），而对账是唯一的回收手段——不跑就是"占了空间却看不见书"。
+     *
+     * **调用时机的不变式：一个进程只在全机启动时跑一次，导入进行中不得调用。**
+     * 两处会误删：①`[com.ebook.common.importer.LocalBookImporter]` 在 `commitImport` 与落库
+     * 之间存在"目录已改名、DB 还没有行"的窗口；②正在写入的暂存目录带 `.tmp` 后缀，
+     * 在对账眼里就是残留。启动点两条都不可能撞上：导入只由界面操作发起。
+     */
+    suspend fun reconcileContentStore() = withContext(Dispatchers.IO) {
+        val liveBookIds = bookShelfDao.getAllBooks().map { it.noteUrl }.toSet()
+        bookStore.reconcile(liveBookIds)
     }
 
     /**

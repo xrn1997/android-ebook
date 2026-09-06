@@ -73,7 +73,7 @@ class EditBookMetaActivity : BaseMvvmActivity<EditBookMetaViewModel>() {
 
     @Composable
     override fun PageContent() {
-        val state by viewModel.state.collectAsState()
+        val state by viewModel.editMetaState.collectAsState()
         var matchName by remember { mutableStateOf("") }
         var matchAuthor by remember { mutableStateOf("") }
 

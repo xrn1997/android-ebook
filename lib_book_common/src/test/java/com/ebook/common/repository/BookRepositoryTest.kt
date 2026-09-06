@@ -6,6 +6,7 @@ import com.ebook.common.analyze.local.ChapterContent
 import com.ebook.common.analyze.local.ChapterEntry
 import com.ebook.common.analyze.local.ChapterReader
 import com.ebook.common.domain.CommentKey
+import com.ebook.common.importer.ImmediateTransactionRunner
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
 import com.ebook.db.entity.BookGroupEntity
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -27,6 +29,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 /**
  * [BookRepository] 的单元测试（纯 JVM，手写 Fake DAO，不依赖 Robolectric/Room）。
@@ -323,6 +326,22 @@ class BookRepositoryTest {
     }
 
     @Test
+    fun `reconcileContentStore 按书架活书集合回收无主目录与 tmp 残留`() : Unit = runTest {
+        val liveId = "a".repeat(32)
+        val orphanId = "b".repeat(32)
+        daos.shelf.insert(BookShelfEntity(noteUrl = liveId))
+        assertTrue(File(booksRoot.root, liveId).mkdirs())
+        assertTrue(File(booksRoot.root, orphanId).mkdirs())
+        assertTrue(File(booksRoot.root, "$orphanId.tmp").mkdirs())
+
+        repository.reconcileContentStore()
+
+        assertTrue("书架上有的书目录必须留着", File(booksRoot.root, liveId).exists())
+        assertFalse("DB 已无书的目录要回收", File(booksRoot.root, orphanId).exists())
+        assertFalse("导入中断留下的 .tmp 暂存目录要回收", File(booksRoot.root, "$orphanId.tmp").exists())
+    }
+
+    @Test
     fun `splitBook removes specific key row without affecting others`() : Unit = runTest {
         val shelf = BookShelfEntity(noteUrl = "http://book").apply {
             bookInfo = BookInfoEntity(name = "斗破苍穹")
@@ -358,6 +377,43 @@ class BookRepositoryTest {
     }
 
     @Test
+    fun `updateMatchMeta 把元数据与切主键收进同一次写事务`() : Unit = runTest {
+        var runs = 0
+        val txRepository = BookRepository(
+            bookShelfDao = daos.shelf,
+            bookInfoDao = daos.info,
+            chapterListDao = daos.chapter,
+            bookGroupDao = daos.group,
+            chapterReaders = mapOf(BookFormat.TXT to FakeChapterReader()),
+            bookStore = store,
+            contentCache = ChapterContentCache(),
+            transactions = ImmediateTransactionRunner { runs++ },
+        )
+        val shelf = BookShelfEntity(noteUrl = "http://book").apply {
+            bookInfo = BookInfoEntity(name = "斗破苍穹", author = "天蚕土豆")
+        }
+        txRepository.addToShelf(shelf)
+
+        txRepository.updateMatchMeta("http://book", "斗破苍穹", "土豆")
+
+        // 键行写入 + matchName/matchAuthor 更新必须在同一个事务里：
+        // 分开提交会留下「书名已改、主键仍是旧键」或「零行 primary」两种半截状态
+        assertEquals(1, runs)
+    }
+
+    @Test
+    fun `getPrimaryKeyForBook 返回主键行而非并集首元素`() : Unit = runTest {
+        val oldKey = CommentKey.compute("斗破苍穹", "天蚕土豆")
+        val newKey = CommentKey.compute("斗破苍穹", "土豆")
+        // 修键后的真实数据形状：旧键行先落库（仍是列表首元素），新主键行后插入
+        daos.group.insert(BookGroupEntity(oldKey, "http://book", isPrimary = false))
+        daos.group.insert(BookGroupEntity(newKey, "http://book", isPrimary = true))
+
+        assertEquals(newKey, repository.getPrimaryKeyForBook("http://book"))
+        assertEquals("并集首元素是旧键——写键绝不能取它", oldKey, repository.getCommentKeysForBook("http://book").first())
+    }
+
+    @Test
     fun `getBookGroupRows returns empty for unknown book`() : Unit = runTest {
         val rows = repository.getBookGroupRows("http://nonexistent")
         assertTrue(rows.isEmpty())
@@ -367,4 +423,15 @@ class BookRepositoryTest {
 private class FakeChapterReader : ChapterReader {
     override suspend fun readChapter(entry: ChapterEntry, location: BookLocation): ChapterContent =
         ChapterContent(title = entry.title, paragraphs = listOf("fake content for ${entry.contentRef}"))
+}
+
+/** 记录事务开启次数的 [WriteTransactionRunner]：直接执行 block，只用于断言「收进了几个事务」 */
+private class CountingTransactionRunner : com.ebook.common.store.WriteTransactionRunner {
+    var runCount = 0
+        private set
+
+    override suspend fun <R> run(block: suspend () -> R): R {
+        runCount++
+        return block()
+    }
 }

@@ -37,7 +37,7 @@ class TxtSourceReaderTest {
     }
 
     @Test
-    fun buildChaptersWritesFilesAndEmitsMatchingEntries() = runTest {
+    fun `buildChapters 落盘章文件且 contentRef 与 BookStore 的 chapterRef 一致`() = runTest {
         val source = txt("第一章 起\n正文甲\n\n第二章 承\n正文乙")
 
         val entries = reader.buildChapters(BookSourceFile(source, "UTF-8"), sink(bookId)).toList()
@@ -52,7 +52,7 @@ class TxtSourceReaderTest {
     }
 
     @Test
-    fun readChapterReturnsParagraphsAndDisplayText() = runTest {
+    fun `readChapter 返回无缩进段落与带缩进 displayText`() = runTest {
         val source = txt("第一章 起\n正文甲 保留空格\n正文乙")
         val entry = reader.buildChapters(BookSourceFile(source, "UTF-8"), sink(bookId)).toList().single()
 
@@ -65,13 +65,25 @@ class TxtSourceReaderTest {
     }
 
     @Test
-    fun readChapterOnMissingFileYieldsEmptyParagraphs() = runTest {
+    fun `readChapter 章文件缺失时返回空段落不抛异常`() = runTest {
         val content = reader.readChapter(ChapterEntry(5, "无", store.chapterRef(bookId, 5)), location)
         assertEquals(emptyList<String>(), content.paragraphs)
     }
 
     @Test
-    fun readMetadataUsesFileNameParsing() {
+    fun `章文件保存切分后原文且 readChapter 原样交还不清洗`() = runTest {
+        // spec §4 §8：章文件是"切分后、清洗前"的原文切片，清洗只在读取管线做一次。
+        // 一旦这里改回清洗，行内空格与缩进信息就永久丢失（旧实现的不可逆损毁）
+        val source = txt("第一章 起\n　　正文  双空格  \n\n　　第二段")
+        val entry = reader.buildChapters(BookSourceFile(source, "UTF-8"), sink(bookId)).toList().single()
+
+        val stored = store.readParagraphs(location, entry.index)
+        assertEquals(listOf("　　正文  双空格  ", "　　第二段"), stored)
+        assertEquals(stored, reader.readChapter(entry, location).paragraphs)
+    }
+
+    @Test
+    fun `readMetadataOf 从文件名解析出书名与作者`() {
         val source = File(booksRoot, "《星辰变》作者：我吃西红柿.txt").apply { writeText("第一章 x\n正文") }
 
         val meta = TxtSourceReader.readMetadataOf(source)

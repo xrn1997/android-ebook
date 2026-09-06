@@ -211,13 +211,18 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     /**
      * 跳转章节评论区（M2：跨源评论合并——同一作品多个书源各有 book_group 行，
      * [bookKeys] 为所有关联的书级聚合键，逐一拼章索引后逗号分隔传给评论区做并集查询）。
+     *
+     * [writeKey] 是这本书的**主键**（`is_primary` 行），单独传：新评论只能写进主键桶，
+     * 不能让接收方拿并集列表首元素猜（`getKeysForNoteUrl` 无 ORDER BY，修键后主键是
+     * 后插入的那行，猜首元素会把评论写进旧桶，见 spec §9.2）。
      */
-    fun navToComment(bookShelf: BookShelfEntity, bookKeys: List<String>) {
+    fun navToComment(bookShelf: BookShelfEntity, bookKeys: List<String>, writeKey: String?) {
         val chapter = viewModel.getChapter(bookShelf.durChapter)
         // 章级聚合键：每个 bookKey 都拼 "#" + chapterIndex，逗号分隔传给接收方
         val chapterKeys = bookKeys.joinToString(",") { "$it#${bookShelf.durChapter}" }
         val bundle = Bundle().apply {
             putString(RouteArgs.COMMENT_KEY, chapterKeys)
+            putString(RouteArgs.PRIMARY_COMMENT_KEY, writeKey?.let { "$it#${bookShelf.durChapter}" })
             putString(RouteArgs.CHAPTER_URL, chapter?.contentRef ?: "")
             putString(RouteArgs.CHAPTER_NAME, chapter?.durChapterName ?: getString(R.string.unknown_chapter))
             putString(RouteArgs.BOOK_NAME, bookShelf.bookInfo?.name ?: getString(R.string.unknown_book))
@@ -279,14 +284,14 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
             val chapterText: String? = viewModel.loadChapter(chapter)?.displayText
             if (chapterText.isNullOrEmpty()) return null
 
-            // 3. 按当前排版求渲染行起始偏移。排版结果走 [layoutCache] 按（章, 字号, 宽度）缓存，
-            //    同章翻页只重排一次；改字号或宽度会因键不同而自动重算。
+            // 3. 按当前排版求渲染行起始偏移。排版结果走 [layoutCache] 缓存，同章翻页只重排一次；
+            //    键的构成（含重解析的内容指纹）见 ChapterLayoutKey
             val width = readerContentWidthPx
             if (width <= 0) return null
-            // 排版结果按（章, 字号, 宽度）缓存：同章翻页不再整章重排（见 ChapterLayoutCache）
             val content = chapterText
             val layoutKey = ChapterLayoutKey(
                 contentRef = chapter.contentRef,
+                contentLength = content.length,
                 fontSizeSp = ReadBookControl.textSize.toFloat(),
                 widthPx = width,
             )
@@ -646,7 +651,13 @@ private fun ReadBookScreen(
                                     emptyList()
                                 }
                             }
-                            activity.navToComment(shelf, effectiveKeys)
+                            activity.navToComment(
+                                shelf,
+                                effectiveKeys,
+                                // 写入键取主键行；无 book_group 行的旧数据回落到并集首元素
+                                activity.bookRepository.getPrimaryKeyForBook(shelf.noteUrl)
+                                    ?: effectiveKeys.firstOrNull()
+                            )
                         }
                     }
                 }

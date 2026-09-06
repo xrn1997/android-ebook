@@ -22,14 +22,14 @@ class EncodingTest {
     private val sample = "第一章 风起云涌的年代，正文需要足够长才能被探测算法判定出编码特征。"
 
     @Test
-    fun utf8CorpusDecodesBackToOriginalText() {
+    fun `UTF-8 语料探测出的编码能解回原文`() {
         val bytes = sample.toByteArray(Charsets.UTF_8)
         val detected = EncodingProbe.detect(bytes, bytes.size)
         assertEquals(sample, String(bytes, charsetOf(detected)))
     }
 
     @Test
-    fun gbkCorpusIsNotDetectedAsUtf8AndDecodesBack() {
+    fun `GBK 语料不被探测成 UTF-8 且能解回原文`() {
         val gbk = charsetOf("GBK")
         val bytes = sample.toByteArray(gbk)
         val detected = EncodingProbe.detect(bytes, bytes.size)
@@ -38,12 +38,12 @@ class EncodingTest {
     }
 
     @Test
-    fun emptyInputFallsBackToUtf8() {
+    fun `空输入回落到 FALLBACK 编码`() {
         assertEquals(EncodingProbe.FALLBACK, EncodingProbe.detect(ByteArray(0), 0))
     }
 
     @Test
-    fun strictReaderThrowsOnUndecodableBytes() {
+    fun `不可解码字节必须抛异常而非静默替换出 U+FFFD`() {
         // 0xFF 0xFE 不是合法的 UTF-8 起始字节
         val file = tempFile("strict-bad", byteArrayOf(0x31, 0x32, 0x33, 0xFF.toByte(), 0xFE.toByte()))
         var thrown: Throwable? = null
@@ -53,14 +53,14 @@ class EncodingTest {
     }
 
     @Test
-    fun strictReaderStripsBom() {
+    fun `StrictTextReader 剥离 BOM`() {
         val bom = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
         val file = tempFile("strict-bom", bom + "正文".toByteArray(Charsets.UTF_8))
         assertEquals("正文", StrictTextReader.readAll(file, "UTF-8"))
     }
 
     @Test
-    fun unknownCharsetNameBecomesIoException() {
+    fun `未知编码名转成带该名字的 IOException`() {
         val file = tempFile("strict-charset", "abc".toByteArray(Charsets.UTF_8))
         try {
             StrictTextReader.readAll(file, "NOT-A-REAL-CHARSET")

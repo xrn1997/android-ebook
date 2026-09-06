@@ -35,13 +35,13 @@ class BookStoreTest {
     }
 
     @Test
-    fun chapterRefIsSelfContainedRelativePath() {
+    fun `chapterRef 是自足的相对路径`() {
         val ref = store.chapterRef(bookId, 42)
         assertEquals("books/$bookId/c00042.txt", ref)
     }
 
     @Test
-    fun writeThenReadChapterRoundTripsWithoutAddingIndent() {
+    fun `章文件往返无损且不掺入渲染层缩进`() {
         val paragraphs = listOf("第一段 保留空格", "第二段")
         store.writeChapter(location, 0, paragraphs)
 
@@ -52,19 +52,19 @@ class BookStoreTest {
     }
 
     @Test
-    fun chapterFileEndsWithSingleNewlineBetweenParagraphs() {
+    fun `段落间以单个换行符分隔落盘`() {
         store.writeChapter(location, 7, listOf("甲", "乙"))
         assertEquals("甲\n乙", File(root, "$bookId/c00007.txt").readText(Charsets.UTF_8))
     }
 
     @Test
-    fun readParagraphsReturnsEmptyForMissingFile() {
+    fun `章文件缺失时 readParagraphs 返回空且 hasChapter 为假`() {
         assertEquals(emptyList<String>(), store.readParagraphs(location, 99))
         assertFalse(store.hasChapter(location, 99))
     }
 
     @Test
-    fun importCommitMovesTmpDirToFinalName() {
+    fun `commitImport 把 tmp 暂存目录改名为正式目录`() {
         val staging = store.beginImport(bookId)
         assertTrue(staging.name.endsWith(".tmp"))
         store.writeChapterRaw(staging, 0, "内容")
@@ -76,7 +76,7 @@ class BookStoreTest {
     }
 
     @Test
-    fun abortImportRemovesStagingDir() {
+    fun `abortImport 删除暂存目录`() {
         val staging = store.beginImport(bookId)
         store.writeChapterRaw(staging, 0, "半本")
 
@@ -86,7 +86,18 @@ class BookStoreTest {
     }
 
     @Test
-    fun reconcileDeletesOnlyUnlistedAndStaleTmpDirs() {
+    fun `deleteChapter 只失效该章不牵连其余章`() {
+        store.writeChapter(location, 0, listOf("甲"))
+        store.writeChapter(location, 1, listOf("乙"))
+
+        store.deleteChapter(location, 0)
+
+        assertFalse("被刷新的那章缓存必须失效", store.hasChapter(location, 0))
+        assertTrue("强刷一章不得牵连其余已缓存章节", store.hasChapter(location, 1))
+    }
+
+    @Test
+    fun `reconcile 只回收不在册目录与半成品残留不误删在册书`() {
         File(root, "$bookId/c00000.txt").apply { parentFile?.mkdirs(); writeText("在册") }
         File(root, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/c00000.txt").apply { parentFile?.mkdirs(); writeText("孤儿") }
         File(root, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.txt").writeText("半成品")
@@ -99,7 +110,7 @@ class BookStoreTest {
     }
 
     @Test
-    fun deleteBookRemovesWholeDirectory() {
+    fun `deleteBook 删除整本书目录`() {
         store.writeChapter(location, 0, listOf("甲"))
         store.writeChapter(location, 1, listOf("乙"))
 

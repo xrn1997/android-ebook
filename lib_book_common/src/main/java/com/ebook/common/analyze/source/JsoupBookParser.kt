@@ -275,20 +275,6 @@ class JsoupBookParser(
         return cacheData.toLibrary()
     }
     // endregion
-
-    companion object {
-        /**
-         * 解析失败时的占位文案标记（正文 = 书源 URL + 本标记，见 `JsoupSourceReader` 的 catch 分支）。
-         *
-         * 抽成常量是为了让下载侧能把它与真正文区分开：占位文案**非空**，仅靠 `isBlank()` 判不出来，
-         * 照单入库会把「站点暂时不支持解析」当正文永久缓存、任务还被删掉（用户以为下好了，
-         * 离线打开只看到这行字）。见 `DownloadService.downloading` 的内容校验。
-         */
-        const val UNSUPPORTED_CONTENT_MARKER = "站点暂时不支持解析"
-
-        /** 单章最多抓取的正文分页数：兜底防御翻页链接异常导致的死循环 */
-        private const val MAX_CONTENT_PAGES = 50
-    }
 }
 
 /**

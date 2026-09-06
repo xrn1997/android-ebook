@@ -52,7 +52,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.ebook.book.mvvm.viewmodel.BookImportViewModel
-import com.ebook.book.mvvm.viewmodel.ImportDuplicateState
+import com.ebook.common.importer.ImportDuplicateState
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
 import com.permissionx.guolindev.PermissionX
@@ -88,7 +88,6 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
     // 页面级状态由 Activity 持有：生命周期与 Composable 解耦
     private var scanning by mutableStateOf(false)
     private var canCheck by mutableStateOf(false)
-    private var importing by mutableStateOf(false)
     private var showImportError by mutableStateOf(false)
     private var showFilesPermissionDialog by mutableStateOf(false)
     private var books by mutableStateOf<List<File>>(emptyList())
@@ -146,20 +145,18 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
                 }
             }
         }
-        // 导入成功：撤遮罩 + Toast（对齐原 addSuccess）
+        // 导入成功：Toast（对齐原 addSuccess；遮罩由 isImporting 驱动，无需手工撤）
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.addSuccessEvent.collect {
-                    importing = false
                     showShort(this@ImportBookActivity, getString(R.string.import_add_success))
                 }
             }
         }
-        // 导入失败：撤遮罩 + 信息弹窗（对齐原 MoProgressHUD.showInfo）
+        // 导入失败：信息弹窗（对齐原 MoProgressHUD.showInfo）
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.addErrorEvent.collect {
-                    importing = false
                     showImportError = true
                 }
             }
@@ -204,6 +201,8 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
     override fun PageContent() {
         val progress by viewModel.importProgress.collectAsStateWithLifecycle()
         val duplicateState by viewModel.duplicateState.collectAsStateWithLifecycle()
+        // 遮罩显隐由进程级协调器的批次状态驱动：重进页面也能看到仍在跑的批次
+        val importing by viewModel.isImporting.collectAsStateWithLifecycle()
         // totalCount 在导入开始时锁定（onAddShelf 时 selected 的大小）
         var totalCount by remember { mutableStateOf(0) }
 
@@ -224,7 +223,6 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
             onCancelScan = { viewModel.scanCancel() },
             onAddShelf = { selected ->
                 totalCount = selected.size
-                importing = true
                 viewModel.importBooks(selected)
             },
             onDismissImportError = { showImportError = false },

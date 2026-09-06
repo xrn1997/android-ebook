@@ -234,11 +234,11 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 - 涉及前台服务/离线下载改动时，先读 ADR-0018（dataSync 配额与启动被拒的收口方式）：新增启动点一律走 `DownloadService.start`，发起方先写 `download_chapter` 再拉服务；`foregroundServiceType="dataSync"` 与 `FOREGROUND_SERVICE_DATA_SYNC` 不得删除，两参 `startForeground` 无需改成三参
 
-- 涉及 Room 实体操作，注意主键策略：自然键（note\_url/dur\_chapter\_url）与自增键并存，upsert 用 `existing?.id ?: 0L`（见 ADR-0003）
+- 涉及 Room 实体操作，注意主键策略：自然键（`note_url`/`content_ref`——`content_ref` 原名 `dur_chapter_url`，v3 起是内容定位符：本地书存章文件相对路径、网络书存章节 URL）与自增键并存，upsert 用 `existing?.id ?: 0L`（见 ADR-0003）
 
-- **改实体必须接迁移链**：当前 `AppDatabase` 为 version = 3（`content_ref` 改名、`book_group` 表、`book_shelf` 新增列，`DatabaseModule.MIGRATION_2_3`）。再改动实体要同时做三件事——version +1、在链上追加紧邻的 `MIGRATION_n_n+1`（不跳版、不删旧迁移）、提交 Room 生成的新 schema JSON；禁止启用 `fallbackToDestructiveMigration`（ADR-0003「Schema 演进」）
+- **改实体必须接迁移链**：当前 `AppDatabase` 为 version = 4（v2→v3：`dur_chapter_url` 改名 `content_ref`、新建 `book_group` 表、`book_shelf` 新增四列；v3→v4：删除 `book_content` 表与 `has_cache` 列；链为 `DatabaseModule.MIGRATION_2_3` → `MIGRATION_3_4`）。再改动实体要同时做三件事——version +1、在链上追加紧邻的 `MIGRATION_n_n+1`（不跳版、不删旧迁移）、提交 Room 生成的新 schema JSON；禁止启用 `fallbackToDestructiveMigration`（ADR-0003「Schema 演进」）
 
-- 涉及正文分页跟进（`JsoupBookParser.getBookContent` / `ChapterPageMatcher`）时：判定基准是**目录页给出的原始章节 URL**（不对入口剥后缀），只对「下一页」候选链接剥一次分页后缀再比（扩展名形态不一致时再去扩展名兜底比一次）。对入口也剥离会让「章节号写在连字符后」的站点（`/1234-15.html` 与 `/1234-16.html`）剥后同形而串章（一路跟进后续章节直到页数上限，正文错乱 + 数十次冗余请求）。「第 1 页也带后缀」的站点与此结构同形、无法靠 URL 区分，取舍是**宁漏页不串章**，真要支持需在书源规则里声明分页模板（属 ADR-0016）；边界形态已由 `ChapterPageMatcherTest` 锁死
+- 涉及正文分页跟进（`JsoupSourceReader` 的多页拼接 / `ChapterPageMatcher`；该逻辑自原 `JsoupBookParser.getBookContent` 整体搬来，判定规则未变）时：判定基准是**目录页给出的原始章节 URL**（不对入口剥后缀），只对「下一页」候选链接剥一次分页后缀再比（扩展名形态不一致时再去扩展名兜底比一次）。对入口也剥离会让「章节号写在连字符后」的站点（`/1234-15.html` 与 `/1234-16.html`）剥后同形而串章（一路跟进后续章节直到页数上限，正文错乱 + 数十次冗余请求）。「第 1 页也带后缀」的站点与此结构同形、无法靠 URL 区分，取舍是**宁漏页不串章**，真要支持需在书源规则里声明分页模板（属 ADR-0016）；边界形态已由 `ChapterPageMatcherTest` 锁死
 
 - 涉及列表分页（分类页 `ruleFind.url` / 搜索页 `searchUrl`）时：模板**必须带 `{{page}}`**，否则「加载更多」每页都在请求同一个首页（内置书源曾如此）；页码换算与渲染统一走 `JsoupBookParser` 的 `ListPageUrl`，它把以 `/{{page}}` 结尾的模板在**首页裁掉页码段**（笔趣阁式站点首页是裸路径 `/xuanhuan`、`/so/关键词`，`/xuanhuan/1` 与 `/xuanhuan/` 都是 404），故 `getLibraryData` 等取首页的调用也必须经它，不要自己 `replace("{{page}}", "1")`。判「到底」不能只看空页：**越界页会以 HTTP 200 重复返回首页书目**（软 404），因此追加页一律走 `mergeBookPage` 按 `noteUrl` 去重、无新条目即置 `hasMore=false`——列表页的 `LazyColumn` 以 `noteUrl` 作 item key，重复条目直接抛异常。形态由 `ListPageUrlTest` 与 `BookPageMergeTest` 锁死
 

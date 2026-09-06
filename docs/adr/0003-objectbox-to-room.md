@@ -1,6 +1,6 @@
 # ObjectBox → Room：数据库切换与 ID 策略
 
-将本地数据库从 ObjectBox 5.0.1 整体切换到 Room（初迁 2.7.1，后随依赖升级至 3.0.0、群组迁移为 `androidx.room3`，移除已并入 runtime 的 `room-ktx`，改用 `BundledSQLiteDriver()`）。lib_ebook_db 重写为 `@Entity`/`@Database` + DAO（`AppDatabase`，初迁 version = 1，exportSchema = true；**当前已随功能演进到 version = 2**，见「Schema 演进」），移除 ObjectBoxManager。
+将本地数据库从 ObjectBox 5.0.1 整体切换到 Room（初迁 2.7.1，后随依赖升级至 3.0.0、群组迁移为 `androidx.room3`，移除已并入 runtime 的 `room-ktx`，改用 `BundledSQLiteDriver()`）。lib_ebook_db 重写为 `@Entity`/`@Database` + DAO（`AppDatabase`，初迁 version = 1，exportSchema = true；**当前已随功能演进到 version = 4**，见「Schema 演进」），移除 ObjectBoxManager。
 
 ## 动机
 
@@ -13,10 +13,12 @@
 
 | 实体 | 主键 |
 |------|------|
-| BookShelf / BookInfo / ChapterList / BookContent | 自然键：`note_url` / `dur_chapter_url`（无 autoGenerate） |
+| BookShelf / BookInfo | 自然键：`note_url`（无 autoGenerate） |
+| ChapterList | 自然键：`content_ref`（内容定位符，v3 前叫 `dur_chapter_url`；本地书存章文件相对路径、网络书存章节 URL） |
+| BookGroup | 复合自然键：`comment_key` + `note_url`（v3 新增） |
 | DownloadChapter / SearchHistory | 自增键：`id` autoGenerate |
 
-自然键天然去重（同一 URL 的书只存一份）且 upsert 语义清晰；流水型数据（下载记录、搜索历史）用自增 ID。ObjectBox 时代的 note_url 唯一性语义得到保留。
+自然键天然去重（同一定位符的行只存一份）且 upsert 语义清晰；流水型数据（下载记录、搜索历史）用自增 ID。ObjectBox 时代的 note_url 唯一性语义得到保留。（`book_content` 表及其 `BookContentDao` 已在 v4 删除——正文出 DB 进章文件，本章不再有该实体。）
 
 ## 数据迁移
 
@@ -33,8 +35,16 @@ exportSchema = true。schema JSON 经 `room.schemaDirectory` 配置并提交入�
 - **变更内容**：`download_chapter` 新增 `force_refresh`（`Boolean` → `INTEGER NOT NULL`），承载「命中已有缓存也重抓：先删旧正文再重新下载」的任务级标记；旧行取默认 `0`，未带标记的存量任务仍是「命中即跳过」，语义不变（服务侧判据见 `module_book` 的 `DownloadService`）。
 - **实现位置**：`DatabaseModule.MIGRATION_1_2`（`ALTER TABLE download_chapter ADD COLUMN force_refresh INTEGER NOT NULL DEFAULT 0`），由 `provideAppDatabase` 的 `addMigrations(MIGRATION_1_2)` 注册；**不启用** `fallbackToDestructiveMigration`。
 - **为什么显式 `ALTER TABLE` 而不是清库**：开发期库里已有真实验证成本（书架、已缓存正文、未跑完的下载任务），破坏性迁移会让「覆盖安装」等于重下一遍；且一旦在开发期养成清库的习惯，进稳定期带数据上线就再也回不了头。
-- **后续约束（真实义务）**：再改动实体必须三件事同时做——`@Database.version` +1、在迁移链上**追加**紧邻的 `MIGRATION_n_n+1`（不得跳版、不得只保留最新一条）、提交 Room 生成的新 schema JSON 入库。`docs/multi-source-plan.md` 的 `book_source` 表即按此规则预留为 v3（`addMigrations(MIGRATION_1_2, MIGRATION_2_3)`）。
+- **后续约束（真实义务）**：再改动实体必须三件事同时做——`@Database.version` +1、在迁移链上**追加**紧邻的 `MIGRATION_n_n+1`（不得跳版、不得只保留最新一条）、提交 Room 生成的新 schema JSON 入库。`docs/multi-source-plan.md` 的 `book_source` 表（ADR-0016，尚未实现）同样按此规则追加；本节写就时曾把它预留为 v3，该版本号已被下一节的 `book_group` 占用，落地时排在链尾即可。
 - **验证状态**：列追加在表末尾，与 `2.json` 的 `createSql` 列序一致、主键与索引未变，理论上通过 Room 打开时的 schema 校验；**v1 库覆盖安装升级到 v2 的路径未做装机验证**，需人工在设备上确认（旧版本装数据 → 装新版本 → 书架与下载列表非空、发起一次下载不抛 `IllegalStateException: A migration from ... was necessary but could not be verified`）。
+
+## Schema 演进（v2 → v4，本地书重构补记 2026-09-06）
+
+本地书导入重构（正文出 SQLite 进章文件、评论键换 `comment_key`）又追加了两步迁移，链为 `DatabaseModule.MIGRATION_2_3` → `MIGRATION_3_4`，schema `3.json`/`4.json` 均已提交：
+
+- **v2 → v3**：新建 `book_group(comment_key, note_url, is_primary)`；`book_shelf` 新增 `book_format`/`text_charset`/`match_name`/`match_author` 四列；`chapter_list.dur_chapter_url` 改名 `content_ref`（`ALTER TABLE … RENAME COLUMN`，实体字段同步改名）；删除本地书（`tag='loc_book'`）的 `book_content` 行与书架行。
+- **v3 → v4**：删除 `book_content` 表（网络书正文缓存改落章文件，正文彻底出 DB）与 `chapter_list.has_cache` 列（缓存存在性改由章文件存在性判定，不再有第二个真相源）。
+- 动机、两步拆分的理由与「可再生数据不做兼容」的取舍记录在 `docs/superpowers/specs/2026-09-04-local-book-import-design.md` §4 §5；迁移纪律（不跳版、不删旧迁移、禁 destructive）与本文上一节一致。
 
 ## 被拒绝的选项
 

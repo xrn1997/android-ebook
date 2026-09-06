@@ -5,107 +5,109 @@ import com.xrn1997.common.util.Logger
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.ebook.book.R
-import com.ebook.common.domain.DuplicateBookDetector
-import com.ebook.common.importer.LocalBookImporter
-import com.ebook.common.domain.ParsedBookMeta
-import com.ebook.common.repository.BookRepository
-import com.ebook.common.repository.ImportMergeResult
-import com.ebook.db.entity.LocBookShelfEntity
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.ebook.common.importer.ImportBatchOutcome
+import com.ebook.common.importer.ImportDuplicateState
+import com.ebook.common.importer.ImportNotice
+import com.ebook.common.importer.LocalImportCoordinator
 import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.model.NoOpModel
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 
 /**
- * 导入判重命中的处置状态。
+ * 本地书籍导入页 ViewModel——页面侧的薄桥：扫描文件 + 把导入循环的观察转发给 UI。
  *
- * 导入循环逐文件解析元数据→算 `comment_key`→查书架主键，命中时暂停循环、推 [Detected] 给 UI
- * 弹处置框；用户选完经 [BookImportViewModel.settle] 回写，循环恢复。
- */
-sealed class ImportDuplicateState {
-    /** 空闲：未在等待用户决策 */
-    data object Idle : ImportDuplicateState()
-
-    /**
-     * 命中已有条目：UI 应弹处置框。
-     *
-     * [matches] 必须整列展示——同一键下可能挂着多个条目（此前重复导入攒下的），只取第一条
-     * 会让用户在不知情的情况下被删掉另外几本。
-     */
-    data class Detected(
-        val file: File,
-        val meta: ParsedBookMeta,
-        val matches: List<DuplicateBookDetector.ImportMatch>,
-    ) : ImportDuplicateState()
-}
-
-/**
- * 用户对判重命中的处置选择。
+ * 导入循环本体住在进程级的 [LocalImportCoordinator]（自有作用域，页面销毁不中断），
+ * 本类不再持有循环与判重门：spec §6 要求"点完导入即可继续操作，该书在书架上显示解析中"，
+ * 循环挂在 viewModelScope 上做不到这一点（页面一退整批被取消）。页面需要的能力全部是
+ * coordinator 状态的投影：[duplicateState]（处置框）、[importProgress]（进度文案）、
+ * [isImporting]（遮罩）以及成功/失败事件与合并处置 Toast。
  *
- * [KEEP_BOTH] 是 spec §6 要求的非破坏默认项（"要看现有条目还是继续添加"）：同键的两个条目
- * 读评论时天然取并集，共存本身就是这套模型支持的正常形态，不是需要修补的缺陷。
- */
-private enum class DuplicateResolution { KEEP_BOTH, MERGE, OVERWRITE, CANCEL }
-
-/**
- * 本地书籍导入页 ViewModel。
- *
- * 导入直接走 [LocalBookImporter]（已在内部完成哈希→切章→DB 写入→事件发布），
- * 不再需要 BookImportRepository 做中间转发，也不再需要 BookRepository.addToShelf()。
- * Model 位用 [NoOpModel] 占位（无一次性命令门面需求，见 AGENTS.md MVVM 约定）。
- *
- * 导入时点判重（spec §6，取代原书架侧提示，见 ADR-0023）：每文件先
- * [LocalBookImporter.parseMetadata] 取标题+作者算 `comment_key`，再经
- * [DuplicateBookDetector.findMatchesFor] 与书架各条目当前主键比对。命中时暂停循环、弹四选一
- * 处置框（继续添加 / 智能合并 / 覆盖 / 跳过），选完恢复循环处理下一个文件。
+ * 文件扫描仍归本类：那是纯页面交互（扫描按钮/取消/结果列表），与导入执行无关。
  */
 @HiltViewModel
 class BookImportViewModel @Inject constructor(
-    private val importer: LocalBookImporter,
-    private val duplicateBookDetector: DuplicateBookDetector,
-    private val bookRepository: BookRepository,
+    private val coordinator: LocalImportCoordinator,
 ) : BaseViewModel<NoOpModel>(NoOpModel()) {
     val mImportBookList = MutableLiveData<List<File>>()
     val searchFinishEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val addSuccessEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val addErrorEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
-    /** 导入进度：0 表示未在导入；>0 表示当前正在导入第几本。 */
-    val importProgress = MutableStateFlow(0)
+    /** 导入进度（已处理完的文件数）：遮罩文案用，0 表示尚未处理完任何一本 */
+    val importProgress: StateFlow<Int> = coordinator.progress
+        .map { it.done }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
-    /** 判重处置状态：UI 收集后弹处置框 */
-    private val _duplicateState = MutableStateFlow<ImportDuplicateState>(ImportDuplicateState.Idle)
-    val duplicateState: StateFlow<ImportDuplicateState> = _duplicateState.asStateFlow()
+    /** 批量是否在跑：遮罩显隐由它驱动，重进页面也能正确恢复（批次属于进程而非页面） */
+    val isImporting: StateFlow<Boolean> = coordinator.progress
+        .map { it.running }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    /**
-     * 导入循环的暂停门。
-     *
-     * 用 [AtomicReference] 而不是普通可空字段：门由 IO 线程的导入循环置入、由主线程的按钮
-     * 回调取出并 complete，普通 `var` 在两线程间没有可见性保证（同文件 `isCancel` 就是为此
-     * 加了 `@Volatile`）。`getAndSet(null)` 同时解决重复点击——第二次取到 null，天然幂等，
-     * 不会把上一个文件的决策错灌给下一个门。
-     *
-     * 用户始终不选时的悬挂由 `viewModelScope` 兜住：页面销毁 → 协程取消 → `await()` 抛
-     * 取消异常 → 循环整体退出，不会留下跑不动也停不下的导入。
-     */
-    private val duplicateGate = AtomicReference<CompletableDeferred<DuplicateResolution>?>(null)
+    /** 判重处置状态：UI 收集后弹处置框（页面销毁后门仍在，重进页面可继续处置） */
+    val duplicateState: StateFlow<ImportDuplicateState> = coordinator.duplicateState
+
+    init {
+        // 合并/覆盖处置的结果 → Toast（文案在 module_book，协调器只发语义事件）
+        viewModelScope.launch {
+            coordinator.notices.collect { notice ->
+                when (notice) {
+                    is ImportNotice.MergeAppended -> sendToast(
+                        context.getString(
+                            if (notice.appendedChapters > 0) R.string.import_merge_appended
+                            else R.string.import_merge_equivalent,
+                            notice.appendedChapters,
+                        )
+                    )
+                    ImportNotice.MergeEquivalent -> toast(R.string.import_merge_equivalent)
+                    ImportNotice.MergeDiverged -> toast(R.string.import_merge_diverged)
+                    ImportNotice.MergeTargetNotLocal -> toast(R.string.import_merge_target_network)
+                    ImportNotice.MergeEntryMissing -> toast(R.string.import_merge_entry_gone)
+                }
+            }
+        }
+        // 整批收尾 → 成功事件（轻提示）或失败事件 + 结果文案
+        viewModelScope.launch {
+            coordinator.batchFinished.collect { outcome ->
+                onBatchFinished(outcome)
+            }
+        }
+    }
+
+    private fun onBatchFinished(outcome: ImportBatchOutcome) {
+        if (outcome.failCount == 0) {
+            addSuccessEvent.tryEmit(Unit)
+        } else {
+            addErrorEvent.tryEmit(Unit)
+            sendToast(context.getString(R.string.import_result_format, outcome.successCount, outcome.failCount))
+        }
+    }
 
     //停止扫描
     @Volatile
     private var isCancel: Boolean = false
 
+    /**
+     * 扫描本机可导入的书籍文件。
+     *
+     * 结果**整体替换**而非追加：扫描范围恒为整个外部存储根目录，两次调用的结果集完全重叠，
+     * 追加会让重复扫描把同一批文件在列表里堆两遍（基线行为即如此）。先清空再填，顺带给出
+     * 「扫描已开始」的即时反馈。
+     *
+     * 随之而来的取舍：扫描抛错时列表停在空态、不恢复上一次的结果（catch 只记日志）。
+     * 这是替换语义的代价——要保住旧结果就得把清空挪到成功分支，代价是失去即时反馈。
+     */
     fun searchLocationBook() {
         isCancel = false
         mImportBookList.value = emptyList()
@@ -159,163 +161,32 @@ class BookImportViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 导入选中文件：逐文件解析元数据 → 判重 → 无命中直接导入，有命中暂停等用户处置。
-     *
-     * 循环在 IO 上下文里跑（解析/导入/库写都是重操作），命中时经 [CompletableDeferred] 暂停——
-     * 主线程的 resolve 方法了结门后循环自动恢复，不需要额外的状态机或回调链。
-     */
+    /** 加入书架：把选中文件交给进程级协调器，批量在自有作用域里推进，页面可以随意离开 */
     fun importBooks(books: List<File>) {
-        viewModelScope.launch {
-            importProgress.value = 0
-            var successCount = 0
-            var failCount = 0
-            withContext(Dispatchers.IO) {
-                for ((i, file) in books.withIndex()) {
-                    try {
-                        if (importWithDuplicateCheck(file)) successCount++ else Logger.i(TAG, "用户跳过: ${file.name}")
-                    } catch (e: Exception) {
-                        Logger.e(TAG, "导入失败: ${file.name}", e)
-                        failCount++
-                    }
-                    importProgress.value = i + 1
-                }
-            }
-            importProgress.value = 0
-            if (failCount == 0) {
-                addSuccessEvent.tryEmit(Unit)
-            } else {
-                addErrorEvent.tryEmit(Unit)
-                sendToast(context.getString(R.string.import_result_format, successCount, failCount))
-            }
-        }
-    }
-
-    /**
-     * 导入单个文件，返回是否真的落了库（用户选择跳过时 false）。
-     *
-     * 顺序是**先导入、后处置**：三种处置都需要新条目已作为一份完整的书存在——补章要读它的
-     * 章文件，覆盖要在删旧之前确认新的确实在架。反过来「先删旧再导新」一旦导入抛异常
-     * （切不出章节、严格解码失败），旧条目已被删、新条目没进来，用户两头空且只看到一行日志。
-     */
-    private suspend fun importWithDuplicateCheck(file: File): Boolean {
-        val meta = importer.parseMetadata(file)
-        val matches = duplicateBookDetector.findMatchesFor(meta)
-        val resolution = if (matches.isEmpty()) {
-            DuplicateResolution.KEEP_BOTH
-        } else {
-            awaitDisposition(file, meta, matches)
-        }
-        if (resolution == DuplicateResolution.CANCEL) return false
-
-        val imported = importer.import(file)
-        Logger.i(TAG, "导入完成（新书=${imported.new}）")
-        when (resolution) {
-            DuplicateResolution.MERGE -> applyMerge(imported, matches)
-            DuplicateResolution.OVERWRITE -> applyOverwrite(imported, matches)
-            DuplicateResolution.KEEP_BOTH, DuplicateResolution.CANCEL -> Unit
-        }
-        return true
-    }
-
-    /**
-     * 暂停导入循环等用户处置，返回处置选择。
-     *
-     * `finally` 里复位状态：处置完（或协程被取消）都不能让框留在架上，否则下一个文件的
-     * 检测状态会被上一个残留的 Detected 盖住。
-     */
-    private suspend fun awaitDisposition(
-        file: File,
-        meta: ParsedBookMeta,
-        matches: List<DuplicateBookDetector.ImportMatch>,
-    ): DuplicateResolution {
-        val gate = CompletableDeferred<DuplicateResolution>()
-        duplicateGate.set(gate)
-        _duplicateState.value = ImportDuplicateState.Detected(file, meta, matches)
-        return try {
-            gate.await()
-        } finally {
-            duplicateGate.compareAndSet(gate, null)
-            _duplicateState.value = ImportDuplicateState.Idle
-        }
-    }
-
-    /**
-     * 智能合并：把新条目多出的尾部章节补进旧条目，新条目退场。
-     *
-     * [LocBookShelfEntity.new] 为 false 时 importer 是幂等命中（这份文件的 md5 已在架上，
-     * 没建新条目），无章可补、也没有该删的多余条目，直接返回。
-     * 补章目标取首个本地命中条目（UI 只在存在本地命中时才给这个选项）；同键的其余条目继续
-     * 共存——它们读的是同一批键并集，评论不受影响。
-     */
-    private suspend fun applyMerge(
-        imported: LocBookShelfEntity,
-        matches: List<DuplicateBookDetector.ImportMatch>,
-    ) {
-        if (!imported.new) return
-        val target = matches.firstOrNull { it.isLocal } ?: return
-        when (val outcome = bookRepository.mergeTailChapters(imported.bookShelf.noteUrl, target.noteUrl)) {
-            is ImportMergeResult.Merged -> sendToast(
-                context.getString(
-                    if (outcome.appendedChapters > 0) R.string.import_merge_appended
-                    else R.string.import_merge_equivalent,
-                    outcome.appendedChapters,
-                )
-            )
-            ImportMergeResult.Diverged -> toast(R.string.import_merge_diverged)
-            ImportMergeResult.TargetNotLocal -> toast(R.string.import_merge_target_network)
-            ImportMergeResult.EntryMissing -> toast(R.string.import_merge_entry_gone)
-        }
-    }
-
-    /**
-     * 覆盖：新条目替换掉命中的旧条目。
-     *
-     * 删每一本之前先把它的 `book_group` 行吸收进新条目（[BookRepository.absorbGroupKeys]）——
-     * 旧条目身上可能挂着它自己历次合并攒下的 secondary 键，`book_group` 随书删，不先吸收就
-     * 连读并集一起丢了。
-     *
-     * 过滤掉与新条目同 noteUrl 的那条：md5 幂等命中时 importer 没建新条目，"新条目"就是
-     * 被命中的旧条目本身，不能自己删自己。
-     */
-    private suspend fun applyOverwrite(
-        imported: LocBookShelfEntity,
-        matches: List<DuplicateBookDetector.ImportMatch>,
-    ) {
-        val newNoteUrl = imported.bookShelf.noteUrl
-        matches.filter { it.noteUrl != newNoteUrl }.forEach { old ->
-            bookRepository.absorbGroupKeys(newNoteUrl, old.noteUrl)
-            bookRepository.getBookByUrl(old.noteUrl)?.let { bookRepository.removeFromShelf(it) }
-        }
+        coordinator.submit(books)
     }
 
     private fun toast(resId: Int) {
         sendToast(context.getString(resId))
     }
 
-    /**
-     * UI 的处置回调：取出并了结当前门。
-     *
-     * `getAndSet(null)` 让一次决策只生效一次——连点第二次拿到 null 直接无操作，也就不会把
-     * 上一个文件的决策错灌给下一个文件的门。
-     */
-    private fun settle(resolution: DuplicateResolution) {
-        duplicateGate.getAndSet(null)?.complete(resolution)
-    }
-
     /** 继续添加：两个来源共存（同键，评论按并集共享） */
-    fun resolveKeepBoth() = settle(DuplicateResolution.KEEP_BOTH)
+    fun resolveKeepBoth() = coordinator.resolveKeepBoth()
 
     /** 智能合并：补章进旧条目，新条目退场 */
-    fun resolveMerge() = settle(DuplicateResolution.MERGE)
+    fun resolveMerge() = coordinator.resolveMerge()
 
     /** 覆盖：新条目替换旧条目，旧条目的并集键先吸收 */
-    fun resolveOverwrite() = settle(DuplicateResolution.OVERWRITE)
+    fun resolveOverwrite() = coordinator.resolveOverwrite()
 
     /** 跳过本文件 */
-    fun resolveCancel() = settle(DuplicateResolution.CANCEL)
+    fun resolveCancel() = coordinator.resolveCancel()
 
     fun scanCancel() {
         isCancel = true
+    }
+
+    private companion object {
+        const val TAG = "BookImportViewModel"
     }
 }

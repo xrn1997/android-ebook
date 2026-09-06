@@ -88,9 +88,13 @@ class BookCommentsActivity : BaseMvvmActivity<BookCommentsViewModel>() {
             // M2：阅读器传入逗号分隔的多个章键（跨源合并），我的评论页仍传单键——
             // 统一按逗号拆分，单键场景拆出来就是单元素列表
             val keys = rawKey?.split(",")?.filter { it.isNotEmpty() } ?: emptyList()
+            // 写入键：优先取发送方显式传来的主键（spec §9.2「写评论只用 is_primary 那行」）。
+            // 不能拿 keys.firstOrNull()——并集查询没有 ORDER BY，修键后主键是后插入的那行。
+            // 未传该键的入口只剩「我的评论」页（单键跳来，读写的就是同一个桶），回落首元素即可。
+            val writeKey = bundle.getString(RouteArgs.PRIMARY_COMMENT_KEY) ?: keys.firstOrNull()
             val comment = BookComment(
                 id = 0, userId = 0, username = "", avatar = "",
-                commentKey = keys.firstOrNull(),
+                commentKey = writeKey,
                 chapterUrl = bundle.getString(RouteArgs.CHAPTER_URL),
                 chapterName = bundle.getString(RouteArgs.CHAPTER_NAME),
                 bookName = bundle.getString(RouteArgs.BOOK_NAME),

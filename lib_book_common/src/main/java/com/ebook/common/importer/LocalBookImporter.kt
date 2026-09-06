@@ -22,7 +22,6 @@ import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.ChapterListEntity
 import com.ebook.db.entity.LocBookShelfEntity
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -56,10 +55,9 @@ class LocalBookImporter @Inject constructor(
 ) {
 
     /**
-     * @param onChapter 每落一章回调一次，供 UI 显示进度（spec §6 要求逐章进度而非布尔遮罩）
      * @return `new = false` 表示同一份内容已在书架上，此时不产生任何写入
      */
-    suspend fun import(source: File, onChapter: (chaptersDone: Int) -> Unit = {}): LocBookShelfEntity =
+    suspend fun import(source: File): LocBookShelfEntity =
         withContext(Dispatchers.IO) {
             val (format, reader) = readerFor(source)
 
@@ -81,7 +79,6 @@ class LocalBookImporter @Inject constructor(
                 reader.extractCover(BookSourceFile(staged, charset), staging)
                 val chapters = try {
                     reader.buildChapters(BookSourceFile(staged, charset), sink(staging, md5))
-                        .onEach { onChapter(it.index + 1) }
                         .toList()
                         .map { it.toRow(md5) }
                 } catch (t: Throwable) {

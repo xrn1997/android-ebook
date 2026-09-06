@@ -16,7 +16,7 @@ class ChapterContentCacheTest {
     private fun content(mark: String) = ChapterContent("标题", listOf(mark))
 
     @Test
-    fun repeatedLoadCallsLoaderOnce() = runTest {
+    fun `同一章重复加载只回源一次`() = runTest {
         val cache = ChapterContentCache(capacity = 3)
         var calls = 0
 
@@ -26,7 +26,7 @@ class ChapterContentCacheTest {
     }
 
     @Test
-    fun evictsLeastRecentlyUsedBeyondCapacity() = runTest {
+    fun `超容量时逐出最久未使用的章`() = runTest {
         val cache = ChapterContentCache(capacity = 2)
         var calls = 0
         suspend fun touch(ref: String) = cache.getOrLoad(ref) { calls++; content(ref) }
@@ -39,7 +39,7 @@ class ChapterContentCacheTest {
     }
 
     @Test
-    fun invalidateBookDropsOnlyThatBook() = runTest {
+    fun `invalidateBook 只失效该书不波及其他书`() = runTest {
         val cache = ChapterContentCache(capacity = 4)
         var calls = 0
         cache.getOrLoad("books/A/c00000.txt") { calls++; content("x") }
@@ -53,7 +53,7 @@ class ChapterContentCacheTest {
     }
 
     @Test
-    fun clearEmptiesEverything() = runTest {
+    fun `clear 清空后同章重新回源`() = runTest {
         val cache = ChapterContentCache(capacity = 4)
         var calls = 0
         cache.getOrLoad("r") { calls++; content("x") }

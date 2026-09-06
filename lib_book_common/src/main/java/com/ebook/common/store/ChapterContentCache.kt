@@ -15,8 +15,10 @@ import kotlinx.coroutines.sync.withLock
  * 键用 `content_ref` 而不是 (书, 章) 二元组：`content_ref` 本身是持久定位符且内含 bookId，
  * 于是 [invalidateBook] 按 `/<bookId>/` 片段剔除即可，不必再维护反向索引。
  *
- * 失效入口对应真实事件：重解析、删书、合并来源 → [invalidateBook]；改字号字体**不**失效
- * 本缓存（那只影响排版偏移，另在 Task 15 处理）。
+ * 失效入口对应真实事件：删书、合并来源由 `BookRepository` 调 [invalidateBook]；章节重解析
+ * （下载服务「强制刷新缓存」重抓成功）由 `DownloadService` 调同一入口——重抓不换 `content_ref`
+ * （网络书即章节 URL），不失效就会让已打开的阅读器继续供给旧正文。改字号字体**不**失效本缓存：
+ * 那只影响排版偏移，由 `ChapterLayoutKey` 把字号与宽度编进键里承担。
  */
 class ChapterContentCache(private val capacity: Int = DEFAULT_CAPACITY) {
 
@@ -42,7 +44,7 @@ class ChapterContentCache(private val capacity: Int = DEFAULT_CAPACITY) {
     }
 
     suspend fun invalidateBook(bookId: String) {
-        val marker = "/$bookId/"
+        val marker = BookStore.cacheMarker(bookId)
         mutex.withLock {
             entries.keys.filter { it.contains(marker) }.forEach { entries.remove(it) }
         }

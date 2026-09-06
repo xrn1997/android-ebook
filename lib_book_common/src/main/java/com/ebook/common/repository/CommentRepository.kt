@@ -1,6 +1,5 @@
 package com.ebook.common.repository
 
-import com.ebook.api.entity.CommentMigrateResponse
 import com.ebook.api.entity.CommentPage
 import com.ebook.api.service.comment.CommentDataSource
 import com.xrn1997.common.dto.RespDTO
@@ -44,18 +43,29 @@ class CommentRepository @Inject constructor(
      * 获取评论列表（M2：按聚合键列表做并集查询）。
      *
      * 调用方传入一个或多个 `commentKey`（章键或书键），后端返回所有匹配的评论。
+     *
+     * **空列表直接返回空、不发请求**：契约（M2 spec §3.2.1）规定 `comment_keys` 缺失时后端返回
+     * **全局最新列表**，而 `CommentNetwork` 把空列表翻译成 `comment_keys=null`，正好命中该分支。
+     * 于是调用方（章评论区）拿到的会是全站最新评论而不是空页——旧数据的 `commentKey` 可为 null，
+     * 这条路径真的可达。收口在这里而不是各调用方：隐患出在网络层的空值翻译上，任何新调用方
+     * 传空列表都会踩同一个坑。
      */
     suspend fun getComments(commentKeys: List<String>): Result<List<BookComment>> =
-        queryCommentPage { dataSource.getComments(commentKeys, 1, DEFAULT_PAGE_SIZE) }
+        if (commentKeys.isEmpty()) {
+            Result.success(emptyList())
+        } else {
+            queryCommentPage { dataSource.getComments(commentKeys, 1, DEFAULT_PAGE_SIZE) }
+        }
 
     /**
      * 迁移当前用户的旧键评论到新键（M2：换源后保留评论历史）。
      *
-     * 返回迁移条数，供调用方展示确认文案。
+     * 返回迁移条数（契约见 M2 spec §4.4），供调用方展示确认文案；
+     * 响应 DTO 是传输层细节，不出本仓库层。
      */
-    suspend fun migrateMyComments(oldKey: String, newKey: String): Result<CommentMigrateResponse> =
+    suspend fun migrateMyComments(oldKey: String, newKey: String): Result<Int> =
         coroutineAdapter.safeApiCall { dataSource.migrateMyComments(oldKey, newKey) }
-            .mapCatching { resp -> resp.data ?: throw Exception("迁移评论失败") }
+            .mapCatching { resp -> resp.data?.migratedCount ?: throw Exception("迁移评论失败") }
 
     /** 评论分页查询：从 [CommentPage.items] 取列表，data 为空时兜底为空列表 */
     private suspend fun queryCommentPage(

@@ -52,7 +52,7 @@ class EpubSourceReader @Inject constructor(
 
                 val title = extractChapterTitle(doc, item.id)
                 val paragraphs = extractParagraphs(doc)
-                if (paragraphs.isEmpty()) continue
+                if (!hasBody(paragraphs)) continue
 
                 emit(
                     ChapterEntry(
@@ -172,21 +172,21 @@ class EpubSourceReader @Inject constructor(
     }
 
     /**
-     * 提取正文段落：按 `<p>` 标签拆分，每段经 [TextNormalizer.cleanParagraph] 规范化。
+     * 提取正文段落：按 `<p>` 标签拆分，**原样**返回（不清洗）。
      *
+     * 清洗属于读取层（spec §4 §8）：章文件是"切分后、清洗前"的原文切片，将来改规范化规则
+     * 不必重导。jsoup 的 `text()` 只折叠标签内空白、不删除，故不构成不可逆损毁。
      * 无 `<p>` 标签时回落 `body.wholeText()`，按换行切段。
-     * 空段落丢弃（与 [TextNormalizer.cleanParagraphs] 语义一致）。
      */
     private fun extractParagraphs(doc: Document): List<String> {
         val body = doc.body()
         val pTags = body.select("p")
-        val rawLines = if (pTags.isNotEmpty()) {
-            pTags.map { it.text() }
-        } else {
-            body.wholeText().split('\n')
-        }
-        return TextNormalizer.cleanParagraphs(rawLines)
+        return if (pTags.isNotEmpty()) pTags.map { it.text() } else body.wholeText().split('\n')
     }
+
+    /** 整章是否只有一个空白壳：跳过判定走清洗后的视图，纯空白 XHTML 不该占一个索引位 */
+    private fun hasBody(paragraphs: List<String>): Boolean =
+        paragraphs.any { TextNormalizer.cleanParagraph(it).isNotBlank() }
 
     // ===== 元数据回落 =====
 

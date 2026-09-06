@@ -53,18 +53,19 @@ class BookGroupDaoTest {
     }
 
     @Test
-    fun `switchPrimary demotes old and promotes new within same noteUrl`() = runTest {
+    fun `switchPrimary demotes old row and keeps exactly one primary`() = runTest {
         dao.insert(BookGroupEntity("ck1:aaa", "url1", isPrimary = true))
         dao.insert(BookGroupEntity("ck1:bbb", "url1", isPrimary = false))
 
+        // 生产形态（BookRepository.updateMatchMeta）：清零后插入新键行，而非提升既有行
         dao.clearPrimary("url1")
-        dao.promotePrimary("url1", "ck1:bbb")
+        dao.insert(BookGroupEntity("ck1:ccc", "url1", isPrimary = true))
 
         val rows = dao.getAllForNoteUrl("url1")
-        val primary = rows.single { it.isPrimary }
-        assertEquals("ck1:bbb", primary.commentKey)
-        val secondary = rows.single { !it.isPrimary }
-        assertEquals("ck1:aaa", secondary.commentKey)
+        assertEquals(3, rows.size)
+        assertEquals("ck1:ccc", rows.single { it.isPrimary }.commentKey)
+        assertEquals("ck1:ccc", dao.getPrimaryForNoteUrl("url1"))
+        assertTrue(rows.filter { !it.isPrimary }.map { it.commentKey }.containsAll(listOf("ck1:aaa", "ck1:bbb")))
     }
 
     @Test

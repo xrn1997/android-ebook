@@ -24,6 +24,7 @@ import com.ebook.common.analyze.local.BookFormat
 import com.ebook.common.analyze.local.ChapterEntry
 import com.ebook.common.analyze.source.JsoupSourceReader
 import com.ebook.common.store.BookStore
+import com.ebook.common.store.ChapterContentCache
 import com.ebook.db.entity.DownloadChapterEntity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
@@ -54,6 +55,11 @@ class DownloadService : Service() {
     @Inject lateinit var downloadRepository: DownloadRepository
     @Inject lateinit var jsoupSourceReader: JsoupSourceReader
     @Inject lateinit var bookStore: BookStore
+
+    /**
+     * 正文内存缓存（进程级单例）。强制刷新重抓后必须失效它，见 [downloading] 内的调用点。
+     */
+    @Inject lateinit var contentCache: ChapterContentCache
     private lateinit var notifyManager: NotificationManager
     private var isStartDownload = false
     private var isInit = false
@@ -284,10 +290,11 @@ class DownloadService : Service() {
                         continue
                     }
 
-                    // 强制刷新时先删旧章文件：不删的话 JsoupSourceReader.readChapter 命中旧文件，
-                    // 重抓结果永远不生效；删后走网络重抓并写入，满足用户明确的重复下载需求
+                    // 强制刷新时只删这一章的章文件：不删的话 JsoupSourceReader.readChapter 命中
+                    // 旧文件，重抓结果永远不生效。注意不能图省事调 deleteBook——那是整本书目录，
+                    // 重下第 N 章会把其余已缓存章节一并清掉
                     if (data.forceRefresh && bookStore.hasChapter(location, data.durChapterIndex)) {
-                        bookStore.deleteBook(location)
+                        bookStore.deleteChapter(location, data.durChapterIndex)
                     }
 
                     // 从网络抓取正文并写入章文件（JsoupSourceReader 内部完成文件写入）
@@ -298,19 +305,22 @@ class DownloadService : Service() {
                     )
                     val content = jsoupSourceReader.readChapter(entry, location)
 
-                    // 内容校验：解析器抓不到正文有两种形态，都必须走重试而不能入库——
-                    // 1) 正文选择器失配（反爬页/改版页，HTTP 200）→ 返回空串；
-                    // 2) 解析过程抛异常 → 返回「书源 URL + 占位标记」的非空文案
-                    //    （[JsoupSourceReader.UNSUPPORTED_CONTENT_MARKER]），仅靠 isBlank() 判不出来。
-                    // 照单入库会把占位文案当正文永久缓存、任务还被删（用户以为下好了，
-                    // 离线打开只见一行「站点暂时不支持解析」）；此处抛错走重试，
-                    // 重试耗尽只出队不污染缓存，后续阅读/下载仍可重新拉取
-                    val text = content.displayText
-                    if (text.isBlank() || text.contains(JsoupSourceReader.UNSUPPORTED_CONTENT_MARKER)) {
+                    // 空正文判失败：正文选择器失配（反爬页/改版页）时站点回的是 HTTP 200 空壳页，
+                    // 抓取侧此时**不写章文件**（见 JsoupSourceReader.fetchAndStore），这里抛错走
+                    // 重试；重试耗尽只出队不入库。若照单当成功，任务被删而缓存里空着——离线打开
+                    // 就是空白页，且后续 hasChapter 也救不回来
+                    if (content.paragraphs.none { it.isNotBlank() }) {
                         throw IllegalStateException("章节内容解析失败: ${data.durChapterUrl}")
                     }
 
                     downloadRepository.deleteTask(data)
+                    // 强制刷新重抓成功后失效正文内存缓存（spec §7 的「章节重解析」失效条件）：
+                    // ChapterContentCache 是进程级单例、键为 content_ref（网络书即章节 URL，
+                    // 重抓前后不变），不失效则已打开的阅读器会继续供给旧正文直到 LRU 挤出或进程重启。
+                    // 放在空正文校验之后——抓取失败时章文件未被重写，缓存里的旧正文仍是磁盘真相
+                    if (data.forceRefresh) {
+                        contentCache.invalidateBook(data.noteUrl)
+                    }
                     Logger.d(TAG, "downloading: ${data.durChapterUrl}")
                     success = true
                 } catch (e: Throwable) {

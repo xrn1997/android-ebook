@@ -328,11 +328,9 @@ class CommentRepository @Inject constructor(
     private val coroutineAdapter: CoroutineAdapter
 ) : BaseModel() {
 
-    // 查询章节评论：传入所有关联键的章评键列表（并集读取）
-    suspend fun getChapterComments(commentKeys: List<String>): Result<List<BookComment>>
-
-    // 查询书籍级评论：传入所有关联键的作品键列表
-    suspend fun getBookComments(commentKeys: List<String>): Result<List<BookComment>>
+    // 查询评论（并集读取）：传入聚合键列表即可——章评键（含 #N）或作品键由调用方拼装，
+    // 服务端是同一个 comment_keys 过滤端点，客户端不再拆成两个仅键形态不同的方法
+    suspend fun getComments(commentKeys: List<String>): Result<List<BookComment>>
 
     // 发评论：使用主键
     suspend fun addComment(comment: BookComment): Result<BookComment>
@@ -343,7 +341,7 @@ class CommentRepository @Inject constructor(
     // 我的评论（不变）
     suspend fun getUserComments(): Result<List<BookComment>>
 
-    // 新增：迁移我的旧评论到新键
+    // 新增：迁移我的旧评论到新键，返回迁移条数供 UI 文案使用
     suspend fun migrateMyComments(oldKey: String, newKey: String): Result<Int>
 }
 ```
@@ -360,7 +358,7 @@ val allKeys = bookGroupDao.getKeysForNoteUrl(noteUrl)  // List<String>
 val chapterKeys = allKeys.map { "$it#$chapterIndex" }
 
 // 并集查询
-val comments = commentRepository.getChapterComments(chapterKeys)
+val comments = commentRepository.getComments(chapterKeys)
 ```
 
 ### 5.2 写评论（主键）

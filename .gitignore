@@ -40,3 +40,6 @@ findings.json
 .workbuddy/
 
 module_app/real/
+
+# scripts/generate_test_epub.js 的产物：人工装机验证本地书导入用，测试自建内存 fixture 不依赖它
+test_book.epub

@@ -2,6 +2,7 @@
 
 - 状态：M1a/M1b/M2/M3 均已完成（客户端实现落地，待服务端同步）。**§9.4 已按 ADR-0023 改写**：五信号打分与书架侧提示撤销，重复处置收拢到导入时点。
 - 日期：2026-09-04（r5，自查审计：修掉七处缺口，M1 拆为 M1a/M1b；§9.4 高分档默认按推荐落为"只扩读+轻确认"，可被推翻）
+- 修订：2026-09-06（r6，实现落地后的小修：§6 进度粒度定为「每文件」——单本导入已秒级、逐章进度零消费方，`buildChapters` 的 Flow 逐章能力保留但不接 UI；§6 外部打开补 EPUB 入口与「暂存文件保真名」不变量；§11 的 Flow 测试项随之去掉「进度」）
 - 涉及仓库：`android-ebook`（主体）、`ebook-server`（评论聚合键契约，见 §9）
 - 待修订 ADR：ADR-0017（§12）、ADR-0003（自然键与字段改名波及）；新增 ADR 见 §12
 
@@ -143,13 +144,21 @@ chapter_list - has_cache
 ```
 
 - **前台只付"拷贝"的代价**，切分与落库全在后台。点完导入即可继续操作，该书在书架上显示"解析中"。
+- **进度粒度是「每文件」**（r6 修订，原设想逐章）：批量导入由 `LocalImportCoordinator` 的
+  `ImportBatchProgress`（done/total）上报，单本导入靠书架"解析中"占位行，外部打开用布尔遮罩即可。
+  理由：拷贝即哈希 + 单次批量事务后单本导入已在秒级，逐章进度没有任何消费方；`buildChapters`
+  的 Flow 虽天然可逐章上报（§7），那只是能力供给，不代表 UI 必须逐章消费。
 - **入库时从文件名解析书名与作者**（当前是 `BookImportManager.kt:81` 直接把文件名去扩展名当书名、`:87` 硬写作者占位）。这一步是作品身份的前提：`comment_key` 由书名+作者算出（§9），作者恒为占位会让键**既误并又分裂**——两本同名不同作者的书算出同一个键，而同一本书的两种文件名写法（`星辰变.txt` 与 `《星辰变》我吃西红柿.txt`）算出两个键。解析模式参照常见命名（`书名《X》作者：Y`、`X 作者：Y`、`X by Y`），全部落空才退到占位。
   **必须在本期做**：键一旦开始积累评论数据，事后补解析只能改善新书，旧数据的桶已经错了。
 - MD5 在拷贝那一次读里顺便算完，省掉当前那次独立的全文件读。
 - 批量写用 `RoomDatabase.withWriteTransaction`（`androidx.room3` 3.0.0 提供，room3-runtime sources `RoomDatabase.kt:662`）。全仓业务代码目前零使用事务，这是第一处。
 - 重复检测两级：**精确 = 内容 md5**（同一份文件重导由 `LocalBookImporter` 短路，不产生任何写入）；**模糊 = `comment_key` 命中书架某条目的当前主键** → 在导入时点弹四动作处置框（继续添加 / 智能合并 / 覆盖 / 跳过），不再做事后 SnackBar。处置一律**先导入新条目、后处置旧条目**（反过来时导入抛异常就是两头空），覆盖删旧之前先 `absorbGroupKeys` 吸收旧条目的关联键。语义与取舍见 §9.4 与 ADR-0023。
-- **性能数字目前只有量级推演，没有实测**（6000 次事务 → 1 次事务 + 顺序文件写）。M1a 的第一个任务是在真机上量出改前/改后基线，回填本节。改前基线夹具（`module_book/src/androidTest/java/com/ebook/book/ImportBaselineTest.kt`，2000 章 / 约 6MB UTF-8 TXT，走真实导入链路）已就位，**待人工执行** `./gradlew :module_book:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.ebook.book.ImportBaselineTest` 并从输出的 `BASELINE elapsed=… chapters=… fileKb=… memDeltaKb=…` 行回填，本节在此之前不填任何具体数字。
-- `ReadBookActivity.openBookFromOther`（外部打开，`ACTION_VIEW` + `text/plain`）走同一条流水线，不再单独写一份。
+- **性能数字目前只有量级推演，没有实测**（6000 次事务 → 1 次事务 + 顺序文件写）。M1a 的第一个任务是在真机上量出改前/改后基线，回填本节。夹具规格：2000 章 / 约 6MB UTF-8 TXT，走真实导入链路。**改前**夹具随旧链路（`BookImportManager`）留在 develop_book 分支（提交 2f248fa）；本分支的 `module_book/src/androidTest/java/com/ebook/book/ImportBaselineTest.kt` 是**改后**侧（新流水线，同规格夹具、同名测试）。两者均**待人工执行** `./gradlew :module_book:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.ebook.book.ImportBaselineTest`（改前数字须切到 develop_book 跑）并从输出的 `BASELINE elapsed=… chapters=… fileKb=… memDeltaKb=…` 行回填。回填时注意口径：旧夹具只包住 `importBook`、量不到调用方那遍「导入后再 `addToShelf` 全量重写」的热点；新链路的级联写入（含 `book_group`）已在导入器事务内完成、不存在第二个热点，本节在此之前不填任何具体数字。
+- `ReadBookActivity.openBookFromOther`（外部打开，`ACTION_VIEW`：`text/plain` 与 ADR-0017 的
+  `application/epub+zip`）走同一条流水线，不再单独写一份。Uri 需先拷进 cacheDir 暂存
+  （ContentResolver 流不可重放），**暂存文件必须保住源文件真名**：格式路由按扩展名（§7）、
+  书名/作者按文件名解析（本节入库元数据），统一 `.tmp` 命名会同时打断两者，并连带把
+  `comment_key` 算进一个再也对不上的桶（评论不可再生，§9）。
 
 ## 7. 统一来源抽象
 
@@ -175,7 +184,7 @@ ChapterContent(title: String, paragraphs: List<String>)
 
 - **"书源规则"与"本地格式"在这里是同一件事**：都是"从哪读、怎么读出来"的构造参数。发现类能力（搜索/分类/书城）不属于本接口，留在 `BookParser`——所以 **M1b** 的动作是把 `BookParser` 的 7 个方法**拆成「发现」与「内容」两半**，本地来源只实现后者（M1a 只新增接口与本地实现，不动 `BookParser`）。
 - `readChapter` 返回**段落列表**而非裸 String：EPUB 的 `<p>`、PDF 的文本块、TXT 的 `\n` 段都能自然映射，段评锚点也直接挂在这里。签名若是 `String`，接 EPUB 时就得先破签名。
-- `buildChapters` 返回 `Flow`：进度、取消、恒定内存天然获得，EPUB 不必先全量解包。
+- `buildChapters` 返回 `Flow`：取消与恒定内存天然获得，EPUB 不必先全量解包。（逐章上报的能力也在，但 UI 按 §6 的决定只做每文件粒度，不逐章消费。）
 - 目录规则是**数据不是代码**：`第.{1,7}章.*` 从 `BookImportManager.kt:106` 的硬编码挪进 reader 的规则集，可被用户导入的规则覆盖（本期只做规则可插拔，不做管理 UI）。
 - 编码探测结果**存进 `book_shelf.text_charset`**，不再每次导入重头探测。
 
@@ -202,11 +211,13 @@ ChapterContent(title: String, paragraphs: List<String>)
 方案：桶键换成客户端派生的不透明 token。
 
 ```
-comment_key = "ck1:" + sha256( 归一化(书名) \0 归一化(作者) )
+comment_key = "ck1:" + sha256( len(归一化(书名)) ":" 归一化(书名) len(归一化(作者)) ":" 归一化(作者) )
 章评键      = comment_key + "#" + 章序号
 段评键      = 章评键   + "#" + "pa1:" + 段落下标 + ":" + 该段规范化后前 16 字的哈希
 归一化      = 去书名号、折叠空白、全角转半角、转小写；作者为空（含"佚名""侠名"这类占位）归一为空串
 ```
+
+键的拼接采用**长度前缀**（`5:hello6:world`，与 M2 契约同式）：避免分隔符冲突（「AB」+「C」与「A」+「BC」撞键），且不依赖任何分隔字符。
 
 段评锚点**同样要带版本前缀**（`pa1:`）：它建立在 §8 的规范化之上，规范化一改（比如繁简转换、空白折叠规则调整）所有锚点全变、段评整体散桶。这与 `ck1:` 是同一类风险，只给书名作者版本化而漏掉锚点是半个防护。
 
@@ -286,7 +297,7 @@ book_group(comment_key, note_url, is_primary)   一个 note_url 可有任意多�
 
 - 纯函数单测：章节边界切分（无标题回退、卷名、误命中正文）、编码探测、规范化规则（行内空格保留、缩进不进存储）
 - 字节流切分边界测：在字节缓冲上找行边界时，GBK 这类多字节编码不得把半个字符切进上一章
-- `buildChapters` 的 Flow 测：进度、取消、恒定内存
+- `buildChapters` 的 Flow 测：取消、恒定内存（进度粒度见 §6：每文件，Flow 的逐章能力本期不接 UI）
 - 内容基座测：章文件读写往返无损、`.tmp` 改名的原子提交点、对账清孤儿目录、`withWriteTransaction` 批量写原子性
 - `comment_key` 测：归一化（书名号/全角/空白/空作者与占位词归空）、同书不同来源算出同键、同名不同作者不同键、`ck1:` 前缀稳定性
 - 文件名解析测：`书名《X》作者：Y` / `X 作者：Y` / `X by Y` / 纯书名 各模式的解析结果；解析落空时退占位，且**占位词不出现在键的输入里**

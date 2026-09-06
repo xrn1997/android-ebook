@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +53,7 @@ import com.ebook.book.mvvm.viewmodel.DownloadManageViewModel
 import com.ebook.book.manager.BitIntentDataManager
 import com.ebook.common.event.FROM_BOOKSHELF
 import com.ebook.common.event.KeyCode
+import com.ebook.common.importer.ParsingBook
 import com.ebook.common.ui.BookCover
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
@@ -78,6 +80,8 @@ fun BookShelfPage(
     downloadViewModel: DownloadManageViewModel = hiltViewModel(),
 ) {
     val books by viewModel.list.collectAsState()
+    // 正在解析中的导入：书架行要等落库才有，占位行由进程级导入协调器供数（spec §6）
+    val parsingBooks by viewModel.parsingBooks.collectAsState()
     val context = LocalContext.current
     var isRefreshing by remember { mutableStateOf(false) }
     // 队列剩余数（下载图标角标）：任务增删时由 Room Flow 自动重推，无任务时为 0（角标隐藏）
@@ -156,6 +160,7 @@ fun BookShelfPage(
             BookShelfList(
                 listState = listState,
                 books = books,
+                parsing = parsingBooks,
                 onItemClick = { bookShelf ->
                     val intent = Intent(context, ReadBookActivity::class.java)
                     intent.putExtra("from", OPEN_FROM_APP)
@@ -177,11 +182,15 @@ fun BookShelfPage(
 
 /**
  * 书架列表：页面边距/条目间距走 [CommonUiTokens]（ADR-0006 共享设计语言）。
+ *
+ * [parsing] 是正在解析中的导入，排在书目之前——书架行要等导入落库才有，
+ * 用户"点完导入回到书架"看到的第一个反馈就是这些"解析中"行（spec §6）。
  */
 @Composable
 fun BookShelfList(
     listState: LazyListState,
     books: List<BookShelfEntity>,
+    parsing: List<ParsingBook> = emptyList(),
     onItemClick: (BookShelfEntity) -> Unit,
     onItemLongClick: (BookShelfEntity) -> Unit,
 ) {
@@ -196,12 +205,56 @@ fun BookShelfList(
         ),
         verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing)
     ) {
+        items(parsing, key = { it.id }) { book ->
+            ParsingShelfItem(title = book.title)
+        }
         items(books, key = { it.noteUrl }) { bookShelf ->
             BookShelfItem(
                 bookShelf = bookShelf,
                 onItemClick = { onItemClick(bookShelf) },
                 onItemLongClick = { onItemLongClick(bookShelf) }
             )
+        }
+    }
+}
+
+/**
+ * "解析中"占位行：形态对齐 [BookShelfItem]（同尺寸封面占位 + 标题），副行是小转圈 +
+ * 解析中文案。不可点击——章文件与索引行都还没落库，此刻点进去只会看到空白书。
+ */
+@Composable
+private fun ParsingShelfItem(title: String) {
+    CommonItemCard(enabled = false, onClick = {}, shadowElevation = 0.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BookCover(
+                url = "",
+                contentDescription = null,
+                modifier = Modifier.size(width = 72.dp, height = 105.dp),
+                shape = RoundedCornerShape(6.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 1.5.dp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.shelf_parsing, title),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
