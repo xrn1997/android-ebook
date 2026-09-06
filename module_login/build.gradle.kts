@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.LibraryDefaultConfig
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -10,17 +11,21 @@ android {
     namespace = "com.ebook.login"
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // 集成态（library）：consumer 规则随 AAR 传播给 module_app 的 R8。
+        // AGP 9 双态下 defaultConfig 接收器按模式是具体类型，须经 is
+        // LibraryDefaultConfig 智能转换两种模式才都编译通过（同 module_me
+        // versionCode 的 ApplicationDefaultConfig 先例）；
+        // 独立态（application）无 consumer 概念，此声明不生效。
+        if (this is LibraryDefaultConfig) {
+            consumerProguardFiles("proguard-rules.pro")
+        }
     }
     buildTypes {
-        debug {
-            isMinifyEnabled = false
-            proguardFiles(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro"
-            )
-        }
         release {
-            isMinifyEnabled = false
+            // 集成态本标志对 library 无操作（AGP 只对 application 执行 R8）；
+            // 独立态打 release 包时 R8 在本模块执行，模块级尽早暴露规则缺口
+            //（见 ADR-0024）。
+            isMinifyEnabled = true
             proguardFiles(
                     getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro"
