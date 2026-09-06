@@ -1,4 +1,5 @@
 import com.android.build.api.dsl.ApplicationDefaultConfig
+import com.android.build.api.dsl.LibraryDefaultConfig
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -18,17 +19,21 @@ android {
             versionCode = 1
             versionName = "1.0.0"
         }
+        // 集成态（library）：consumer 规则随 AAR 传播给 module_app 的 R8。
+        // AGP 9 双态下 defaultConfig 接收器按模式是具体类型，须经 is
+        // LibraryDefaultConfig 智能转换两种模式才都编译通过（与上方
+        // ApplicationDefaultConfig 先例同构）；
+        // 独立态（application）无 consumer 概念，此声明不生效。
+        if (this is LibraryDefaultConfig) {
+            consumerProguardFiles("proguard-rules.pro")
+        }
     }
     buildTypes {
-        debug {
-            isMinifyEnabled = false
-            proguardFiles(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro"
-            )
-        }
         release {
-            isMinifyEnabled = false
+            // 集成态本标志对 library 无操作（AGP 只对 application 执行 R8）；
+            // 独立态打 release 包时 R8 在本模块执行，模块级尽早暴露规则缺口
+            //（见 ADR-0024）。
+            isMinifyEnabled = true
             proguardFiles(
                     getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro"
@@ -42,6 +47,12 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+    testOptions {
+        unitTests {
+            // Robolectric 要读到合并后的资源与 PackageManager（SettingViewModelTest 装版本号）
+            isIncludeAndroidResources = true
+        }
     }
 }
 kotlin {
@@ -69,4 +80,9 @@ dependencies {
     // library 集成（isModule=false）下该变体被 disableUnnecessaryAndroidTests 禁用，
     // 声明会触发 AGP 警告 "androidTestImplementation dependencies are ignored..."
     testImplementation(libs.junit)
+    // SettingViewModel 的检查更新编排要 CacheModel(Application)/ReleaseStateStore(Context)，
+    // 无 Robolectric 则 VM 无法在 JVM 下构造（依赖声明与 testOptions 对齐 module_book 先例）
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
