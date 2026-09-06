@@ -8,6 +8,7 @@ import com.ebook.api.entity.ReleaseResponse
 import com.ebook.api.service.release.ReleaseDataSource
 import com.ebook.common.domain.UserSession
 import com.ebook.common.domain.UserSessionManager
+import com.ebook.common.provider.ILoginProvider
 import com.ebook.me.repository.CacheModel
 import com.ebook.me.repository.ReleaseCheckResult
 import com.ebook.me.repository.ReleaseRepository
@@ -23,6 +24,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
+import com.xrn1997.common.mvvm.viewmodel.Overlay
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -108,14 +110,47 @@ class SettingViewModelTest {
         }
     }
 
-    /** 纯 Kotlin 接口的空实现：本组测试不触碰会话（登录态只决定页面显隐，与检查编排无关）。 */
-    private class NoSessionManager : UserSessionManager {
-        override val isLoggedIn: StateFlow<Boolean> = MutableStateFlow(false)
+    /**
+     * 记录调用的假会话管理器。
+     *
+     * 版本检查的编排不触碰会话（登录态只决定页面显隐），但**登出的本地那一半必须可断言**——
+     * [clearSession] 是「用户是否真的退出去了」的唯一落点，故记次数并写调用日志。
+     */
+    private class RecordingSessionManager(
+        private val calls: MutableList<String> = mutableListOf(),
+    ) : UserSessionManager {
+        var clearCount = 0
+            private set
+        override val isLoggedIn: StateFlow<Boolean> = MutableStateFlow(true)
         override val currentUser: StateFlow<UserSession?> = MutableStateFlow(null)
         override suspend fun saveSession(session: UserSession, refreshToken: String) = Unit
         override suspend fun rotateCredentials(accessToken: String, refreshToken: String) = Unit
-        override fun clearSession() = Unit
+        override fun clearSession() {
+            clearCount++
+            calls += "clearSession"
+        }
         override fun getRefreshToken(): String? = null
+    }
+
+    /**
+     * 假登录 provider：记调用次数、写调用日志，可选挂起门（模拟服务端请求在途）。
+     *
+     * 生产路径的 provider 由 TheRouter 解析，测试路径直接注入本假件——同一接缝两个 adapter。
+     */
+    private class FakeLoginProvider(
+        private val calls: MutableList<String> = mutableListOf(),
+        private val outcome: Result<Unit> = Result.success(Unit),
+        private val gate: CompletableDeferred<Unit>? = null,
+    ) : ILoginProvider {
+        var logoutCount = 0
+            private set
+
+        override suspend fun logout(): Result<Unit> {
+            logoutCount++
+            calls += "provider.logout"
+            gate?.await()
+            return outcome
+        }
     }
 
     /** 版本号装到 Robolectric 的 PackageManager 上：`ReleaseStateStore.currentVersion` 的比较基准。 */
@@ -137,11 +172,15 @@ class SettingViewModelTest {
         ),
     )
 
-    private fun newViewModel(stub: GatedStub): SettingViewModel {
+    private fun newViewModel(
+        stub: GatedStub,
+        sessionManager: UserSessionManager = RecordingSessionManager(),
+    ): SettingViewModel {
         val app = ApplicationProvider.getApplicationContext<Application>()
         return SettingViewModel(
-            cacheModel = CacheModel(app),
-            userSessionManager = NoSessionManager(),
+            context = app,
+            cacheModel = CacheModel(app.cacheDir),
+            userSessionManager = sessionManager,
             releaseRepository = ReleaseRepository(stub),
             releaseStateStore = ReleaseStateStore(app),
         )
@@ -186,8 +225,9 @@ class SettingViewModelTest {
         val store = ReleaseStateStore(app).also { it.markCheckSuccess("V0.9.0") }
         val stub = GatedStub { releaseResponse() }
         val viewModel = SettingViewModel(
-            cacheModel = CacheModel(app),
-            userSessionManager = NoSessionManager(),
+            context = app,
+            cacheModel = CacheModel(app.cacheDir),
+            userSessionManager = RecordingSessionManager(),
             releaseRepository = ReleaseRepository(stub),
             releaseStateStore = store,
         )
@@ -256,5 +296,99 @@ class SettingViewModelTest {
         val freshStore = ReleaseStateStore(ApplicationProvider.getApplicationContext())
         assertEquals("", freshStore.lastCheckedTag)
         assertTrue("失败不得写限频时间戳", freshStore.shouldAutoRefresh())
+    }
+
+    // ==================== 登出编排：收尾归 ViewModel ====================
+    //
+    // 修复前登出由 SettingActivity 在 lifecycleScope 里串起来（logout → Toast → finish）：
+    // 网络挂起期间旋转重建 Activity，协程被取消，`clearSession()` 永不执行——用户点了
+    // 「退出登录」却仍是登录态，且没有任何提示。改后整条链在 viewModelScope 内跑完，
+    // 提示与关闭经基类命令通道下发（uiAction 是 lib_common 的 internal，测试观测不到，
+    // 故此处锁的是可观察的那三面：调用顺序、闸门、覆盖层）。
+
+    @Test
+    fun `退出登录先作废服务端会话再清本地会话`() = runTest(mainDispatcher) {
+        val calls = mutableListOf<String>()
+        val sessionManager = RecordingSessionManager(calls)
+        val viewModel = newViewModel(GatedStub { releaseResponse() }, sessionManager)
+
+        viewModel.runLogout(FakeLoginProvider(calls))
+        advanceUntilIdle()
+
+        // 顺序即语义：本地清掉后就再拿不到 refresh token，服务端那一半必须先发
+        assertEquals(listOf("provider.logout", "clearSession"), calls)
+    }
+
+    @Test
+    fun `服务端登出失败时仍然清本地会话`() = runTest(mainDispatcher) {
+        val calls = mutableListOf<String>()
+        val sessionManager = RecordingSessionManager(calls)
+        val provider = FakeLoginProvider(calls, outcome = Result.failure(java.io.IOException("网络不可达")))
+        val viewModel = newViewModel(GatedStub { releaseResponse() }, sessionManager)
+
+        viewModel.runLogout(provider)
+        advanceUntilIdle()
+
+        // 救不回的凭证不该把用户锁在一个他已认为退出的会话里
+        assertEquals(1, provider.logoutCount)
+        assertEquals("服务端失败不得阻塞本地清理", 1, sessionManager.clearCount)
+    }
+
+    @Test
+    fun `独立模式取不到provider时只清本地会话`() = runTest(mainDispatcher) {
+        val calls = mutableListOf<String>()
+        val sessionManager = RecordingSessionManager(calls)
+        val viewModel = newViewModel(GatedStub { releaseResponse() }, sessionManager)
+
+        viewModel.runLogout(null)
+        advanceUntilIdle()
+
+        // isModule=true 时 module_login 不在依赖图内：provider 缺席只影响服务端那一半
+        assertEquals(listOf("clearSession"), calls)
+    }
+
+    @Test
+    fun `连点两次退出登录只作废一次服务端`() = runTest(mainDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        val calls = mutableListOf<String>()
+        val sessionManager = RecordingSessionManager(calls)
+        val provider = FakeLoginProvider(calls, gate = gate)
+        val viewModel = newViewModel(GatedStub { releaseResponse() }, sessionManager)
+
+        viewModel.runLogout(provider)
+        advanceUntilIdle()                             // 第一次挂在服务端请求上
+        viewModel.runLogout(provider)                  // 连点：第二次必须被闸门挡掉
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("在途期间重复触发不得重发登出", 1, provider.logoutCount)
+        assertEquals("本地会话只清一次", 1, sessionManager.clearCount)
+    }
+
+    @Test
+    fun `登出在途时覆盖层为Loading并在结束后复位`() = runTest(mainDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        val viewModel = newViewModel(GatedStub { releaseResponse() }, RecordingSessionManager())
+
+        viewModel.runLogout(FakeLoginProvider(gate = gate))
+        advanceUntilIdle()
+        assertEquals("登出在途要给可见的等待态", Overlay.Loading, viewModel.uiState.value.overlay)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals("收尾后覆盖层必须复位", Overlay.None, viewModel.uiState.value.overlay)
+    }
+
+    @Test
+    fun `登出入口经TheRouter解析provider且缺席时不闪退`() = runTest(mainDispatcher) {
+        val sessionManager = RecordingSessionManager()
+        val viewModel = newViewModel(GatedStub { releaseResponse() }, sessionManager)
+
+        // 公共入口走真解析路径：本模块依赖图里没有 ILoginProvider 实现，
+        // 解析结果必须安全落到「只清本地」，而不是抛异常
+        viewModel.logout()
+        advanceUntilIdle()
+
+        assertEquals(1, sessionManager.clearCount)
     }
 }

@@ -114,12 +114,29 @@ class ClipImageActivity : BaseActivity() {
     }
 
     /**
+     * 结果回报闸门：连点「确定」只放行一次。
+     *
+     * 闸门放在本函数而不是按钮的 `enabled` 上——Compose 在两次点击之间不一定来得及重组，
+     * 禁用改的只是视觉，不是防线。被挡下的那次裁剪产物是新建的位图，直接回收不写盘，
+     * 免得在 cacheDir 里堆一份没人认领的 `cropped_*.jpg`（本模块缓存页正会把它们当临时文件列出）。
+     */
+    private var cropResultReturning = false
+
+    /**
      * 把裁剪结果写为临时 JPEG 并通过 result 返回 Uri（与旧版一致，供上层上传）。
      *
      * JPEG 压缩与文件写入在 IO 线程执行（裁剪输出虽小，仍不阻塞主线程），
      * 完成后回主线程 setResult + finish。
+     *
+     * 作用域留在本页：写盘只有毫秒级，转屏恰好落在其间的概率与代价都极小，
+     * 为它引入一个 ViewModel 属过度设计——故这里只加闸门，不把收尾搬进 VM。
      */
     private fun returnCropResult(cropped: Bitmap) {
+        if (cropResultReturning) {
+            cropped.recycle()
+            return
+        }
+        cropResultReturning = true
         lifecycleScope.launch {
             val resultFile = withContext(Dispatchers.IO) {
                 runCatching {

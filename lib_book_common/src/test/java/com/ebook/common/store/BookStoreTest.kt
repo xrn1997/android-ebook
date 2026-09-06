@@ -118,4 +118,35 @@ class BookStoreTest {
 
         assertFalse(File(root, bookId).exists())
     }
+
+    @Test
+    fun `storageUsage 一次遍历同时给出字节与册数`() {
+        File(root, "$bookId/c00000.txt").apply { parentFile?.mkdirs(); writeText("甲") }
+        File(root, "cccccccccccccccccccccccccccccccc/c00000.txt").apply { parentFile?.mkdirs(); writeText("乙") }
+        File(root, "dddddddddddddddddddddddddddddddd.tmp").apply { parentFile?.mkdirs(); writeText("导入中") }
+        File(root, "stray.txt").writeText("散落文件")
+
+        val usage = store.storageUsage()
+
+        assertEquals("册数不含 .tmp 半成品与散落文件", 2, usage.bookCount)
+        assertEquals("字节是全部章文件之和（含半成品与散落文件）",
+            "甲".toByteArray().size + "乙".toByteArray().size + "导入中".toByteArray().size + "散落文件".toByteArray().size,
+            usage.bytes.toInt())
+    }
+
+    @Test
+    fun `空内容仓库的 storageUsage 两项都归零`() {
+        val usage = store.storageUsage()
+
+        assertEquals(0L, usage.bytes)
+        assertEquals(0, usage.bookCount)
+    }
+
+    @Test
+    fun `内容仓库目录不存在时 storageUsage 也不抛异常`() {
+        val usage = BookStore(File(root, "not-created")).storageUsage()
+
+        assertEquals(0L, usage.bytes)
+        assertEquals(0, usage.bookCount)
+    }
 }

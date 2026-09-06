@@ -1,7 +1,18 @@
 package com.ebook.common.store
 
 import com.ebook.common.analyze.local.BookLocation
+import com.ebook.common.util.treeSize
 import java.io.File
+
+/**
+ * 内容仓库的占用统计，由 [BookStore.storageUsage] 一次遍历得出。
+ *
+ * 两个量必须成对取（缓存页同一行同时显示它们），所以是一个类型而不是 `Pair`。
+ *
+ * @param bytes 章文件字节总数，含 `.tmp` 暂存与散落文件——它们确实占着磁盘
+ * @param bookCount 书目目录数，不含 `.tmp` 半成品
+ */
+data class StorageUsage(val bytes: Long, val bookCount: Int)
 
 /**
  * 本地书籍内容仓库（spec §4）：`filesDir/books/<bookId>/cNNNNN.txt`，一章一个文件。
@@ -89,6 +100,31 @@ class BookStore(private val booksRoot: File) {
      */
     fun deleteChapter(location: BookLocation, index: Int) {
         chapterFile(location, index).delete()
+    }
+
+    /**
+     * 内容仓库占用统计（字节 + 册数），**一次遍历**得到。
+     *
+     * 由本类回答而不是让调用方自行遍历——「一本书一个子目录、章文件怎么命名」是内容仓库的内部知识。
+     * 合成一个查询的理由是纯粹的性能：缓存管理页每次刷新都要这两个数，分成两个方法就会把
+     * 整棵章文件树走两遍（几十本书 × 数千章文件时是能感知的 IO）。
+     *
+     * 口径：[StorageUsage.bytes] 是全部章文件之和，含导入中断的 `.tmp` 暂存与散落文件（它们确实占着磁盘）；
+     * [StorageUsage.bookCount] 只数书目目录——半成品不是一本「看得见的书」，算进去会让缓存页报出
+     * 书架上并不存在的册数。设置页据此**单列一行**呈现，不在该页删书（清理缓存从不碰这里）。
+     */
+    fun storageUsage(): StorageUsage {
+        var bytes = 0L
+        var books = 0
+        for (entry in booksRoot.listFiles().orEmpty()) {
+            if (entry.isDirectory) {
+                if (!entry.name.endsWith(TMP_SUFFIX)) books++
+                bytes += entry.treeSize()
+            } else {
+                bytes += entry.length()
+            }
+        }
+        return StorageUsage(bytes, books)
     }
 
     /**

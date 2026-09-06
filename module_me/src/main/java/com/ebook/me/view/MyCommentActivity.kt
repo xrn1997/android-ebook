@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ebook.common.domain.BookComment
+import com.ebook.common.domain.CommentTime
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
 import com.ebook.common.ui.CommonItemCard
@@ -174,7 +175,7 @@ fun CommentItem(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = comment.addTime,
+                    text = CommentTime.displayText(comment.addTime),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

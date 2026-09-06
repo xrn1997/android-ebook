@@ -4,18 +4,17 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import androidx.lifecycle.viewModelScope
-import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.domain.UserSessionManager
 import com.ebook.common.event.KeyCode
 import com.ebook.common.interceptor.LoginInterceptor
 import com.ebook.common.repository.ProfileRepository
+import com.ebook.common.util.reportFailure
 import com.ebook.login.R
 import com.ebook.login.repository.UserRepository
 import com.therouter.TheRouter.build
 import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import com.xrn1997.common.mvvm.viewmodel.Overlay
-import com.xrn1997.common.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -65,16 +64,7 @@ class LoginViewModel @Inject constructor(
                     loginOnNext()
                     profileRepository.updatePicture(session.avatar)
                     profileRepository.updateNickname(session.nickname)
-                }.onFailure { exception ->
-                    if (CoroutineAdapter.isSessionExpiredHandled(exception)) {
-                        // 会话过期已由全局处置（清会话+提示+跳登录），本调用点静默、只记日志
-                        Logger.w(TAG, "会话过期已由全局处置，本调用点静默（仅日志）：${exception.message}")
-                    } else if (exception is CoroutineAdapter.ApiException) {
-                        sendToast(exception.message())
-                    } else {
-                        sendToast("${exception.message}")
-                    }
-                }
+                }.onFailure { reportFailure(it) }
             } finally {
                 isLoggingIn = false
                 updateOverlay(Overlay.None)

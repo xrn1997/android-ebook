@@ -1,7 +1,6 @@
 package com.ebook.book
 
 import androidx.activity.viewModels
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -33,22 +31,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.ebook.book.mvvm.viewmodel.BookCommentsViewModel
 import com.ebook.book.mvvm.viewmodel.isOwnComment
 import com.ebook.common.domain.BookComment
+import com.ebook.common.domain.CommentTime
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
+import com.ebook.common.ui.Avatar
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.CommonItemCard
-import com.ebook.common.util.DateUtil
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.IBaseRefreshView
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
@@ -307,14 +303,11 @@ fun CommentItem(comment: BookComment, onLongClick: () -> Unit) {
         Column {
             // 头部：头像 + 用户名
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AsyncImage(
-                    model = comment.avatar,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    placeholder = painterResource(R.drawable.image_default)
+                // 空 URL / 加载中 / 取不到三态的兜底归共享组件（中性色块占位、默认头像收尾）；
+                // 原先手写版只在 URL 为空时给默认图，失效链接会留下一个空白圆
+                Avatar(
+                    url = comment.avatar,
+                    modifier = Modifier.size(30.dp),
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
@@ -337,7 +330,7 @@ fun CommentItem(comment: BookComment, onLongClick: () -> Unit) {
             )
             // 时间（右对齐）
             Text(
-                text = DateUtil.formatDate(comment.addTime, DateUtil.FormatType.yyyyMMddHHmm),
+                text = CommentTime.displayText(comment.addTime),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier

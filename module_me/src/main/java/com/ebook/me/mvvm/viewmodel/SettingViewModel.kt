@@ -1,8 +1,10 @@
 package com.ebook.me.mvvm.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.viewModelScope
 import com.ebook.common.domain.UserSessionManager
 import com.ebook.common.provider.ILoginProvider
+import com.ebook.me.R
 import com.ebook.me.repository.CacheModel
 import com.ebook.me.repository.ReleaseCheckResult
 import com.ebook.me.repository.ReleaseRepository
@@ -12,8 +14,10 @@ import com.ebook.me.util.AppVersion
 import com.ebook.me.util.isOlderThan
 import com.therouter.TheRouter
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
+import com.xrn1997.common.mvvm.viewmodel.Overlay
 import com.xrn1997.common.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,13 +33,16 @@ import javax.inject.Inject
  * - 版本更新检查：主动（用户点「检查更新」即时）与静默（进设置页且距上次 ≥7 天）两种触发，
  *   结果分两种消费：更新弹窗（主动检查，以及静默在途被点击**升级**为可见的检查）与
  *   版本行角标（每次由上次检查到的 tag 现场派生）
- * - 退出登录：经 UserSessionManager 单点清会话
+ * - 退出登录：整条收尾（作废服务端 → 清本地 → 提示 + 关页）都在本类的
+ *   [viewModelScope] 内跑完，页面只负责发起（见 [runLogout]）
  * - 登录态：控制「退出登录」区块的显隐
  *
- * 状态约定：**VM 不持有任何用户可见文本**，弹窗文案（"已是最新/发现新版本/检查失败"）由 UI 层
- * 依据 [updateState] 的语义分支经字符串资源解析。分工：发布源顺序与 failover 归
- * [ReleaseRepository]，tag 解析与比较归 [com.ebook.me.util.AppVersion]，落盘与限频窗口归
- * [ReleaseStateStore]，本类只把它们串起来并决定 UI 状态。
+ * 文案约定：检查更新的**弹窗文案不进本类**（"已是最新/发现新版本/检查失败"由 UI 层依据
+ * [updateState] 的语义分支经字符串资源解析）；一次性提示（登出成功）经基类命令通道下发，
+ * 文案在本类经字符串资源解析——与 CacheManageViewModel/ModifyViewModel 同一形态。
+ * 分工：发布源顺序与 failover 归 [ReleaseRepository]，tag 解析与比较归
+ * [com.ebook.me.util.AppVersion]，落盘与限频窗口归 [ReleaseStateStore]，
+ * 本类只把它们串起来并决定 UI 状态。
  *
  * 一条贯穿检查链路的不变量：**判不出结论就不算检查成功**（远端 tag 解析不出版本、或本地
  * 版本读不到 → 按 [UpdateState.CheckError] 处置且不写成功时间戳），否则一个假结论会占满
@@ -43,6 +50,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SettingViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val cacheModel: CacheModel,
     private val userSessionManager: UserSessionManager,
     private val releaseRepository: ReleaseRepository,
@@ -227,27 +235,57 @@ class SettingViewModel @Inject constructor(
         _updateState.value = UpdateState.Idle
     }
 
+    /** 登出在途标志：连点「退出登录」只放行一次（服务端作废与本地清理都不该重跑） */
+    private var logoutInProgress = false
+
     /**
-     * 退出登录：先尽力作废服务端会话，再无条件清本地会话。
+     * 退出登录入口：解析跨模块 provider 后交给 [runLogout] 收尾。
+     *
+     * 独立运行（isModule=true）时 module_login 不在依赖图内，解析结果为 null，
+     * 登出只剩本地清理——调试宿主本就不连后端。
+     */
+    fun logout() = runLogout(TheRouter.get(ILoginProvider::class.java))
+
+    /**
+     * 登出编排：闸门 → 等待态 → 尽力作废服务端 → 无条件清本地 → 提示 + 关页。
+     *
+     * 整条链在 [viewModelScope] 内跑完，而不是交给页面用 `lifecycleScope` 串：登出要先挂一个
+     * 网络请求，请求没回来时用户旋转屏幕会重建 Activity、连带取消页面作用域，
+     * `clearSession()` 就永远轮不到执行——表现为「点了退出登录，页面转回来还是登录态，
+     * 也没有任何提示」。ViewModel 由 ViewModelStore 持有、跨配置变更存活，收尾放它身上才落得实。
      *
      * 顺序与容错的取法：
      * - 服务端作废（`POST /api/auth/logout`，作废该用户全部 refresh token）经
      *   [ILoginProvider] 跨模块取用；**失败不阻塞本地清理**——救不回的凭证不该把用户
      *   锁在一个他已认为退出的会话里。
-     * - 独立运行（isModule=true）时 module_login 不在依赖图内，provider 为 null，
-     *   此时只有本地清理（调试宿主本就不连后端）。
+     * - 本地清理只走 [UserSessionManager.clearSession]，它一次覆盖用户会话的三处镜像
+     *   （`user_session` SP、`spUtils` 兼容键、ProfileRepository 进程内身份流）。
+     * - 提示与关页经基类命令通道下发，且**先 [sendToast] 后 [sendFinish]**：命令通道由
+     *   `MvvmBinder` 在宿主 `lifecycleScope` 的 `repeatOnLifecycle(STARTED)` 里消费，
+     *   页面 `finish()` 后采集器随 `onStop` 取消，还排在 `Channel` 里的命令就再没人取——
+     *   顺序反过来就不是「可能不好看」，而是提示会真的丢。
      *
-     * 本方法是 `suspend`：调用方必须在页面 `finish()` 前 await，否则承载它的协程作用域
-     * 会随页面销毁被取消，登出请求等于从未发出。
-     *
-     * 本地清理只走 [UserSessionManager.clearSession]，它一次覆盖用户会话的三处镜像
-     * （`user_session` SP、`spUtils` 兼容键、ProfileRepository 进程内身份流）。
+     * internal 是给测试留的最小接缝：生产 adapter 是 TheRouter 解析出的真 provider，
+     * 测试 adapter 是假件——同一接缝两个 adapter，于是「先作废服务端再清本地」的顺序、
+     * 连点只发一次、覆盖层复位这三件事都能在 JVM 下断言。
      */
-    suspend fun logout() {
-        TheRouter.get(ILoginProvider::class.java)?.logout()?.onFailure {
-            Logger.w(TAG, "服务端登出失败，仍继续清本地会话：${it.message}")
+    internal fun runLogout(provider: ILoginProvider?) {
+        if (logoutInProgress) return
+        logoutInProgress = true
+        viewModelScope.launch {
+            updateOverlay(Overlay.Loading)
+            try {
+                provider?.logout()?.onFailure {
+                    Logger.w(TAG, "服务端登出失败，仍继续清本地会话：${it.message}")
+                }
+                userSessionManager.clearSession()
+                sendToast(context.getString(R.string.setting_logout_success))
+                sendFinish()
+            } finally {
+                updateOverlay(Overlay.None)
+                logoutInProgress = false
+            }
         }
-        userSessionManager.clearSession()
     }
 }
 

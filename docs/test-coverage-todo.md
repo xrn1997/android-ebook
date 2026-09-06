@@ -91,6 +91,38 @@
   与本轮修掉的「会话三处镜像未一并失效」是同一类缺陷（仅影响独立调试宿主，不影响集成构建）。
   修法：改调 `userSessionManager.clearSession()`；同批已把 `module_book` 调试宿主的模拟登录改成走
   `saveSession`（见其类 KDoc）
+- [ ] **一次性操作的在途闸门没有被测试锁住**（C1 引入）
+  —— `SettingViewModel.runLogout` 的「连点只放行一次」由 `SettingViewModelTest` 在 JVM 下断言
+  （provider 是可注入的假件）。`CacheManageViewModel.clearInProgress` 与
+  `ModifyViewModel.submitInProgress` 是同一条纪律，仍无对应测试。**构造 VM 已经不是障碍**
+  （`CacheModel` 改收 `File` 根后，`CacheManageViewModelTest` 三例已在纯 JVM 下锁住
+  「书籍内容单列呈现、不进可清理总量、`clearAll()` 不动书籍文件」）；缺的是**计数点**：
+  `CacheModel` 是 concrete 类且清理跑在真实 `Dispatchers.IO` 上，既没法让第二次调用确实落在
+  第一次在途期间，也没有「执行了几次」可断言——硬凑时序只会得到一只随机器负载闪的 flaky 测试。
+  解锁方向：给清理路径留一个可注入的挂起钩子（或把「一笔清理」收进带状态的小接缝）。
+  `ModifyViewModel` 侧同理（要凑 `ModifyRepository` 的 10 方法 `UserDataSource` 假件）。
+  本轮按人工装机验证处理（见清单第 8 项）
+- [ ] **第二份字节格式化实现（`module_book` 的 `convertByte`）暂不收口**
+  —— 与 `module_me` 的 `formatSize` 同构但口径不同（`DecimalFormat("###.#")` + 无空格 vs
+  `%.1f` + 空格）。按上浮判据它早该走，可**正确的家是外部库 `lib_common`**（字节格式化与
+  ebook 域无关），而 `formatSize` 已有 `FormatSizeTest` 单独覆盖着——
+  挪进 `lib_book_common` 反而违反分界判据，留下两份则要新增一处共享件。
+  另两处的展示语境本就不同（缓存页要精确到档、导入页要紧凑），强行统一可能只是把两种口径
+  塞进一个带参数的接口，那不叫变深。本轮不动，等下一次 `lib_common` 联动窗口一并处理
+- [ ] **「我的评论」页每次配置变更都重拉全量评论**（2026-09-06 从依赖源码证实，未修）
+  —— lib\_common 0.3.2 的 Compose `BaseActivity.onCreate` 无条件调 `initData()`
+  （`compose/BaseActivity.kt:80`），而 `MyCommentActivity.initData()` 直接 `viewModel.refreshData()`
+  （:61-63）。`CommentViewModel` 跨配置变更存活、列表本来还在，却每次转屏都重发一次
+  `getMyComments` 并把覆盖层打回 `Overlay.Loading`——症状是转一下屏幕列表闪一次加载态、白跑一个请求。
+  **不能直接删掉 `initData()` 覆写**：基类的错误页重试钩子 `onNetworkErrorRetry()` 也走 `initData()`
+  （`compose/BaseMvvmActivity.kt:39`），删了重试就没反应了。
+  建议修法（幂等而非删钩子）：页面入口调 `viewModel.loadData()`，VM 内
+  `fun loadData() { if (list.value.isEmpty()) refreshData() }`——首开拉、有数据时转屏不重拉、
+  失败后列表仍空时重试照常生效；`BaseRefreshViewModel` 自带下拉刷新，用户要新数据有显式入口。
+  测试为什么没顺手补：`CommentViewModel` 要真 `CommentRepository`，后者的 mock 数据源
+  `CommentNetworkTest` 需要 `Json` + `TestAssetManager` 两件套（本仓 `lib_ebook_api` 的
+  `CommentNetworkTestTest` 用的是文件版 `TestAssetManager`），搭这套脚手架的成本远超这条
+  一行守卫本身，故与既有的「VM 接线需 Robolectric + 假仓库」缺口一并处理
 
 ## 人工装机验证清单（本轮未提交改动，2026-09-06）
 
@@ -161,3 +193,24 @@ push 到设备后供第 2 项的 EPUB 入口使用。
 - 下载服务失败重试/出队语义（本文件上方待办条目）
 - 导入页暂停门与处置框交互（本文件上方待办条目）
 - 权限四条回归：拍照/相册/导入/下载通知（ADR-0022）
+
+### 8. module_me 登出收尾、一次性操作闸门与缓存页书籍行（C1、C6，2026-09-06 架构评审轮）
+
+登出的顺序、失败容错、闸门与覆盖层已由 `SettingViewModelTest` 锁死；剩下的正是自动化够不到的
+两面——命令通道（`sendToast`/`sendFinish` 在 lib_common 侧是 internal，测试读不到）与旋转本身。
+
+1. 登录后「我的 → 设置」点「退出登录」并确认：期望等待态转起 → Toast「退出登录成功」→ 页面关闭 →
+   「我的」页回到未登录态，昵称与头像一并清掉（不留上一身份）。
+2. **点完确认后立刻旋转屏幕**：转回来期望登出仍然完成。修复前这里会停在登录态且毫无提示——
+   登出原先挂在页面作用域上，转屏取消协程就把 `clearSession()` 一起吞了。
+3. 各连点两次：「退出登录」确认、「清理全部缓存」、缓存 Sheet 内「清理图片缓存」、「保存昵称」——
+   期望每样只有一条提示、一次结果；清理期间应有等待态而不是「按了没反应」。
+4. 后端侧确认该用户 refresh token 已全部作废（拿旧 token 调 `POST /api/auth/refresh` 应被拒）。
+5. 独立模式（`gradle.properties` 的 `isModule` 临时改 `true`，勿用 `-P` 覆盖，验完改回）重复第 1 项：
+   期望只有本地清理生效、不闪退。
+6. 头像裁剪页连点两次「确定」：期望只回传一张图，缓存管理页的临时文件里不堆第二份 `cropped_*.jpg`。
+7. 「设置 → 清除缓存」页看**书籍内容**行（值形如「6.8 KB · 2 本」）：期望数字与书架藏书量级相符
+   （一本 2000 章约 6 MB）、册数与书架一致，且明显大于「缓存总占用」；点「清理全部缓存」后期望
+   该行数值不变、回书架书都还在、点开还能读；集成态该行应带右箭头，点一下期望直接落回书架
+   （设置与缓存两页一并出栈，返回不再回到设置页）；独立模式（`isModule=true`）重看一次，期望无箭头、不可点。
+   另：导入中途杀掉进程再进本页，期望那本**不计入册数**（`.tmp` 暂存是半成品，等对账回收）。

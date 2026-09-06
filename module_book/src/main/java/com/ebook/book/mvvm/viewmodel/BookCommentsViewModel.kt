@@ -1,13 +1,12 @@
 package com.ebook.book.mvvm.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.book.R
 import com.ebook.common.domain.BookComment
+import com.ebook.common.domain.CommentTime
 import com.ebook.common.domain.UserSessionManager
-import com.ebook.common.util.DateUtil
 import com.ebook.common.repository.CommentRepository
-import com.xrn1997.common.util.Logger
+import com.ebook.common.util.reportFailure
 import com.xrn1997.common.BaseApplication.Companion.context
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -53,12 +52,13 @@ class BookCommentsViewModel @Inject constructor(
             val result = commentRepository.getComments(commentKeys)
             result.onSuccess { data ->
                 val sortedComments = data.sortedByDescending {
-                    DateUtil.parseTime(it.addTime, DateUtil.FormatType.yyyyMMddHHmm)
+                    // 口径收口在 CommentTime：必须到秒，按分钟解析会让同分钟内的评论排成随机序
+                    CommentTime.sortMillis(it.addTime)
                 }
                 updateList(sortedComments)
                 updateStopRefresh()
             }.onFailure { exception ->
-                toastFailure(exception)
+                reportFailure(exception)
                 updateStopRefresh()
             }
         }
@@ -82,7 +82,7 @@ class BookCommentsViewModel @Inject constructor(
                     mVoidSingleLiveEvent.tryEmit(Unit)
                     refreshData()
                 }.onFailure { exception ->
-                    toastFailure(exception)
+                    reportFailure(exception)
                 }
             }
         } else {
@@ -97,26 +97,11 @@ class BookCommentsViewModel @Inject constructor(
                 sendToast(context.getString(R.string.comment_delete_success))
                 refreshData()
             }.onFailure { exception ->
-                toastFailure(exception)
+                reportFailure(exception)
             }
         }
     }
 
-    /**
-     * 统一失败提示：已全局处置的会话过期只记日志、不重复弹 Toast（Q4：事件唯一出口）；
-     * 其余业务异常走业务文案，本地异常走原始 message。
-     */
-    private fun toastFailure(exception: Throwable) {
-        if (CoroutineAdapter.isSessionExpiredHandled(exception)) {
-            Logger.w(TAG, "会话过期已由全局处置，本调用点静默（仅日志）：${exception.message}")
-            return
-        }
-        if (exception is CoroutineAdapter.ApiException) {
-            sendToast(exception.message())
-        } else {
-            sendToast("${exception.message}")
-        }
-    }
 }
 
 /**

@@ -2,14 +2,13 @@ package com.ebook.me.mvvm.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.viewModelScope
-import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.domain.BookComment
+import com.ebook.common.domain.CommentTime
 import com.ebook.common.repository.CommentRepository
-import com.ebook.common.util.DateUtil
+import com.ebook.common.util.reportFailure
 import com.ebook.me.R
 import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel
 import com.xrn1997.common.mvvm.viewmodel.Overlay
-import com.xrn1997.common.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
@@ -37,24 +36,17 @@ class CommentViewModel @Inject constructor(
             updateOverlay(Overlay.Loading)
             val result = commentRepository.getUserComments()
             result.onSuccess { data ->
-                // 按时间倒序：addTime 为 yyyy-MM-dd HH:mm:ss（与服务端/测试数据一致），
-                // 显式传 FormatType，避免隐式依赖 parseTime 的默认格式（改动默认格式会静默破坏排序）
-                val sortedComments = data.sortedByDescending {
-                    DateUtil.parseTime(it.addTime, DateUtil.FormatType.yyyyMMddHHmmss)?.time ?: 0L
-                }
+                // 时间口径（解析格式、到秒精度）收口在 CommentTime，两个页面共用同一把排序键
+                val sortedComments = data.sortedByDescending { CommentTime.sortMillis(it.addTime) }
                 updateList(sortedComments)
                 updateOverlay(if (sortedComments.isEmpty()) Overlay.NoData else Overlay.None)
                 updateStopRefresh()
             }.onFailure { exception ->
-                if (CoroutineAdapter.isSessionExpiredHandled(exception)) {
-                    Logger.w(TAG, "会话过期已由全局处置，本调用点静默（仅日志）：${exception.message}")
-                    updateOverlay(Overlay.None)
-                    updateStopRefresh()
-                    return@onFailure
-                }
-                sendToast(errorText(exception))
+                // 会话过期只记日志（全局已提示过一次），其余弹文案；
+                // 覆盖层形态两类不同：过期时不摆「暂无数据」，交给全局跳转处置
+                val silenced = reportFailure(exception)
                 // 首屏失败（列表仍空）显示空态 + Toast；已有数据刷新失败保持列表
-                updateOverlay(if (list.value.isEmpty()) Overlay.NoData else Overlay.None)
+                updateOverlay(if (!silenced && list.value.isEmpty()) Overlay.NoData else Overlay.None)
                 updateStopRefresh()
             }
         }
@@ -73,13 +65,7 @@ class CommentViewModel @Inject constructor(
             result.onSuccess {
                 sendToast(context.getString(R.string.my_comment_delete_success))
                 refreshData()
-            }.onFailure { exception ->
-                if (CoroutineAdapter.isSessionExpiredHandled(exception)) {
-                    Logger.w(TAG, "会话过期已由全局处置，本调用点静默（仅日志）：${exception.message}")
-                    return@onFailure
-                }
-                sendToast(errorText(exception))
-            }
+            }.onFailure { reportFailure(it) }
         }
     }
 }

@@ -34,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
 import com.ebook.common.domain.AndroidUserSessionManager
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.CommonCard
@@ -51,7 +50,6 @@ import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import com.xrn1997.common.util.ToastUtil
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 /**
  * 设置页：通用（缓存管理）+ 关于（版本检查更新/关于我们）+ 账号（退出登录）。
@@ -115,16 +113,10 @@ class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
                 TheRouter.build(KeyCode.Me.ABOUT_PATH).navigation()
             },
             onLogout = {
-                // 必须 await：finish() 后本作用域被取消，登出请求会没发出去。
-                // 提示与关闭放在 await 之后，保证「已退出」出现时本地会话确实清干净
-                lifecycleScope.launch {
-                    viewModel.logout()
-                    ToastUtil.showShort(
-                        this@SettingActivity,
-                        getString(R.string.setting_logout_success)
-                    )
-                    finish()
-                }
+                // 页面只发起。登出要先挂一个网络请求，收尾若放在本页作用域里，
+                // 用户在请求回来前转屏就会把「清本地会话」一起取消掉；整条链改由 VM 跑完，
+                // 提示与关页经基类命令通道下发（见 SettingViewModel.runLogout）
+                viewModel.logout()
             }
         )
     }

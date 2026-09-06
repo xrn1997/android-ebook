@@ -9,7 +9,6 @@
     <string name="me_login_now">立即登录</string>
     <string name="me_edit_profile_desc">编辑资料</string>
     <string name="me_avatar_desc">用户头像</string>
-    <string name="me_default_avatar_desc">默认头像</string>
     <string name="me_shelf_count">书架藏书</string>
     <string name="me_recent_book">最近在读</string>
     <string name="me_recent_book_empty">暂无</string>
@@ -68,6 +67,10 @@
     <string name="cache_category_image_desc">书籍封面、头像等图片的磁盘缓存，由图片加载库自动管理，清理后将按需重新下载。</string>
     <string name="cache_category_temp_desc">使用过程中产生的临时文件（如头像裁剪的中间产物），清理不影响正常使用。</string>
     <string name="cache_category_other_desc">其他功能产生的缓存目录，清理后相关功能首次使用时可能需要重新加载。</string>
+    <string name="cache_books_title">书籍内容</string>
+    <string name="cache_books_value">%1$s · %2$d 本</string>
+    <string name="cache_books_desc">已下载或导入的书正文，不属于缓存：清理缓存不会删除它，删除书籍请在书架长按操作。</string>
+    <string name="cache_books_desc_open">已下载或导入的书正文，不属于缓存：清理缓存不会删除它。点此行到书架，长按书籍即可删除。</string>
 
     <!-- ===== 编辑资料页 ===== -->
     <string name="modify_info_title">编辑资料</string>

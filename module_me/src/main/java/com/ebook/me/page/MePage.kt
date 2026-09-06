@@ -1,7 +1,6 @@
 package com.ebook.me.page
 
 import androidx.activity.compose.LocalActivity
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -38,17 +37,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import coil.compose.AsyncImage
 import com.ebook.common.event.KeyCode
+import com.ebook.common.ui.Avatar
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
 import com.ebook.common.ui.CommonListItem
@@ -287,7 +284,8 @@ private fun AdaptStatusBarIcons(gradientStart: Color) {
 /**
  * 用户头像：80dp 外圈半透明光环 + 72dp 圆形图像。
  *
- * 登录且头像 URL 非空时加载网络图（[AsyncImage]），否则回退 image_default 默认图。
+ * 图像本身交给共享组件 [Avatar]：空 URL、加载中、取不到这三态的兜底由它统一负责。
+ * 本页只留头部设计里的光环（渐变背景上的半透明环，只此一处用，故不上收进组件）。
  *
  * @param ringColor 光环/背景语义色（随头部深色适配切换，保证与渐变背景协调）
  */
@@ -302,25 +300,12 @@ private fun MeAvatar(isLoggedIn: Boolean, avatarUrl: String, ringColor: Color) {
             shape = CircleShape,
             color = ringColor.copy(alpha = 0.25f)
         ) {}
-        if (isLoggedIn && avatarUrl.isNotEmpty()) {
-            AsyncImage(
-                model = avatarUrl,
-                contentDescription = stringResource(R.string.me_avatar_desc),
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Image(
-                painter = painterResource(id = R.drawable.image_default),
-                contentDescription = stringResource(R.string.me_default_avatar_desc),
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-        }
+        // 未登录传空串即落到默认头像；URL 非空但取不到时组件兜底成默认头像，不再留空白圆
+        Avatar(
+            url = if (isLoggedIn) avatarUrl else "",
+            modifier = Modifier.size(72.dp),
+            contentDescription = stringResource(R.string.me_avatar_desc),
+        )
     }
 }
 
