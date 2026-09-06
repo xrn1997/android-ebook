@@ -19,21 +19,27 @@ R8 重命名后必崩。
 
 ## 决策
 
-### 1. 双态规则机制（一份文件、双声明）
+### 1. 双态规则机制（consumer-rules.pro + proguard-rules.pro）
 
-每个模块一份 `proguard-rules.pro`，同时挂两种机制：
+遵循 Android 标准约定，混淆文件按职责拆分为两份：
+
+- **`consumer-rules.pro`**：经 `consumerProguardFiles()` 声明，集成态随 AAR 传播给消费方
+  的 R8。规则内容的唯一来源（single source of truth）。
+- **`proguard-rules.pro`**：经 `buildTypes.release.proguardFiles()` 声明，独立态模块自己
+  执行 R8 时使用。功能模块的 `proguard-rules.pro` 仅含 `-include consumer-rules.pro`，
+  避免两份文件重复维护；纯 library 模块不需要此文件。
 
 ```kotlin
 defaultConfig {
-    consumerProguardFiles("proguard-rules.pro")   // 集成态：随 AAR 传播
+    consumerProguardFiles("consumer-rules.pro")    // 集成态：随 AAR 传播
 }
 buildTypes {
     release {
         isMinifyEnabled = isModule                 // 仅独立态开启
         proguardFiles(
             getDefaultProguardFile("proguard-android-optimize.txt"),
-            "proguard-rules.pro"
-        )                                          // 独立态：自己是 R8 执行者
+            "proguard-rules.pro"                   // 独立态：-include consumer-rules.pro
+        )
     }
 }
 ```

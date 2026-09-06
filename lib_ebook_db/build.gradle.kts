@@ -9,7 +9,7 @@ plugins {
 android {
     namespace = "com.ebook.db"
     defaultConfig {
-        consumerProguardFiles("proguard-rules.pro")
+        consumerProguardFiles("consumer-rules.pro")
     }
     testOptions {
         unitTests {

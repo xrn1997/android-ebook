@@ -26,7 +26,7 @@ android {
         // ApplicationDefaultConfig 先例同构）；
         // 独立态（application）无 consumer 概念，此声明不生效。
         if (this is LibraryDefaultConfig) {
-            consumerProguardFiles("proguard-rules.pro")
+            consumerProguardFiles("consumer-rules.pro")
         }
     }
     buildTypes {

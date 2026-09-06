@@ -1,5 +1,5 @@
-# lib_ebook_api 混淆规则（一份文件、双声明；本模块恒为 library，规则经
-# consumerProguardFiles 传播给消费方的 R8）。
+# lib_ebook_api consumer 规则（恒为 library，规则经 consumerProguardFiles 传播给
+# 消费方的 R8）。
 # 当前无需任何手写规则，依据：
 # - DTO 反射式 serializer 查找（JsonUtils.parseJson 的 clazz.kotlin.serializer()）
 #   由 kotlinx-serialization-core jar 内置的

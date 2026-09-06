@@ -5,7 +5,7 @@
 #   无需显式 keep；ServiceProvider 实现类不在 manifest、无 aapt 兜底，必须显式 keep。
 # - 行号属性：release 崩溃栈配合 build/outputs/mapping/<variant>/mapping.txt 还原；
 #   renamesourcefileattribute 隐藏原始文件名（行号保留 + 不泄漏源文件名）。
-# 功能模块的反射面规则在各模块自己的 proguard-rules.pro（经 consumer 规则传播）。
+# 功能模块的反射面规则在各模块自己的 consumer-rules.pro（经 consumer 规则传播）。
 # 禁止无证据的 -keep/-dontwarn。
 
 # —— 崩溃栈可读性 ——

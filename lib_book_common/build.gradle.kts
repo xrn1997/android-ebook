@@ -10,7 +10,7 @@ plugins {
 android {
     namespace = "com.ebook.common"
     defaultConfig {
-        consumerProguardFiles("proguard-rules.pro")
+        consumerProguardFiles("consumer-rules.pro")
     }
     buildTypes {
         debug {

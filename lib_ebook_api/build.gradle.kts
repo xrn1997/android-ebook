@@ -22,7 +22,7 @@ android {
     namespace = "com.ebook.api"
     defaultConfig {
         buildConfigField("String", "EBOOK_SERVER_HOST", "\"$ebookServerHost\"")
-        consumerProguardFiles("proguard-rules.pro")
+        consumerProguardFiles("consumer-rules.pro")
     }
     buildFeatures {
         buildConfig = true

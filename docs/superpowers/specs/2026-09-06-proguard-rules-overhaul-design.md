@@ -60,19 +60,19 @@
 | 集成态 library | `consumerProguardFiles`（随 AAR 传播进 module_app 的 R8） | `proguardFiles`（无 R8 任务，标志无操作） |
 | 独立态 application | `proguardFiles`（自己是 R8 执行者） | `consumerProguardFiles`（无消费方） |
 
-**结论：一份文件，双声明。** 每个模块一份 `proguard-rules.pro`，同时挂两种机制：
+**结论：遵循 Android 标准约定，按职责拆分为两份文件。** `consumer-rules.pro` 挂 `consumerProguardFiles`（集成态随 AAR 传播，规则内容的唯一来源）；`proguard-rules.pro` 挂 `buildTypes.release.proguardFiles`（独立态自己执行 R8）。功能模块的 `proguard-rules.pro` 仅含 `-include consumer-rules.pro` 避免重复维护；纯 library 模块只需 `consumer-rules.pro`。
 
 ```kotlin
 defaultConfig {
-    consumerProguardFiles("proguard-rules.pro")   // 集成态：随 AAR 传播
+    consumerProguardFiles("consumer-rules.pro")    // 集成态：随 AAR 传播
 }
 buildTypes {
     release {
         isMinifyEnabled = true                     // 独立态生效；集成态对 library 无操作
         proguardFiles(
             getDefaultProguardFile("proguard-android-optimize.txt"),
-            "proguard-rules.pro"
-        )                                          // 独立态：自己是 R8 执行者
+            "proguard-rules.pro"                   // 独立态：-include consumer-rules.pro
+        )
     }
 }
 ```
@@ -117,15 +117,15 @@ response.newBuilder()
 
 ### 3.5 构建脚本改动清单
 
-- 5 个功能模块：`defaultConfig` 加 `consumerProguardFiles`；buildTypes 的 **debug 块删除**（永不混淆，纯噪音）；release 块保留并置 `isMinifyEnabled = true`。
-- lib_ebook_db / lib_ebook_api：删除 buildTypes 块（library 无独立身份）；`defaultConfig` 挂 `consumerProguardFiles`（lib_ebook_db 已有，保留）。
-- lib_book_common：`defaultConfig` 挂 `consumerProguardFiles`。
-- module_app：release 置 `isMinifyEnabled = true`。
+- 5 个功能模块：`defaultConfig` 加 `consumerProguardFiles("consumer-rules.pro")`；buildTypes 的 **debug 块删除**（永不混淆，纯噪音）；release 块保留并置 `isMinifyEnabled = isModule`，`proguardFiles` 指向 `proguard-rules.pro`（内容仅 `-include consumer-rules.pro`）。
+- lib_ebook_db / lib_ebook_api：删除 buildTypes 块（library 无独立身份）；`defaultConfig` 挂 `consumerProguardFiles("consumer-rules.pro")`；不保留 `proguard-rules.pro`（纯 library 无独立 R8）。
+- lib_book_common：`defaultConfig` 挂 `consumerProguardFiles("consumer-rules.pro")`；不保留 `proguard-rules.pro`。
+- module_app：release 置 `isMinifyEnabled = true`，`proguardFiles` 指向 `proguard-rules.pro`（纯 application，无 consumer 文件）。
 
 ## 4. 文档同步
 
-- 新增 `docs/adr/0024-*`（编号顺延）：记录混淆体系决策——双态规则机制、模块归属原则、"自带规则优先、不凑规则"判据、EncodingInterceptor 去反射理由。
-- AGENTS.md「构建约定」补一小节：混淆规则归属约定（一份文件双声明、TheRouter 规则放功能模块、行号属性放 module_app、新增反射面时先查依赖是否自带规则）。
+- 新增 `docs/adr/0024-*`（编号顺延）：记录混淆体系决策——双态规则机制（consumer-rules.pro + proguard-rules.pro 两份文件）、模块归属原则、"自带规则优先、不凑规则"判据、EncodingInterceptor 去反射理由。
+- AGENTS.md「构建约定」补一小节：混淆规则归属约定（文件拆分遵循 Android 标准约定、TheRouter 规则放功能模块 consumer-rules.pro、行号属性放 module_app、新增反射面时先查依赖是否自带规则）。
 
 ## 5. 验证方案（按仓库分工：Agent 止于编译与静态检查）
 
