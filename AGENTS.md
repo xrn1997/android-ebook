@@ -137,6 +137,8 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 - **前台服务约定（离线下载，见 ADR-0018）**：`DownloadService` 声明为 `foregroundServiceType="dataSync"`，两参 `startForeground(id, notification)` 合法且足够（其内部传 `ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST`，语义是取 manifest 声明的类型；`MissingForegroundServiceTypeException` **只在 manifest 未声明类型时**抛）——不存在“必须改成三参调用”的问题，不要按这类评审断言改动。targetSdk 35+ 的真实约束是两条：dataSync 前台服务在任意 24 小时内只有 6 小时配额（到点回调 `Service.onTimeout(int, int)`，必须在数秒内 `stopSelf()`，否则被记 `RemoteServiceException`），以及配额用尽/应用后台时启动被拒抛 `*ServiceStartNotAllowedException`。因此：**拉起服务一律走** **`DownloadService.start(context, intent)`**（返回 false 即需提示用户），禁止在页面/ViewModel 里直接调 `ContextCompat.startForegroundService`；**发起下载先入库再拉服务**（`BookReadViewModel.startDownload`），否则启动被拒时只躲在 Intent 里的任务会丢；`onTimeout` 内只做数秒可完成的收尾，不得查库/发网络请求/起协程；**失败章必须在重试耗尽后出队**（`DownloadService.downloading`）——`getNextDownloadTask` 永远取队头，失败任务留在表里会让服务在同一章上无限重试（常驻通知不消失、前台服务不停止、该书后续章节全被队头阻塞），跳过章数经 `skippedCount` 带进收尾文案，不静默丢章；暂停中断重试时**不出队**（任务保留待续跑）
 
+- **混淆规则约定（见 ADR-0024）**：release 混淆已开启（`module_app` release `isMinifyEnabled = true`；功能模块 `isMinifyEnabled = isModule`——独立态开启以尽早暴露规则缺口，集成态关闭以避免 AGP 对 library 执行 R8 剥离类）。**规则归属**：每个模块一份 `proguard-rules.pro`，同时挂 `consumerProguardFiles`（集成态随 AAR 传播）与 `proguardFiles`（独立态自己执行 R8）；只写本模块反射面需要的规则，第三方库（kotlinx-serialization、Retrofit、Room3、Hilt、Coil、Compose、AndroidX）自带 consumer 规则已覆盖，**不重复、不凑 `-dontwarn`**。**新增反射面时**先查依赖是否自带规则（grep jar/AAR 内 `META-INF/proguard/` 与 `proguard.txt`），有则不写、无则手写并注释证据。**禁止无证据的 `-keep`/`-dontwarn`**；行号属性（`-keepattributes SourceFile,LineNumberTable`）只放 `module_app`，一处声明全局合并
+
 - 不要引入新的编译警告，提交代码应保持警告清洁
 
 ## MVVM 架构约定
