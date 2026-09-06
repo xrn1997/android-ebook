@@ -26,7 +26,8 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // 集成态 R8 执行者；崩溃排查依赖 build/outputs/mapping/ 的 mapping.txt（见 ADR-0024）
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

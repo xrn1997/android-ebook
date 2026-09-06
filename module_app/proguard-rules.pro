@@ -1,40 +1,18 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.kts.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# module_app 混淆规则（R8 唯一集成态执行者，release 已开启 isMinifyEnabled）。
+# 规则来源与证据：
+# - TheRouter 全套：官方 README 要求 + 运行时 RouteMapKt 按类名字符串
+#   Class.forName 的字节码证据；@Route 的 Activity 由 manifest aapt 规则兜底，
+#   无需显式 keep；ServiceProvider 实现类不在 manifest、无 aapt 兜底，必须显式 keep。
+# - 行号属性：release 崩溃栈配合 build/outputs/mapping/<variant>/mapping.txt 还原；
+#   renamesourcefileattribute 隐藏原始文件名（行号保留 + 不泄漏源文件名）。
+# 功能模块的反射面规则在各模块自己的 proguard-rules.pro（经 consumer 规则传播）。
+# 禁止无证据的 -keep/-dontwarn。
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# —— 崩溃栈可读性 ——
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
--keepattributes *Annotation*
--keepclassmembers class * {
-    @org.greenrobot.eventbus.Subscribe <methods>;
-}
--keep enum org.greenrobot.eventbus.ThreadMode { *; }
-
-# Only required if you use AsyncExecutor
--keepclassmembers class * extends org.greenrobot.eventbus.util.ThrowableFailureEvent {
-    <init>(java.lang.Throwable);
-}
-
-# need add for Fragment page route
-# -keep public class * extends android.app.Fragment
-# -keep public class * extends androidx.fragment.app.Fragment
-# -keep public class * extends android.support.v4.app.Fragment
-
+# —— TheRouter（官方 README 全套）——
 -keep class androidx.annotation.Keep
 -keep @androidx.annotation.Keep class * {*;}
 -keepclassmembers class * {
@@ -51,4 +29,9 @@
 }
 -keepclasseswithmembers class * {
     @com.therouter.router.Autowired <fields>;
+}
+
+# —— ServiceProvider 实现类 ——
+-keep @com.therouter.inject.ServiceProvider class * {
+    *;
 }
