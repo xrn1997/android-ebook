@@ -1,0 +1,26 @@
+schema_version: 1
+module_path: build_logic
+title: Gradle Convention Plugins（构建约定插件集）
+scope:
+    - build-logic/
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: 8006e04b-9329-4e20-91d5-016d0e6f3b8a
+kk_ordinal: 2
+kk_cards:
+    architecture_design:
+        id: 16b53854-0f06-4d42-9b7a-44689db16d7a
+        title: Gradle Convention Plugins（构建约定插件集）
+    coding_conventions:
+        id: 1b71dc1f-1577-48c0-a674-1c9570d54d06
+        title: Gradle Convention Plugins（构建约定插件集）
+    overview:
+        id: 9c46c3e0-d82d-44d3-bdc9-f5455b2fb95a
+        title: Gradle Convention Plugins（构建约定插件集）
+    tech_stack:
+        id: 1d3afd42-5d33-4f42-93a1-ce7336134847
+        title: Gradle Convention Plugins（构建约定插件集）
+    unique_setup_and_commands:
+        id: 6f32bd9f-c7f9-42c4-9e1c-c69e8d2d7e86
+        title: Gradle Convention Plugins（构建约定插件集）

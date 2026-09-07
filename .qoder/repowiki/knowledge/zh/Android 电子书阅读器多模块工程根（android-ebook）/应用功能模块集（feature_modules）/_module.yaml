@@ -1,0 +1,27 @@
+schema_version: 1
+module_path: feature_modules
+title: 应用功能模块集（feature_modules）
+scope:
+    - module_app/
+    - module_main/
+    - module_book/
+    - module_find/
+    - module_me/
+    - module_login/
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: 92c1bbc4-9c5a-4572-a7b1-4462c1bb4fa3
+kk_cards:
+    architecture_design:
+        id: 1118493e-45ef-41ed-99a8-ec0f46e94d87
+        title: 应用功能模块集（feature_modules）
+    coding_conventions:
+        id: c8478efa-579a-4b45-afa9-4276c4805446
+        title: 应用功能模块集（feature_modules）
+    overview:
+        id: 9f4bf218-f8f1-45bd-ace1-8eff94f5c9ca
+        title: 应用功能模块集（feature_modules）
+    tech_stack:
+        id: 8585ac67-b591-4bdc-aa69-3a32ff0e34c0
+        title: 应用功能模块集（feature_modules）

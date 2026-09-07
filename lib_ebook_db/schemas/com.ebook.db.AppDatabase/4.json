@@ -1,0 +1,364 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 4,
+    "identityHash": "68f9cee9b2742744157940bbeabcd0d0",
+    "entities": [
+      {
+        "tableName": "book_shelf",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`note_url` TEXT NOT NULL, `dur_chapter` INTEGER NOT NULL, `dur_chapter_page` INTEGER NOT NULL, `final_date` INTEGER NOT NULL, `tag` TEXT NOT NULL, `book_format` TEXT, `text_charset` TEXT, `match_name` TEXT, `match_author` TEXT, PRIMARY KEY(`note_url`))",
+        "fields": [
+          {
+            "fieldPath": "noteUrl",
+            "columnName": "note_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durChapter",
+            "columnName": "dur_chapter",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durChapterPage",
+            "columnName": "dur_chapter_page",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finalDate",
+            "columnName": "final_date",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tag",
+            "columnName": "tag",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bookFormat",
+            "columnName": "book_format",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "textCharset",
+            "columnName": "text_charset",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "matchName",
+            "columnName": "match_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "matchAuthor",
+            "columnName": "match_author",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "note_url"
+          ]
+        }
+      },
+      {
+        "tableName": "book_info",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT NOT NULL, `tag` TEXT NOT NULL, `note_url` TEXT NOT NULL, `chapter_url` TEXT NOT NULL, `final_refresh_data` INTEGER NOT NULL, `cover_url` TEXT NOT NULL, `author` TEXT NOT NULL, `introduce` TEXT NOT NULL, `origin` TEXT NOT NULL, `status` TEXT NOT NULL, PRIMARY KEY(`note_url`))",
+        "fields": [
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tag",
+            "columnName": "tag",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "noteUrl",
+            "columnName": "note_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chapterUrl",
+            "columnName": "chapter_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finalRefreshData",
+            "columnName": "final_refresh_data",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coverUrl",
+            "columnName": "cover_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "author",
+            "columnName": "author",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "introduce",
+            "columnName": "introduce",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origin",
+            "columnName": "origin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "note_url"
+          ]
+        }
+      },
+      {
+        "tableName": "chapter_list",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`note_url` TEXT NOT NULL, `dur_chapter_index` INTEGER NOT NULL, `content_ref` TEXT NOT NULL, `dur_chapter_name` TEXT NOT NULL, `tag` TEXT NOT NULL, PRIMARY KEY(`content_ref`))",
+        "fields": [
+          {
+            "fieldPath": "noteUrl",
+            "columnName": "note_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durChapterIndex",
+            "columnName": "dur_chapter_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contentRef",
+            "columnName": "content_ref",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durChapterName",
+            "columnName": "dur_chapter_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tag",
+            "columnName": "tag",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "content_ref"
+          ]
+        },
+        "indices": [
+          {
+            "name": "idx_chapter_list_note_url",
+            "unique": false,
+            "columnNames": [
+              "note_url"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_chapter_list_note_url` ON `${TABLE_NAME}` (`note_url`)"
+          }
+        ]
+      },
+      {
+        "tableName": "search_history",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `type` INTEGER NOT NULL, `content` TEXT NOT NULL, `date` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "download_chapter",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `note_url` TEXT NOT NULL, `dur_chapter_index` INTEGER NOT NULL, `dur_chapter_url` TEXT NOT NULL, `dur_chapter_name` TEXT NOT NULL, `tag` TEXT NOT NULL, `book_name` TEXT NOT NULL, `cover_url` TEXT NOT NULL, `force_refresh` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "noteUrl",
+            "columnName": "note_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durChapterIndex",
+            "columnName": "dur_chapter_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durChapterUrl",
+            "columnName": "dur_chapter_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durChapterName",
+            "columnName": "dur_chapter_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tag",
+            "columnName": "tag",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bookName",
+            "columnName": "book_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coverUrl",
+            "columnName": "cover_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "forceRefresh",
+            "columnName": "force_refresh",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "idx_download_chapter_note_url",
+            "unique": false,
+            "columnNames": [
+              "note_url"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_download_chapter_note_url` ON `${TABLE_NAME}` (`note_url`)"
+          },
+          {
+            "name": "idx_download_chapter_dur_chapter_url",
+            "unique": true,
+            "columnNames": [
+              "dur_chapter_url"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `idx_download_chapter_dur_chapter_url` ON `${TABLE_NAME}` (`dur_chapter_url`)"
+          }
+        ]
+      },
+      {
+        "tableName": "book_group",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`comment_key` TEXT NOT NULL, `note_url` TEXT NOT NULL, `is_primary` INTEGER NOT NULL, PRIMARY KEY(`comment_key`, `note_url`))",
+        "fields": [
+          {
+            "fieldPath": "commentKey",
+            "columnName": "comment_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "noteUrl",
+            "columnName": "note_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isPrimary",
+            "columnName": "is_primary",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "comment_key",
+            "note_url"
+          ]
+        },
+        "indices": [
+          {
+            "name": "idx_book_group_note_url",
+            "unique": false,
+            "columnNames": [
+              "note_url"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_book_group_note_url` ON `${TABLE_NAME}` (`note_url`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '68f9cee9b2742744157940bbeabcd0d0')"
+    ]
+  }
+}

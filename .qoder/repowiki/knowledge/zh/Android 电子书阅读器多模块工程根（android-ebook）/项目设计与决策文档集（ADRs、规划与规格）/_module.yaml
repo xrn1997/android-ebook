@@ -1,0 +1,23 @@
+schema_version: 1
+module_path: docs
+title: 项目设计与决策文档集（ADRs、规划与规格）
+scope:
+    - docs/
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: 8dffb999-69e2-4097-801e-4a8998c64f3e
+kk_ordinal: 3
+kk_cards:
+    architecture_design:
+        id: cb384024-2d4c-4a67-8fb9-a45715619d44
+        title: 项目设计与决策文档集（ADRs、规划与规格）
+    coding_conventions:
+        id: 7b78a482-599a-44c2-880f-f1a8a7d69988
+        title: 项目设计与决策文档集（ADRs、规划与规格）
+    overview:
+        id: 26ba23f6-e80d-4cd2-accc-3483ef7ad46a
+        title: 项目设计与决策文档集（ADRs、规划与规格）
+    unique_setup_and_commands:
+        id: bc07114b-742c-47a8-8351-2fecb60fdb7a
+        title: 项目设计与决策文档集（ADRs、规划与规格）
