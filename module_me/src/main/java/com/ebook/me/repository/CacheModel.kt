@@ -1,11 +1,11 @@
 package com.ebook.me.repository
 
+import com.ebook.common.util.formatSize
 import com.ebook.common.util.treeSize
 import com.xrn1997.common.mvvm.model.BaseModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.Locale
 
 /**
  * 缓存分类：缓存管理页按类展示与单独清理。
@@ -141,17 +141,4 @@ class CacheModel(
     /** 临时文件：缓存根目录下的松散文件（不含子目录） */
     private fun tempFiles(): List<File> =
         cacheRoot.listFiles()?.filter { it.isFile }.orEmpty()
-}
-
-/**
- * 字节数格式化为可读大小（如 "12.3 MB"）。
- *
- * 单位符号（B/KB/MB/GB）是语言无关的 SI 约定，不参与本地化；
- * 数字格式固定 Locale.US（小数点），保证展示与单元测试跨环境一致。
- */
-fun formatSize(bytes: Long): String = when {
-    bytes < 1024 -> "$bytes B"
-    bytes < 1024 * 1024 -> String.format(Locale.US, "%.1f KB", bytes / 1024.0)
-    bytes < 1024L * 1024 * 1024 -> String.format(Locale.US, "%.1f MB", bytes / 1024.0 / 1024.0)
-    else -> String.format(Locale.US, "%.2f GB", bytes / 1024.0 / 1024.0 / 1024.0)
 }

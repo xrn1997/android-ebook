@@ -216,6 +216,8 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 - 跨模块共享的 Compose 组件（卡片/列表项/标签/封面/头像等）统一归口 `lib_book_common` 的 `com.ebook.common.ui`（`CommonUiTokens` 设计常量 + `CommonCard`/`CommonListItem`/`InfoChip`/`BookCover`/`Avatar` 等），字号走 Material typography，兜底默认图与组件同处一档（`drawable-xxhdpi`，不在业务模块留副本），不要在模块内新建重复实现（见 ADR-0006）
 
+- **共享件上浮两步走**：迭代中发现明显的跨模块共性（域无关的工具函数、通用组件等），**优先抽到 `lib_book_common`** 消除重复，不必等到能上 `lib_common` 才动手——过早跨仓协调出太多版本不利于开发和维护。等 `lib_book_common` 里同类共性积累到能组成一份完整、通用的功能集时，再整体推荐迁入外部库 `lib_common`（`FileTree.treeSize` 与 `FormatSize.formatSize` 即此类待迁移项）
+
 ## 提交规范
 
 本仓库遵循 [Conventional Commits](https://www.conventionalcommits.org/)：

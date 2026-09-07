@@ -62,7 +62,7 @@ import com.ebook.me.R
 import com.ebook.me.mvvm.viewmodel.CacheManageViewModel
 import com.ebook.me.mvvm.viewmodel.categoryTitleRes
 import com.ebook.me.repository.CacheType
-import com.ebook.me.repository.formatSize
+import com.ebook.common.util.formatSize
 import com.therouter.TheRouter
 import com.therouter.router.Route
 import com.therouter.router.matchRouteMap

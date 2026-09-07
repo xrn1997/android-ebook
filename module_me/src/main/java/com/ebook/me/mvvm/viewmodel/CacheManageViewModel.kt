@@ -7,7 +7,7 @@ import com.ebook.me.R
 import com.ebook.me.repository.CacheEntry
 import com.ebook.me.repository.CacheModel
 import com.ebook.me.repository.CacheType
-import com.ebook.me.repository.formatSize
+import com.ebook.common.util.formatSize
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import com.xrn1997.common.mvvm.viewmodel.Overlay
 import dagger.hilt.android.lifecycle.HiltViewModel

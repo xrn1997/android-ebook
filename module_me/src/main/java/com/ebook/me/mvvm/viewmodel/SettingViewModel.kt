@@ -9,7 +9,7 @@ import com.ebook.me.repository.CacheModel
 import com.ebook.me.repository.ReleaseCheckResult
 import com.ebook.me.repository.ReleaseRepository
 import com.ebook.me.repository.ReleaseStateStore
-import com.ebook.me.repository.formatSize
+import com.ebook.common.util.formatSize
 import com.ebook.me.util.AppVersion
 import com.ebook.me.util.isOlderThan
 import com.therouter.TheRouter

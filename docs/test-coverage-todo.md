@@ -102,13 +102,12 @@
   解锁方向：给清理路径留一个可注入的挂起钩子（或把「一笔清理」收进带状态的小接缝）。
   `ModifyViewModel` 侧同理（要凑 `ModifyRepository` 的 10 方法 `UserDataSource` 假件）。
   本轮按人工装机验证处理（见清单第 8 项）
-- [ ] **第二份字节格式化实现（`module_book` 的 `convertByte`）暂不收口**
-  —— 与 `module_me` 的 `formatSize` 同构但口径不同（`DecimalFormat("###.#")` + 无空格 vs
-  `%.1f` + 空格）。按上浮判据它早该走，可**正确的家是外部库 `lib_common`**（字节格式化与
-  ebook 域无关），而 `formatSize` 已有 `FormatSizeTest` 单独覆盖着——
-  挪进 `lib_book_common` 反而违反分界判据，留下两份则要新增一处共享件。
-  另两处的展示语境本就不同（缓存页要精确到档、导入页要紧凑），强行统一可能只是把两种口径
-  塞进一个带参数的接口，那不叫变深。本轮不动，等下一次 `lib_common` 联动窗口一并处理
+- [x] ~~**第二份字节格式化实现（`module_book` 的 `convertByte`）暂不收口**~~
+  **已收口（2026-09-07）**：`formatSize` 上移至 `lib_book_common/util/FormatSize.kt`，
+  `module_book` 的 `convertByte` 删除、改调共享 `formatSize`；
+  `module_me` 的本地 `formatSize` 删除、三处 import 改指共享件。
+  展示口径统一为 `formatSize`（`Locale.US` + 空格分隔）。
+  最终家仍是 `lib_common`，本轮先落 `lib_book_common`，等下次联动窗口上移
 - [ ] **「我的评论」页每次配置变更都重拉全量评论**（2026-09-06 从依赖源码证实，未修）
   —— lib\_common 0.3.2 的 Compose `BaseActivity.onCreate` 无条件调 `initData()`
   （`compose/BaseActivity.kt:80`），而 `MyCommentActivity.initData()` 直接 `viewModel.refreshData()`

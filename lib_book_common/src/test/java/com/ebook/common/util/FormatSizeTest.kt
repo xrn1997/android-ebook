@@ -1,10 +1,10 @@
-package com.ebook.me.repository
+package com.ebook.common.util
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * [formatSize] 与 [CacheBreakdown] 的纯函数单元测试。
+ * [formatSize] 的纯函数单元测试。
  */
 class FormatSizeTest {
 
@@ -32,11 +32,5 @@ class FormatSizeTest {
     fun `字节数达到 1GB 时格式化为 GB 且保留两位小数`() {
         assertEquals("1.00 GB", formatSize(1024L * 1024 * 1024))
         assertEquals("2.50 GB", formatSize((2.5 * 1024 * 1024 * 1024).toLong()))
-    }
-
-    @Test
-    fun `CacheBreakdown 总字节为三分类之和`() {
-        val breakdown = CacheBreakdown(imageBytes = 1L, tempBytes = 2L, otherBytes = 3L)
-        assertEquals(6L, breakdown.totalBytes)
     }
 }

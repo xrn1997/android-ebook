@@ -55,6 +55,7 @@ import com.ebook.book.mvvm.viewmodel.BookImportViewModel
 import com.ebook.common.importer.ImportDuplicateState
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.util.formatSize
 import com.permissionx.guolindev.PermissionX
 import com.permissionx.guolindev.request.ExplainScope
 import com.permissionx.guolindev.request.ForwardScope
@@ -65,7 +66,6 @@ import com.xrn1997.common.util.ToastUtil.showShort
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
-import java.text.DecimalFormat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -613,7 +613,7 @@ private fun ImportBookItem(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = convertByte(file.length()),
+                        text = formatSize(file.length()),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -641,17 +641,5 @@ private fun ImportBookItem(
                 Spacer(modifier = Modifier.width(34.dp))
             }
         }
-    }
-}
-
-/** 文件大小格式化（自原 ImportBookAdapter.convertByte 迁移，逻辑不变）。 */
-private val BYTE_FORMAT = DecimalFormat("###.#")
-
-private fun convertByte(size: Long): String {
-    return when {
-        size < 1024 -> BYTE_FORMAT.format(size.toDouble()) + "B"
-        size < 1024 * 1024 -> BYTE_FORMAT.format(size / 1024.0) + "KB"
-        size < 1024L * 1024 * 1024 -> BYTE_FORMAT.format(size / (1024.0 * 1024)) + "MB"
-        else -> BYTE_FORMAT.format(size / (1024.0 * 1024 * 1024)) + "GB"
     }
 }
