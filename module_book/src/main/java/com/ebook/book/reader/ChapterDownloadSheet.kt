@@ -188,6 +188,9 @@ fun ChapterDownloadSheet(
                     .height(listHeight),
                 contentPadding = PaddingValues(vertical = 6.dp)
             ) {
+                // 行结构是与 rowIndexOfGroup 的契约：每组恒占 1 行组头 + 展开时 count 行章行，
+                // 且组之前不能插其它列表项。在列表里加"全部展开"之类的行会让"打开即滚到当前章
+                // 那组"静默落到错误的组上，且没有编译错误或测试能拦住——要加行就得同步改它。
                 groups.forEach { group ->
                     // 组头与子项的 key 都取自"原始章序号"域内的稳定值，绝不能用显示位置：
                     // 展开/收起会让其后所有位置整体位移，拿位置当 key 等于每次操作全量重建。
@@ -310,7 +313,9 @@ private fun GroupHeaderRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            // 底色比"已勾选章行"（surfaceContainerHigh）高一层：同色会让吸附头与紧邻的选中行
+            // 连成一块、失去行界
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .clickable(
                 onClickLabel = stringResource(
                     if (expanded) R.string.chapter_group_collapse
