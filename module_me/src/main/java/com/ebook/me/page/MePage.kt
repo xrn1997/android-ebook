@@ -1,7 +1,6 @@
 package com.ebook.me.page
 
 import androidx.activity.compose.LocalActivity
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -38,17 +37,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import coil.compose.AsyncImage
+import com.ebook.common.domain.ThemeMode
 import com.ebook.common.event.KeyCode
+import com.ebook.common.ui.Avatar
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
 import com.ebook.common.ui.CommonListItem
@@ -81,9 +79,13 @@ fun MePage(viewModel: MePageViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val uiState by viewModel.meState.collectAsState()
     val readingStats by viewModel.readingStats.collectAsState()
+    // 主题模式经 VM 读取（单源，见 MePageViewModel.themeMode）：不在页面里再走
+    // ThemeModeManager.instance 那条伴生对象路径
+    val themeMode by viewModel.themeMode.collectAsState()
     MainMeScreen(
         uiState = uiState,
         readingStats = readingStats,
+        themeMode = themeMode,
         onLoginClick = { build(KeyCode.Login.LOGIN_PATH).navigation(context) },
         onMyCommentClick = { build(KeyCode.Me.COMMENT_PATH).navigation(context) },
         onMyInfoClick = { build(KeyCode.Me.MODIFY_PATH).navigation(context) },
@@ -93,11 +95,14 @@ fun MePage(viewModel: MePageViewModel = hiltViewModel()) {
 
 /**
  * 我的页内容：渐变头部 + 阅读概览卡片 + 功能菜单卡片。
+ *
+ * @param themeMode 当前外观主题模式，由调用方（经 ViewModel）取好传入，头部据此决定渐变配色
  */
 @Composable
 fun MainMeScreen(
     uiState: MeUiState,
     readingStats: ReadingStats,
+    themeMode: ThemeMode,
     onLoginClick: () -> Unit,
     onMyCommentClick: () -> Unit,
     onMyInfoClick: () -> Unit,
@@ -110,6 +115,7 @@ fun MainMeScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             MeHeader(
                 uiState = uiState,
+                themeMode = themeMode,
                 // 编辑资料/登录入口只收敛在右侧按钮：头部信息区纯展示，点击无副作用
                 onEditClick = onMyInfoClick,
                 onLoginClick = onLoginClick
@@ -147,14 +153,24 @@ fun MainMeScreen(
  *
  * 状态栏图标深浅由本页按渐变起始色亮度自适应（[AdaptStatusBarIcons]）：图标压在饱和渐变上，
  * 沿用宿主「跟随系统深浅色」的默认值会在浅色模式得到深色图标、几乎看不清。
+ *
+ * @param themeMode 应用主题模式（设置页三态选择），由 [MePage] 经 [MePageViewModel] 取好传入——
+ *   头部不直接读伴生对象单例（那条路可空且会静默降级成 SYSTEM），同一份状态只留一个访问路径
  */
 @Composable
 private fun MeHeader(
     uiState: MeUiState,
+    themeMode: ThemeMode,
     onEditClick: () -> Unit,
     onLoginClick: () -> Unit
 ) {
-    val darkTheme = isSystemInDarkTheme()
+    // 用应用主题模式（设置页三态选择）而非直接读系统深色状态，
+    // 保证用户在设置里切换浅色/深色时渐变色同步切换（与 BookApplication 主题装配逻辑一致）
+    val darkTheme = when (themeMode) {
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
     val colorScheme = MaterialTheme.colorScheme
     // 深色模式换用深色容器渐变，前景色同步切换（见函数 KDoc 说明）
     val gradientStart = if (darkTheme) colorScheme.primaryContainer else colorScheme.primary
@@ -287,7 +303,8 @@ private fun AdaptStatusBarIcons(gradientStart: Color) {
 /**
  * 用户头像：80dp 外圈半透明光环 + 72dp 圆形图像。
  *
- * 登录且头像 URL 非空时加载网络图（[AsyncImage]），否则回退 image_default 默认图。
+ * 图像本身交给共享组件 [Avatar]：空 URL、加载中、取不到这三态的兜底由它统一负责。
+ * 本页只留头部设计里的光环（渐变背景上的半透明环，只此一处用，故不上收进组件）。
  *
  * @param ringColor 光环/背景语义色（随头部深色适配切换，保证与渐变背景协调）
  */
@@ -302,25 +319,12 @@ private fun MeAvatar(isLoggedIn: Boolean, avatarUrl: String, ringColor: Color) {
             shape = CircleShape,
             color = ringColor.copy(alpha = 0.25f)
         ) {}
-        if (isLoggedIn && avatarUrl.isNotEmpty()) {
-            AsyncImage(
-                model = avatarUrl,
-                contentDescription = stringResource(R.string.me_avatar_desc),
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Image(
-                painter = painterResource(id = R.drawable.image_default),
-                contentDescription = stringResource(R.string.me_default_avatar_desc),
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-        }
+        // 未登录传空串即落到默认头像；URL 非空但取不到时组件兜底成默认头像，不再留空白圆
+        Avatar(
+            url = if (isLoggedIn) avatarUrl else "",
+            modifier = Modifier.size(72.dp),
+            contentDescription = stringResource(R.string.me_avatar_desc),
+        )
     }
 }
 

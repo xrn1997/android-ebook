@@ -33,13 +33,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.TextUnit
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import com.ebook.book.manager.BitIntentDataManager
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_OTHER
+import com.ebook.book.mvvm.viewmodel.SourceSwitchViewModel
 import com.ebook.book.reader.AddShelfDialog
 import com.ebook.book.reader.ChapterDownloadSheet
+import com.ebook.book.reader.ChapterLayoutCache
+import com.ebook.book.reader.ChapterLayoutKey
 import com.ebook.book.reader.ChapterListDrawer
 import com.ebook.book.reader.FontPanel
 import com.ebook.book.reader.LightPanel
@@ -50,16 +54,22 @@ import com.ebook.book.reader.ReaderPagerController
 import com.ebook.book.reader.ReaderPanel
 import com.ebook.book.reader.ReaderTopBar
 import com.ebook.book.reader.ReaderTypesetter
+import com.ebook.book.reader.SourceSwitchSheet
+import com.ebook.book.reader.SwitchFeedback
 import com.ebook.book.reader.applyReaderBrightness
 import com.ebook.book.reader.rememberReaderTypesetter
-import com.ebook.book.util.BookImportManager
+import com.ebook.book.reader.switchFeedbackOf
+import com.ebook.book.repository.BookImportRepository
 import com.ebook.book.view.ReadBookControl
+import com.ebook.common.domain.CommentKey
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
 import com.ebook.common.repository.BookRepository
+import com.ebook.common.util.reportFailure
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.DownloadChapterEntity
 import com.ebook.db.event.DBCode
+import com.ebook.source.analyze.BookSourceNotFoundException
 import com.permissionx.guolindev.PermissionX
 import com.therouter.TheRouter
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
@@ -91,7 +101,7 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     override val viewModel: BookReadViewModel by viewModels()
 
     @Inject
-    lateinit var bookImportManager: BookImportManager
+    lateinit var bookImportRepository: BookImportRepository
 
     @Inject
     lateinit var bookRepository: BookRepository
@@ -117,6 +127,9 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     internal var readerTypesetter: ReaderTypesetter? = null
         private set
 
+    /** 排版偏移缓存：同章翻页不重复整章重排（见 ChapterLayoutCache） */
+    private val layoutCache = ChapterLayoutCache()
+
     override fun enableToolbar(): Boolean = false
 
     override fun enableFitsSystemWindows(): Boolean = false
@@ -136,13 +149,13 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
 
     /**
      * 应用内打开书籍（对齐原 openBookFromApp）：
-     * 经 BitIntentDataManager 取书架实体；非本地书显示"更多"下载入口；随后发起书架归属检查。
+     * 经 BitIntentDataManager 取书架实体；随后发起书架归属检查。
      *
      * 快速失败：数据键缺失或数据为空/类型不符时直接提示并退出——否则 bookShelf 恒为 null，
      * checkInShelf 不会触发，阅读器将停在永久空白页无任何反馈（上游详情页已做前置守卫，
      * 此处为兜底）。
      */
-    fun openBookFromApp(onShowMore: () -> Unit) {
+    fun openBookFromApp() {
         val key = intent.getStringExtra("data_key")
         if (key == null) {
             Logger.e(TAG, "openBookFromApp: key is null")
@@ -158,9 +171,6 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
             finish()
             return
         }
-        if (bookShelf.tag != BookShelfEntity.LOCAL_TAG) {
-            onShowMore()
-        }
         viewModel.bookShelf = bookShelf
         viewModel.checkInShelf()
     }
@@ -175,10 +185,8 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         lifecycleScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
-                    bookImportManager.importBook(this@ReadBookActivity, uri)
+                    bookImportRepository.import(uri)
                 }
-                // 通知书籍添加事件
-                bookRepository.addToShelf(result.bookShelf)
                 viewModel.bookShelf = result.bookShelf
                 onImporting(false)
                 viewModel.checkInShelf()
@@ -204,11 +212,22 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
             .request { _: Boolean, _: List<String?>?, _: List<String?>? -> onResult() }
     }
 
-    /** 跳转章节评论区（对齐原评论入口的 TheRouter 传参） */
-    fun navToComment(bookShelf: BookShelfEntity) {
+    /**
+     * 跳转章节评论区（M2：跨源评论合并——同一作品多个书源各有 book_group 行，
+     * [bookKeys] 为所有关联的书级聚合键，逐一拼章索引后逗号分隔传给评论区做并集查询）。
+     *
+     * [writeKey] 是这本书的**主键**（`is_primary` 行），单独传：新评论只能写进主键桶，
+     * 不能让接收方拿并集列表首元素猜（`getKeysForNoteUrl` 无 ORDER BY，修键后主键是
+     * 后插入的那行，猜首元素会把评论写进旧桶，见 spec §9.2）。
+     */
+    fun navToComment(bookShelf: BookShelfEntity, bookKeys: List<String>, writeKey: String?) {
         val chapter = viewModel.getChapter(bookShelf.durChapter)
+        // 章级聚合键：每个 bookKey 都拼 "#" + chapterIndex，逗号分隔传给接收方
+        val chapterKeys = bookKeys.joinToString(",") { "$it#${bookShelf.durChapter}" }
         val bundle = Bundle().apply {
-            putString(RouteArgs.CHAPTER_URL, chapter?.durChapterUrl ?: "")
+            putString(RouteArgs.COMMENT_KEY, chapterKeys)
+            putString(RouteArgs.PRIMARY_COMMENT_KEY, writeKey?.let { "$it#${bookShelf.durChapter}" })
+            putString(RouteArgs.CHAPTER_URL, chapter?.contentRef ?: "")
             putString(RouteArgs.CHAPTER_NAME, chapter?.durChapterName ?: getString(R.string.unknown_chapter))
             putString(RouteArgs.BOOK_NAME, bookShelf.bookInfo?.name ?: getString(R.string.unknown_book))
         }
@@ -248,7 +267,7 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
 
     /**
      * 加载单页内容（原 loadContent 的 suspend 化）：
-     * 1. DB 缓存 → 2. 网络拉取并存库 → 3. 按当前排版求渲染行偏移 → 4. 分页切片取原文子串。
+     * 1. 按来源取正文（本地书走章文件、网络书走 DB 缓存→网络） → 2. 排版偏移缓存 → 3. 分页切片取原文子串。
      *
      * 断行走 [readerTypesetter]（与页面渲染同一引擎、同一份样式）——见
      * [ReaderTypesetter] 里「分页与渲染必须同源」的契约：两套引擎判定的行数不一致时，
@@ -256,6 +275,11 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
      *
      * 哨兵页码（DUR_PAGE_INDEX_BEGIN/END）在分页结果出来后解析；页码越界钳到末页。
      * 返回 null 表示失败（控制器置为错误态）。
+     *
+     * 失败分两档处置：**书源已失效**（[BookSourceNotFoundException]）除错误态外还要经
+     * [reportFailure] 弹一条用户可见提示（ADR-0016 要求「书源已失效，请重新导入或换源」），
+     * 因为这条路径用户能自己处置（重导源/换源），静默等于让他对着一页空白摸不着根因；
+     * 其余异常（解析失败、排版未就绪等）保持既有的静默降级——只记日志 + 错误态重试按钮。
      */
     suspend fun loadPage(chapterIndex: Int, pageIndex: Int): com.ebook.book.reader.ReaderPageUi.Loaded? {
         val bookShelf = viewModel.bookShelf
@@ -265,31 +289,23 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         val typesetter = readerTypesetter ?: return null
 
         return try {
-            // 1. 尝试从数据库加载缓存内容
-            var bookContent = viewModel.loadBookContent(chapter.durChapterUrl)
+            // 取正文：本地书与网络书统一走 BookRepository.loadChapter（章文件 + 内存缓存）
+            val chapterText: String? = viewModel.loadChapter(chapter)?.displayText
+            if (chapterText.isNullOrEmpty()) return null
 
-            // 2. 缓存不存在则从网络获取并保存
-            if (bookContent == null || bookContent.durChapterContent.isEmpty()) {
-                bookContent = viewModel.fetchBookContent(chapter.durChapterUrl, chapterIndex)
-                if (bookContent.durChapterContent.isNotEmpty()) {
-                    viewModel.saveBookContent(bookContent)
-                    viewModel.updateChapterCache(chapter.durChapterUrl, true)
-                }
-            }
-            if (bookContent.durChapterContent.isEmpty()) return null
-
-            // 3. 按当前排版求渲染行起始偏移。注意这里**每页都整章重排**（不缓存）：
-            //    同章的每一页各自调用 lineStartOffsets 重算整章，而非如旧的 lineContent 缓存
-            //    在跨页间复用。取舍：实体每查一次都是新对象（断行结果是运行期的，不落库），
-            //    单章数千字量级重排各页都能在 Default 线程快速完成；但若出现超长章（几十页），
-            //    页数 N 会把整章重排放大到 N 次，成为可见的 CPU 开销——若后续有性能诉求，
-            //    应按（章节，字号）粒度缓存这份偏移而非逐页重算，现未做是鉴于本章节规模可控。
+            // 3. 按当前排版求渲染行起始偏移。排版结果走 [layoutCache] 缓存，同章翻页只重排一次；
+            //    键的构成（含重解析的内容指纹）见 ChapterLayoutKey
             val width = readerContentWidthPx
             if (width <= 0) return null
-            // CPU 密集：切到 Default 线程（对齐原实现）
-            val content = bookContent.durChapterContent
+            val content = chapterText
+            val layoutKey = ChapterLayoutKey(
+                contentRef = chapter.contentRef,
+                contentLength = content.length,
+                fontSizeSp = ReadBookControl.textSize.toFloat(),
+                widthPx = width,
+            )
             val lineStarts = withContext(Dispatchers.Default) {
-                typesetter.lineStartOffsets(content, width)
+                layoutCache.getOrCompute(layoutKey) { typesetter.lineStartOffsets(content, width) }
             }
 
             // 4. 分页切片
@@ -318,6 +334,18 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
                 pageAll = tempCount + 1,
                 text = pageText
             )
+        } catch (e: BookSourceNotFoundException) {
+            // 书源失效是**可展示的业务失败**，不能跟着下面的降级一起吞成 null：
+            // 那样只剩一行 ERROR 日志，用户侧既没有提示也没有错误态，正是本仓最忌讳的
+            // 「页面不闪退、数据永远加载不出来」形态。ADR-0016 明确要求这条路径提示用户
+            // 「书源已失效，请重新导入或换源」。
+            // 提示一律走共享的 reportFailure（会话过期只记日志、不重复提示由它收口）：
+            // 它是 BaseViewModel 的扩展函数，这里经 viewModel 调用，文案进基类的命令通道
+            // （MvvmBinder 在主线程消费），不在 Activity 里补 Toast。
+            // 文案取字符串资源而非 e.message：异常消息带内部 URL，不适合直接上屏。
+            viewModel.reportFailure(e, getString(R.string.book_source_invalid))
+            Logger.e(TAG, "loadPage 书源已失效: ${bookShelf.tag} / ${chapter.contentRef}", e)
+            null
         } catch (e: Exception) {
             Logger.e(TAG, "loadPage error: ", e)
             null
@@ -375,7 +403,7 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
  * 避免面板先弹出后闪烁刷新）。
  */
 private data class DownloadSheetArgs(
-    val cachedUrls: Set<String>,
+    val cachedIndices: Set<Int>,
     val initialSelected: Set<Int>
 )
 
@@ -447,7 +475,6 @@ private fun ReadBookScreen(
     // 避免"点击翻页是否生效"依赖 panel 变化恰好触发重组（隐式耦合）。
     // 注意：canKeyTurn 不走此镜像——onKeyDown/onKeyUp 是 Activity 回调，运行时直读单例即最新值。
     var clickTurnEnabled by remember { mutableStateOf(ReadBookControl.canClickTurn) }
-    var showMore by remember { mutableStateOf(false) } // 原 iv_menu_more：非本地书显示下载入口
     // 章节标题初值走 stringResource：context.getString 的读取不随 Configuration 变化失效
     // （lint LocalContextGetResourceValueCall 判 Error）。刻意**不**把 noChapter 当 remember 的
     // key——key 一变会把已加载的章节标题重置回占位文案；本页未声明 android:configChanges，
@@ -513,7 +540,7 @@ private fun ReadBookScreen(
     // 打开书籍（对齐原 csvBook.bookReadInit 回调）
     LaunchedEffect(Unit) {
         if (activity.intent.getIntExtra("from", OPEN_FROM_OTHER) == OPEN_FROM_APP) {
-            activity.openBookFromApp { showMore = true }
+            activity.openBookFromApp()
         } else {
             activity.openBookFromOther { importingBook = it }
         }
@@ -554,7 +581,7 @@ private fun ReadBookScreen(
     }
 
     // ---------------- 下载面板（章节多选，缓存感知） ----------------
-    // 统一入口：请通知权限 → 从内容表查缓存事实集 → 预勾选 → 开面板。
+    // 统一入口：请通知权限 → 从章文件查缓存事实集 → 预勾选 → 开面板。
     // 预勾选沿用原默认范围语义（当前章 +50 章）：默认勾范围内未缓存章节（一键下载习惯）；
     // 想刷新缓存就改勾已缓存章节——任务统一带 forceRefresh（见 startChapterDownload）
     val openDownloadSheet: () -> Unit = {
@@ -564,14 +591,14 @@ private fun ReadBookScreen(
             val chapterList = shelf?.chapterList
             if (shelf == null || chapterList.isNullOrEmpty()) return@requestDownloadPermission
             scope.launch {
-                val cachedUrls = activity.bookRepository.getCachedChapterUrls(
-                    chapterList.map { it.durChapterUrl }
+                val cachedIndices = activity.bookRepository.getCachedChapterIndices(
+                    shelf, chapterList
                 )
                 val endIndex = (shelf.durChapter + 50).coerceAtMost(chapterList.size - 1)
                 val initialSelected = (shelf.durChapter..endIndex).filterTo(mutableSetOf()) { i ->
-                    chapterList[i].durChapterUrl !in cachedUrls
+                    i !in cachedIndices
                 }
-                downloadArgs = DownloadSheetArgs(cachedUrls, initialSelected)
+                downloadArgs = DownloadSheetArgs(cachedIndices, initialSelected)
                 panel = ReaderPanel.DOWNLOAD
             }
         }
@@ -579,7 +606,7 @@ private fun ReadBookScreen(
 
     // ---------------- 布局 ----------------
     // 章节列表取 bookShelf.chapterList（书架页经 getAllBooksWithDetails() 填充；
-    // 本地导入书由 BookImportManager 回填）；不用 bookInfo.chapterList（仅网络书解析时填充）
+    // 本地导入书由 LocalBookImporter 回填）；不用 bookInfo.chapterList（仅网络书解析时填充）
     val chapters = bookShelf?.chapterList ?: emptyList()
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -618,7 +645,7 @@ private fun ReadBookScreen(
             ReaderTopBar(
                 title = chapterTitle,
                 subtitle = bookShelf?.bookInfo?.name ?: "",
-                showMore = showMore,
+                isLocalBook = bookShelf?.tag == BookShelfEntity.LOCAL_TAG,
                 onBack = {
                     // 返回箭头 = 退出阅读器（未加入书架先弹确认），不能走 onBackPressedDispatcher：
                     // 处置链首位是"菜单可见→关菜单"，会把退出语义降级为隐藏控制界面；
@@ -630,9 +657,43 @@ private fun ReadBookScreen(
                     }
                 },
                 onDownload = openDownloadSheet,
+                onRefresh = {
+                    menuVisible = false
+                    scope.launch {
+                        val position = viewModel.refreshCurrentChapter()
+                        if (position != null) {
+                            activity.pagerController?.setInitData(position.first, position.second)
+                        }
+                    }
+                },
+                // 换源：收菜单 + 开候选面板，与其他面板共用同一个 panel 状态源
+                onSwitchSource = {
+                    menuVisible = false
+                    panel = ReaderPanel.SOURCE_SWITCH
+                },
                 onComment = {
                     menuVisible = false
-                    viewModel.bookShelf?.let { shelf -> activity.navToComment(shelf) }
+                    viewModel.bookShelf?.let { shelf ->
+                        scope.launch {
+                            val keys = activity.bookRepository.getCommentKeysForBook(shelf.noteUrl)
+                            // 兜底：book_group 无行时（旧数据未迁移）退回当前书信息算一个键
+                            val effectiveKeys = keys.ifEmpty {
+                                val name = shelf.matchName ?: shelf.bookInfo?.name
+                                if (!name.isNullOrEmpty()) {
+                                    listOf(CommentKey.compute(name, shelf.matchAuthor ?: shelf.bookInfo?.author))
+                                } else {
+                                    emptyList()
+                                }
+                            }
+                            activity.navToComment(
+                                shelf,
+                                effectiveKeys,
+                                // 写入键取主键行；无 book_group 行的旧数据回落到并集首元素
+                                activity.bookRepository.getPrimaryKeyForBook(shelf.noteUrl)
+                                    ?: effectiveKeys.firstOrNull()
+                            )
+                        }
+                    }
                 }
             )
         }
@@ -735,13 +796,62 @@ private fun ReadBookScreen(
         ReaderPanel.DOWNLOAD -> downloadArgs?.let { args ->
             ChapterDownloadSheet(
                 chapters = chapters,
-                cachedUrls = args.cachedUrls,
+                cachedIndices = args.cachedIndices,
                 initialSelected = args.initialSelected,
                 onConfirm = { selected ->
                     panel = ReaderPanel.NONE
                     startChapterDownload(viewModel, context, selected)
                 },
                 onDismiss = { panel = ReaderPanel.NONE }
+            )
+        }
+        // 换源（ADR-0016 决策 8，P3-d）：候选来自跨源聚合搜索，点中即执行仓库那条「先插新、后删旧」事务
+        ReaderPanel.SOURCE_SWITCH -> bookShelf?.let { shelf ->
+            val switchViewModel: SourceSwitchViewModel = hiltViewModel()
+            // 三句反馈在组合期解析好交给回调：回调不是 Composable，在那儿调 context.getString
+            // 会踩 lint LocalContextGetResourceValueCall（同上方 chapterTitle 初值的理由）
+            val movedFormat = stringResource(R.string.source_switch_moved_format)
+            val clampedText = stringResource(R.string.source_switch_clamped)
+            val emptyCatalogText = stringResource(R.string.source_switch_empty_catalog)
+            SourceSwitchSheet(
+                viewModel = switchViewModel,
+                oldShelf = shelf,
+                onDismiss = { panel = ReaderPanel.NONE },
+                onSwitched = { outcome ->
+                    panel = ReaderPanel.NONE
+                    menuVisible = false
+                    // 「当前读的是哪一本」只有一个状态源：BookReadViewModel.bookShelf。
+                    // 阅读器的一切都现取这个字段——正文（loadChapter 用它拿 noteUrl/tag/归属）、
+                    // 目录（getChapter / getChapterListSize）、进度（updateProgress 写它的章页、
+                    // saveProgress 按它的 noteUrl 落库）。所以**整体替换**即让新条目成为唯一事实源：
+                    // 旧实体随替换不再被任何地方引用，也就不可能再把旧 noteUrl 的进度写回去
+                    // （旧行已被换源事务删掉，写回去等于凭空造一本不存在的书的行）。
+                    // 反面做法是「另存一份新条目 + 各处继续读旧条目」——两处各自演进，早晚写错书。
+                    viewModel.bookShelf = outcome.newShelf
+                    // 换源是「先插新、后删旧」，此刻新条目确实已在架上；不跟着置真就残留
+                    // 「未加入书架」的旧判定，返回时弹一次无意义的加架确认
+                    viewModel.isAdd = true
+                    // 目录长度已变、页级进度不跨源（仓库把 durChapterPage 复位为「第一页」）：
+                    // 按当前样式重分页后从目标章第一页起排，与首屏同一条启动路径
+                    activity.rePaginate(typesetter, startFromCurrent = false)
+                    controller.setInitData(
+                        outcome.targetChapter,
+                        DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
+                    )
+                    // 顶栏章节标题与底栏滑条是页面本地状态（不随 VM 重组），必须一并跟上，
+                    // 否则换源后标题仍写着旧源「第 N 章 · 共 M 章」
+                    chapterTitle = viewModel.getChapterTitle(outcome.targetChapter)
+                    sliderValue = (outcome.targetChapter + 1).toFloat()
+                    ToastUtil.showShort(
+                        context,
+                        when (switchFeedbackOf(outcome.chapterCount, outcome.clamped)) {
+                            // 上屏 +1：targetChapter 是 0 基章序号（与 dur_chapter_index 同口径）
+                            SwitchFeedback.Moved -> movedFormat.format(outcome.targetChapter + 1)
+                            SwitchFeedback.Clamped -> clampedText
+                            SwitchFeedback.EmptyCatalog -> emptyCatalogText
+                        }
+                    )
+                }
             )
         }
         ReaderPanel.NONE -> Unit
@@ -786,7 +896,7 @@ private fun startChapterDownload(
                         noteUrl = shelf.noteUrl,
                         durChapterIndex = chapter.durChapterIndex,
                         durChapterName = chapter.durChapterName,
-                        durChapterUrl = chapter.durChapterUrl,
+                        durChapterUrl = chapter.contentRef,
                         tag = shelf.tag,
                         bookName = bookInfo?.name ?: context.getString(R.string.unknown_book),
                         coverUrl = bookInfo?.coverUrl ?: "",

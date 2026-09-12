@@ -9,6 +9,9 @@ plugins {
 }
 android {
     namespace = "com.ebook.common"
+    defaultConfig {
+        consumerProguardFiles("consumer-rules.pro")
+    }
     buildTypes {
         debug {
             buildConfigField("boolean", "IS_DEBUG", "true")
@@ -36,6 +39,9 @@ dependencies {
     api(libs.common)
     api(project(":lib_ebook_api"))
     api(project(":lib_ebook_db"))
+    // 原生书源解析器一族已迁入 lib_book_source；本层公开面（BookSourceManager.getParserFor）
+    // 直接返回其类型，故用 api 而非 implementation，业务模块才能只依赖本模块就编译通过
+    api(project(":lib_book_source"))
     api(libs.androidx.appcompat)
     api(libs.androidx.constraintlayout)
     api(libs.material)
@@ -63,6 +69,9 @@ dependencies {
 
     api(libs.dagger)
     ksp(libs.dagger.compiler)
+
+    // TransactionModule 需要 Room 的 withWriteTransaction 扩展（lib_ebook_db 用 implementation 声明，不传递）
+    implementation(libs.room.runtime)
 
     testImplementation(libs.junit)
     // Robolectric：AndroidUserSessionManager 需要真实 SharedPreferences 与 Application 上下文

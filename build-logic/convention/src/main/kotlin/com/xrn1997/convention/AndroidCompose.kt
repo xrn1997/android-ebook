@@ -46,9 +46,9 @@ internal fun Project.configureAndroidCompose(
             "debugImplementation"(libs.findLibrary("androidx-compose-ui-tooling").get())
         }
 
-        // 未设 testOptions.unitTests.isIncludeAndroidResources：本仓 Robolectric 用例
-        // （Room 内存数据库、SharedPreferences）都不读 APK 资源，加了反而拖慢配置；
-        // 将来出现需要 res/assets 的 UI 用例时再按需开启
+        // 不在此设 testOptions.unitTests.isIncludeAndroidResources 的默认值：全量开启会拖慢所有模块
+        // 的配置阶段。需要读合并资源/assets 的模块自行开启（如 module_book 取 R.string.*、
+        // module_me 装版本号），各自的理由写在自己的 build 文件里
     }
 
     extensions.configure<ComposeCompilerGradlePluginExtension> {

@@ -50,6 +50,9 @@ interface KeyCode {
             /** 下载管理页（书架下载图标入口，管理队列进度，见 DownloadManageActivity） */
             const val DOWNLOAD_PATH = BASE_PATH + "download"
 
+            /** 修键面板（长按书架书籍 → 编辑匹配信息，spec §9.3） */
+            const val EDIT_BOOK_META_PATH = BASE_PATH + "edit_meta"
+
             const val TEST_LOGIN_PATH = BASE_PATH + "test_login"
         }
     }
@@ -65,6 +68,9 @@ interface KeyCode {
             const val SEARCH_PATH = BASE_PATH + "search"
 
             const val TEST_DETAIL_PATH = BASE_PATH + "test_detail"
+
+            /** 独立运行时的书源管理占位页（替代 module_me 的 [Me.BOOK_SOURCE_PATH]） */
+            const val TEST_BOOK_SOURCE_PATH = BASE_PATH + "test_book_source"
         }
     }
 
@@ -88,6 +94,9 @@ interface KeyCode {
 
             /** 开源许可页 */
             const val LICENSES_PATH = BASE_PATH + "licenses"
+
+            /** 书源管理页（列表 / 导入导出 / 启用禁用 / 设为默认，见 BookSourceManageActivity） */
+            const val BOOK_SOURCE_PATH = BASE_PATH + "book_source"
 
             const val TEST_LOGIN_PATH = BASE_PATH + "test_login"
         }

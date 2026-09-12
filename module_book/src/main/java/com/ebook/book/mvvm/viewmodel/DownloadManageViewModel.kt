@@ -89,7 +89,10 @@ class DownloadManageViewModel @Inject constructor(
                 .groupBy { it.noteUrl }
                 .map { (noteUrl, tasks) ->
                     val first = tasks.first()
-                    val coverage = model.getCacheCoverage(noteUrl)
+                    // 归属取该组首条任务的 tag：同一 noteUrl 下的任务归属必然一致——
+                    // 换源会把旧 noteUrl 名下的任务整批删掉（见 BookRepository.commitSwitch），
+                    // 不会出现「一本书的组里混着两个源的任务」，故不必回查 book_shelf
+                    val coverage = model.getCacheCoverage(noteUrl, first.tag)
                     DownloadBookGroup(
                         noteUrl = noteUrl,
                         bookName = first.bookName,

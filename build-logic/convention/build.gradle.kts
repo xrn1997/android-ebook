@@ -71,5 +71,9 @@ gradlePlugin {
             id = libs.plugins.xrn1997.android.component.get().pluginId
             implementationClass = "AndroidComponentConventionPlugin"
         }
+        register("androidNative") {
+            id = libs.plugins.xrn1997.android.native.get().pluginId
+            implementationClass = "AndroidNativeConventionPlugin"
+        }
     }
 }

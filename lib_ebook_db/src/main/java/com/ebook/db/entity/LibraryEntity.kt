@@ -11,11 +11,8 @@ import kotlinx.parcelize.Parcelize
  */
 @Parcelize
 class LibraryEntity : Parcelable {
-    // 元素类型非 Parcelable（LibraryNewBookEntity/LibraryKindBookListEntity 仅为内存传输模型），
+    // 元素类型非 Parcelable（LibraryKindBookListEntity 仅为内存传输模型），
     // 不参与 Parcel 序列化（本实体也从不经 Intent/Bundle 传递，仅在内存使用）
-    @IgnoredOnParcel
-    var libraryNewBooks: List<LibraryNewBookEntity>? = null
-
     @IgnoredOnParcel
     var kindBooks: List<LibraryKindBookListEntity>? = null
 }

@@ -9,7 +9,6 @@
     <string name="me_login_now">立即登录</string>
     <string name="me_edit_profile_desc">编辑资料</string>
     <string name="me_avatar_desc">用户头像</string>
-    <string name="me_default_avatar_desc">默认头像</string>
     <string name="me_shelf_count">书架藏书</string>
     <string name="me_recent_book">最近在读</string>
     <string name="me_recent_book_empty">暂无</string>
@@ -26,6 +25,13 @@
     <string name="setting_title">设置</string>
     <string name="setting_section_general">通用</string>
     <string name="setting_clear_cache">清除缓存</string>
+    <!-- 书源管理入口：副标题是清单条数（含禁用项），数来自 SettingViewModel.sourcesCount -->
+    <string name="setting_book_source">书源管理</string>
+    <string name="setting_book_source_count">%1$d 个</string>
+    <!-- 外观主题：跟随系统开关 + 日间/夜间子菜单 -->
+    <string name="setting_follow_system">夜间模式跟随系统</string>
+    <string name="setting_day_mode">日间模式</string>
+    <string name="setting_night_mode">夜间模式</string>
     <string name="setting_section_about">关于</string>
     <string name="setting_version">版本</string>
     <string name="setting_about_us">关于我们</string>
@@ -68,6 +74,67 @@
     <string name="cache_category_image_desc">书籍封面、头像等图片的磁盘缓存，由图片加载库自动管理，清理后将按需重新下载。</string>
     <string name="cache_category_temp_desc">使用过程中产生的临时文件（如头像裁剪的中间产物），清理不影响正常使用。</string>
     <string name="cache_category_other_desc">其他功能产生的缓存目录，清理后相关功能首次使用时可能需要重新加载。</string>
+    <string name="cache_books_title">书籍内容</string>
+    <string name="cache_books_value">%1$s · %2$d 本</string>
+    <string name="cache_books_desc">已下载或导入的书正文，不属于缓存：清理缓存不会删除它，删除书籍请在书架长按操作。</string>
+    <string name="cache_books_desc_open">已下载或导入的书正文，不属于缓存：清理缓存不会删除它。点此行到书架，长按书籍即可删除。</string>
+
+    <!-- ===== 书源管理页 ===== -->
+    <string name="book_source_title">书源管理</string>
+    <!-- 汇总行：第一个数是清单总数（含禁用），第二个是启用数 -->
+    <string name="book_source_summary">共 %1$d 个书源，已启用 %2$d 个</string>
+    <string name="book_source_import">导入</string>
+    <string name="book_source_export">导出全部</string>
+    <string name="book_source_export_one">导出该书源</string>
+    <string name="book_source_unnamed">未命名书源</string>
+    <!-- 一次性提示 -->
+    <string name="book_source_read_failed">无法读取所选文件</string>
+    <string name="book_source_import_unreadable">未能从该文件读出书源，请确认它是书源 JSON（单条对象或数组）</string>
+    <string name="book_source_export_empty">没有可导出的书源</string>
+    <string name="book_source_export_success">已导出书源文件</string>
+    <string name="book_source_export_failed">导出失败，请重试</string>
+    <string name="book_source_empty_title">暂无书源</string>
+    <string name="book_source_empty_hint">可导入 JSON</string>
+    <!-- 行操作层 -->
+    <string name="book_source_default_badge">默认</string>
+    <!-- 出身标记：答的是「这条是哪种格式」，与上面那个状态标记不同维度。脚本行与原生行在清单里
+         长得几乎一样，能力差别（不进书城与聚合搜索、暂时也不能导出）却要到最后一步才看得出来，
+         所以必须在行上说清 -->
+    <string name="book_source_script_badge">脚本</string>
+    <string name="book_source_set_default">设为默认</string>
+    <string name="book_source_delete">删除该书源</string>
+    <string name="book_source_delete_title">删除书源</string>
+    <!-- 删除只动清单、不动书架：这句要说清两件事，否则用户以为藏书一起没了 -->
+    <string name="book_source_delete_confirm">确定删除「%1$s」？删除后它不再参与搜索与书城，书架上归属它的书仍在，但需重新导入该书源才能继续解析。</string>
+    <string name="book_source_delete_missing">该书源已不在清单中</string>
+    <!-- 导入预览弹层 -->
+    <string name="book_source_preview_title">导入预览</string>
+    <!-- 第二个数是校验不通过的条数：先讲清「这一包里有多少条进不来」 -->
+    <string name="book_source_preview_desc">共 %1$d 条，其中 %2$d 条校验不通过、不会被导入</string>
+    <string name="book_source_import_confirm">确认导入 %1$d 条</string>
+    <!-- 统计口径：成功含覆盖，失败 = 校验未通过 + 写库失败 -->
+    <string name="book_source_import_result">导入成功 %1$d 条 / 覆盖 %2$d 条 / 失败 %3$d 条（校验未通过）</string>
+    <string name="book_source_will_overwrite">将覆盖</string>
+    <!-- 同一条 URL 换出身（原生规则书源 ↔ 脚本书源）后，它在书城/搜索里的参与方式会整片变掉，
+         只说「将覆盖」会让人以为只是改了改规则，故这两条把「被换掉的是哪种出身」写进标记里 -->
+    <string name="book_source_will_overwrite_script">将覆盖脚本书源</string>
+    <string name="book_source_will_overwrite_native">将覆盖原生规则书源</string>
+    <string name="book_source_validation_pass">校验通过</string>
+    <string name="book_source_validation_fail">校验不通过</string>
+    <!-- 原生规则书源的四条结构校验失败原因，与 BookSourceValidator.validate 的四条一一对应；
+         脚本书源共用前两查，它专属的那条原因在下面单独一块 -->
+    <string name="book_source_reason_name_blank">书源名称为空</string>
+    <string name="book_source_reason_url_not_http">书源地址必须以 http:// 或 https:// 开头</string>
+    <string name="book_source_reason_no_entry">缺少入口地址：搜索地址与发现页地址至少要有一个，否则搜索和书城都用不上</string>
+    <string name="book_source_reason_no_parse_rule">缺少解析规则：搜索结果列表与正文容器的选择器都不能为空</string>
+    <!-- 脚本书源整块读不出来。预览与落库用的是同一个解码器，所以「预览说能导」与「确实存得下去」
+         是同一件事，不会出现点了确认才发现存不下。
+         文案要说清「只丢这一条」：一整包里坏一条时用户最怕的是整包作废 -->
+    <string name="book_source_reason_script_unparsable">脚本书源 JSON 无法解析：字段值与该格式对不上，这一条不会被导入（其余条目不受影响）</string>
+    <!-- 脚本书源的三项导入警示：只要求知情，不拦导入（ADR-0029 决策 6） -->
+    <string name="book_source_warning_executable_code">含可执行脚本代码（将在零权限隔离环境中运行）</string>
+    <string name="book_source_warning_needs_login">依赖登录流程，登录相关功能暂不可用</string>
+    <string name="book_source_warning_not_text">漫画/音频类书源，本项目为文字阅读器，可能无法正常阅读</string>
 
     <!-- ===== 编辑资料页 ===== -->
     <string name="modify_info_title">编辑资料</string>

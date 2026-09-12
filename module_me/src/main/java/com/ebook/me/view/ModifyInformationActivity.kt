@@ -7,7 +7,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DriveFileRenameOutline
 import androidx.compose.material.icons.outlined.Password
@@ -33,14 +31,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.ebook.common.event.KeyCode
+import com.ebook.common.ui.Avatar
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
 import com.ebook.common.ui.CommonListItem
@@ -86,8 +81,8 @@ class ModifyInformationActivity : BaseMvvmActivity<ModifyViewModel>() {
 
         // 拍照临时文件：页面级唯一，多次拍照复用同一文件避免堆积
         val cameraFile = remember { FileUtil.privateFile(context, "profile_camera.jpg") }
-        // 拍照输出 Uri：同一文件反复使用，Uri 只算一次避免重复取
-        val cameraUri = FileUtil.contentUri(context, cameraFile)
+        // 拍照输出 Uri：只算一次（不 remember 的话每次重组都会重跑 FileProvider）
+        val cameraUri = remember(cameraFile) { FileUtil.contentUri(context, cameraFile) }
 
         // 裁剪页返回：拿到裁剪后的图片 Uri，交给 ViewModel 上传并刷新头像
         val cropLauncher = rememberLauncherForActivityResult(
@@ -206,7 +201,12 @@ fun ModifyInformationScreen(
                         title = stringResource(R.string.modify_photo),
                         iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                         iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        trailingContent = { AvatarThumbnail(avatarUrl = profileState.avatarUrl) },
+                        trailingContent = {
+                            Avatar(
+                                url = profileState.avatarUrl,
+                                modifier = Modifier.size(36.dp),
+                            )
+                        },
                         onClick = onModifyPhotoClick
                     )
                     CommonListDivider()
@@ -233,31 +233,5 @@ fun ModifyInformationScreen(
                 }
             }
         }
-    }
-}
-
-/**
- * 列表行内的当前头像缩略图：36dp 圆形，URL 非空加载网络图，否则回退默认图。
- */
-@Composable
-private fun AvatarThumbnail(avatarUrl: String) {
-    if (avatarUrl.isNotEmpty()) {
-        AsyncImage(
-            model = avatarUrl,
-            contentDescription = null,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
-    } else {
-        Image(
-            painter = painterResource(id = R.drawable.image_default),
-            contentDescription = null,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
     }
 }

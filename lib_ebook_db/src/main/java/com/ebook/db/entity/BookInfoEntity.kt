@@ -18,6 +18,10 @@ data class BookInfoEntity(
      */
     @ColumnInfo(name = "name")
     var name: String = String(),
+    /**
+     * 书源归属标记：由解析器写成该书源的 URL（本地书为 `loc_book`），与所在书的
+     * `book_shelf.tag` 同值。语义见 CONTEXT.md「书源归属标记」。
+     */
     @ColumnInfo(name = "tag")
     var tag: String = String(),
     /**

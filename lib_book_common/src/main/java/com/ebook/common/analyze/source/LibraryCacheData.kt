@@ -18,7 +18,6 @@ data class LibraryCacheData(
     fun toLibrary(): LibraryEntity {
         val library = LibraryEntity()
         library.kindBooks = kindBooks.map { it.toLibraryKindBookList() }
-        library.libraryNewBooks = emptyList()
         return library
     }
 

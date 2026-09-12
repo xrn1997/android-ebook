@@ -1,13 +1,12 @@
 package com.ebook.book.mvvm.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.book.R
 import com.ebook.common.domain.BookComment
+import com.ebook.common.domain.CommentTime
 import com.ebook.common.domain.UserSessionManager
-import com.ebook.common.util.DateUtil
 import com.ebook.common.repository.CommentRepository
-import com.xrn1997.common.util.Logger
+import com.ebook.common.util.reportFailure
 import com.xrn1997.common.BaseApplication.Companion.context
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -35,28 +34,81 @@ class BookCommentsViewModel @Inject constructor(
     @JvmField
     var comment: BookComment = BookComment(
         id = 0, userId = 0, username = "", avatar = "",
+        commentKey = null,
         chapterUrl = null, chapterName = null, bookName = null,
         content = null, addTime = ""
     )
+
+    /**
+     * M2 查询用聚合键列表：阅读器传入多个章键（跨源合并）时全量查询；
+     * 与 [comment] 的 `commentKey` 分离——后者用于新发评论的归属键，前者用于查询范围。
+     */
+    var commentKeys: List<String> = emptyList()
+
     val mVoidSingleLiveEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /**
+     * 下一页页码（页大小由 [CommentRepository] 的缺省值统一）。
+     *
+     * 初始即指向第 2 页：首屏前列表为空，[com.xrn1997.common.ui.RefreshableList] 的
+     * 短列表守卫不会触发 loadMore，该初值不会被消费；刷新成功后无条件重置回 2。
+     */
+    private var nextPage = 2
+
+    /**
+     * 是否还有下一页（VM 侧闸门 + 经 [updateHasMoreData] 同步给刷新状态机）。
+     * 刷新成功按返回页是否为整页重算；加载到短页/空页后置 false。
+     */
+    private var hasMoreData = true
+
+    /**
+     * 加载更多在途闸门：触底信号可能在滚动中连续到来，只放行一笔在途请求。
+     * 刷新不做此闸门——下拉刷新总是允许的，刷新会用新首页整体替换列表。
+     */
+    private var loadMoreInProgress = false
 
     override fun refreshData() {
         viewModelScope.launch {
-            val result = commentRepository.getChapterComments(comment.chapterUrl)
-            result.onSuccess { data ->
-                val sortedComments = data.sortedByDescending {
-                    DateUtil.parseTime(it.addTime, DateUtil.FormatType.yyyyMMddHHmm)
+            commentRepository.getComments(commentKeys, page = 1)
+                .onSuccess { page ->
+                    updateList(mergeCommentPage(emptyList(), page.items))
+                    nextPage = 2
+                    hasMoreData = page.hasMore
+                    // 先结束刷新再同步 hasMore：状态机在收到刷新结束信号时会自动复位 hasMore，
+                    // 显式信号随后到达才能以本页的真实结论覆盖复位值
+                    updateStopRefresh()
+                    updateHasMoreData(page.hasMore)
                 }
-                updateList(sortedComments)
-                updateStopRefresh()
-            }.onFailure { exception ->
-                toastFailure(exception)
-                updateStopRefresh()
-            }
+                .onFailure { exception ->
+                    reportFailure(exception)
+                    updateStopRefresh()
+                }
         }
     }
 
     override fun loadMore() {
+        if (loadMoreInProgress || !hasMoreData) return
+        loadMoreInProgress = true
+        val page = nextPage
+        viewModelScope.launch {
+            var success = false
+            try {
+                commentRepository.getComments(commentKeys, page = page)
+                    .onSuccess { newPage ->
+                        updateList(mergeCommentPage(list.value, newPage.items))
+                        nextPage = page + 1
+                        hasMoreData = newPage.hasMore
+                        updateHasMoreData(newPage.hasMore)
+                        success = true
+                    }
+                    .onFailure { exception ->
+                        reportFailure(exception)
+                    }
+            } finally {
+                loadMoreInProgress = false
+                updateStopLoadMore(success)
+            }
+        }
     }
 
     fun addComment(comments: String) {
@@ -74,7 +126,7 @@ class BookCommentsViewModel @Inject constructor(
                     mVoidSingleLiveEvent.tryEmit(Unit)
                     refreshData()
                 }.onFailure { exception ->
-                    toastFailure(exception)
+                    reportFailure(exception)
                 }
             }
         } else {
@@ -89,26 +141,11 @@ class BookCommentsViewModel @Inject constructor(
                 sendToast(context.getString(R.string.comment_delete_success))
                 refreshData()
             }.onFailure { exception ->
-                toastFailure(exception)
+                reportFailure(exception)
             }
         }
     }
 
-    /**
-     * 统一失败提示：已全局处置的会话过期只记日志、不重复弹 Toast（Q4：事件唯一出口）；
-     * 其余业务异常走业务文案，本地异常走原始 message。
-     */
-    private fun toastFailure(exception: Throwable) {
-        if (CoroutineAdapter.isSessionExpiredHandled(exception)) {
-            Logger.w(TAG, "会话过期已由全局处置，本调用点静默（仅日志）：${exception.message}")
-            return
-        }
-        if (exception is CoroutineAdapter.ApiException) {
-            sendToast(exception.message())
-        } else {
-            sendToast("${exception.message}")
-        }
-    }
 }
 
 /**
@@ -123,3 +160,20 @@ class BookCommentsViewModel @Inject constructor(
  */
 fun isOwnComment(commentUserId: Long, currentUserId: Long?): Boolean =
     currentUserId != null && currentUserId > 0L && commentUserId == currentUserId
+
+/**
+ * 把一页新取的评论合并进既有列表（纯函数，便于 JVM 单测）。
+ *
+ * - 按 id 去重：刷新与加载更多存在并发窗口，同一页可能在重置后的游标下被再次取回；
+ *   跨源聚合查询本身也可能在键变化后返回已见条目。
+ * - 全量按时间倒序重排：分页按服务端序发放，只有全局重排能让任何窗口内到达的页
+ *   收敛到一致的展示序。排序口径收口在 [CommentTime]：必须到秒，
+ *   按分钟解析会让同分钟内的评论排成随机序。
+ */
+internal fun mergeCommentPage(
+    existing: List<BookComment>,
+    fetched: List<BookComment>,
+): List<BookComment> =
+    (existing + fetched)
+        .distinctBy { it.id }
+        .sortedByDescending { CommentTime.sortMillis(it.addTime) }

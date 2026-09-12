@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-        权限最小化（逐条判据与取证见 ADR-0022）：本应用只声明用得到的四项。
+        权限最小化（逐条判据与取证见 ADR-0022）：本模块只声明用得到的三项。
         已删除的都是「声明了但全仓无对应 API 调用」的遗留项：
         - ACCESS_WIFI_STATE / CHANGE_WIFI_STATE：无任何 WifiManager 用法（Wi-Fi 状态判断走 ConnectivityManager）
         - READ_PHONE_STATE / WAKE_LOCK：无 TelephonyManager、无 PowerManager.newWakeLock

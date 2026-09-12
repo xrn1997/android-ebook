@@ -1,7 +1,6 @@
 package com.ebook.book
 
 import androidx.activity.viewModels
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -33,22 +31,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.ebook.book.mvvm.viewmodel.BookCommentsViewModel
 import com.ebook.book.mvvm.viewmodel.isOwnComment
 import com.ebook.common.domain.BookComment
+import com.ebook.common.domain.CommentTime
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
+import com.ebook.common.ui.Avatar
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.CommonItemCard
-import com.ebook.common.util.DateUtil
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.IBaseRefreshView
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
@@ -62,12 +58,15 @@ import dagger.hilt.android.AndroidEntryPoint
  * 布局：[RefreshableList] 下拉刷新评论列表 + 底部输入栏（对齐原
  * activity_book_comments.xml 的 12:1 权重结构——列表占主体、输入栏固定底部）。
  *
- * 刷新接线：ViewModel 的 [IBaseRefreshView] 刷新信号经 [MvvmBinder] 映射到本地
- * isRefreshing 状态（BaseRefreshViewModel 回调不直接驱动 View）。与书架页
- * [com.ebook.book.page.BookShelfPage] 的 refreshVersion StateFlow 模式分叉，原因：
+ * 刷新接线：ViewModel 的 [IBaseRefreshView] 刷新/加载更多信号经 [MvvmBinder] 映射到本地
+ * isRefreshing/isLoadingMore/hasMore 状态（BaseRefreshViewModel 回调不直接驱动 View）。
+ * 与书架页 [com.ebook.book.page.BookShelfPage] 的 refreshVersion StateFlow 模式分叉，原因：
  * 评论页是独立 Activity 生命周期（非 NavHost 内页面），无 NavBackStackEntry
- * 孤儿 collector 问题，MvvmBinder 在 `updateStopRefresh()` 单消费场景下语义足够，
+ * 孤儿 collector 问题，MvvmBinder 在单消费场景下语义足够，
  * 无需引入版本号 StateFlow（见 BookListViewModel 的 Channel 单消费者竞态说明）。
+ *
+ * 加载更多接线：`enableLoadMore` 挂 hasMore 状态（触底自动触发由 [RefreshableList]
+ * 承担），`loadMoreFailed` 在失败后抑制自动重试，由下一次刷新成功解除。
  *
  * 交互保持与原实现一致：
  * - 仅本人评论可长按删除（用户名与 SP 中登录用户名比对），删除走 Compose
@@ -81,17 +80,27 @@ class BookCommentsActivity : BaseMvvmActivity<BookCommentsViewModel>() {
     override val viewModel: BookCommentsViewModel by viewModels()
 
     override fun initData() {
-        // 路由携带的章节信息组装为评论载体（chapterUrl 是查询/新增评论的主键）
+        // 路由携带的章节信息组装为评论载体（commentKey 是 M2 查询/新增评论的主键）
         val bundle = this.intent.extras
         if (bundle != null && !bundle.isEmpty) {
+            val rawKey = bundle.getString(RouteArgs.COMMENT_KEY)
+            // M2：阅读器传入逗号分隔的多个章键（跨源合并），我的评论页仍传单键——
+            // 统一按逗号拆分，单键场景拆出来就是单元素列表
+            val keys = rawKey?.split(",")?.filter { it.isNotEmpty() } ?: emptyList()
+            // 写入键：优先取发送方显式传来的主键（spec §9.2「写评论只用 is_primary 那行」）。
+            // 不能拿 keys.firstOrNull()——并集查询没有 ORDER BY，修键后主键是后插入的那行。
+            // 未传该键的入口只剩「我的评论」页（单键跳来，读写的就是同一个桶），回落首元素即可。
+            val writeKey = bundle.getString(RouteArgs.PRIMARY_COMMENT_KEY) ?: keys.firstOrNull()
             val comment = BookComment(
                 id = 0, userId = 0, username = "", avatar = "",
+                commentKey = writeKey,
                 chapterUrl = bundle.getString(RouteArgs.CHAPTER_URL),
                 chapterName = bundle.getString(RouteArgs.CHAPTER_NAME),
                 bookName = bundle.getString(RouteArgs.BOOK_NAME),
                 content = null, addTime = ""
             )
             viewModel.comment = comment
+            viewModel.commentKeys = keys
         }
     }
 
@@ -114,20 +123,31 @@ fun BookCommentsScreen(viewModel: BookCommentsViewModel) {
     // 本人判定用的会话 userId：经 VM 从 UserSessionManager 取，不在页面里直读 SP
     val currentUserId by viewModel.currentUserId.collectAsState(initial = null)
     var isRefreshing by remember { mutableStateOf(false) }
+    var isLoadingMore by remember { mutableStateOf(false) }
+    var loadMoreFailed by remember { mutableStateOf(false) }
+    var hasMore by remember { mutableStateOf(true) }
     var inputText by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // 刷新信号绑定：ViewModel.updateStopRefresh() → isRefreshing = false
+    // 刷新/加载更多信号绑定：ViewModel 的一次性信号 → 本地 Compose 状态
     DisposableEffect(lifecycleOwner, viewModel) {
         MvvmBinder.bindRefresh(
             lifecycleOwner,
             object : IBaseRefreshView {
                 override fun finishRefresh() {
                     isRefreshing = false
+                    // 刷新会重取首页并补发 hasMoreData；这里同时解除上一轮加载失败的自动触发抑制
+                    loadMoreFailed = false
                 }
 
                 override fun finishLoadMore(success: Boolean) {
+                    isLoadingMore = false
+                    loadMoreFailed = !success
+                }
+
+                override fun setHasMoreData(value: Boolean) {
+                    hasMore = value
                 }
 
                 override fun triggerRefresh() {
@@ -155,13 +175,17 @@ fun BookCommentsScreen(viewModel: BookCommentsViewModel) {
     Column(modifier = Modifier.fillMaxSize()) {
         RefreshableList(
             isRefreshing = isRefreshing,
-            isLoadingMore = false,
+            isLoadingMore = isLoadingMore,
             onRefresh = {
                 isRefreshing = true
                 viewModel.refreshData()
             },
-            onLoadMore = { viewModel.loadMore() },
-            enableLoadMore = false,
+            onLoadMore = {
+                isLoadingMore = true
+                viewModel.loadMore()
+            },
+            enableLoadMore = hasMore,
+            loadMoreFailed = loadMoreFailed,
             modifier = Modifier.weight(1f)
         ) { listState ->
             CommentList(
@@ -297,14 +321,11 @@ fun CommentItem(comment: BookComment, onLongClick: () -> Unit) {
         Column {
             // 头部：头像 + 用户名
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AsyncImage(
-                    model = comment.avatar,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    placeholder = painterResource(R.drawable.image_default)
+                // 空 URL / 加载中 / 取不到三态的兜底归共享组件（中性色块占位、默认头像收尾）；
+                // 原先手写版只在 URL 为空时给默认图，失效链接会留下一个空白圆
+                Avatar(
+                    url = comment.avatar,
+                    modifier = Modifier.size(30.dp),
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
@@ -327,7 +348,7 @@ fun CommentItem(comment: BookComment, onLongClick: () -> Unit) {
             )
             // 时间（右对齐）
             Text(
-                text = DateUtil.formatDate(comment.addTime, DateUtil.FormatType.yyyyMMddHHmm),
+                text = CommentTime.displayText(comment.addTime),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier

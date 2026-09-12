@@ -1,5 +1,6 @@
 package com.ebook.me.view
 
+import android.content.Intent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderOpen
@@ -53,8 +55,10 @@ import com.ebook.me.R
 import com.ebook.me.mvvm.viewmodel.CacheManageViewModel
 import com.ebook.me.mvvm.viewmodel.categoryTitleRes
 import com.ebook.me.repository.CacheType
-import com.ebook.me.repository.formatSize
+import com.ebook.common.util.formatSize
+import com.therouter.TheRouter
 import com.therouter.router.Route
+import com.therouter.router.matchRouteMap
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -84,6 +88,10 @@ class CacheManageActivity : BaseMvvmActivity<CacheManageViewModel>() {
         val cacheState by viewModel.cacheState.collectAsState()
         val detailState by viewModel.detailState.collectAsState()
 
+        // 书架在 module_main，独立运行时该路由不存在（TheRouter 找不到路由只记一行日志、不报错），
+        // 所以先探测：取不到就把书籍行留成纯展示，不摆一个点了没反应的箭头
+        val canOpenShelf = matchRouteMap(KeyCode.Main.MAIN_PATH) != null
+
         // 清理成功提示由 ViewModel 经 sendToast 下发（文案在 VM 侧走资源解析，见 CacheManageViewModel）
         CacheManageScreen(
             uiState = cacheState,
@@ -91,7 +99,16 @@ class CacheManageActivity : BaseMvvmActivity<CacheManageViewModel>() {
             onOpenDetail = { viewModel.openDetail(it) },
             onDismissDetail = { viewModel.dismissDetail() },
             onClearCategory = { type -> viewModel.clearCategory(type) },
-            onClearAll = { viewModel.clearAll() }
+            onClearAll = { viewModel.clearAll() },
+            canOpenShelf = canOpenShelf,
+            // 本页不删书，只把人送去做这件事：MainActivity 未声明 launchMode，CLEAR_TOP 会重建它
+            // 并落回 startDestination（正是书架），所以不需要「选哪个 Tab」的跨模块约定。
+            // 代价是设置/缓存两页一并出栈——「去管理我的书」通常正是这个语义。
+            onOpenShelf = {
+                TheRouter.build(KeyCode.Main.MAIN_PATH)
+                    .withFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    .navigation()
+            }
         )
     }
 }
@@ -106,7 +123,9 @@ fun CacheManageScreen(
     onOpenDetail: (CacheType) -> Unit,
     onDismissDetail: () -> Unit,
     onClearCategory: (CacheType) -> Unit,
-    onClearAll: () -> Unit
+    onClearAll: () -> Unit,
+    canOpenShelf: Boolean,
+    onOpenShelf: () -> Unit,
 ) {
     var showClearAllDialog by remember { mutableStateOf(false) }
     // 总占用空串 = 计算中，占位文案经资源解析
@@ -161,6 +180,46 @@ fun CacheManageScreen(
                             onClick = { onOpenDetail(item.type) }
                         )
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 书籍内容：解释「缓存总占用」为什么远小于手机报的应用占用。它不参与本页清理
+            // （删书的唯一入口仍是书架长按），但书架路由可达时这一行可点，把人送到能删的地方。
+            CommonCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    // 这一行直接复用共享的 CommonListItem，不再自己拼一份行几何（ADR-0006：
+                    // 跨模块共享组件不各模块重复实现）。两处细节由组件承担：
+                    // - `onClick` 虽然必传，但它不是「必须可点」——路由取不到时（独立运行，
+                    //   书架不在依赖图里）传 `enabled = false` 即可拿到组件内建的诚实置灰渲染
+                    //   （图标与标题一并走 onSurfaceVariant，并把 disabled 写进 semantics），
+                    //   不会留下一个点了没反应的假入口；箭头一并由 `showArrow` 控制。
+                    // - 图标容器颜色取中性 surfaceVariant：这一行是「说明」而不是入口，
+                    //   不借用 primary/secondary/tertiary 那套入口色。
+                    CommonListItem(
+                        icon = Icons.AutoMirrored.Outlined.MenuBook,
+                        title = stringResource(R.string.cache_books_title),
+                        iconContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        iconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        trailingText = stringResource(
+                            R.string.cache_books_value,
+                            uiState.booksSizeText,
+                            uiState.bookCount
+                        ),
+                        showArrow = canOpenShelf,
+                        enabled = canOpenShelf,
+                        onClick = onOpenShelf,
+                    )
+                    CommonListDivider()
+                    Text(
+                        text = stringResource(
+                            if (canOpenShelf) R.string.cache_books_desc_open else R.string.cache_books_desc
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
                 }
             }
 
@@ -299,7 +358,7 @@ private fun CacheDetailSheet(
                                     modifier = Modifier.weight(1f)
                                 )
                                 Text(
-                                    text = formatSizeText(entry.sizeBytes),
+                                    text = formatSize(entry.sizeBytes),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -355,6 +414,3 @@ private fun categoryColors(type: CacheType): Pair<Color, Color> = when (type) {
     CacheType.OTHER -> MaterialTheme.colorScheme.tertiaryContainer to
             MaterialTheme.colorScheme.onTertiaryContainer
 }
-
-/** 大小文案：转发 [formatSize]（Sheet 与列表共用同一格式） */
-private fun formatSizeText(bytes: Long): String = formatSize(bytes)

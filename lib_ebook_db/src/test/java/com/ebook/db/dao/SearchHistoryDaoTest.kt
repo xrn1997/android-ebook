@@ -34,8 +34,9 @@ class SearchHistoryDaoTest {
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        // 不 setDriver(BundledSQLiteDriver)：其原生库只随 APK 打包，JVM 单测加载不到；
-        // Android 构建的默认驱动是 FrameworkSQLiteDriver，由 Robolectric 模拟实现
+        // 不 setDriver(...)：Android 构建的默认驱动是 FrameworkSQLiteDriver，由 Robolectric 模拟实现，
+        // 本测试锁的是 DAO 的 SQL 语义而不是某个引擎的行为。要跑生产同款 bundled 引擎的是
+        // BookSourceMigration6To7Test，它显式配了 sqlite-bundled-jvm 并 setDriver(BundledSQLiteDriver)
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()

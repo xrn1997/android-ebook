@@ -28,6 +28,7 @@ fun Comment.toBookComment(): BookComment = BookComment(
     userId = user.id,
     username = user.nickname.ifEmpty { user.username },
     avatar = user.image,
+    commentKey = commentKey,
     chapterUrl = chapterUrl,
     chapterName = chapterName,
     bookName = bookName,
@@ -47,7 +48,8 @@ fun BookComment.toApiComment(): Comment = Comment().apply {
         nickname = this@toApiComment.username
         image = this@toApiComment.avatar
     }
-    chapterUrl = this@toApiComment.chapterUrl
+    commentKey = this@toApiComment.commentKey
+    // chapterUrl 已废弃（M2 §3.2.2）：新客户端发评论不再携带，仅响应/展示保留
     chapterName = this@toApiComment.chapterName
     bookName = this@toApiComment.bookName
     content = this@toApiComment.content

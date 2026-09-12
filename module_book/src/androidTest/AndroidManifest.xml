@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  module_book 仪器测试清单：仅为 Hilt 声明测试用 Application。
+
+  为什么需要这个文件：@HiltAndroidTest 要求进程内有一个由 Hilt 装配的 Application
+  作为 SingletonComponent 的根。module_book 是 library，正常运行时的 Application
+  （module_app 的 @HiltAndroidApp）不在本模块的 androidTest 编译类路径上，因此
+  直接使用 hilt-android-testing 自带的 HiltTestApplication（它自身已标 @HiltAndroidApp，
+  由 Hilt 的 AGP 转换补全组件树），不必在 androidTest 里再造一个 TestApplication 子类。
+
+  与 src/main/AndroidManifest.xml / src/main/module/AndroidManifest.xml 无替换关系：
+  该清单只参与 androidTest APK 的合并，不影响集成态与独立态的业务清单。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:name="dagger.hilt.android.testing.HiltTestApplication" />
+
+</manifest>

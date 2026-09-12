@@ -11,8 +11,26 @@
     <string name="book_type">书籍类型</string>
     <string name="search_hint">请输入书名/作者</string>
     <string name="more">更多</string>
-    <string name="source_format">来源:%1$s</string>
     <string name="added">已添加</string>
     <string name="add">+添加</string>
     <string name="search">搜索</string>
+    <!-- 按书绑源（ADR-0016）：加入书架时这本书归属的书源已被删除/规则读不出。
+         异常自身消息形如「书源已失效：<URL>」，不带行动指引也不该上屏，故走资源 -->
+    <string name="book_source_invalid">书源已失效，请重新导入或换源</string>
+    <!-- 聚合搜索（ADR-0016 P3-b）的书源进度：分母是本轮参与的书源数，失败的源同样会计入
+         「已结束」，所以这条文案不会因某个站点挂掉而永远停在 X<Y；全部源结束即整行消失 -->
+    <string name="search_source_progress">已收到 %1$d/%2$d 书源结果</string>
+    <!-- 书城顶部书源切换器（ADR-0016 P3-c）：胶囊本身显示的就是书源名，故这里只有无障碍与引导态文案。
+         contentDescription 走资源而不是硬编码，与本仓其它图标一致 -->
+    <string name="switch_book_source">切换书源</string>
+    <string name="current_book_source">当前书源</string>
+    <!-- 用户把书源全部禁用：书城一条数据都不该发（没有源可解析），只给一句能自己走通的话 -->
+    <string name="no_book_source_title">还没有可用书源</string>
+    <string name="no_book_source_guidance">请先在书源管理中启用或导入书源</string>
+    <!-- 引导态里的行动入口按钮：跟着上面那句一起出现，把「去哪导入」这一步直接递到手上 -->
+    <string name="go_import_book_source">去导入书源</string>
+    <!-- 有源但当前这个源解析不出来（行被删/规则读不出）：与上面两条是**不同的动作**，
+         误报成「没源」会把用户支去启用那条本就坏掉的源（ADR-0016 决策 5 要求的提示） -->
+    <string name="broken_book_source_title">当前书源已失效</string>
+    <string name="broken_book_source_guidance">这个源已经解析不出来了，可在上方换一个书源，或到书源管理中重新导入该书源</string>
 </resources>

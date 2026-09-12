@@ -1,7 +1,6 @@
 package debug
 
 import android.content.Intent
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Science
@@ -24,8 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -36,6 +32,7 @@ import com.ebook.common.domain.UserSession
 import com.ebook.common.domain.UserSessionManager
 import com.ebook.common.event.KeyCode
 import com.ebook.common.repository.ProfileRepository
+import com.ebook.common.ui.Avatar
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListItem
 import com.ebook.me.R
@@ -178,12 +175,11 @@ private fun TestLoginScreen(
                         .padding(horizontal = 16.dp, vertical = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.image_default),
+                    // 模拟用户没有真头像：空串即由共享组件给出默认头像
+                    Avatar(
+                        url = "",
+                        modifier = Modifier.size(72.dp),
                         contentDescription = stringResource(R.string.me_test_avatar_desc),
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(

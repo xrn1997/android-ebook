@@ -22,6 +22,10 @@
             android:label="@string/cache_manage_title"
             android:theme="@style/ToolbarTheme.BackBar" />
         <activity
+            android:name=".view.BookSourceManageActivity"
+            android:label="@string/book_source_title"
+            android:theme="@style/ToolbarTheme.BackBar" />
+        <activity
             android:name=".view.AboutActivity"
             android:label="@string/about_title"
             android:theme="@style/ToolbarTheme.BackBar" />

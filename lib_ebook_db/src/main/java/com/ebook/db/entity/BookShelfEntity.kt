@@ -32,8 +32,36 @@ data class BookShelfEntity(
      */
     @ColumnInfo(name = "final_date")
     var finalDate: Long = 0,
+    /**
+     * 书源归属标记（这本书来自哪个书源，取值为该书源的 URL；本地书为 [LOCAL_TAG]）。
+     *
+     * 多书源共存下本列是「按哪套规则解析这本书」的唯一依据：书架刷新、详情、正文与下载都拿它
+     * 去 `BookSourceManager.getParserFor` 取源（见 CONTEXT.md「书源归属标记」）。
+     * 禁用某源不切断归属（禁用的源仍解析得到自己的书），删除该源才会让这本书解析不出来。
+     */
     @ColumnInfo(name = "tag")
     var tag: String = String(),
+    /**
+     * 本地书的格式名（`BookFormat` 枚举名），网络书为 null。与 [textCharset] 一起构成
+     * 重解析所需的全部信息；路由 reader 也读它。
+     */
+    @ColumnInfo(name = "book_format")
+    var bookFormat: String? = null,
+    /**
+     * 探测一次即固化的**源文件**编码。章文件本身统一 UTF-8，因此此列只在重解析时用
+     * （spec §4 §7：旧实现每次导入都重头探测一遍全文件）。
+     */
+    @ColumnInfo(name = "text_charset")
+    var textCharset: String? = null,
+    /**
+     * 主匹配名：算 `comment_key` 用，为空回落到 `book_info.name`。
+     * 与显示名分开的理由见 spec §9.3——不分开就会出现"为了对上评论去改用户看到的书名"。
+     */
+    @ColumnInfo(name = "match_name")
+    var matchName: String? = null,
+    /** 匹配作者，为空回落到 `book_info.author` */
+    @ColumnInfo(name = "match_author")
+    var matchAuthor: String? = null,
     /**
      * 书籍信息（不存入数据库，由 UI 层填充）
      */

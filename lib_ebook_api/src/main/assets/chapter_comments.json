@@ -4,6 +4,20 @@
   "data": {
     "items": [
       {
+        "id": 201,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "这本书的开头就很吸引人！门牌号的细节二刷才看懂。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-20 09:21:00"
+      },
+      {
         "id": 401,
         "user": {
           "uid": 13,
@@ -11,6 +25,7 @@
           "nickname": "读者C",
           "avatar": "https://example.com/images/user_13.png"
         },
+        "comment_key": "ck1:tianqi#0",
         "content": "所以守夜人到底是谁？第一章就埋这么大一个坑。",
         "chapter_url": "https://example.com/books/1/chapter/1",
         "chapter_name": "第一章 序幕",
@@ -25,6 +40,7 @@
           "nickname": "读者A",
           "avatar": "https://example.com/images/user_11.png"
         },
+        "comment_key": "ck1:tianqi#0",
         "content": "回楼上：第三章会揭晓，这里先卖个关子，不剧透。",
         "chapter_url": "https://example.com/books/1/chapter/1",
         "chapter_name": "第一章 序幕",
@@ -38,11 +54,640 @@
           "username": "user_test01",
           "avatar": "https://example.com/images/user_1.png"
         },
+        "comment_key": "ck1:tianqi#0",
         "content": "第一遍没注意，二刷才发现门牌号的数字是倒着写的。",
         "chapter_url": "https://example.com/books/1/chapter/1",
         "chapter_name": "第一章 序幕",
         "book_name": "天启之书",
         "add_time": "2025-10-20 10:31:00"
+      },
+      {
+        "id": 404,
+        "user": {
+          "uid": 14,
+          "username": "nightOwl",
+          "nickname": "夜猫子",
+          "avatar": "https://example.com/images/user_14.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "半夜点开第一章，看完门口的灯不敢关。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-19 21:10:00"
+      },
+      {
+        "id": 405,
+        "user": {
+          "uid": 15,
+          "username": "bookworm",
+          "nickname": "老书虫",
+          "avatar": "https://example.com/images/user_15.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "「钟声敲到第七下会停」——这个设定第一段就立住了，稳。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-19 22:35:00"
+      },
+      {
+        "id": 406,
+        "user": {
+          "uid": 12,
+          "username": "readerB",
+          "nickname": "读者B",
+          "avatar": "https://example.com/images/user_12.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "排版很舒服，段落间距看着不累，追更体验加分。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-20 11:00:00"
+      },
+      {
+        "id": 407,
+        "user": {
+          "uid": 11,
+          "username": "readerA",
+          "nickname": "读者A",
+          "avatar": "https://example.com/images/user_11.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "门牌号第一次出现时谁也没在意吧？作者埋得真深。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-20 12:30:00"
+      },
+      {
+        "id": 408,
+        "user": {
+          "uid": 16,
+          "username": "moonreader",
+          "nickname": "月下读者",
+          "avatar": "https://example.com/images/user_16.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "序幕只有五页，信息量却大得吓人，逐句都是钩子。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-20 13:45:00"
+      },
+      {
+        "id": 409,
+        "user": {
+          "uid": 13,
+          "username": "readerC",
+          "nickname": "读者C",
+          "avatar": "https://example.com/images/user_13.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "守夜人一出场我就猜到不对劲，但没想到这么不对劲。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-20 15:20:00"
+      },
+      {
+        "id": 410,
+        "user": {
+          "uid": 15,
+          "username": "bookworm",
+          "nickname": "老书虫",
+          "avatar": "https://example.com/images/user_15.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "老派写法，节奏慢热，但每一句都有用，不是水字数。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-20 17:05:00"
+      },
+      {
+        "id": 416,
+        "user": {
+          "uid": 14,
+          "username": "nightOwl",
+          "nickname": "夜猫子",
+          "avatar": "https://example.com/images/user_14.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "重读一遍才发现墙上那行小字，作者太会藏东西了。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-20 19:40:00"
+      },
+      {
+        "id": 417,
+        "user": {
+          "uid": 12,
+          "username": "readerB",
+          "nickname": "读者B",
+          "avatar": "https://example.com/images/user_12.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "人物的对话很生活化，一点都不出戏。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-21 08:15:00"
+      },
+      {
+        "id": 418,
+        "user": {
+          "uid": 16,
+          "username": "moonreader",
+          "nickname": "月下读者",
+          "avatar": "https://example.com/images/user_16.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "钟楼、老街、连绵的雨，画面感直接拉满。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-21 10:02:00"
+      },
+      {
+        "id": 419,
+        "user": {
+          "uid": 13,
+          "username": "readerC",
+          "nickname": "读者C",
+          "avatar": "https://example.com/images/user_13.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "有人和我一样第一遍把两个配角名字搞混吗？",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-21 12:47:00"
+      },
+      {
+        "id": 420,
+        "user": {
+          "uid": 11,
+          "username": "readerA",
+          "nickname": "读者A",
+          "avatar": "https://example.com/images/user_11.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "开局暴雨那段的描写可以背下来了。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-21 15:30:00"
+      },
+      {
+        "id": 426,
+        "user": {
+          "uid": 15,
+          "username": "bookworm",
+          "nickname": "老书虫",
+          "avatar": "https://example.com/images/user_15.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "第一章没有一句废话，信息密度高得离谱。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-21 18:22:00"
+      },
+      {
+        "id": 427,
+        "user": {
+          "uid": 14,
+          "username": "nightOwl",
+          "nickname": "夜猫子",
+          "avatar": "https://example.com/images/user_14.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "看完第一章就去看了文案，这本书要火。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-21 21:00:00"
+      },
+      {
+        "id": 428,
+        "user": {
+          "uid": 16,
+          "username": "moonreader",
+          "nickname": "月下读者",
+          "avatar": "https://example.com/images/user_16.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "「灯是他自己点的」后面应该还有呼应，先记下。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-22 09:12:00"
+      },
+      {
+        "id": 429,
+        "user": {
+          "uid": 12,
+          "username": "readerB",
+          "nickname": "读者B",
+          "avatar": "https://example.com/images/user_12.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "配角的伏笔比主线还细，作者脑子是个图书馆吧。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-22 12:38:00"
+      },
+      {
+        "id": 433,
+        "user": {
+          "uid": 13,
+          "username": "readerC",
+          "nickname": "读者C",
+          "avatar": "https://example.com/images/user_13.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "第一章结尾那句话，直接给我看坐直了。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-22 15:04:00"
+      },
+      {
+        "id": 434,
+        "user": {
+          "uid": 15,
+          "username": "bookworm",
+          "nickname": "老书虫",
+          "avatar": "https://example.com/images/user_15.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "悬疑加市井的搭配很少见，第一章就把味道做出来了。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-22 20:56:00"
+      },
+      {
+        "id": 435,
+        "user": {
+          "uid": 16,
+          "username": "moonreader",
+          "nickname": "月下读者",
+          "avatar": "https://example.com/images/user_16.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "用来下饭有点吓人，用来睡前看更吓人。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-23 08:30:00"
+      },
+      {
+        "id": 436,
+        "user": {
+          "uid": 14,
+          "username": "nightOwl",
+          "nickname": "夜猫子",
+          "avatar": "https://example.com/images/user_14.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "细节控狂喜：连街边招牌的店名都有讲究。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-23 11:42:00"
+      },
+      {
+        "id": 437,
+        "user": {
+          "uid": 13,
+          "username": "readerC",
+          "nickname": "读者C",
+          "avatar": "https://example.com/images/user_13.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "主角出场三句话，性格就立住了，功力不一般。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-23 14:18:00"
+      },
+      {
+        "id": 438,
+        "user": {
+          "uid": 12,
+          "username": "readerB",
+          "nickname": "读者B",
+          "avatar": "https://example.com/images/user_12.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "有人注意到章末的时间戳吗？和正文对不上，绝对是伏笔。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-23 18:55:00"
+      },
+      {
+        "id": 439,
+        "user": {
+          "uid": 15,
+          "username": "bookworm",
+          "nickname": "老书虫",
+          "avatar": "https://example.com/images/user_15.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "这个开头让我想起本格派黄金时代的味道。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-23 21:33:00"
+      },
+      {
+        "id": 440,
+        "user": {
+          "uid": 11,
+          "username": "readerA",
+          "nickname": "读者A",
+          "avatar": "https://example.com/images/user_11.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "二刷注意到了钟声的次数，作者真的很敢埋。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-24 09:08:00"
+      },
+      {
+        "id": 441,
+        "user": {
+          "uid": 16,
+          "username": "moonreader",
+          "nickname": "月下读者",
+          "avatar": "https://example.com/images/user_16.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "文笔不炫技但稳，读起来很顺。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-24 12:26:00"
+      },
+      {
+        "id": 442,
+        "user": {
+          "uid": 14,
+          "username": "nightOwl",
+          "nickname": "夜猫子",
+          "avatar": "https://example.com/images/user_14.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "慢慢看，这本书的信息都藏在细节缝里。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-24 15:49:00"
+      },
+      {
+        "id": 443,
+        "user": {
+          "uid": 13,
+          "username": "readerC",
+          "nickname": "读者C",
+          "avatar": "https://example.com/images/user_13.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "求更新快点！第一章已经吊住我了。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-24 19:14:00"
+      },
+      {
+        "id": 444,
+        "user": {
+          "uid": 12,
+          "username": "readerB",
+          "nickname": "读者B",
+          "avatar": "https://example.com/images/user_12.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "序幕的雨夜和结尾的晴天呼应得真好。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-25 09:51:00"
+      },
+      {
+        "id": 445,
+        "user": {
+          "uid": 15,
+          "username": "bookworm",
+          "nickname": "老书虫",
+          "avatar": "https://example.com/images/user_15.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "把「守夜」两个字划重点，后面一定反复考。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-25 13:27:00"
+      },
+      {
+        "id": 446,
+        "user": {
+          "uid": 16,
+          "username": "moonreader",
+          "nickname": "月下读者",
+          "avatar": "https://example.com/images/user_16.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "配角们的视线互相避开那段，全是戏。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-25 17:03:00"
+      },
+      {
+        "id": 447,
+        "user": {
+          "uid": 11,
+          "username": "readerA",
+          "nickname": "读者A",
+          "avatar": "https://example.com/images/user_11.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "第一章信息量太大，做了一页笔记。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-25 20:39:00"
+      },
+      {
+        "id": 448,
+        "user": {
+          "uid": 14,
+          "username": "nightOwl",
+          "nickname": "夜猫子",
+          "avatar": "https://example.com/images/user_14.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "环境描写不堆砌，每处都在推进剧情，难得。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-26 10:15:00"
+      },
+      {
+        "id": 449,
+        "user": {
+          "uid": 13,
+          "username": "readerC",
+          "nickname": "读者C",
+          "avatar": "https://example.com/images/user_13.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "就喜欢这种开头不急着爆点的写法。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-26 14:52:00"
+      },
+      {
+        "id": 450,
+        "user": {
+          "uid": 12,
+          "username": "readerB",
+          "nickname": "读者B",
+          "avatar": "https://example.com/images/user_12.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "门牌号倒着写这个细节，评论区已经吵起来了，哈哈哈。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-26 18:28:00"
+      },
+      {
+        "id": 451,
+        "user": {
+          "uid": 15,
+          "username": "bookworm",
+          "nickname": "老书虫",
+          "avatar": "https://example.com/images/user_15.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "悬念给得克制，但每个都够钩人。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-27 09:04:00"
+      },
+      {
+        "id": 452,
+        "user": {
+          "uid": 16,
+          "username": "moonreader",
+          "nickname": "月下读者",
+          "avatar": "https://example.com/images/user_16.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "第一章结尾的「轻轻一声」是什么声音？在线等。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-27 12:40:00"
+      },
+      {
+        "id": 453,
+        "user": {
+          "uid": 14,
+          "username": "nightOwl",
+          "nickname": "夜猫子",
+          "avatar": "https://example.com/images/user_14.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "追更第一天打卡，希望这本能一直稳住。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-27 16:16:00"
+      },
+      {
+        "id": 454,
+        "user": {
+          "uid": 11,
+          "username": "readerA",
+          "nickname": "读者A",
+          "avatar": "https://example.com/images/user_11.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "「序章没有序章」这个目录命名就很有味道。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-28 09:31:00"
+      },
+      {
+        "id": 455,
+        "user": {
+          "uid": 13,
+          "username": "readerC",
+          "nickname": "读者C",
+          "avatar": "https://example.com/images/user_13.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "第一章出现的人物关系我先画个图，后面肯定用得上。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-28 13:05:00"
+      },
+      {
+        "id": 456,
+        "user": {
+          "uid": 15,
+          "username": "bookworm",
+          "nickname": "老书虫",
+          "avatar": "https://example.com/images/user_15.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "慢工出细活，这一章值得逐字读。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-28 16:48:00"
+      },
+      {
+        "id": 205,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "comment_key": "ck1:tianqi#0",
+        "content": "补一句：序章的钟声也是伏笔，别跳过。",
+        "chapter_url": "https://example.com/books/1/chapter/1",
+        "chapter_name": "第一章 序幕",
+        "book_name": "天启之书",
+        "add_time": "2025-10-26 08:12:00"
+      },
+      {
+        "id": 202,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "comment_key": "ck1:tianqi#2",
+        "content": "剧情开始变得紧张了！雾里那段读得后背发凉。",
+        "chapter_url": "https://example.com/books/1/chapter/3",
+        "chapter_name": "第三章 迷雾",
+        "book_name": "天启之书",
+        "add_time": "2025-10-21 18:45:00"
       },
       {
         "id": 411,
@@ -52,6 +697,7 @@
           "nickname": "读者B",
           "avatar": "https://example.com/images/user_12.png"
         },
+        "comment_key": "ck1:tianqi#2",
         "content": "这一章气氛绝了，雾里那段建议开夜读模式看。",
         "chapter_url": "https://example.com/books/1/chapter/3",
         "chapter_name": "第三章 迷雾",
@@ -66,6 +712,7 @@
           "nickname": "夜猫子",
           "avatar": "https://example.com/images/user_14.png"
         },
+        "comment_key": "ck1:tianqi#2",
         "content": "同感，看到守夜人提灯那里我直接坐起来了。",
         "chapter_url": "https://example.com/books/1/chapter/3",
         "chapter_name": "第三章 迷雾",
@@ -79,11 +726,56 @@
           "username": "user_test01",
           "avatar": "https://example.com/images/user_1.png"
         },
+        "comment_key": "ck1:tianqi#2",
         "content": "提灯那段原文我抄下来了：「灯是他自己点的，路是他自己选的」。",
         "chapter_url": "https://example.com/books/1/chapter/3",
         "chapter_name": "第三章 迷雾",
         "book_name": "天启之书",
         "add_time": "2025-10-21 21:44:00"
+      },
+      {
+        "id": 414,
+        "user": {
+          "uid": 15,
+          "username": "bookworm",
+          "nickname": "老书虫",
+          "avatar": "https://example.com/images/user_15.png"
+        },
+        "comment_key": "ck1:tianqi#2",
+        "content": "雾不是天气，是叙事——这一章把环境写成了角色。",
+        "chapter_url": "https://example.com/books/1/chapter/3",
+        "chapter_name": "第三章 迷雾",
+        "book_name": "天启之书",
+        "add_time": "2025-10-22 10:20:00"
+      },
+      {
+        "id": 415,
+        "user": {
+          "uid": 16,
+          "username": "moonreader",
+          "nickname": "月下读者",
+          "avatar": "https://example.com/images/user_16.png"
+        },
+        "comment_key": "ck1:tianqi#2",
+        "content": "提灯人回头的瞬间，我手机差点没拿住。",
+        "chapter_url": "https://example.com/books/1/chapter/3",
+        "chapter_name": "第三章 迷雾",
+        "book_name": "天启之书",
+        "add_time": "2025-10-22 13:07:00"
+      },
+      {
+        "id": 203,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "comment_key": "ck1:tianqi#4",
+        "content": "三章前的门牌号在这里对上，作者布局太稳了。",
+        "chapter_url": "https://example.com/books/1/chapter/5",
+        "chapter_name": "第五章 终极对决",
+        "book_name": "天启之书",
+        "add_time": "2025-10-24 09:30:00"
       },
       {
         "id": 421,
@@ -93,6 +785,7 @@
           "nickname": "读者A",
           "avatar": "https://example.com/images/user_11.png"
         },
+        "comment_key": "ck1:tianqi#4",
         "content": "伏笔收得太精彩了！第一章那个倒写的门牌号在这里对上了。",
         "chapter_url": "https://example.com/books/1/chapter/5",
         "chapter_name": "第五章 终极对决",
@@ -107,6 +800,7 @@
           "nickname": "读者C",
           "avatar": "https://example.com/images/user_13.png"
         },
+        "comment_key": "ck1:tianqi#4",
         "content": "主角终于成长了，热血沸腾！追了二十章没白等。",
         "chapter_url": "https://example.com/books/1/chapter/5",
         "chapter_name": "第五章 终极对决",
@@ -121,11 +815,56 @@
           "nickname": "读者B",
           "avatar": "https://example.com/images/user_12.png"
         },
+        "comment_key": "ck1:tianqi#4",
         "content": "节奏稍快，但剧情依然很精彩，就是希望下一章慢一点。",
         "chapter_url": "https://example.com/books/1/chapter/5",
         "chapter_name": "第五章 终极对决",
         "book_name": "天启之书",
         "add_time": "2025-10-24 15:30:00"
+      },
+      {
+        "id": 424,
+        "user": {
+          "uid": 15,
+          "username": "bookworm",
+          "nickname": "老书虫",
+          "avatar": "https://example.com/images/user_15.png"
+        },
+        "comment_key": "ck1:tianqi#4",
+        "content": "二十章的伏笔收在这里，收得干净。",
+        "chapter_url": "https://example.com/books/1/chapter/5",
+        "chapter_name": "第五章 终极对决",
+        "book_name": "天启之书",
+        "add_time": "2025-10-24 18:06:00"
+      },
+      {
+        "id": 425,
+        "user": {
+          "uid": 16,
+          "username": "moonreader",
+          "nickname": "月下读者",
+          "avatar": "https://example.com/images/user_16.png"
+        },
+        "comment_key": "ck1:tianqi#4",
+        "content": "对决的每个回合都有代价，赢得不廉价。",
+        "chapter_url": "https://example.com/books/1/chapter/5",
+        "chapter_name": "第五章 终极对决",
+        "book_name": "天启之书",
+        "add_time": "2025-10-24 20:44:00"
+      },
+      {
+        "id": 204,
+        "user": {
+          "uid": 1,
+          "username": "user_test01",
+          "avatar": "https://example.com/images/user_1.png"
+        },
+        "comment_key": "ck1:shenye#1",
+        "content": "来客那段铺垫给得很足，一口气看到凌晨。",
+        "chapter_url": "https://example.com/books/2/chapter/2",
+        "chapter_name": "第二章 来客",
+        "book_name": "深夜书屋",
+        "add_time": "2025-10-25 23:58:00"
       },
       {
         "id": 431,
@@ -135,6 +874,7 @@
           "nickname": "夜猫子",
           "avatar": "https://example.com/images/user_14.png"
         },
+        "comment_key": "ck1:shenye#1",
         "content": "第二章这位来客明显不是人，铺垫给得很足。",
         "chapter_url": "https://example.com/books/2/chapter/2",
         "chapter_name": "第二章 来客",
@@ -148,6 +888,7 @@
           "username": "user_test01",
           "avatar": "https://example.com/images/user_1.png"
         },
+        "comment_key": "ck1:shenye#1",
         "content": "深夜书屋的气氛比天启之书更适合睡前看，就是看完更睡不着了。",
         "chapter_url": "https://example.com/books/2/chapter/2",
         "chapter_name": "第二章 来客",
@@ -155,7 +896,7 @@
         "add_time": "2025-10-25 23:40:00"
       }
     ],
-    "total": 11,
+    "total": 60,
     "page": 1,
     "page_size": 20
   }

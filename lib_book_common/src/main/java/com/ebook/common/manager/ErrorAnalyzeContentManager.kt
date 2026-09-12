@@ -42,8 +42,13 @@ object ErrorAnalyzeContentManager {
     /**
      * 记录一个解析失败的章节 URL（明细 + 按站点去重）。
      *
-     * 失败不往外抛：调用方（[com.ebook.common.analyze.source.JsoupBookParser]）正在异常处理路径上，
-     * 记录失败不得反过来影响正文获取的降级返回。
+     * 调用方只有 [com.ebook.common.analyze.source.JsoupSourceReader] 抓正文的两条分支
+     * （原生 `fetchAndStoreNative` / 脚本 `fetchAndStoreScript`），两者都在自己的 `catch` 里调本函数
+     * 留下线索，然后各自处置：原生把原始异常重裹成「章节内容解析失败」重抛、脚本原样上抛类型化异常。
+     * 所以本函数不能往外抛——一抛就顶掉那次重抛，
+     * 上层收到的变成一个与解析根因无关的落盘异常，正文抓取的降级处置（记线索 + 抛类型化异常）随之失真。
+     * 何况本函数体跑在 [scope] 的即发即忘协程里，异常本来就回不到调用方，
+     * 只会落进协程的异常处理把进程带崩；兜底只能写在这里。
      */
     fun writeNewErrorUrl(context: Context, url: String) {
         scope.launch {

@@ -70,8 +70,14 @@ fun SearchBookItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                // 作者 + 来源
-                Row(modifier = Modifier.fillMaxWidth()) {
+                // 作者 + 所属书源：聚合搜索（ADR-0016 P3-b）后一份列表混着多个站的条目，
+                // 书源标签因此从「附加信息」升级为「这条是谁家的」的判据，用共享 InfoChip 与下方
+                // 状态/分类标签同形态呈现（origin 由解析器写入，见 JsoupBookParser.parseSearchBookWithRule）
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
                         text = searchBook.author,
                         style = MaterialTheme.typography.bodySmall,
@@ -81,14 +87,7 @@ fun SearchBookItem(
                         modifier = Modifier.width(90.dp)
                     )
                     if (searchBook.origin.isNotEmpty()) {
-                        Text(
-                            text = stringResource(R.string.source_format, searchBook.origin),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(start = 5.dp)
-                        )
+                        InfoChip(text = searchBook.origin)
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))

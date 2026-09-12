@@ -9,6 +9,7 @@ data class BookComment(
     val userId: Long,
     val username: String,
     val avatar: String,
+    val commentKey: String?,
     val chapterUrl: String?,
     val chapterName: String?,
     val bookName: String?,

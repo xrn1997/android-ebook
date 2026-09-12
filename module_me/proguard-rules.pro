@@ -1,54 +1,5 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.kts.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
-
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
-
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
--keepattributes *Annotation*
--keepclassmembers class * {
-    @org.greenrobot.eventbus.Subscribe <methods>;
-}
--keep enum org.greenrobot.eventbus.ThreadMode { *; }
-
-# Only required if you use AsyncExecutor
--keepclassmembers class * extends org.greenrobot.eventbus.util.ThrowableFailureEvent {
-    <init>(java.lang.Throwable);
-}
-
-# need add for Fragment page route
-# -keep public class * extends android.app.Fragment
-# -keep public class * extends androidx.fragment.app.Fragment
-# -keep public class * extends android.support.v4.app.Fragment
-
--keep class androidx.annotation.Keep
--keep @androidx.annotation.Keep class * {*;}
--keepclassmembers class * {
-    @androidx.annotation.Keep *;
-}
--keepclasseswithmembers class * {
-    @androidx.annotation.Keep <methods>;
-}
--keepclasseswithmembers class * {
-    @androidx.annotation.Keep <fields>;
-}
--keepclasseswithmembers class * {
-    @androidx.annotation.Keep <init>(...);
-}
--keepclasseswithmembers class * {
-    @com.therouter.router.Autowired <fields>;
-}
+# 本模块独立态（isModule=true）R8 规则：
+# 独立态本模块是 application，R8 在本模块执行，proguardFiles 生效。
+# 规则内容全部在 consumer-rules.pro（集成态也走那份文件传播给消费方），
+# 此处 -include 引入，避免两份文件重复维护。
+-include consumer-rules.pro

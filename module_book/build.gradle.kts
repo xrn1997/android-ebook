@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.LibraryDefaultConfig
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.xrn1997.android.component)
@@ -5,22 +6,27 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.xrn1997.hilt)
 }
+val isModule = project.findProperty("isModule").toString().toBoolean()
 android {
     namespace = "com.ebook.book"
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // 集成态（library）：consumer 规则随 AAR 传播给 module_app 的 R8。
+        // AGP 9 双态下 defaultConfig 接收器按模式是具体类型，须经 is
+        // LibraryDefaultConfig 智能转换两种模式才都编译通过（同 module_me
+        // versionCode 的 ApplicationDefaultConfig 先例）；
+        // 独立态（application）无 consumer 概念，此声明不生效。
+        if (this is LibraryDefaultConfig) {
+            consumerProguardFiles("consumer-rules.pro")
+        }
     }
 
     buildTypes {
-        named("debug") {
-            isMinifyEnabled = false
-            proguardFiles(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro"
-            )
-        }
-        named("release") {
-            isMinifyEnabled = false
+        release {
+            // 独立态（isModule=true，application）：R8 在本模块执行，模块级尽早暴露规则缺口。
+            // 集成态（isModule=false，library）：本标志必须为 false，否则 AGP 会对 library
+            // 执行 R8 剥离类，导致 module_app 的 R8 找不到依赖（见 ADR-0024 修订）。
+            isMinifyEnabled = isModule
             proguardFiles(
                     getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro"
@@ -74,4 +80,11 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
+    // 基线仪器测试（ImportBaselineTest）用的 Hilt 测试脚手架：@HiltAndroidTest 需要
+    // hilt-android-testing 提供 HiltTestApplication/HiltAndroidRule，且组件树要在
+    // androidTest 这次编译里由 KSP 生成。xrn1997.hilt 约定插件只给 main 挂了
+    // ksp/implementation，androidTest 的 kspAndroidTest 必须自行声明，
+    // 否则注解不被处理、注入点全部为空。
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
 }

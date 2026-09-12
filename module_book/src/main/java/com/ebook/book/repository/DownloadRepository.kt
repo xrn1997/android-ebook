@@ -5,6 +5,9 @@ import com.ebook.db.dao.ChapterListDao
 import com.ebook.db.dao.DownloadChapterDao
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.DownloadChapterEntity
+import com.ebook.common.analyze.local.BookLocation
+import com.ebook.common.analyze.local.BookFormat
+import com.ebook.common.store.BookStore
 import com.xrn1997.common.mvvm.model.BaseModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -33,7 +36,8 @@ import javax.inject.Singleton
 class DownloadRepository @Inject constructor(
     private val downloadChapterDao: DownloadChapterDao,
     private val bookShelfDao: BookShelfDao,
-    private val chapterListDao: ChapterListDao
+    private val chapterListDao: ChapterListDao,
+    private val bookStore: BookStore,
 ) : BaseModel() {
     // ===== 事件通道 =====
 
@@ -140,13 +144,22 @@ class DownloadRepository @Inject constructor(
      *
      * 与"队列剩余"是两个口径：队列是"本次还没下完的"，覆盖率是"全书已可离线的比例"，
      * 后者不随批次变化、随阅读/下载增长，适合当进度条。
+     *
+     * 缓存判定改查章文件存在性（[BookStore.hasChapter]），不再依赖已移除的 `has_cache` 列。
+     * 分母直接取章行列表长度——它与分母同一次查询、同一份快照，不再单独发 COUNT。
+     *
+     * @param sourceUrl 该书的书源归属（`book_shelf.tag`，等价于下载任务身上的 `tag` 列）。
+     *   本方法只按 [com.ebook.common.analyze.local.BookLocation.bookId] 算章文件路径，用不到归属；
+     *   仍要求传入是因为 `BookLocation` 的归属字段刻意无默认值——定位值就该是这本书的完整定位，
+     *   留空串会给下一个改造者留一个「不知道是不是漏了」的坑。
      */
-    suspend fun getCacheCoverage(noteUrl: String): CacheCoverage = withContext(Dispatchers.IO) {
-        CacheCoverage(
-            total = chapterListDao.countChaptersForBook(noteUrl),
-            cached = chapterListDao.countCachedChaptersForBook(noteUrl)
-        )
-    }
+    suspend fun getCacheCoverage(noteUrl: String, sourceUrl: String): CacheCoverage =
+        withContext(Dispatchers.IO) {
+            val location = BookLocation(noteUrl, BookFormat.NETWORK, sourceUrl)
+            val chapters = chapterListDao.getChaptersForBook(noteUrl)
+            val cached = chapters.count { bookStore.hasChapter(location, it.durChapterIndex) }
+            CacheCoverage(total = chapters.size, cached = cached)
+        }
 
     suspend fun emitState(state: DownloadState) {
         _downloadState.emit(state)

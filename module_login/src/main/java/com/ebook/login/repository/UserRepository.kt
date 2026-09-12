@@ -20,8 +20,8 @@ import javax.inject.Singleton
  * 用户认证仓库：登录/注册/改密/忘记密码全部端点的数据层收口。
  *
  * 所有方法经 [CoroutineAdapter.safeApiCall] 包裹：传输层异常与业务码异常
- * 统一转为 [Result]，ViewModel 只处理成败分支；会话过期（refresh 失败）
- * 已在网络层全局处置，调用点经 isSessionExpiredHandled 静默。
+ * 统一转为 [Result]，ViewModel 只处理成败分支；会话过期（refresh 失败）已在网络层全局处置，
+ * 调用点一律经共享的 [com.ebook.common.util.reportFailure] 上报——那条路径只记日志、不再弹提示。
  */
 @Singleton
 class UserRepository @Inject constructor(

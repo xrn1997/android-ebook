@@ -21,6 +21,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,6 +36,7 @@ import com.ebook.book.mvvm.viewmodel.BookDetailViewModel
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.common.event.FROM_BOOKSHELF
 import com.ebook.common.event.KeyCode
+import com.ebook.common.event.RouteArgs
 import com.ebook.common.ui.BookCover
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonUiTokens
@@ -108,7 +110,13 @@ class BookDetailActivity : BaseMvvmActivity<BookDetailViewModel>() {
                 } else {
                     viewModel.addToBookShelf()
                 }
-            }
+            },
+            // 修键面板入口。基类 ToolbarLayout 没有 actions 插槽，为一颗按钮自绘整条顶栏
+            // 要连带把返回箭头、insets、主题配色全接管一遍（极易漏），所以这个动作放页面里。
+            onEditMetaClick = { noteUrl ->
+                val bundle = Bundle().apply { putString(RouteArgs.NOTE_URL, noteUrl) }
+                TheRouter.build(KeyCode.Book.EDIT_BOOK_META_PATH).with(bundle).navigation(this)
+            },
         )
     }
 }
@@ -126,7 +134,8 @@ class BookDetailActivity : BaseMvvmActivity<BookDetailViewModel>() {
 fun BookDetailScreen(
     viewModel: BookDetailViewModel,
     onReadClick: () -> Unit,
-    onShelfClick: () -> Unit
+    onShelfClick: () -> Unit,
+    onEditMetaClick: (noteUrl: String) -> Unit,
 ) {
     val state by viewModel.detailState.collectAsState()
     val bookShelf = state.bookShelf
@@ -188,6 +197,10 @@ fun BookDetailScreen(
         }
         return
     }
+
+    // 修键入口只对「已在书架」的条目存在：键行（book_group）随书才有，
+    // 搜索来源还没有 noteUrl 行可修。派生成可空函数，供下面的分支判存在性。
+    val editMeta: (() -> Unit)? = bookShelf?.noteUrl?.let { url -> { onEditMetaClick(url) } }
 
     Column(
         modifier = Modifier
@@ -309,6 +322,17 @@ fun BookDetailScreen(
                         if (inBookShelf) R.string.continue_read else R.string.read
                     )
                 )
+            }
+        }
+
+        // 修键面板入口（spec §9.3）。放页面里而不是顶栏 actions：基类 Toolbar 没有 actions
+        // 插槽，为一颗按钮自绘整条顶栏要连带接管返回箭头与 insets，漏一项就是静默缺陷。
+        if (editMeta != null) {
+            TextButton(
+                onClick = editMeta,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.edit_book_meta_title))
             }
         }
 

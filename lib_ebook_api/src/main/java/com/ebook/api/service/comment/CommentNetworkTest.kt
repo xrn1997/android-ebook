@@ -2,6 +2,7 @@ package com.ebook.api.service.comment
 
 import com.xrn1997.common.dto.RespDTO
 import com.ebook.api.entity.Comment
+import com.ebook.api.entity.CommentMigrateResponse
 import com.ebook.api.entity.CommentPage
 import com.ebook.api.entity.LoginDTO
 import com.ebook.api.entity.User
@@ -18,7 +19,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * 评论测试数据源：模拟服务端状态（内存态），对齐服务端评论契约（章节冗余快照 + 分页包裹）。
+ * 评论测试数据源：模拟服务端状态（内存态），对齐 M2 评论聚合键契约。
  *
  * 与真实后端一致：删除/添加会真正修改数据，getMyComments 返回变更后的列表；
  * 分页按 CommentPage 包裹结构返回（items/total/page/page_size）。
@@ -30,10 +31,10 @@ import javax.inject.Singleton
  *   「未知错误」，表现为 mock 构建下评论页永远加载失败（不闪退，故极易漏诊）。
  * - **种子只读一次**：首次访问时取 `data.items` 摊平成内存列表缓存，之后按调用方传入的
  *   page/pageSize 本地重切；资产里的 total/page 属于服务端那一页的元数据，不参与缓存。
- * - **章节过滤严格**：[getChapterComments] 只认 chapter_url 完全相等的条目（与后端同语义）。
- *   为此两份资产的 chapter_url 是**交叉对齐**编排的：从「我的评论」点任意一条进评论区，
+ * - **聚合键过滤（M2）**：[getComments] 按 `commentKey` 列表做并集查询（与后端同语义）。
+ *   两份资产的 `comment_key` 是**交叉对齐**编排的：从「我的评论」点任意一条进评论区，
  *   都能看到该章节的对话串（含一条本人可长按删除的）。改资产时须保持这份对齐关系，
- *   否则 mock 章节评论区会空。
+ *   否则 mock 评论区会空。
  * - **新增评论按服务端方式回显**：id/作者/时间由 mock 赋值，不信任客户端占位值
  *   （见 [stampAsServer]）。
  * - **作者名以 `user_login.json` 为事实源**：评论里的 username 必须等于登录资产返回的
@@ -64,18 +65,28 @@ class CommentNetworkTest @Inject constructor(
     override suspend fun addComment(comment: Comment): RespDTO<Comment> {
         // 种子必须先就位：否则内存态被固定成「只含这一条」，后续访问跳过资产加载，种子永久消失
         ensureUserComments()
-        if (comment.chapterUrl != null) ensureChapterComments()
+        if (comment.commentKey != null) ensureChapterComments()
         val posted = stampAsServer(comment)
         synchronized(this) {
             userComments = userComments.orEmpty() + posted
-            // 章节评论区同步追加，保证「发表后能查到自己刚发的」语义一致
-            if (posted.chapterUrl != null) {
+            // 评论池同步追加，保证「发表后能查到自己刚发的」语义一致
+            if (posted.commentKey != null) {
                 chapterComments = chapterComments.orEmpty() + posted
             }
         }
         return RespDTO(code = "00000", error = "", data = posted)
     }
 
+    /**
+     * 删除评论。
+     *
+     * **为何无静态资产可对应**：本方法的响应表达的是「按传入的 [id] 过滤掉一行之后的列表状态」，
+     * 即结果随入参变化——静态 JSON 只能表达一份固定结果，无法表达「删了哪条」。按 `AGENTS.md`
+     * 的 mock 约定，这类**回显入参的写接口**一律在代码里合成响应（读接口才用资产：
+     * 本类的 [getMyComments]/[getComments] 走 `user_comments.json`/`chapter_comments.json`）。
+     * 为凑「每个接口都有资产」而造一份固定 JSON 冒充删除响应，会让「删除后列表没变」变成
+     * 一个看似正常、实则永远删不掉的 mock 行为。
+     */
     override suspend fun deleteComment(id: Long): RespDTO<Unit> {
         // 删除同样先 ensure：未加载时对 null 列表做 filterNot 等于什么都没删，
         // 之后再加载会把「已删」的条目重新带回列表（服务端删除是持久的）
@@ -91,16 +102,56 @@ class CommentNetworkTest @Inject constructor(
     override suspend fun getMyComments(page: Int, pageSize: Int): RespDTO<CommentPage> =
         pageOf(ensureUserComments(), page, pageSize)
 
-    override suspend fun getChapterComments(
-        chapterUrl: String?,
-        bookName: String?,
+    override suspend fun getComments(
+        commentKeys: List<String>,
         page: Int,
         pageSize: Int
     ): RespDTO<CommentPage> {
-        // bookName 刻意不参与过滤：与后端一致，章节评论区只按 chapter_url 聚合
-        val list = ensureChapterComments()
-            .filter { chapterUrl == null || it.chapterUrl == chapterUrl }
-        return pageOf(list, page, pageSize)
+        // M2：按聚合键列表做并集查询，从两份数据源合并后去重（与后端同语义）
+        val keySet = commentKeys.toSet()
+        val merged = (ensureUserComments() + ensureChapterComments())
+            .filter { it.commentKey in keySet }
+            .distinctBy { it.id }
+        return pageOf(merged, page, pageSize)
+    }
+
+    override suspend fun migrateMyComments(
+        oldKey: String,
+        newKey: String
+    ): RespDTO<CommentMigrateResponse> {
+        // 契约是单表 `UPDATE comments SET comment_key=:new WHERE user_id=:当前用户 AND comment_key=:old`
+        // ——覆盖本人**全部**行。mock 把评论池拆成两份内存列表，故两份都要过：只改 userComments
+        // 会让 chapter_comments 里本人的种子留在旧键，与真实后端分叉（分叉还会被契约测试钉死）
+        val me = mockCurrentUser()
+        ensureUserComments()
+        ensureChapterComments()
+        val migratedIds = mutableSetOf<Long>()
+        synchronized(this) {
+            userComments = userComments?.map { it.rekeyIfMine(me.id, oldKey, newKey, migratedIds) }
+            chapterComments = chapterComments?.map { it.rekeyIfMine(me.id, oldKey, newKey, migratedIds) }
+        }
+        return RespDTO(
+            code = "00000",
+            error = "",
+            data = CommentMigrateResponse(migratedCount = migratedIds.size)
+        )
+    }
+
+    /**
+     * 命中「本人的 + 旧键」就换成新键，并把 id 记进 [migratedIds]。
+     *
+     * 按 id 去重计数是必须的：[addComment] 会把新发评论以**同一 id** 同时追加进两份列表，
+     * 而服务端是单表单行、只计一次——两份各计一次会回一个翻倍的 `migrated_count`。
+     */
+    private fun Comment.rekeyIfMine(
+        myUid: Long,
+        oldKey: String,
+        newKey: String,
+        migratedIds: MutableSet<Long>,
+    ): Comment {
+        if (commentKey != oldKey || user.id != myUid) return this
+        migratedIds += id
+        return copy(commentKey = newKey)
     }
 
     /** 按 page/page_size 切页，返回后端同构的分页包裹。 */

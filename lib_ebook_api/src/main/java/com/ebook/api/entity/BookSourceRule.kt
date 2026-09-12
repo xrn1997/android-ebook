@@ -55,10 +55,7 @@ data class BookSourceRule(
     val ruleContent: ContentRule = ContentRule(),
 
     // ========== 发现/分类规则 ==========
-    val ruleFind: FindRule = FindRule(),
-
-    // ========== 排行榜规则 ==========
-    val ruleRank: RankRule = RankRule()
+    val ruleFind: FindRule = FindRule()
 )
 
 /**
@@ -71,9 +68,7 @@ data class PageRule(
     /** 起始页码 */
     val start: Int = 1,
     /** 页码步长 */
-    val step: Int = 1,
-    /** 是否使用章节 URL 列表翻页（有些网站目录页有分页） */
-    val tocPage: Boolean = false
+    val step: Int = 1
 )
 
 /**
@@ -127,7 +122,7 @@ data class BookInfoRule(
 )
 
 /**
- * 目录规则
+ * 章节索引规则
  */
 @Serializable
 data class TocRule(
@@ -137,9 +132,17 @@ data class TocRule(
     val name: String = "",
     /** 章节 URL 选择器 */
     val url: String = "",
-    /** 章节列表页 URL 模板（支持 {{page}} 占位符，用于目录分页） */
+    /**
+     * 章节索引分页 URL 模板（支持 {{page}} 占位符），分页模式之二：索引页 URL 有规律、
+     * 站点没有「下一页」链接可选时使用。相对形态按索引页 URL 所在目录解析
+     * （如索引页 `/book/1/` 配 `index_{{page}}.html` → `/book/1/index_2.html`）；
+     * 以 `/` 开头按源根解析，`http(s)` 开头原样。页码换算沿用 [PageRule]。
+     */
     val pageUrl: String = "",
-    /** 章节列表页下一页选择器 */
+    /**
+     * 章节索引页「下一页」选择器，分页模式之一，**优先于 [pageUrl]**（链接是站点实况，
+     * 模板只是推算）。空串 = 不分页（默认，绝大多数站点整本目录在一页里）。
+     */
     val nextPage: String = "",
     /** 是否反转章节顺序 */
     val reverse: Boolean = false
@@ -203,28 +206,4 @@ data class KindItem(
     val url: String = "",
     /** 子分类列表 */
     val children: List<KindItem> = emptyList()
-)
-
-/**
- * 排行榜规则
- */
-@Serializable
-data class RankRule(
-    /** 排行榜 URL 模板，支持 {{page}} 占位符 */
-    val url: String = "",
-    /** 排行榜列表 */
-    val ranks: List<RankItem> = emptyList(),
-    /** 排行榜结果规则（复用搜索规则） */
-    val ruleSearch: SearchRule = SearchRule()
-)
-
-/**
- * 排行榜项
- */
-@Serializable
-data class RankItem(
-    /** 排行榜标题 */
-    val title: String = "",
-    /** 排行榜 URL */
-    val url: String = ""
 )

@@ -8,7 +8,7 @@
         独立运行时只生效本文件，漏改就会出现「集成没声明、独立却还带着」的权限面分裂。
         此处保留的存储三项是**导入本地书**链路在用：
         MANAGE_EXTERNAL_STORAGE（全部文件访问，ImportBookActivity 直读文件树扫描
-        epub/txt/pdf，见 ADR-0017）+ WRITE/READ_EXTERNAL_STORAGE（API ≤ 32 的回落路径）。
+        epub/txt，见 ADR-0017）+ WRITE/READ_EXTERNAL_STORAGE（API ≤ 32 的回落路径）。
     -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -66,21 +66,40 @@
                 <data android:mimeType="text/plain" />
                 <data android:scheme="file" />
             </intent-filter>
+            <!-- EPUB：系统按 MIME 类型分发，content/file 两种 scheme 都需声明 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="application/epub+zip" />
+                <data android:scheme="content" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="application/epub+zip" />
+                <data android:scheme="file" />
+            </intent-filter>
         </activity>
         <activity
             android:name="com.ebook.book.ImportBookActivity"
-
-            android:theme="@style/CAppTransparentTheme" />
+            android:theme="@style/ToolbarTheme.BackBar" />
         <activity
             android:name=".BookCommentsActivity"
             android:label="本章评论"
             android:theme="@style/ToolbarTheme.BackBar" />
         <activity
             android:name="com.ebook.book.BookDetailActivity"
-            android:theme="@style/CAppTransparentTheme" />
+            android:theme="@style/ToolbarTheme.BackBar" />
         <activity
             android:name="com.ebook.book.DownloadManageActivity"
             android:label="下载管理" />
+        <activity
+            android:name=".EditBookMetaActivity"
+            android:exported="false"
+            android:label="编辑匹配信息"
+            android:theme="@style/ToolbarTheme.BackBar" />
 
         <service
             android:name=".service.DownloadService"

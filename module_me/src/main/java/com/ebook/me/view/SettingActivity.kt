@@ -15,11 +15,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CleaningServices
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Source
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,8 +40,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
 import com.ebook.common.domain.AndroidUserSessionManager
+import com.ebook.common.domain.ThemeMode
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
@@ -51,23 +57,24 @@ import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import com.xrn1997.common.util.ToastUtil
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 /**
- * 设置页：通用（缓存管理）+ 关于（版本检查更新/关于我们）+ 账号（退出登录）。
+ * 设置页：通用（夜间模式 + 缓存管理 + 书源管理）+ 关于（版本检查更新/关于我们）+ 账号（退出登录）。
  *
  * 缓存管理与关于内容可公开访问，无需登录；退出登录受 [AndroidUserSessionManager.isLoggedIn] 条件守卫，
  * 未登录时自动隐藏整个账号区块。
  *
  * 交互设计（箭头语义：带箭头=点进去看，不带=当场执行的动作）：
- * - 「清除缓存」带箭头跳缓存管理页（本页不直接清理）
+ * - 「夜间模式跟随系统」为开关型条目（右侧 Switch，默认开）：开启时跟随系统深色状态；
+ *   关闭后下方展开「日间模式 / 夜间模式」子菜单，选中项带勾选标记
+ * - 「清除缓存」「书源管理」带箭头进各自的二级页（本页不直接执行清理，也不改书源清单；
+ *   书源行的副标题是当前书源总数，来自 [SettingViewModel.sourcesCount]）
  * - 「版本」为动作型条目（点击触发真实更新检查，无箭头）：主动检查即时弹结果
  *   （检查中/已是最新/发现新版本可下载/检查失败）；进页时另有 7 天限频的静默刷新，
  *   有新版时版本号旁展示「新版」角标（不弹窗）
  * - 「关于我们」带箭头进关于页（用户协议/隐私政策/开源许可）
  * - 「退出登录」为动作型条目（点击弹确认，无箭头）
- * - 深色模式跟随系统（MyApplicationTheme），阅读背景主题在阅读器内设置，
- *   此页不做重复入口，避免两处状态源
+ * - 阅读背景主题在阅读器内设置，此页不做重复入口，避免两处状态源
  */
 @AndroidEntryPoint
 @Route(path = KeyCode.Me.SETTING_PATH)
@@ -94,14 +101,18 @@ class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
         val isLoggedIn by viewModel.isLoggedIn.collectAsState()
         val updateState by viewModel.updateState.collectAsState()
         val hasUpdateAvailable by viewModel.hasUpdateAvailable.collectAsState()
+        val themeMode by viewModel.themeMode.collectAsState()
+        val sourcesCount by viewModel.sourcesCount.collectAsState()
 
         SettingScreen(
             cacheSize = cacheSize,
+            sourcesCount = sourcesCount,
             // 版本号经 VM 转发：与「是否有新版」的比较基准同源（ReleaseStateStore）
             appVersion = viewModel.appVersionName,
             isLoggedIn = isLoggedIn,
             hasUpdateAvailable = hasUpdateAvailable,
             updateState = updateState,
+            themeMode = themeMode,
             onCheckUpdate = {
                 viewModel.checkUpdate()
             },
@@ -111,20 +122,21 @@ class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
             onOpenCacheManage = {
                 TheRouter.build(KeyCode.Me.CACHE_PATH).navigation()
             },
+            onOpenBookSource = {
+                // 书源管理的路由就在本模块名下（集成态与独立态都注册），不需要 matchRouteMap 探测
+                TheRouter.build(KeyCode.Me.BOOK_SOURCE_PATH).navigation()
+            },
             onOpenAbout = {
                 TheRouter.build(KeyCode.Me.ABOUT_PATH).navigation()
             },
+            onThemeSelected = { mode ->
+                viewModel.setThemeMode(mode)
+            },
             onLogout = {
-                // 必须 await：finish() 后本作用域被取消，登出请求会没发出去。
-                // 提示与关闭放在 await 之后，保证「已退出」出现时本地会话确实清干净
-                lifecycleScope.launch {
-                    viewModel.logout()
-                    ToastUtil.showShort(
-                        this@SettingActivity,
-                        getString(R.string.setting_logout_success)
-                    )
-                    finish()
-                }
+                // 页面只发起。登出要先挂一个网络请求，收尾若放在本页作用域里，
+                // 用户在请求回来前转屏就会把「清本地会话」一起取消掉；整条链改由 VM 跑完，
+                // 提示与关页经基类命令通道下发（见 SettingViewModel.runLogout）
+                viewModel.logout()
             }
         )
     }
@@ -136,17 +148,23 @@ class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
 @Composable
 fun SettingScreen(
     cacheSize: String,
+    sourcesCount: Int,
     appVersion: String,
     isLoggedIn: Boolean,
     hasUpdateAvailable: Boolean,
     updateState: UpdateState,
+    themeMode: ThemeMode,
     onCheckUpdate: () -> Unit,
     onDismissUpdateDialog: () -> Unit,
     onOpenCacheManage: () -> Unit,
+    onOpenBookSource: () -> Unit,
     onOpenAbout: () -> Unit,
+    onThemeSelected: (ThemeMode) -> Unit,
     onLogout: () -> Unit
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    // 跟随系统 = 当前模式为 SYSTEM；关闭后展开日间/夜间子菜单
+    val isFollowingSystem = themeMode == ThemeMode.SYSTEM
     // 缓存大小空串 = 计算中，占位文案经资源解析（VM 不持有用户可见文本）
     val cacheSizeDisplay = cacheSize.ifEmpty { stringResource(R.string.common_pending) }
     val context = LocalContext.current
@@ -166,14 +184,90 @@ fun SettingScreen(
         ) {
             SectionLabel(text = stringResource(R.string.setting_section_general))
             CommonCard(modifier = Modifier.fillMaxWidth()) {
-                CommonListItem(
-                    icon = Icons.Outlined.CleaningServices,
-                    title = stringResource(R.string.setting_clear_cache),
-                    trailingText = cacheSizeDisplay,
-                    iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    onClick = onOpenCacheManage
-                )
+                Column {
+                    // 夜间模式跟随系统：开关型条目，右侧 Switch；开启=SYSTEM，关闭后下方展开日间/夜间子菜单
+                    CommonListItem(
+                        icon = Icons.Outlined.DarkMode,
+                        title = stringResource(R.string.setting_follow_system),
+                        trailingContent = {
+                            Switch(
+                                checked = isFollowingSystem,
+                                onCheckedChange = { followSystem ->
+                                    onThemeSelected(
+                                        if (followSystem) ThemeMode.SYSTEM else ThemeMode.DARK
+                                    )
+                                }
+                            )
+                        },
+                        showArrow = false,
+                        iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        iconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        onClick = {
+                            // 点击整行也切换开关（与 Switch 行为一致）
+                            onThemeSelected(
+                                if (isFollowingSystem) ThemeMode.DARK else ThemeMode.SYSTEM
+                            )
+                        }
+                    )
+                    // 关闭跟随系统后展开日间/夜间子菜单，选中项带勾选标记
+                    if (!isFollowingSystem) {
+                        CommonListDivider()
+                        CommonListItem(
+                            icon = Icons.Outlined.WbSunny,
+                            title = stringResource(R.string.setting_day_mode),
+                            trailingContent = {
+                                if (themeMode == ThemeMode.LIGHT) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            showArrow = false,
+                            iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            iconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            onClick = { onThemeSelected(ThemeMode.LIGHT) }
+                        )
+                        CommonListDivider()
+                        CommonListItem(
+                            icon = Icons.Outlined.DarkMode,
+                            title = stringResource(R.string.setting_night_mode),
+                            trailingContent = {
+                                if (themeMode == ThemeMode.DARK) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            showArrow = false,
+                            iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            iconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            onClick = { onThemeSelected(ThemeMode.DARK) }
+                        )
+                    }
+                    CommonListDivider()
+                    CommonListItem(
+                        icon = Icons.Outlined.CleaningServices,
+                        title = stringResource(R.string.setting_clear_cache),
+                        trailingText = cacheSizeDisplay,
+                        iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        onClick = onOpenCacheManage
+                    )
+                    CommonListDivider()
+                    // 书源管理：导航型条目（进书源页做导入/启用/删除），副标题给当前书源数
+                    CommonListItem(
+                        icon = Icons.Outlined.Source,
+                        title = stringResource(R.string.setting_book_source),
+                        trailingText = stringResource(R.string.setting_book_source_count, sourcesCount),
+                        iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        iconContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        onClick = onOpenBookSource
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))

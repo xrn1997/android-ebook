@@ -8,3 +8,9 @@
 # （text 属性只影响检出，入库仍是 LF）
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# vendored 的第三方 C 源码：必须与上游逐字节相同，否则 third_party/quickjs/PIN.sha256
+# 的漂移校验失去意义。上游这些文件本身是纯 LF，CRLF 是本地 core.autocrlf=true 在检出时
+# 转换出来的——`-text` 让本路径按字面字节收发，正反向都不再转换，检出即 LF、提交即 LF。
+# 路径规则比 `*` 更具体，因此本行覆盖全仓策略。
+third_party/quickjs/** -text

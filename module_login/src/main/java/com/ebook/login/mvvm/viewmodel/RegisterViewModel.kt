@@ -3,15 +3,14 @@ package com.ebook.login.mvvm.viewmodel
 import android.os.Bundle
 import android.text.TextUtils
 import androidx.lifecycle.viewModelScope
-import com.ebook.api.utils.CoroutineAdapter
 import com.ebook.common.event.KeyCode
+import com.ebook.common.util.reportFailure
 import com.ebook.login.R
 import com.ebook.login.repository.UserRepository
 import com.therouter.TheRouter.build
 import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import com.xrn1997.common.mvvm.viewmodel.Overlay
-import com.xrn1997.common.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -64,7 +63,7 @@ class RegisterViewModel @Inject constructor(
                     sendToast(context.getString(R.string.code_sent))
                     startResendCountdown()
                 }.onFailure { exception ->
-                    toastFailure(exception)
+                    reportFailure(exception)
                 }
             } finally {
                 updateOverlay(Overlay.None)
@@ -123,7 +122,7 @@ class RegisterViewModel @Inject constructor(
                         .navigation()
                     sendFinish()
                 }.onFailure { exception ->
-                    toastFailure(exception)
+                    reportFailure(exception)
                 }
             } finally {
                 updateOverlay(Overlay.None)
@@ -131,21 +130,6 @@ class RegisterViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 统一失败提示：会话过期已全局处置则只记日志不重复弹 Toast（Q4：事件唯一出口）；
-     * 业务异常走业务文案，其余走原始 message。
-     */
-    private fun toastFailure(exception: Throwable) {
-        if (CoroutineAdapter.isSessionExpiredHandled(exception)) {
-            Logger.w(TAG, "会话过期已由全局处置，本调用点静默（仅日志）：${exception.message}")
-            return
-        }
-        if (exception is CoroutineAdapter.ApiException) {
-            sendToast(exception.message())
-        } else {
-            sendToast("${exception.message}")
-        }
-    }
 
     companion object {
 

@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.repository.BookShelfEvent
+import com.ebook.common.util.reportFailure
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.SearchBookEntity
+import com.ebook.source.analyze.BookSourceNotFoundException
 import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -177,7 +179,12 @@ class BookDetailViewModel @Inject constructor(
     }
 
     /**
-     * 从 SearchBookEntity 构造 BookShelfEntity（原 BookDetailModel.fetchBookInfo 逻辑）
+     * 从 SearchBookEntity 构造 BookShelfEntity 并拉详情（原 BookDetailModel.fetchBookInfo 逻辑）。
+     *
+     * 解析器按 `searchBook.tag`（书源归属）取，不按「当前默认源」取（见 ADR-0016）：详情页展示的这本
+     * 书来自哪个站，就必须用那个站的规则解它的 `noteUrl`。归属查不到时抛
+     * [BookSourceNotFoundException]，这里经 [reportFailure] 提示后返回 null——
+     * 调用方据此收掉 loading 并进 [BookDetailUiState.loadError]，绝不让覆盖层永远转下去。
      */
     private suspend fun fetchBookInfo(searchBook: SearchBookEntity): BookShelfEntity? {
         return try {
@@ -188,7 +195,16 @@ class BookDetailViewModel @Inject constructor(
                 durChapterPage = 0,
                 tag = searchBook.tag
             )
-            bookSourceManager.requireParser().getBookInfo(shelf)
+            val parser = bookSourceManager.getParserFor(searchBook.tag)
+                ?: throw BookSourceNotFoundException(searchBook.tag)
+            parser.getBookInfo(shelf)
+        } catch (e: CancellationException) {
+            // 取消不是「拉不到详情」：吞掉会让销毁中的页面渲染成错误态
+            throw e
+        } catch (e: BookSourceNotFoundException) {
+            reportFailure(e, context.getString(R.string.book_source_invalid))
+            Logger.e(TAG, "fetchBookInfo 书源已失效: ${searchBook.tag} / ${searchBook.noteUrl}", e)
+            null
         } catch (e: Exception) {
             Logger.e(TAG, "fetchBookInfo failed: ${searchBook.noteUrl}", e)
             null
@@ -197,14 +213,24 @@ class BookDetailViewModel @Inject constructor(
 
     /**
      * 获取章节列表（原 BookDetailModel.fetchChapterList 逻辑）
+     *
+     * 归属同样按 `bookShelf.tag` 取（详情页的刷新目录/书架入口都走这里）。取不到时与
+     * [fetchBookInfo] 同一处置：提示 + 返回 null 让调用方置错误态——「静默返回成功」会把
+     * 一本没有目录的书当成加载完成摆在页面上。
      */
     private suspend fun fetchChapterList(bookShelf: BookShelfEntity): BookShelfEntity? {
         return try {
+            val parser = bookSourceManager.getParserFor(bookShelf.tag)
+                ?: throw BookSourceNotFoundException(bookShelf.tag)
             // getChapterList 返回非空包装对象（data 才可能为空），不需要安全调用
-            bookSourceManager.requireParser().getChapterList(bookShelf).data
+            parser.getChapterList(bookShelf).data
         } catch (e: CancellationException) {
             // 取消不是"取不到章节"：吞掉会让调用方把销毁中的页面渲染成空目录
             throw e
+        } catch (e: BookSourceNotFoundException) {
+            reportFailure(e, context.getString(R.string.book_source_invalid))
+            Logger.e(TAG, "fetchChapterList 书源已失效: ${bookShelf.tag} / ${bookShelf.noteUrl}", e)
+            null
         } catch (e: Exception) {
             Logger.e(TAG, "fetchChapterList failed: ${bookShelf.noteUrl}", e)
             null

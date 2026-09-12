@@ -43,6 +43,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.BrightnessHigh
 import androidx.compose.material.icons.outlined.BrightnessLow
@@ -53,6 +54,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.ModeComment
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.TouchApp
 // 别名避免与 android.provider.Settings 冲突
 import androidx.compose.material.icons.outlined.Settings as SettingsIcon
@@ -126,7 +128,7 @@ import com.xrn1997.common.util.Logger
  * 由 ReadBookScreen（ReadBookActivity.kt）持有，底栏据其高亮当前打开的入口，
  * 故声明在 reader 包内供 chrome 层共用（不再放在 Activity 文件里，避免反向依赖）。
  */
-internal enum class ReaderPanel { NONE, CHAPTER, LIGHT, FONT, SETTING, DOWNLOAD }
+internal enum class ReaderPanel { NONE, CHAPTER, LIGHT, FONT, SETTING, DOWNLOAD, SOURCE_SWITCH }
 
 /**
  * 阅读器 chrome 层局部设计常量。
@@ -191,6 +193,9 @@ private object ReaderChromeTokens {
  * 下载入口只有一个：下发任务统一带强制刷新标记，勾中已缓存章节即等价"刷新缓存"，
  * 故不再单列"强制刷新缓存"菜单项（该能力本就与下载共用同一条流水线）。
  *
+ * 「换源」（ADR-0016 决策 8，P3-d）与下载/刷新同在非本地书分支：换源是把这本书的归属从 A 源
+ * 搬到 B 源，本地书没有归属源这个概念（仓库层以参数错误拒绝），入口对本地书出现即等于一个必败按钮。
+ *
  * edge-to-edge 避让：阅读页 enableFitsSystemWindows=false，顶栏需自行避让状态栏，
  * 否则返回键/标题会画到状态栏下面被遮挡。statusBarsPadding 写在底色内层：
  * 背景延伸到状态栏后面（视觉连续），内容下移避让。
@@ -199,9 +204,11 @@ private object ReaderChromeTokens {
 fun ReaderTopBar(
     title: String,
     subtitle: String,
-    showMore: Boolean,
+    isLocalBook: Boolean,
     onBack: () -> Unit,
     onDownload: () -> Unit,
+    onRefresh: () -> Unit,
+    onSwitchSource: () -> Unit,
     onComment: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -256,23 +263,23 @@ fun ReaderTopBar(
                         )
                     }
                 }
-                if (showMore) {
-                    Box {
-                        IconButton(onClick = { moreExpanded = true }) {
-                            Icon(
-                                imageVector = Icons.Outlined.MoreVert,
-                                contentDescription = stringResource(R.string.setting),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        // 更多菜单（对齐原 ReadBookMenuMorePop：下载 + 评论入口）
-                        DropdownMenu(
-                            expanded = moreExpanded,
-                            onDismissRequest = { moreExpanded = false },
-                            shape = RoundedCornerShape(CommonUiTokens.cardCornerSmall),
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            tonalElevation = 3.dp
-                        ) {
+                Box {
+                    IconButton(onClick = { moreExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Outlined.MoreVert,
+                            contentDescription = stringResource(R.string.setting),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    // 更多菜单：本地书仅显示评论入口；网络书显示下载 + 刷新 + 评论
+                    DropdownMenu(
+                        expanded = moreExpanded,
+                        onDismissRequest = { moreExpanded = false },
+                        shape = RoundedCornerShape(CommonUiTokens.cardCornerSmall),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        tonalElevation = 3.dp
+                    ) {
+                        if (!isLocalBook) {
                             ReaderMenuItem(
                                 icon = Icons.Outlined.Download,
                                 text = stringResource(com.ebook.common.R.string.download),
@@ -281,16 +288,31 @@ fun ReaderTopBar(
                                 onDownload()
                             }
                             ReaderMenuItem(
-                                icon = Icons.Outlined.ModeComment,
-                                text = stringResource(R.string.comment),
+                                icon = Icons.Filled.Refresh,
+                                text = stringResource(R.string.refresh),
                             ) {
                                 moreExpanded = false
-                                onComment()
+                                onRefresh()
+                            }
+                            // 换源只对网络书有意义：本地书的正文在自己导入的文件里、tag 恒为 loc_book，
+                            // 仓库层会以「本地书没有可换的书源」直接拒绝，所以入口跟着下载/刷新一起收进
+                            // 非本地书分支，不给用户留一个点了必定失败的按钮
+                            ReaderMenuItem(
+                                icon = Icons.Outlined.SwapHoriz,
+                                text = stringResource(R.string.switch_source),
+                            ) {
+                                moreExpanded = false
+                                onSwitchSource()
                             }
                         }
+                        ReaderMenuItem(
+                            icon = Icons.Outlined.ModeComment,
+                            text = stringResource(R.string.comment),
+                        ) {
+                            moreExpanded = false
+                            onComment()
+                        }
                     }
-                } else {
-                    Spacer(modifier = Modifier.width(48.dp))
                 }
             }
         }
@@ -1515,8 +1537,8 @@ fun MoreSettingPanel(onDismiss: () -> Unit, onClickTurnChanged: (Boolean) -> Uni
 /**
  * 章节多选下载面板（替代原 DownloadRangeDialog 的起止章号输入框）。
  *
- * 缓存感知：逐章按 [cachedUrls]（以 book_content 内容表为事实源，调用方经
- * BookRepository.getCachedChapterUrls 查询）绘制"已缓存"徽章；默认预勾选集合由调用方传入。
+ * 缓存感知：逐章按 [cachedIndices]（以章文件存在性为事实源，调用方经
+ * BookRepository.getCachedChapterIndices 查询）绘制"已缓存"徽章；默认预勾选集合由调用方传入。
  * 已缓存章节勾上即重下：下发任务统一带 forceRefresh 标记（服务端先删旧内容再重抓），
  * 故不再区分"下载"与"强制刷新缓存"两种模式（对未缓存章节该标记为空操作），
  * 刷新缓存的能力已合并进本面板。
@@ -1530,19 +1552,16 @@ fun MoreSettingPanel(onDismiss: () -> Unit, onClickTurnChanged: (Boolean) -> Uni
 @Composable
 fun ChapterDownloadSheet(
     chapters: List<ChapterListEntity>,
-    cachedUrls: Set<String>,
+    cachedIndices: Set<Int>,
     initialSelected: Set<Int>,
     onConfirm: (selected: Set<Int>) -> Unit,
     onDismiss: () -> Unit
 ) {
     var selected by remember { mutableStateOf(initialSelected) }
 
-    // 缓存/未缓存索引集：列表打开期间不变，remember 避免每次勾选重算
-    val cachedIndices = remember(chapters, cachedUrls) {
-        chapters.indices.filterTo(mutableSetOf()) { chapters[it].durChapterUrl in cachedUrls }
-    }
-    val uncachedIndices = remember(chapters, cachedUrls) {
-        chapters.indices.filterTo(mutableSetOf()) { chapters[it].durChapterUrl !in cachedUrls }
+    // 未缓存索引集：列表打开期间不变，remember 避免每次勾选重算
+    val uncachedIndices = remember(chapters, cachedIndices) {
+        chapters.indices.filterTo(mutableSetOf()) { it !in cachedIndices }
     }
 
     // 跳过数 = 已缓存但未勾选的章节（本次不会下发任务）；确认文案实时反映选择结果

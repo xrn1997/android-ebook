@@ -55,6 +55,7 @@ dependencyResolutionManagement {
 rootProject.name = "android-ebook"
 include(":module_app")
 include(":lib_book_common")
+include(":lib_book_source")
 include(":module_main")
 include(":module_book")
 include(":module_find")

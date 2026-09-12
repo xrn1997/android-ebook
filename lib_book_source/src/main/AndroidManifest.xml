@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  沙箱执行器（ADR-0028）。写在库清单里而不是 module_app：整条沙箱链路的组成件应当随模块走，
+  应用模块不需要知道 :js 进程存在。合并结果要到 module_app/build/intermediates/merged_manifests/
+  下核对——isolatedProcess 这类属性不会被库清单"默默丢掉"，但 process 名字若与别的模块撞了
+  只能从合并结果里看出来。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!--
+          isolatedProcess：进程无网络、读不到本应用数据目录（见 ActivityThread.handleBindApplication
+          对 Process.isIsolated() 的三处跳过），因此脚本能碰到的东西以内核为限。
+          exported=false：只有本应用自己绑得到，而协议只有一对方法、没有任何鉴权。
+          只绑不启：隔离服务不支持 startService，用 Context.bindService + BIND_AUTO_CREATE 拉起。
+        -->
+        <service
+            android:name="com.ebook.source.sandbox.SandboxService"
+            android:exported="false"
+            android:isolatedProcess="true"
+            android:process=":js" />
+    </application>
+</manifest>

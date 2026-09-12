@@ -10,6 +10,7 @@
           "username": "user_test01",
           "avatar": "https://example.com/images/user_1.png"
         },
+        "comment_key": "ck1:tianqi#0",
         "content": "这本书的开头就很吸引人！门牌号的细节二刷才看懂。",
         "chapter_url": "https://example.com/books/1/chapter/1",
         "chapter_name": "第一章 序幕",
@@ -23,6 +24,7 @@
           "username": "user_test01",
           "avatar": "https://example.com/images/user_1.png"
         },
+        "comment_key": "ck1:tianqi#2",
         "content": "剧情开始变得紧张了！雾里那段读得后背发凉。",
         "chapter_url": "https://example.com/books/1/chapter/3",
         "chapter_name": "第三章 迷雾",
@@ -36,6 +38,7 @@
           "username": "user_test01",
           "avatar": "https://example.com/images/user_1.png"
         },
+        "comment_key": "ck1:tianqi#4",
         "content": "三章前的门牌号在这里对上，作者布局太稳了。",
         "chapter_url": "https://example.com/books/1/chapter/5",
         "chapter_name": "第五章 终极对决",
@@ -49,6 +52,7 @@
           "username": "user_test01",
           "avatar": "https://example.com/images/user_1.png"
         },
+        "comment_key": "ck1:shenye#1",
         "content": "来客那段铺垫给得很足，一口气看到凌晨。",
         "chapter_url": "https://example.com/books/2/chapter/2",
         "chapter_name": "第二章 来客",
@@ -62,6 +66,7 @@
           "username": "user_test01",
           "avatar": "https://example.com/images/user_1.png"
         },
+        "comment_key": "ck1:tianqi#0",
         "content": "补一句：序章的钟声也是伏笔，别跳过。",
         "chapter_url": "https://example.com/books/1/chapter/1",
         "chapter_name": "第一章 序幕",

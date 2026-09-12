@@ -34,6 +34,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,6 +74,7 @@ import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
 import com.ebook.db.entity.SearchHistoryEntity
+import com.ebook.find.mvvm.viewmodel.SearchProgress
 import com.ebook.find.mvvm.viewmodel.SearchViewModel
 import com.ebook.find.view.SearchBookItem
 import com.therouter.TheRouter
@@ -113,6 +115,8 @@ private const val KEYBOARD_SHOW_GRACE_MS = 600L
  * - 外壳：lib_common Compose 基类统一提供主题/加载与空态覆盖层/触底加载更多；
  *   本页覆写 [HomePage] 注入自定义骨架（顶部搜索栏 + 结果列表 + 覆盖其上的历史面板），
  *   结果列表仍走基类 RefreshableList（无下拉刷新、有触底加载更多，与旧页行为一致）
+ * - 搜索为**多书源并发聚合**（ADR-0016 P3-b）：结果边收边追加，列表上方一条书源进度行
+ *   （[SourceProgressRow]）表达「还有几个站在跑」，全部结束即消失
  * - 历史面板开合由 [isImeVisible] 驱动（替代旧 GlobalLayoutListener 高度差 hack）：
  *   键盘弹出→面板揭示；键盘收起→若从未搜索过则退出页面，否则收起面板。
  *   键盘弹不出的环境（物理键盘/部分模拟器）由宽限期兜底直接开面板，对齐旧行为兼容逻辑
@@ -120,7 +124,7 @@ private const val KEYBOARD_SHOW_GRACE_MS = 600L
  *   （替代 ViewAnimationUtils.createCircularReveal，开 700ms/合 300ms）；
  *   进度在形状轮廓生成（布局期）时读取，动画期间不触发面板重组
  * - 清除历史粒子爆炸：[ExplodeOverlay]（Compose Canvas 重制 ExplosionField）
- * - 书架事件同步与搜索历史仍收敛在 [SearchViewModel] 内（VM 零改动）
+ * - 书架事件同步与搜索历史仍收敛在 [SearchViewModel] 内
  */
 @AndroidEntryPoint
 @Route(path = KeyCode.Find.SEARCH_PATH)
@@ -231,46 +235,60 @@ class SearchActivity : BaseMvvmRefreshActivity<SearchViewModel>() {
         }
     }
 
-    /** 搜索结果列表（与迁移前一致：复用基类 LazyListState 保证触底检测正确）。 */
+    /**
+     * 搜索结果列表（与迁移前一致：复用基类 LazyListState 保证触底检测正确）。
+     *
+     * 列表上方是聚合搜索的书源进度（[SourceProgressRow]）：它钉在列表外而不是做成首个 item，
+     * 因为「已收到 X/Y」说的就是「还在等多久」，跟着列表滚走等于在最需要的时候消失。
+     */
     @Composable
     override fun PageContent(state: LazyListState) {
         val books by viewModel.list.collectAsState()
+        val progress by viewModel.searchProgress.collectAsState()
         // 加载更多底部状态：由基类渲染镜像推导，失败可点重试
         val loadingMore by remember { isLoadingMoreState }
         val loadMoreFailed by remember { loadMoreFailedState }
         val hasMore by remember { hasMoreDataState }
-        LazyColumn(
-            state = state,
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(
-                start = CommonUiTokens.pagePadding,
-                top = CommonUiTokens.sectionSpacing,
-                end = CommonUiTokens.pagePadding,
-                bottom = CommonUiTokens.pagePadding
-            ),
-            // 条目改为独立圆角卡片（见 SearchBookItem），用间距分隔替代条目内分割线
-            verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing)
-        ) {
-            items(books, key = { it.noteUrl }) { searchBook ->
-                SearchBookItem(
-                    searchBook = searchBook,
-                    onItemClick = {
-                        TheRouter.build(KeyCode.Book.DETAIL_PATH)
-                            .withInt("from", FROM_SEARCH)
-                            .withObject("data", searchBook)
-                            .navigation(this@SearchActivity)
-                    },
-                    onAddShelf = { viewModel.addBookToShelf(searchBook) }
-                )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            if (progress.isRunning) {
+                SourceProgressRow(progress)
             }
-            // 触底加载反馈：加载中 / 失败重试 / 没有更多
-            item {
-                LoadMoreFooter(
-                    isLoadingMore = loadingMore,
-                    loadMoreFailed = loadMoreFailed,
-                    hasMoreData = hasMore,
-                    onRetry = { retryLoadMore() },
-                )
+            LazyColumn(
+                state = state,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(
+                    start = CommonUiTokens.pagePadding,
+                    top = CommonUiTokens.sectionSpacing,
+                    end = CommonUiTokens.pagePadding,
+                    bottom = CommonUiTokens.pagePadding
+                ),
+                // 条目改为独立圆角卡片（见 SearchBookItem），用间距分隔替代条目内分割线
+                verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing)
+            ) {
+                // key 必须是 noteUrl：聚合结果跨源追加，同一条目重复出现时内容相等而 key 重复会让 LazyColumn 直接抛异常
+                items(books, key = { it.noteUrl }) { searchBook ->
+                    SearchBookItem(
+                        searchBook = searchBook,
+                        onItemClick = {
+                            TheRouter.build(KeyCode.Book.DETAIL_PATH)
+                                .withInt("from", FROM_SEARCH)
+                                .withObject("data", searchBook)
+                                .navigation(this@SearchActivity)
+                        },
+                        onAddShelf = { viewModel.addBookToShelf(searchBook) }
+                    )
+                }
+                // 触底加载反馈：加载中 / 失败重试 / 没有更多
+                item {
+                    LoadMoreFooter(
+                        isLoadingMore = loadingMore,
+                        loadMoreFailed = loadMoreFailed,
+                        hasMoreData = hasMore,
+                        onRetry = { retryLoadMore() },
+                    )
+                }
             }
         }
     }
@@ -356,9 +374,44 @@ class SearchActivity : BaseMvvmRefreshActivity<SearchViewModel>() {
         keyboardController?.hide()
         lifecycleScope.launch {
             delay(SEARCH_AFTER_KEYBOARD_HIDE_DELAY_MS.milliseconds)
-            viewModel.initPage()
+            // 不再由页面重置页码：聚合搜索的分页游标按源住在 VM 里（见 SearchViewModel.pageBySource）
             viewModel.toSearchBooks(key)
         }
+    }
+}
+
+/**
+ * 聚合搜索的书源进度：确定性的 [LinearProgressIndicator] +「已收到 X/Y 书源结果」。
+ *
+ * 只在「本轮还有源没结束」时由 [PageContent] 组合出来，全部结束（含失败的源，它们同样会发
+ * `SourceFinished`）后整行消失——所以 Y 不会因为某个站点挂了而永远差一格。
+ * 加载更多时它会再出现一次，分母是**这一轮还在跑的源数**（已到底的源不再参与）。
+ *
+ * 配色走 Material 语义色：进度条用 primary（进行中状态），轨道用 surfaceVariant
+ * （与本页中性标签同档），文字用 onSurfaceVariant（module_find 配色规则见 [HistoryPanel] KDoc）。
+ */
+@Composable
+private fun SourceProgressRow(progress: SearchProgress, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        LinearProgressIndicator(
+            progress = { progress.fraction },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = CommonUiTokens.pagePadding)
+                .height(4.dp),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.search_source_progress, progress.finished, progress.total),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(
+                start = CommonUiTokens.pagePadding,
+                top = 4.dp,
+                end = CommonUiTokens.pagePadding,
+            ),
+        )
     }
 }
 

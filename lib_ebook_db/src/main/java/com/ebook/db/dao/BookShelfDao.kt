@@ -97,7 +97,7 @@ interface BookShelfDao {
      * 按 URL 删除书架行。
      *
      * 本模块所有实体都未声明 foreignKeys、不存在级联删除，因此只调本方法会在
-     * book_info / chapter_list / book_content 留下孤立数据；从书架移除必须由调用方逐表清理
+     * book_info / chapter_list / download_chapter / book_group 留下孤立数据；从书架移除必须由调用方逐表清理
      * （见 BookRepository.removeFromShelf）。
      */
     @Query("DELETE FROM book_shelf WHERE note_url = :noteUrl")

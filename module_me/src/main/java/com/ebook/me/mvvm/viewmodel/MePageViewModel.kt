@@ -1,6 +1,8 @@
 package com.ebook.me.mvvm.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.ebook.common.domain.ThemeMode
+import com.ebook.common.domain.ThemeModeManager
 import com.ebook.common.domain.UserSessionManager
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.repository.ProfileRepository
@@ -48,17 +50,19 @@ data class ReadingStats(
  * 我的页（Compose）ViewModel。
  *
  * 页面经 TheRouter 的 ServiceProvider 暴露（非 Hilt 创建），无法直接 @Inject，
- * 因此把页面依赖（个人资料 + 登录态 + 书架数据）收进 ViewModel 注入，页面经 hiltViewModel() 获取。
+ * 因此把页面依赖（个人资料 + 登录态 + 书架数据 + 外观主题模式）收进 ViewModel 注入，页面经 hiltViewModel() 获取。
  *
  * 继承 [BaseViewModel] 对齐全仓 ViewModel 约定（AGENTS.md）；Model 用 [NoOpModel] 占位——
  * 本页依赖直接注入三个仓库（UseCase 式），没有也不需要一个 Model 门面类。
  *
- * 状态分两条流：
+ * 状态分三条流：
  * - [meState]：登录态（[UserSessionManager]）+ 资料（[ProfileRepository]）合并，
  *   页面只收集一个状态流，避免在 Composable 里散落多条 collectAsState 与回退判断
  *   （命名避开基类的 uiState，后者专驱加载/错误覆盖层，与 BookDetailViewModel/CacheManageViewModel 同约定）
  * - [readingStats]：书架本地数据（[BookRepository.observeBookShelf]），Room 失效追踪自动推送，
  *   阅读 App 的「我的」页核心内容，无后端也真实可读
+ * - [themeMode]：当前外观主题模式，转发 [ThemeModeManager.themeMode]（与 `SettingViewModel.themeMode`
+ *   同一个来源），供头部渐变按深浅色适配
  *
  * WhileSubscribed(5s)：切走 Tab 停止合并，切回立即用缓存值，兼顾省电与即时刷新。
  */
@@ -67,6 +71,7 @@ class MePageViewModel @Inject constructor(
     profileRepository: ProfileRepository,
     userSessionManager: UserSessionManager,
     bookRepository: BookRepository,
+    themeModeManager: ThemeModeManager,
 ) : BaseViewModel<NoOpModel>(NoOpModel()) {
 
     val meState: StateFlow<MeUiState> = combine(
@@ -100,4 +105,15 @@ class MePageViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = ReadingStats(),
         )
+
+    /**
+     * 当前外观主题模式（浅色 / 深色 / 跟随系统），转发 [ThemeModeManager.themeMode]。
+     *
+     * 页面读的是这一条而不是 `ThemeModeManager.instance?.themeMode`：同一份状态只能有一个访问路径，
+     * 而伴生对象那条路**在 Application 装好单例前会静默降级成 [ThemeMode.SYSTEM]**（可空 + `?:`），
+     * 用户设的深色会被悄悄忽略、还不报错；经 Hilt 注入的单例没有这层可空性。
+     * 也不在 VM 里另存一份 StateFlow（`stateIn` 复制）：那会让「设置页写、我的页读」出现两个值，
+     * 转发同一实例才是单源。与 `SettingViewModel.themeMode` 同为转发，两页永远看到同一个值。
+     */
+    val themeMode: StateFlow<ThemeMode> = themeModeManager.themeMode
 }

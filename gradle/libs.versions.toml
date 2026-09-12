@@ -3,6 +3,9 @@
 androidDesugarJdkLibs = "2.1.5"
 # AGP and tools should be updated together
 androidGradlePlugin = "9.2.1"
+# NDK 钉死而非用 AGP 默认：默认值随 AGP 小版本漂移，会让同一份 C++ 在不同机器上编出不同 .so。
+# 升级它是一次显式改动（需重跑 lib_book_source 的设备用例），口径见 AndroidNativeConventionPlugin
+androidNdk = "28.2.13676358"
 androidTools = "32.2.1"
 androidxActivity = "1.13.0"
 androidxAppCompat = "1.7.1"
@@ -30,7 +33,8 @@ androidxWork = "2.11.0"
 annotation = "1.9.1"
 annotations = "26.0.2-1"
 coil = "2.7.0"
-common = "0.3.1"
+cmake = "3.22.1"
+common = "0.3.2"
 constraintlayout = "2.2.1"
 dagger = "2.60.1"
 fragmentKtx = "1.8.9"
@@ -193,6 +197,9 @@ router = { group = "cn.therouter", name = "router", version.ref = "router" }
 room-runtime = { group = "androidx.room3", name = "room3-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room3", name = "room3-compiler", version.ref = "room" }
 sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqliteBundled" }
+# 同一驱动的 JVM 变体：Android 变体只带 Android ABI 的原生库（AAR 的 jni/），JVM 单测加载不到，
+# 而 JVM 变体自带 natives/<os>_<arch>/ 下的桌面原生库，用于在 JVM 单测里跑生产同款引擎
+sqlite-bundled-jvm = { group = "androidx.sqlite", name = "sqlite-bundled-jvm", version.ref = "sqliteBundled" }
 tinypinyin = { group = "com.github.promeg", name = "tinypinyin", version.ref = "tinypinyin" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 # Dependencies of the included build-logic
@@ -227,3 +234,4 @@ xrn1997-android-lint = { id = "xrn1997.android.lint" }
 xrn1997-hilt = { id = "xrn1997.hilt" }
 xrn1997-android-room = { id = "xrn1997.android.room" }
 xrn1997-android-component = { id = "xrn1997.android.component" }
+xrn1997-android-native = { id = "xrn1997.android.native" }

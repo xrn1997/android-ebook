@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,10 +21,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -49,6 +52,7 @@ import com.ebook.book.mvvm.viewmodel.DownloadManageViewModel
 import com.ebook.book.manager.BitIntentDataManager
 import com.ebook.common.event.FROM_BOOKSHELF
 import com.ebook.common.event.KeyCode
+import com.ebook.common.importer.ParsingBook
 import com.ebook.common.ui.BookCover
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
@@ -75,6 +79,8 @@ fun BookShelfPage(
     downloadViewModel: DownloadManageViewModel = hiltViewModel(),
 ) {
     val books by viewModel.list.collectAsState()
+    // 正在解析中的导入：书架行要等落库才有，占位行由进程级导入协调器供数（spec §6）
+    val parsingBooks by viewModel.parsingBooks.collectAsState()
     val context = LocalContext.current
     var isRefreshing by remember { mutableStateOf(false) }
     // 队列剩余数（下载图标角标）：任务增删时由 Room Flow 自动重推，无任务时为 0（角标隐藏）
@@ -90,91 +96,109 @@ fun BookShelfPage(
     }
     MvvmBinder.bindRefresh(view = refreshView, viewModel = viewModel)
 
-    // 首次进入自动刷新（置转圈 → refreshData → stopRefresh 信号复位）
+    // 书架首次加载：拉一次数据
     LaunchedEffect(Unit) {
         isRefreshing = true
         viewModel.refreshData()
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // 顶栏（对齐书城页：TopAppBar 文字标题 + 导入/下载 actions）
-        TopAppBar(
-            title = { Text(stringResource(R.string.my_book_shelf)) },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            actions = {
-                // 导入本地书（点击反馈由 Material ripple 承担）：
-                // 用 startActivity 而非 TheRouter——@Route 是为跨模块跳转准备的，
-                // ImportBookActivity 只被本页使用、未挂路由，直启即可（右侧下载管理入口
-                // 同样在本模块内，走路由是为与独立模式的调试宿主共用同一跳法）
-                IconButton(onClick = {
-                    context.startActivity(Intent(context, ImportBookActivity::class.java))
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = stringResource(R.string.add_local_book)
-                    )
-                }
-                // 下载管理入口：跳转下载管理页；有任务时角标展示队列剩余数，
-                // 让用户不点开也能知道“还有多少在下”（原小弹窗已下线）
-                IconButton(onClick = {
-                    TheRouter.build(KeyCode.Book.DOWNLOAD_PATH).navigation(context)
-                }) {
-                    BadgedBox(
-                        badge = {
-                            if (downloadRemaining > 0) {
-                                Badge { Text(downloadRemaining.toString()) }
-                            }
-                        }
-                    ) {
+    // Scaffold 在本页只承担两件事，且都不产生内容偏移：
+    // 1) 页面底色——独立运行宿主（src/main/test/debug/MainActivity）直接组合本页、外面没有
+    //    别的 Surface，底色得由本页自己给出；
+    // 2) 把内容区 insets 归零——状态栏避让**下沉到顶栏**（TopAppBar 自带 windowInsets，
+    //    与书城页同款形态；宿主 MainActivity 已关掉基类偏移、总 Scaffold 也置零）。
+    //    这里若改用默认的 ScaffoldDefaults.contentWindowInsets，innerPadding 会再叠一层
+    //    状态栏高度，与顶栏自带的避让重复。
+    // 因此 innerPadding 恒为 0：不再套 .padding(innerPadding) 这层无操作包装，
+    // 只保留 insets 归零这一处显式声明（删掉它才是真的改了视觉行为）。
+    Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 顶栏（对齐书城页：TopAppBar 文字标题 + 导入/下载 actions）
+            TopAppBar(
+                title = { Text(stringResource(R.string.my_book_shelf)) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                actions = {
+                    // 导入本地书（点击反馈由 Material ripple 承担）：
+                    // 用 startActivity 而非 TheRouter——@Route 是为跨模块跳转准备的，
+                    // ImportBookActivity 只被本页使用、未挂路由，直启即可（右侧下载管理入口
+                    // 同样在本模块内，走路由是为与独立模式的调试宿主共用同一跳法）
+                    IconButton(onClick = {
+                        context.startActivity(Intent(context, ImportBookActivity::class.java))
+                    }) {
                         Icon(
-                            imageVector = Icons.Filled.Download,
-                            contentDescription = stringResource(R.string.download)
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = stringResource(R.string.add_local_book)
                         )
                     }
-                }
-            }
-        )
-
-        RefreshableList(
-            isRefreshing = isRefreshing,
-            isLoadingMore = false,
-            onRefresh = {
-                isRefreshing = true
-                viewModel.refreshData()
-            },
-            onLoadMore = { viewModel.loadMore() },
-            enableLoadMore = false,
-        ) { listState ->
-            BookShelfList(
-                listState = listState,
-                books = books,
-                onItemClick = { bookShelf ->
-                    val intent = Intent(context, ReadBookActivity::class.java)
-                    intent.putExtra("from", OPEN_FROM_APP)
-                    intent.putExtra("data_key", BitIntentDataManager.putData(bookShelf.copy()))
-                    context.startActivity(intent)
-                },
-                onItemLongClick = { bookShelf ->
-                    val key = BitIntentDataManager.putData(bookShelf.copy())
-                    TheRouter.build(KeyCode.Book.DETAIL_PATH)
-                        .withInt("from", FROM_BOOKSHELF)
-                        .withString("data_key", key)
-                        .navigation()
+                    // 下载管理入口：跳转下载管理页；有任务时角标展示队列剩余数，
+                    // 让用户不点开也能知道“还有多少在下”（原小弹窗已下线）
+                    IconButton(onClick = {
+                        TheRouter.build(KeyCode.Book.DOWNLOAD_PATH).navigation(context)
+                    }) {
+                        BadgedBox(
+                            badge = {
+                                if (downloadRemaining > 0) {
+                                    Badge { Text(downloadRemaining.toString()) }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Download,
+                                contentDescription = stringResource(R.string.download)
+                            )
+                        }
+                    }
                 }
             )
-        }
-    }
+
+            RefreshableList(
+                isRefreshing = isRefreshing,
+                isLoadingMore = false,
+                onRefresh = {
+                    isRefreshing = true
+                    viewModel.refreshData()
+                },
+                onLoadMore = { viewModel.loadMore() },
+                enableLoadMore = false,
+            ) { listState ->
+                BookShelfList(
+                    listState = listState,
+                    books = books,
+                    parsing = parsingBooks,
+                    onItemClick = { bookShelf ->
+                        val intent = Intent(context, ReadBookActivity::class.java)
+                        intent.putExtra("from", OPEN_FROM_APP)
+                        intent.putExtra("data_key", BitIntentDataManager.putData(bookShelf.copy()))
+                        context.startActivity(intent)
+                    },
+                    onItemLongClick = { bookShelf ->
+                        val key = BitIntentDataManager.putData(bookShelf.copy())
+                        TheRouter.build(KeyCode.Book.DETAIL_PATH)
+                            .withInt("from", FROM_BOOKSHELF)
+                            .withString("data_key", key)
+                            .navigation()
+                    }
+                )
+            }
+        } // Column
+    } // Scaffold
 }
 
 /**
  * 书架列表：页面边距/条目间距走 [CommonUiTokens]（ADR-0006 共享设计语言）。
+ *
+ * [parsing] 是正在解析中的导入，排在书目之前——书架行要等导入落库才有，
+ * 用户"点完导入回到书架"看到的第一个反馈就是这些"解析中"行（spec §6）。
  */
 @Composable
 fun BookShelfList(
     listState: LazyListState,
     books: List<BookShelfEntity>,
+    parsing: List<ParsingBook> = emptyList(),
     onItemClick: (BookShelfEntity) -> Unit,
     onItemLongClick: (BookShelfEntity) -> Unit,
 ) {
@@ -189,6 +213,9 @@ fun BookShelfList(
         ),
         verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing)
     ) {
+        items(parsing, key = { it.id }) { book ->
+            ParsingShelfItem(title = book.title)
+        }
         items(books, key = { it.noteUrl }) { bookShelf ->
             BookShelfItem(
                 bookShelf = bookShelf,
@@ -200,16 +227,62 @@ fun BookShelfList(
 }
 
 /**
+ * "解析中"占位行：形态对齐 [BookShelfItem]（同尺寸封面占位 + 标题），副行是小转圈 +
+ * 解析中文案。不可点击——章文件与索引行都还没落库，此刻点进去只会看到空白书。
+ */
+@Composable
+private fun ParsingShelfItem(title: String) {
+    CommonItemCard(enabled = false, onClick = {}, shadowElevation = 0.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BookCover(
+                url = "",
+                contentDescription = null,
+                modifier = Modifier.size(width = 72.dp, height = 105.dp),
+                shape = RoundedCornerShape(6.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 1.5.dp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.shelf_parsing, title),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
  * 书架条目（ADR-0006 共享设计语言重设计，替代原 adapter_book_list_item.xml 的
  * 重阴影卡 + 等宽字体样式）：12dp 圆角条目卡 + [BookCover] 封面 + Material typography。
+ *
+ * 点击进阅读器，长按进详情页（修键面板的入口在详情页正文底部）。
  */
 @Composable
 fun BookShelfItem(
     bookShelf: BookShelfEntity,
     onItemClick: () -> Unit,
-    onItemLongClick: () -> Unit
+    onItemLongClick: () -> Unit,
 ) {
-    CommonItemCard(onClick = onItemClick, onLongClick = onItemLongClick) {
+    CommonItemCard(
+        onClick = onItemClick,
+        onLongClick = onItemLongClick,
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // 封面：共享 BookCover（条目内小封面用小圆角变体）
             BookCover(
@@ -237,7 +310,7 @@ fun BookShelfItem(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     // 读 bookShelf.chapterList（书架查询时由 getAllBooksWithDetails() 回填；本地书由
-                    // BookImportManager 回填），不用 bookInfo.chapterList——它是 @Ignore 不入库、书架流不填充，
+                    // LocalBookImporter 回填），不用 bookInfo.chapterList——它是 @Ignore 不入库、书架流不填充，
                     // 会导致"读至："后为空。与 ReadBookActivity.kt 取章节列表的约定一致。
                     text = stringResource(R.string.read_to) +
                             (bookShelf.chapterList.getOrNull(bookShelf.durChapter)?.durChapterName ?: ""),
