@@ -168,7 +168,8 @@ class DownloadService : Service() {
             }
         }
 
-        // 任务随 Intent 直达：阅读器确认下载范围后用 buildStartIntent 携带章节列表启动本服务。
+        // 任务随 Intent 直达：下载中心/仓库统一下发入口（DownloadRepository.startDownload）确认章节
+        // 范围后经 buildStartIntent 携带章节列表启动本服务。
         // 原链路靠 SharedFlow 命令中转（唯一订阅者绑在书架页生命周期上），页面不存活时命令被丢弃、
         // 下载根本不启动；Intent extra 由系统直达，无时序依赖（见本类 KDoc 的"为何不用命令总线"）
         val chapters = intent?.let { extractChapters(it) }.orEmpty()
