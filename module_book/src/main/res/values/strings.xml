@@ -106,6 +106,8 @@
     <string name="download_manage_status_idle">待开始</string>
     <string name="download_manage_no_task">暂无下载任务</string>
     <string name="download_manage_remaining_format">剩余 %1$d 章</string>
+    <string name="download_manage_downloading_chapter_format">正在下载 第 %1$d 章 · %2$s</string>
+    <string name="download_group_pick">选择本书章节</string>
     <string name="download_manage_coverage_format">已缓存 %1$d/%2$d 章</string>
     <string name="download_manage_active_tag">下载中</string>
     <string name="download_manage_queued_tag">排队中</string>

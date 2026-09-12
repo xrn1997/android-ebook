@@ -26,18 +26,24 @@ import javax.inject.Inject
  * - [remaining]：队列里这本书还没下完的章数（随任务增删变化）
  * - [totalChapters]/[cachedChapters]：全书章节数与已缓存数，构成"全书缓存覆盖率"进度条
  * - [isActive]：该书是否有章节正在被服务抓取（用于高亮当前书）
+ * - [tag]：该书书源归属标记（二级视图取 parser 与缓存定位用，来自组内首条任务）
+ * - [activeChapter]：当前正在下载的章节（仅活跃书有值）
  *
  * 两个进度口径刻意分开：队列剩余反映"这批任务还剩多少"，覆盖率反映"全书已可离线的比例"，
  * 前者随批次消长、后者随阅读/下载单调增长，混在一起会误导用户（见 DownloadRepository.getCacheCoverage）。
+ * 下载进度（[activeChapter] / 队列剩余）≠ 全书覆盖率（[cachedChapters]/[totalChapters]）。
  */
 data class DownloadBookGroup(
     val noteUrl: String,
     val bookName: String,
     val coverUrl: String,
+    val tag: String,
     val remaining: Int,
     val totalChapters: Int,
     val cachedChapters: Int,
     val isActive: Boolean = false,
+    /** 当前正在下载的章节（仅活跃书有值；下载进度口径之一，见类 KDoc） */
+    val activeChapter: DownloadChapterEntity? = null,
 )
 
 /**
@@ -93,14 +99,19 @@ class DownloadManageViewModel @Inject constructor(
                     // 换源会把旧 noteUrl 名下的任务整批删掉（见 BookRepository.commitSwitch），
                     // 不会出现「一本书的组里混着两个源的任务」，故不必回查 book_shelf
                     val coverage = model.getCacheCoverage(noteUrl, first.tag)
+                    val active = tasks.any { it.durChapterUrl == activeChapterUrl }
                     DownloadBookGroup(
                         noteUrl = noteUrl,
                         bookName = first.bookName,
                         coverUrl = first.coverUrl,
+                        tag = first.tag,
                         remaining = tasks.size,
                         totalChapters = coverage.total,
                         cachedChapters = coverage.cached,
-                        isActive = tasks.any { it.durChapterUrl == activeChapterUrl }
+                        isActive = active,
+                        activeChapter = if (active) {
+                            tasks.first { it.durChapterUrl == activeChapterUrl }
+                        } else null
                     )
                 }
             _groups.value = grouped

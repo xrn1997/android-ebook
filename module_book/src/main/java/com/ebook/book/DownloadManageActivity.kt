@@ -2,6 +2,7 @@ package com.ebook.book
 
 import android.os.Bundle
 import androidx.activity.viewModels
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,7 +72,8 @@ class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
 
     @Composable
     override fun PageContent() {
-        DownloadManageScreen(viewModel = viewModel)
+        // Task 5 接入 viewModel::openBook
+        DownloadManageScreen(viewModel = viewModel, onOpenBook = { })
     }
 }
 
@@ -82,7 +84,10 @@ class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
  * 持有，页面必须与其共用同一实例。
  */
 @Composable
-fun DownloadManageScreen(viewModel: DownloadManageViewModel) {
+fun DownloadManageScreen(
+    viewModel: DownloadManageViewModel,
+    onOpenBook: (DownloadBookGroup) -> Unit
+) {
     val groups by viewModel.groups.collectAsState()
     val state by viewModel.downloadState.collectAsState(initial = DownloadState.Finished)
     var showCancelAll by remember { mutableStateOf(false) }
@@ -133,6 +138,7 @@ fun DownloadManageScreen(viewModel: DownloadManageViewModel) {
                 items(groups, key = { it.noteUrl }) { group ->
                     DownloadGroupCard(
                         group = group,
+                        onClick = { onOpenBook(group) },
                         onCancelBook = { pendingCancelBook = group }
                     )
                 }
@@ -269,11 +275,14 @@ private fun SummarySection(
 }
 
 /**
- * 单本书的下载分组卡：封面 + 书名 + 状态标签 + 剩余/覆盖率 + 进度条 + 取消本书。
+ * 单本书的下载分组卡：封面 + 书名 + 状态标签 + 剩余 + 正在下载章节 + 覆盖率 + 进度条 + 取消本书。
+ *
+ * 整卡可点（二级选章页入口，[onClick]），「取消本书」TextButton 消费自己的点击、不受影响。
  */
 @Composable
 private fun DownloadGroupCard(
     group: DownloadBookGroup,
+    onClick: () -> Unit,
     onCancelBook: () -> Unit
 ) {
     val coverageRatio = remember(group.totalChapters, group.cachedChapters) {
@@ -281,7 +290,11 @@ private fun DownloadGroupCard(
     }
 
     CommonCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(12.dp)
+                .clickable(onClickLabel = stringResource(R.string.download_group_pick), onClick = onClick)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 BookCover(
                     url = group.coverUrl,
@@ -315,6 +328,19 @@ private fun DownloadGroupCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    // 下载进度口径之一：正在下载第几章；与「全书缓存覆盖率」进度条刻意分开
+                    //（下载进度 ≠ 覆盖率，见 DownloadBookGroup KDoc）
+                    group.activeChapter?.let { active ->
+                        Text(
+                            text = stringResource(
+                                R.string.download_manage_downloading_chapter_format,
+                                active.durChapterIndex + 1,
+                                active.durChapterName
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
 
