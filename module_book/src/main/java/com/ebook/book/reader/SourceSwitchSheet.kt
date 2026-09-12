@@ -48,8 +48,8 @@ import com.ebook.db.entity.SearchBookEntity
 /**
  * 阅读中换源的候选弹层（ADR-0016 决策 8，P3-d）。
  *
- * 形态对齐同目录的 [ChapterDownloadSheet]（`ModalBottomSheet` + 半屏限高列表 + `navigationBarsPadding`）：
- * 阅读器五个面板与下载面板已是同一套 chrome，另立一套会让「从菜单里滑出来的东西」有两种脾气。
+ * 形态对齐阅读器既有面板的弹层惯例（`ModalBottomSheet` + 半屏限高列表 + `navigationBarsPadding`）：
+ * 五个面板已是同一套 chrome，另立一套会让「从菜单里滑出来的东西」有两种脾气。
  * **不额外套 MaterialTheme**——阅读页 [ReadBookActivity.PageContent] 已把整片钉在浅色作用域，
  * 本弹层作为它的后代自然解析到同一份 colorScheme（AGENTS.md：全局主题由基类/页面装配点提供）。
  *
@@ -58,7 +58,7 @@ import com.ebook.db.entity.SearchBookEntity
  * 所以不会永远差一格，判据见 `SourceSwitchViewModel.finishRound`）。
  *
  * @param viewModel 候选与换源的 ViewModel（`hiltViewModel()` 在宿主处取得后传入，本组件不自己拿：
- *   与 [ChapterDownloadSheet] 一样保持「纯展示 + 回调」的形态，方便宿主决定用哪个作用域的 VM）
+ *   与下载中心的 [BookChapterSelectPage] 一样保持「纯展示 + 回调」的形态，方便宿主决定用哪个作用域的 VM）
  * @param oldShelf 阅读器当前正在读的条目：书名/作者用作搜索词，`tag` 用于排除所属源
  * @param onDismiss 关闭弹层
  * @param onSwitched 换源成功：把 [SourceSwitchOutcome] 交给宿主，由它把阅读器整体切到新条目。
@@ -144,7 +144,7 @@ fun SourceSwitchSheet(
                 Spacer(modifier = Modifier.height(10.dp))
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            // 候选区高度限半屏（同 ChapterDownloadSheet 的取舍：弹层不该把整页正文挤没，
+            // 候选区高度限半屏（弹层不该把整页正文挤没，
             // 而「滚得动的候选列表」比「一屏看全」更符合换源这个动作）
             val listHeight = with(LocalDensity.current) {
                 LocalWindowInfo.current.containerSize.height.toDp() / 2

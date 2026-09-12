@@ -155,7 +155,12 @@ private fun DownloadCenterScreen(
                     viewModel.refreshSelection()
                     viewModel.loadGroups()
                 }
-                DownloadState.Paused, DownloadState.Finished -> viewModel.loadGroups()
+                DownloadState.Paused, DownloadState.Finished -> {
+                    // 暂停/收尾也刷新二级状态：isDownloading 已在 onDownloadState 置 false，
+                    // activeChapterIndex 收起，二级「下载中」徽章与一级卡片同口径不再误显
+                    viewModel.refreshSelection()
+                    viewModel.loadGroups()
+                }
             }
         }
     }

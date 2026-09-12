@@ -240,7 +240,11 @@ class DownloadManageViewModel @Inject constructor(
             val cached = model.getCachedIndices(step.noteUrl, step.tag, chapters)
             val tasks = model.getTasksByBook(step.noteUrl)
             val queued = tasks.mapTo(mutableSetOf()) { it.durChapterIndex }
-            val active = tasks.firstOrNull { it.durChapterUrl == activeChapterUrl }?.durChapterIndex
+            // 当前下载章只在 Progress 期间断言：暂停/完成时 isDownloading=false，
+            // 即便该章仍在队列里，二级「下载中」徽章也随之收起（与一级卡片同口径）
+            val active = if (isDownloading) {
+                tasks.firstOrNull { it.durChapterUrl == activeChapterUrl }?.durChapterIndex
+            } else null
             val initialSelected = buildInitialSelection(chapters, cached, queued)
             _selection.value = BookChapterSelection(
                 noteUrl = step.noteUrl,
