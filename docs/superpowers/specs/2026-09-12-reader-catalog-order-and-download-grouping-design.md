@@ -1,7 +1,11 @@
 # 阅读器长目录的浏览与选择形态（目录倒序 + 下载面板分组）
 
 - **日期**：2026-09-12
-- **状态**：设计定稿，待实施
+- **状态**：已实施（v1）
+- **修订说明**：交互与形态两处已被 `2026-09-12-download-center-and-catalog-anchor-design.md` 修订——
+  （a）「切模式总是重新定位到当前章」改为「切顺序保持锚点 + 锁定独立开关（瞄准镜）」；
+  （b）下载选章由 ModalBottomSheet 改为并入「下载中心」（DownloadManageActivity 两级结构）。
+  本 v1 的分组/三态/软上限/缓存不作判据等纯逻辑决策仍有效。
 - **范围**：`module_book` 阅读器 chrome 层（`reader` 包 + `ReadBookActivity` + `strings.xml`）。
   无 DB 迁移、无网络/书源改动、无跨模块改动。
 
