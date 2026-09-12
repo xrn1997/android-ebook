@@ -727,6 +727,9 @@ private fun ReaderSlider(
  * （原仅能点遮罩/返回键关闭，抽屉占屏八成时右上角点击不可靠）。
  * 长目录可通过右侧快速滚动条（[ReaderFastScroll]，替代原 RecyclerViewBar）定位。
  *
+ * 倒序开关仅本次会话有效（不落盘）：状态声明在本函数顶层而非 AnimatedVisibility 内，
+ * 故关抽屉不丢、退出阅读器自然回正序。切模式时会重新定位到当前章，章号一律按原始序显示。
+ *
  * 注意：本抽屉为自绘覆盖层（非 ModalBottomSheet，无内置返回处置），
  * 返回键关闭由调用侧 BackHandler 收口。
  *
@@ -741,11 +744,28 @@ fun ChapterListDrawer(
     onChapterClick: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
+    // 倒序开关：**声明在 AnimatedVisibility 之外**——放进去每次关抽屉都会随内容一起被丢弃，
+    // 用户来回开合会被打回正序。放这里则关抽屉不丢、退出阅读器（组合销毁）自然回正序，
+    // 即"仅本次阅读会话有效"（不落盘）。
+    var descending by remember { mutableStateOf(false) }
+    val count = chapters.size
+    // asReversed() 是 O(1) 的视图不拷贝，但必须 remember：每次重组都新建实例会让 LazyColumn
+    // 的 item provider 每帧换身份
+    val displayChapters = remember(chapters, descending) {
+        if (descending) chapters.asReversed() else chapters
+    }
     val listState = rememberLazyListState()
-    // 打开即定位当前章节（对齐原 scrollToPositionWithOffset(durChapter, 0)）
-    LaunchedEffect(visible) {
+    // 打开即定位当前章节；descending 必须在 key 里——切模式当刻不重新定位，用户会被甩到
+    // 与所读章节无关的位置
+    LaunchedEffect(visible, descending) {
         if (visible && durChapter in chapters.indices) {
-            listState.scrollToItem(durChapter)
+            listState.scrollToItem(
+                displayPositionOf(
+                    count = count,
+                    descending = descending,
+                    originalIndex = durChapter
+                )
+            )
         }
     }
 
@@ -817,6 +837,23 @@ fun ChapterListDrawer(
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp)
                         )
                     }
+                    // 顺序切换：显示"当前模式"而不是"点击后的动作"，避免"点了会变成什么"的歧义；
+                    // 复用共享 InfoChip 的可点胶囊形态，与左侧章节数标签同一视觉语言（ADR-0006）
+                    InfoChip(
+                        text = stringResource(
+                            if (descending) R.string.catalog_order_descending
+                            else R.string.catalog_order_ascending
+                        ),
+                        shape = RoundedCornerShape(50),
+                        containerColor = if (descending) MaterialTheme.colorScheme.secondaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (descending) MaterialTheme.colorScheme.onSecondaryContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        textStyle = MaterialTheme.typography.labelSmall,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
+                        onClick = { descending = !descending }
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Outlined.Close,
@@ -836,7 +873,17 @@ fun ChapterListDrawer(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                     ) {
-                        itemsIndexed(chapters, key = { index, _ -> index }) { index, chapter ->
+                        // 不带 key：本列表每行没有需要跨滚动保留的状态，"index 作 key"与"不要 key"
+                        // 的位置身份完全等价，却会让 LazyList 常驻一张 N 项 key→index 表
+                        // （数千章 = 数千个装箱 Integer，且 item provider 换实例时重建）。
+                        itemsIndexed(displayChapters) { position, chapter ->
+                            // 章号、高亮、跳转一律用**原始索引**：倒序后首行仍显示"第 3000 章"，
+                            // 点击跳转语义与正序完全一致
+                            val index = originalIndexAt(
+                                count = count,
+                                descending = descending,
+                                position = position
+                            )
                             ChapterRow(
                                 index = index,
                                 name = chapter.durChapterName,
@@ -863,6 +910,7 @@ fun ChapterListDrawer(
  *
  * 序号列固定宽度，让长短不一的章名左边界对齐，长目录扫读时视线有基准线；
  * 当前章节整行 `secondaryContainer` 底色 + 主色圆点，滚动后仍能一眼定位。
+ * 圆角与底色只建在当前章那一行（其余行不建裁剪层）。
  */
 @Composable
 private fun ChapterRow(
@@ -871,16 +919,25 @@ private fun ChapterRow(
     isCurrent: Boolean,
     onClick: () -> Unit
 ) {
+    // 圆角底与它的裁剪层只给当前章那一行建：非当前行的背景是 Transparent，为它保留 clip
+    // 等于给每个可见行都分配一个渲染层（数千章滚动时的纯浪费）。代价是非当前行的水波纹
+    // 从圆角变直角——那些行本身没有底色，视觉差异可以忽略。
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .padding(vertical = 1.dp)
+        .then(
+            if (isCurrent) {
+                Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+            } else {
+                Modifier
+            }
+        )
+        .clickable(onClick = onClick)
+        .padding(horizontal = 12.dp, vertical = 11.dp)
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 1.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isCurrent) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 11.dp),
+        modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(

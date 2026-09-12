@@ -22,6 +22,8 @@
     <string name="source_label">来源: %s</string>
     <string name="book_intro">简介</string>
     <string name="chapter_count_format">共%1$d章</string>
+    <string name="catalog_order_ascending">正序</string>
+    <string name="catalog_order_descending">倒序</string>
     <string name="page_indicator_format">%1$d/%2$d</string>
     <string name="chapter_number">%d</string>
     <string name="tv_pop_checkaddshelf">是否将《%s》放入书架？</string>
