@@ -93,11 +93,21 @@ internal fun toggleGroup(group: ChapterGroup, selected: Set<Int>): Set<Int> =
 /** 是否超出单次下载软上限（超过仅触发二次确认，不阻止下发）。 */
 internal fun exceedsSelectionCap(size: Int): Boolean = size > MAX_DOWNLOAD_SELECTION
 
-/** 列表显示位置 → 原始章序号（正序时两者相同）。 */
+/**
+ * 列表显示位置 → 原始章序号（正序时两者相同）。
+ *
+ * 与 [displayPositionOf] 签名同形且互为逆运算，调用点务必用具名参数（`position =`），
+ * 传错不报错、只会在倒序时静默给出另一个错值。
+ */
 internal fun originalIndexAt(count: Int, descending: Boolean, position: Int): Int =
     if (descending) count - 1 - position else position
 
-/** 原始章序号 → 列表显示位置（[originalIndexAt] 的逆运算）。 */
+/**
+ * 原始章序号 → 列表显示位置（[originalIndexAt] 的逆运算）。
+ *
+ * 与 [originalIndexAt] 签名同形且互为逆运算，调用点务必用具名参数（`originalIndex =`），
+ * 传错不报错、只会在倒序时静默给出另一个错值。
+ */
 internal fun displayPositionOf(count: Int, descending: Boolean, originalIndex: Int): Int =
     if (descending) count - 1 - originalIndex else originalIndex
 
@@ -107,6 +117,9 @@ internal fun displayPositionOf(count: Int, descending: Boolean, originalIndex: I
  * 排在该组之前的每组各占一行组头，**已展开的组还要再多出它的章行**（一组展开就是 100 行，
  * 不是 1 行）——所以不能简化成"组序号 + 前置展开组数"，那会让滚动目标差出上百行。
  * 面板打开时要把含当前章的组滚到顶部，用的就是这个行号。
+ *
+ * 前提：[groups] 按 [ChapterGroup.index] 升序，且列表中每组之前没有其它列表项
+ * （每组的行数恰为 1 行组头 + 展开时 [ChapterGroup.count] 行章行）。
  */
 internal fun rowIndexOfGroup(
     groups: List<ChapterGroup>,
