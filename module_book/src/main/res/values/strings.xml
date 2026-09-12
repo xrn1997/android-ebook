@@ -56,7 +56,6 @@
     <string name="select_uncached">仅未缓存</string>
     <string name="clear_selection">清除</string>
     <string name="download_skip_queued_format">已跳过 %1$d 章（已在下载队列）</string>
-    <string name="download_center_back">返回下载列表</string>
     <string name="download_center_loading">正在加载…</string>
     <string name="download_center_not_on_shelf">该书不在书架</string>
     <string name="download_center_load_failed">加载失败，请重试</string>
@@ -104,14 +103,9 @@
 
     <!-- 下载管理页（替代原书架下载小弹窗，见 DownloadManageActivity） -->
     <string name="download_manage_title">下载管理</string>
-    <string name="download_manage_total_format">共 %1$d 章待下载</string>
-    <string name="download_manage_status_running">正在下载</string>
-    <string name="download_manage_status_paused">已暂停</string>
-    <string name="download_manage_status_idle">待开始</string>
     <string name="download_manage_no_task">暂无下载任务</string>
     <string name="download_manage_remaining_format">剩余 %1$d 章</string>
     <string name="download_manage_downloading_chapter_format">正在下载 第 %1$d 章 · %2$s</string>
-    <string name="download_group_pick">选择本书章节</string>
     <string name="download_manage_coverage_format">已缓存 %1$d/%2$d 章</string>
     <string name="download_manage_active_tag">下载中</string>
     <string name="download_manage_queued_tag">排队中</string>
