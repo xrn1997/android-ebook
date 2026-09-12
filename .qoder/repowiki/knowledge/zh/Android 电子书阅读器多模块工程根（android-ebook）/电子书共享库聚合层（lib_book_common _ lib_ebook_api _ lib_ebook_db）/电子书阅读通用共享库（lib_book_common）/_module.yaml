@@ -1,0 +1,27 @@
+schema_version: 1
+module_path: shared_libs/lib_book_common
+title: 电子书阅读通用共享库（lib_book_common）
+scope:
+    - lib_book_common/
+source_files: []
+depends_on: []
+related_to:
+    - path: feature_modules/find_module
+      reason: find 模块复用 lib_book_common 的 BaseMvvmActivity、Compose UI 组件及 TheRouter 路由常量（KeyCode）来组织书城、搜索与书库选择页面。
+kk_module_id: bc89b5ef-0a63-46be-be65-94f210cec754
+kk_cards:
+    architecture_design:
+        id: 4e5541d5-b626-4cd0-8da8-13883dffc261
+        title: 电子书阅读通用共享库（lib_book_common）
+    coding_conventions:
+        id: 8f09ebad-105f-48c0-9f6e-4bbcf92d6805
+        title: 电子书阅读通用共享库（lib_book_common）
+    overview:
+        id: a688833a-ea84-4f33-8b42-ad3293b7025a
+        title: 电子书阅读通用共享库（lib_book_common）
+    tech_stack:
+        id: a499c86b-6169-4924-bb6d-e9a288cd801c
+        title: 电子书阅读通用共享库（lib_book_common）
+    unique_setup_and_commands:
+        id: 5258c5ac-cc1b-4366-b285-eef919dccb27
+        title: 电子书阅读通用共享库（lib_book_common）

@@ -1,0 +1,32 @@
+schema_version: 1
+module_path: shared_libs/lib_ebook_api
+title: 网络层（Retrofit/OkHttp/实体与数据源）
+scope:
+    - lib_ebook_api/
+source_files: []
+depends_on: []
+related_to:
+    - path: feature_modules/me_module
+      reason: me 模块的 ModifyRepository 调用 lib_ebook_api 的 user/putProfile、comment/getMyComments 等服务端点以修改个人资料与获取我的评论。
+    - path: feature_modules/book_module
+      reason: book 模块通过 lib_ebook_api 的 CommentDataSource/CommentNetwork 调用服务端 comment 接口完成书架书籍的评论功能。
+    - path: feature_modules/login_module
+      reason: login 模块 LoginViewModel/RegisterViewModel 调用 UserDataSource.login/register/sendCode，token 过期由 CoroutineAdapter.safeApiCall 拦截并触发 SessionEvent.SessionExpired。
+kk_module_id: 21bb0397-f314-41b9-b93c-2d748eb27ca9
+kk_ordinal: 1
+kk_cards:
+    architecture_design:
+        id: 21e9cef7-4959-4103-bd31-58e4aab7eb00
+        title: 网络层（Retrofit/OkHttp/实体与数据源）
+    coding_conventions:
+        id: 9e34e273-9d38-46a2-ab61-8badb149c81a
+        title: 网络层（Retrofit/OkHttp/实体与数据源）
+    overview:
+        id: 5abacb21-937f-42cf-a033-149b2db8a80e
+        title: 网络层（Retrofit/OkHttp/实体与数据源）
+    tech_stack:
+        id: 3b24a956-3215-4c11-918c-93fa20bccace
+        title: 网络层（Retrofit/OkHttp/实体与数据源）
+    unique_setup_and_commands:
+        id: 5316253b-92cb-4d5c-961e-9fdca33fe92a
+        title: 网络层（Retrofit/OkHttp/实体与数据源）

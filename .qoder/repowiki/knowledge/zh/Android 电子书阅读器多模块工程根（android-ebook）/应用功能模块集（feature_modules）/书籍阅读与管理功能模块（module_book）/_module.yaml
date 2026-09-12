@@ -1,0 +1,30 @@
+schema_version: 1
+module_path: feature_modules/book_module
+title: 书籍阅读与管理功能模块（module_book）
+scope:
+    - module_book/
+source_files: []
+depends_on: []
+related_to:
+    - path: shared_libs/lib_book_common
+      reason: book 模块依赖 lib_book_common 提供的 BookParser/BookSourceManager/UserSessionManager、BaseMvvmActivity/BaseViewModel 等通用能力，书架与详情页中的书源解析与会话校验均由该库封装。
+    - path: shared_libs/lib_ebook_db
+      reason: book 模块的 DownloadService/DownloadRepository/ReadBookActivity 直接读写 lib_ebook_db 的 DownloadChapterEntity、ChapterListDao 等表，实现离线章节下载与阅读章节缓存。
+kk_module_id: b15d2b7d-0899-482c-bcc1-47c5ec1690bc
+kk_ordinal: 2
+kk_cards:
+    architecture_design:
+        id: c1fc1799-999c-4b33-9e3f-3f1dd50da1d0
+        title: 书籍阅读与管理功能模块（module_book）
+    coding_conventions:
+        id: e57a53bf-1739-4c14-b60b-c755a4ebbaf6
+        title: 书籍阅读与管理功能模块（module_book）
+    overview:
+        id: ad5c7b87-de45-4ed2-96d8-01c793433d75
+        title: 书籍阅读与管理功能模块（module_book）
+    tech_stack:
+        id: 55592a6a-5241-417a-9546-08a1bc089707
+        title: 书籍阅读与管理功能模块（module_book）
+    unique_setup_and_commands:
+        id: d0a6d036-e871-48fb-8499-1b33be3447c0
+        title: 书籍阅读与管理功能模块（module_book）

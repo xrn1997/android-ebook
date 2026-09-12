@@ -1,0 +1,26 @@
+schema_version: 1
+module_path: feature_modules/main_shell
+title: 应用启动与主页壳模块（module_main）
+scope:
+    - module_main/
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: 52c4c1e2-0923-4a4b-b28b-b36c08b5c39d
+kk_ordinal: 1
+kk_cards:
+    architecture_design:
+        id: 4c006d63-d9b8-40a6-9710-b210e74c703b
+        title: 应用启动与主页壳模块（module_main）
+    coding_conventions:
+        id: b7e0e533-2755-4b46-bae0-a146332e47d6
+        title: 应用启动与主页壳模块（module_main）
+    overview:
+        id: d4df9b70-028b-49bb-aeda-2390355e44ef
+        title: 应用启动与主页壳模块（module_main）
+    tech_stack:
+        id: e1d00034-e092-4388-9efc-7701aa84a758
+        title: 应用启动与主页壳模块（module_main）
+    unique_setup_and_commands:
+        id: 332c6a2f-be14-420e-9d0e-de994802ac1d
+        title: 应用启动与主页壳模块（module_main）

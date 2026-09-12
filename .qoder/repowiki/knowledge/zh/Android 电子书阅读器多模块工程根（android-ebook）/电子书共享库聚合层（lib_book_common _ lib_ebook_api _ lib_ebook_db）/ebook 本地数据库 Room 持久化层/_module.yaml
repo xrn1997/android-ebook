@@ -1,0 +1,28 @@
+schema_version: 1
+module_path: shared_libs/lib_ebook_db
+title: ebook 本地数据库 Room 持久化层
+scope:
+    - lib_ebook_db/
+source_files: []
+depends_on: []
+related_to:
+    - path: feature_modules/find_module
+      reason: find 模块的 SearchHistoryRepository 直接访问 lib_ebook_db 的 SearchHistoryDao/SearchHistoryEntity 持久化搜索历史（search_history 表）。
+kk_module_id: bcd28f17-ea7c-457f-93a7-b8fd8bf19f73
+kk_ordinal: 2
+kk_cards:
+    architecture_design:
+        id: 714566a0-257c-442f-8494-800bb7658aa8
+        title: ebook 本地数据库 Room 持久化层
+    coding_conventions:
+        id: 454edbff-2b3c-4669-80bf-9e8102333eb9
+        title: ebook 本地数据库 Room 持久化层
+    overview:
+        id: fa1e42fe-a3c3-4885-b055-ff51bb8f8339
+        title: ebook 本地数据库 Room 持久化层
+    tech_stack:
+        id: 43eaf4b4-5c25-46be-98fe-4572ebd5d2f3
+        title: ebook 本地数据库 Room 持久化层
+    unique_setup_and_commands:
+        id: 70c1bdd4-af4d-4c19-87c8-e0175b40499a
+        title: ebook 本地数据库 Room 持久化层

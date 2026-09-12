@@ -1,0 +1,26 @@
+schema_version: 1
+module_path: feature_modules/me_module
+title: 个人中心模块（module_me）
+scope:
+    - module_me/
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: 2fe4c18d-281e-45fc-8592-22d570dda0c8
+kk_ordinal: 4
+kk_cards:
+    architecture_design:
+        id: d9293a30-9a85-4e84-99e5-546fb7e86020
+        title: 个人中心模块（module_me）
+    coding_conventions:
+        id: 8f56e731-cac9-4c9f-aa72-b471606d0697
+        title: 个人中心模块（module_me）
+    overview:
+        id: 1f9b2d3e-2099-4c11-816c-7ff8aeea1a09
+        title: 个人中心模块（module_me）
+    tech_stack:
+        id: ed39cfda-f952-4f77-8b47-fe5f3c51d39f
+        title: 个人中心模块（module_me）
+    unique_setup_and_commands:
+        id: 230279b1-e49b-4fc5-b411-263f3d473c71
+        title: 个人中心模块（module_me）

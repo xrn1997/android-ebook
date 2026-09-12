@@ -1,0 +1,26 @@
+schema_version: 1
+module_path: feature_modules/find_module
+title: 书城与搜索功能模块（module_find）
+scope:
+    - module_find/
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: d2af9c8e-8633-4df2-bf60-67edc9541150
+kk_ordinal: 3
+kk_cards:
+    architecture_design:
+        id: 8c5bad2a-3924-4f24-b292-5cfa17545175
+        title: 书城与搜索功能模块（module_find）
+    coding_conventions:
+        id: 329f556d-a3ab-435d-ab78-5f30a4a7ce8b
+        title: 书城与搜索功能模块（module_find）
+    overview:
+        id: d663b47e-bf2e-43ac-b86e-276e95af16cb
+        title: 书城与搜索功能模块（module_find）
+    tech_stack:
+        id: 3e9bd1a0-0a96-44dd-8e10-679561f610ab
+        title: 书城与搜索功能模块（module_find）
+    unique_setup_and_commands:
+        id: ce05e221-7ac4-419c-9980-7920b9c4fcd1
+        title: 书城与搜索功能模块（module_find）

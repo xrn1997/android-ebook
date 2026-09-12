@@ -1,0 +1,175 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: zh-CN
+commit: 488c90c6d331eaf7f7358e3d144ca9d1212c6872
+branch: test
+exported_at: "2026-09-06T00:02:58Z"
+modules:
+    build_logic:
+        dir_name: Gradle Convention Plugins（构建约定插件集）
+        title: Gradle Convention Plugins（构建约定插件集）
+        scope:
+            - build-logic/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    docs:
+        dir_name: 项目设计与决策文档集（ADRs、规划与规格）
+        title: 项目设计与决策文档集（ADRs、规划与规格）
+        scope:
+            - docs/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    feature_modules:
+        dir_name: 应用功能模块集（feature_modules）
+        title: 应用功能模块集（feature_modules）
+        scope:
+            - module_app/
+            - module_main/
+            - module_book/
+            - module_find/
+            - module_me/
+            - module_login/
+        source_files: []
+        children:
+            - feature_modules/app_entry
+            - feature_modules/book_module
+            - feature_modules/find_module
+            - feature_modules/login_module
+            - feature_modules/main_shell
+            - feature_modules/me_module
+        depends_on: []
+        related_to: []
+    feature_modules/app_entry:
+        dir_name: 应用入口模块 (module_app)
+        title: 应用入口模块 (module_app)
+        scope:
+            - module_app/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    feature_modules/book_module:
+        dir_name: 书籍阅读与管理功能模块（module_book）
+        title: 书籍阅读与管理功能模块（module_book）
+        scope:
+            - module_book/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: shared_libs/lib_book_common
+              reason: book 模块依赖 lib_book_common 提供的 BookParser/BookSourceManager/UserSessionManager、BaseMvvmActivity/BaseViewModel 等通用能力，书架与详情页中的书源解析与会话校验均由该库封装。
+            - path: shared_libs/lib_ebook_db
+              reason: book 模块的 DownloadService/DownloadRepository/ReadBookActivity 直接读写 lib_ebook_db 的 DownloadChapterEntity、ChapterListDao 等表，实现离线章节下载与阅读章节缓存。
+    feature_modules/find_module:
+        dir_name: 书城与搜索功能模块（module_find）
+        title: 书城与搜索功能模块（module_find）
+        scope:
+            - module_find/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    feature_modules/login_module:
+        dir_name: 用户认证模块（登录_注册_忘记密码）
+        title: 用户认证模块（登录/注册/忘记密码）
+        scope:
+            - module_login/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    feature_modules/main_shell:
+        dir_name: 应用启动与主页壳模块（module_main）
+        title: 应用启动与主页壳模块（module_main）
+        scope:
+            - module_main/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    feature_modules/me_module:
+        dir_name: 个人中心模块（module_me）
+        title: 个人中心模块（module_me）
+        scope:
+            - module_me/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    root:
+        dir_name: Android 电子书阅读器多模块工程根（android-ebook）
+        title: Android 电子书阅读器多模块工程根（android-ebook）
+        scope:
+            - .gradle/
+            - gradle/
+            - build/
+            - image/
+            - .idea/
+            - AGENTS.md
+            - CONTEXT.md
+            - settings.gradle.kts
+            - build.gradle.kts
+        source_files: []
+        children:
+            - build_logic
+            - docs
+            - feature_modules
+            - shared_libs
+        depends_on: []
+        related_to: []
+    shared_libs:
+        dir_name: 电子书共享库聚合层（lib_book_common _ lib_ebook_api _ lib_ebook_db）
+        title: 电子书共享库聚合层（lib_book_common / lib_ebook_api / lib_ebook_db）
+        scope:
+            - lib_book_common/
+            - lib_ebook_api/
+            - lib_ebook_db/
+        source_files: []
+        children:
+            - shared_libs/lib_book_common
+            - shared_libs/lib_ebook_api
+            - shared_libs/lib_ebook_db
+        depends_on: []
+        related_to: []
+    shared_libs/lib_book_common:
+        dir_name: 电子书阅读通用共享库（lib_book_common）
+        title: 电子书阅读通用共享库（lib_book_common）
+        scope:
+            - lib_book_common/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: feature_modules/find_module
+              reason: find 模块复用 lib_book_common 的 BaseMvvmActivity、Compose UI 组件及 TheRouter 路由常量（KeyCode）来组织书城、搜索与书库选择页面。
+    shared_libs/lib_ebook_api:
+        dir_name: 网络层（Retrofit_OkHttp_实体与数据源）
+        title: 网络层（Retrofit/OkHttp/实体与数据源）
+        scope:
+            - lib_ebook_api/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: feature_modules/me_module
+              reason: me 模块的 ModifyRepository 调用 lib_ebook_api 的 user/putProfile、comment/getMyComments 等服务端点以修改个人资料与获取我的评论。
+            - path: feature_modules/book_module
+              reason: book 模块通过 lib_ebook_api 的 CommentDataSource/CommentNetwork 调用服务端 comment 接口完成书架书籍的评论功能。
+            - path: feature_modules/login_module
+              reason: login 模块 LoginViewModel/RegisterViewModel 调用 UserDataSource.login/register/sendCode，token 过期由 CoroutineAdapter.safeApiCall 拦截并触发 SessionEvent.SessionExpired。
+    shared_libs/lib_ebook_db:
+        dir_name: ebook 本地数据库 Room 持久化层
+        title: ebook 本地数据库 Room 持久化层
+        scope:
+            - lib_ebook_db/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: feature_modules/find_module
+              reason: find 模块的 SearchHistoryRepository 直接访问 lib_ebook_db 的 SearchHistoryDao/SearchHistoryEntity 持久化搜索历史（search_history 表）。

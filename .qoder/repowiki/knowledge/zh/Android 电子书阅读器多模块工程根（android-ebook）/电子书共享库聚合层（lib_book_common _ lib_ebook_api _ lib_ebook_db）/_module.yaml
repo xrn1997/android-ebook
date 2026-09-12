@@ -1,0 +1,28 @@
+schema_version: 1
+module_path: shared_libs
+title: 电子书共享库聚合层（lib_book_common / lib_ebook_api / lib_ebook_db）
+scope:
+    - lib_book_common/
+    - lib_ebook_api/
+    - lib_ebook_db/
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: 3282591d-901a-450a-8238-40e9df695e7a
+kk_ordinal: 1
+kk_cards:
+    architecture_design:
+        id: 4d937efe-328f-4283-aa7d-e5becc6ea996
+        title: 电子书共享库聚合层（lib_book_common / lib_ebook_api / lib_ebook_db）
+    coding_conventions:
+        id: 0d879e04-3f3e-48fb-bb47-beec47eb7b0e
+        title: 电子书共享库聚合层（lib_book_common / lib_ebook_api / lib_ebook_db）
+    overview:
+        id: e4b7495c-4604-48b5-935b-5d2029171a6d
+        title: 电子书共享库聚合层（lib_book_common / lib_ebook_api / lib_ebook_db）
+    tech_stack:
+        id: a0a7c513-80a7-473f-a75e-71dc27cb0319
+        title: 电子书共享库聚合层（lib_book_common / lib_ebook_api / lib_ebook_db）
+    unique_setup_and_commands:
+        id: 0631931e-0781-42d0-a7ac-c6e50328bef9
+        title: 电子书共享库聚合层（lib_book_common / lib_ebook_api / lib_ebook_db）

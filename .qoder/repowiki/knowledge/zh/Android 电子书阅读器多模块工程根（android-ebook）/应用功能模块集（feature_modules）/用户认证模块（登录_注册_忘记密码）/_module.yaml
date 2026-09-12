@@ -1,0 +1,26 @@
+schema_version: 1
+module_path: feature_modules/login_module
+title: 用户认证模块（登录/注册/忘记密码）
+scope:
+    - module_login/
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: fa13130c-1ebc-4539-81c7-a38af05a0691
+kk_ordinal: 5
+kk_cards:
+    architecture_design:
+        id: 7c6e55ea-c73a-4b0d-9d01-08c4699c8e13
+        title: 用户认证模块（登录/注册/忘记密码）
+    coding_conventions:
+        id: 816bd86a-8148-4679-b915-0aef577eeaae
+        title: 用户认证模块（登录/注册/忘记密码）
+    overview:
+        id: 11071877-bc6b-451b-a321-d0083faf4c68
+        title: 用户认证模块（登录/注册/忘记密码）
+    tech_stack:
+        id: 68fc43c6-7ce1-44f6-962f-73157b5afe14
+        title: 用户认证模块（登录/注册/忘记密码）
+    unique_setup_and_commands:
+        id: e174d60e-0b25-469a-b072-7f49492220ba
+        title: 用户认证模块（登录/注册/忘记密码）
