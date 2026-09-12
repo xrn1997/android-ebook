@@ -17,10 +17,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,8 +50,8 @@ import com.ebook.book.service.DownloadService
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.BookCover
 import com.ebook.common.ui.CommonCard
+import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
-import com.ebook.common.ui.InfoChip
 import com.permissionx.guolindev.PermissionX
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
@@ -216,10 +222,12 @@ private fun DownloadCenterScreen(
 }
 
 /**
- * 下载管理页内容。
+ * 一级：按书下载列表 + 右下单主 FAB（播放/暂停互斥）。
  *
- * 参数化传入 [viewModel] 而非在内部 hiltViewModel()：Activity 已通过 by viewModels()
- * 持有，页面必须与其共用同一实例。
+ * - 书行 = [CommonItemCard]（12dp 圆角、listSpacing 行距）：封面 + 书名 + 覆盖率进度条 +
+ *   「剩余 N 章 · 正在下载 第 M 章」进行态 + 尾箭头；整行点击展开该书选章 sheet。
+ * - 「全部取消」为破坏性操作，不放 FAB（M3 单一主动作），做在列表尾部动作项 + 二次确认。
+ * - 全局状态表达：运行/暂停由 FAB 图标互斥；单书进度由行内进行态表达。
  */
 @Composable
 fun DownloadManageScreen(
@@ -229,43 +237,84 @@ fun DownloadManageScreen(
     val groups by viewModel.groups.collectAsState()
     val state by viewModel.downloadState.collectAsState(initial = DownloadState.Finished)
     var showCancelAll by remember { mutableStateOf(false) }
-    var pendingCancelBook by remember { mutableStateOf<DownloadBookGroup?>(null) }
 
-    val totalRemaining = groups.sumOf { it.remaining }
+    val hasTask = groups.isNotEmpty()
     val isRunning = state is DownloadState.Progress
-    val isPaused = state is DownloadState.Paused
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        SummarySection(
-            isRunning = isRunning,
-            isPaused = isPaused,
-            totalRemaining = totalRemaining,
-            hasTask = groups.isNotEmpty(),
-            onResumeAll = { viewModel.sendAction(DownloadService.ACTION_RESUME) },
-            onPauseAll = { viewModel.sendAction(DownloadService.ACTION_PAUSE) },
-            onCancelAll = { showCancelAll = true }
-        )
-
-        if (groups.isEmpty()) {
-            EmptyState(modifier = Modifier.weight(1f))
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (!hasTask) {
+            EmptyState(modifier = Modifier.fillMaxSize())
         } else {
             LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = paddingValuesForList(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = CommonUiTokens.pagePadding)
+                    .padding(bottom = 88.dp), // FAB 悬浮区留白，防最后一行被遮挡
+                contentPadding = PaddingValues(
+                    top = CommonUiTokens.listSpacing,
+                    bottom = CommonUiTokens.sectionSpacing
+                ),
                 verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing)
             ) {
                 items(groups, key = { it.noteUrl }) { group ->
-                    DownloadGroupCard(
+                    DownloadBookRow(
                         group = group,
-                        onClick = { onOpenBook(group) },
-                        onCancelBook = { pendingCancelBook = group }
+                        onClick = { onOpenBook(group) }
                     )
                 }
+                item(key = "cancel_all") {
+                    // 列表尾部破坏性动作：FAB 只管主操作，取消全部放列表上下文 + 二次确认
+                    CommonCard(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showCancelAll = true }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(R.string.download_manage_cancel_all),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 主操作 FAB：图标随下载状态互斥（运行中=暂停，否则=播放/继续）
+        if (hasTask) {
+            FloatingActionButton(
+                onClick = {
+                    viewModel.sendAction(
+                        if (isRunning) DownloadService.ACTION_PAUSE
+                        else DownloadService.ACTION_RESUME
+                    )
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(CommonUiTokens.pagePadding)
+            ) {
+                Icon(
+                    imageVector = if (isRunning) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = stringResource(
+                        if (isRunning) R.string.download_manage_pause_all
+                        else R.string.download_manage_resume_all
+                    )
+                )
             }
         }
     }
 
-    // 取消全部确认
+    // 全部取消确认
     if (showCancelAll) {
         AlertDialog(
             onDismissRequest = { showCancelAll = false },
@@ -288,210 +337,80 @@ fun DownloadManageScreen(
             }
         )
     }
-
-    // 取消本书确认
-    pendingCancelBook?.let { group ->
-        AlertDialog(
-            onDismissRequest = { pendingCancelBook = null },
-            text = { Text(stringResource(R.string.download_manage_cancel_book_confirm, group.bookName)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    pendingCancelBook = null
-                    viewModel.cancelBook(group.noteUrl)
-                }) {
-                    Text(
-                        stringResource(R.string.download_manage_cancel_book),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingCancelBook = null }) {
-                    Text(stringResource(com.ebook.common.R.string.cancel))
-                }
-            }
-        )
-    }
 }
 
 /**
- * 列表内容边距：页面水平边距与上下留白走 [CommonUiTokens]。
- */
-private fun paddingValuesForList(): PaddingValues =
-    PaddingValues(
-        start = CommonUiTokens.pagePadding,
-        end = CommonUiTokens.pagePadding,
-        top = CommonUiTokens.listSpacing,
-        bottom = CommonUiTokens.sectionSpacing
-    )
-
-/**
- * 概览区：全局状态文案 + 队列总数 + 全部开始/暂停/取消。
+ * 单本书的下载行：封面 + 书名 + 覆盖率进度 + 进行态副行 + 尾箭头。
  *
- * 按钮可用态由当前状态推导，避免在"运行中点开始""无任务点取消"这类无效操作。
+ * 取消本书不在行内（在选章 sheet 头部）；本行只负责「点进去选章」。
+ * 进行态文案仅 DownloadState.Progress 期间展示（activeChapter 已随 isDownloading 收起）。
  */
 @Composable
-private fun SummarySection(
-    isRunning: Boolean,
-    isPaused: Boolean,
-    totalRemaining: Int,
-    hasTask: Boolean,
-    onResumeAll: () -> Unit,
-    onPauseAll: () -> Unit,
-    onCancelAll: () -> Unit
-) {
-    val statusText = when {
-        isRunning -> stringResource(R.string.download_manage_status_running)
-        isPaused -> stringResource(R.string.download_manage_status_paused)
-        else -> stringResource(R.string.download_manage_status_idle)
-    }
-
-    Column(modifier = Modifier.padding(CommonUiTokens.pagePadding)) {
-        CommonCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    if (hasTask) {
-                        Text(
-                            text = stringResource(R.string.download_manage_total_format, totalRemaining),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = onResumeAll,
-                        enabled = hasTask && !isRunning
-                    ) {
-                        Text(stringResource(R.string.download_manage_resume_all))
-                    }
-                    OutlinedButton(
-                        onClick = onPauseAll,
-                        enabled = isRunning
-                    ) {
-                        Text(stringResource(R.string.download_manage_pause_all))
-                    }
-                    OutlinedButton(
-                        onClick = onCancelAll,
-                        enabled = hasTask
-                    ) {
-                        Text(
-                            stringResource(R.string.download_manage_cancel_all),
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
-    }
-}
-
-/**
- * 单本书的下载分组卡：封面 + 书名 + 状态标签 + 剩余 + 正在下载章节 + 覆盖率 + 进度条 + 取消本书。
- *
- * 整卡可点（二级选章页入口，[onClick]），「取消本书」TextButton 消费自己的点击、不受影响。
- */
-@Composable
-private fun DownloadGroupCard(
+private fun DownloadBookRow(
     group: DownloadBookGroup,
     onClick: () -> Unit,
-    onCancelBook: () -> Unit
 ) {
     val coverageRatio = remember(group.totalChapters, group.cachedChapters) {
         if (group.totalChapters > 0) group.cachedChapters.toFloat() / group.totalChapters else 0f
     }
 
-    CommonCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .padding(12.dp)
-                .clickable(onClickLabel = stringResource(R.string.download_group_pick), onClick = onClick)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BookCover(
-                    url = group.coverUrl,
-                    modifier = Modifier.size(width = 48.dp, height = 64.dp),
-                    contentDescription = group.bookName
+    CommonItemCard(onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BookCover(
+                url = group.coverUrl,
+                modifier = Modifier.size(width = 48.dp, height = 64.dp),
+                contentDescription = group.bookName
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = group.bookName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = group.bookName,
-                            style = MaterialTheme.typography.bodyLarge,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                        InfoChip(
-                            text = stringResource(
-                                if (group.isActive) R.string.download_manage_active_tag
-                                else R.string.download_manage_queued_tag
-                            ),
-                            containerColor = if (group.isActive) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = if (group.isActive) MaterialTheme.colorScheme.onPrimaryContainer
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
+                LinearProgressIndicator(
+                    progress = { coverageRatio },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(
+                        R.string.download_manage_coverage_format,
+                        group.cachedChapters,
+                        group.totalChapters
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                group.activeChapter?.let { active ->
                     Text(
-                        text = stringResource(R.string.download_manage_remaining_format, group.remaining),
+                        text = stringResource(
+                            R.string.download_manage_downloading_chapter_format,
+                            active.durChapterIndex + 1,
+                            active.durChapterName
+                        ),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    // 下载进度口径之一：正在下载第几章；与「全书缓存覆盖率」进度条刻意分开
-                    //（下载进度 ≠ 覆盖率，见 DownloadBookGroup KDoc）。仅服务 Progress 时展示，
-                    // 暂停/完成不显示（isActive 已随 isDownloading 收起，此分支同样为空）。
-                    group.activeChapter?.let { active ->
-                        Text(
-                            text = stringResource(
-                                R.string.download_manage_downloading_chapter_format,
-                                active.durChapterIndex + 1,
-                                active.durChapterName
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            LinearProgressIndicator(
-                progress = { coverageRatio },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = stringResource(
-                    R.string.download_manage_coverage_format,
-                    group.cachedChapters,
-                    group.totalChapters
-                ),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                TextButton(onClick = onCancelBook) {
-                    Text(
-                        stringResource(R.string.download_manage_cancel_book),
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.download_manage_remaining_format, group.remaining),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
