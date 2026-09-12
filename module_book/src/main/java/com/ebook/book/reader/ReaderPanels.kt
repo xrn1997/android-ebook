@@ -100,6 +100,7 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -814,6 +815,9 @@ fun ChapterListDrawer(
                     .statusBarsPadding()
                     .navigationBarsPadding()
             ) {
+                // 无障碍：胶囊文字是"当前模式"，动作语义由 stateDescription 补上——只念"正序"
+                // 听不出这是个可切换的开关（本仓 Compose 页面不做装机级单测，读屏行为需人工验证）
+                val orderToggleStateDescription = stringResource(R.string.catalog_order_toggle)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -844,6 +848,9 @@ fun ChapterListDrawer(
                             if (descending) R.string.catalog_order_descending
                             else R.string.catalog_order_ascending
                         ),
+                        modifier = Modifier.semantics {
+                            stateDescription = orderToggleStateDescription
+                        },
                         shape = RoundedCornerShape(50),
                         containerColor = if (descending) MaterialTheme.colorScheme.secondaryContainer
                         else MaterialTheme.colorScheme.surfaceVariant,
@@ -873,9 +880,9 @@ fun ChapterListDrawer(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                     ) {
-                        // 不带 key：本列表每行没有需要跨滚动保留的状态，"index 作 key"与"不要 key"
-                        // 的位置身份完全等价，却会让 LazyList 常驻一张 N 项 key→index 表
-                        // （数千章 = 数千个装箱 Integer，且 item provider 换实例时重建）。
+                        // 不带 key：本列表每行没有需要跨滚动保留的状态，而"按 index 作 key"与"缺省 key"
+                        // 在身份上是同一件事（缺省值即 DefaultLazyLayoutKey(index)，逐位唯一），
+                        // 去掉只少一层 keyFactory、行为不变。
                         itemsIndexed(displayChapters) { position, chapter ->
                             // 章号、高亮、跳转一律用**原始索引**：倒序后首行仍显示"第 3000 章"，
                             // 点击跳转语义与正序完全一致
