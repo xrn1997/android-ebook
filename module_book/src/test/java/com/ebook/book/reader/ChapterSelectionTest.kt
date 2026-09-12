@@ -2,6 +2,7 @@ package com.ebook.book.reader
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -124,5 +125,22 @@ class ChapterSelectionTest {
         assertEquals(202, rowIndexOfGroup(groups, setOf(0, 1), 2))
         // 只展开自己、或只展开排在后面的组，都不影响自己的组头行号
         assertEquals(2, rowIndexOfGroup(groups, setOf(2), 2))
+    }
+
+    @Test
+    fun `非默认粒度下组序号仍按序号推导而不是列表下标`() {
+        // 现有用例都走默认粒度 100，index 恰好等于列表下标，掩盖了 `index = start / size`
+        // 这条推导——粒度非整除时两者仍相等，但这条断言把推导本身钉住
+        val groups = chapterGroups(total = 20, size = 7)
+
+        assertEquals(3, groups.size)
+        assertEquals(listOf(0, 1, 2), groups.map { it.index })
+        assertEquals(ChapterGroup(index = 2, first = 14, last = 19), groups.last())
+        assertEquals(6, groups.last().count)
+    }
+
+    @Test
+    fun `分组粒度非正数时拒绝`() {
+        assertThrows(IllegalArgumentException::class.java) { chapterGroups(10, size = 0) }
     }
 }
