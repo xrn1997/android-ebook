@@ -133,7 +133,7 @@ class DownloadService : Service() {
             try {
                 createNotificationChannels()
                 // 必须同步 startForeground：startForegroundService 拉起后 5s 内必须交出前台通知；
-                // 此时任务尚未入库，剩余数传 null（不查库），第一条进度通知紧随其后覆盖文案
+                // 剩余数传 null（不额外查库），第一条进度通知紧随其后覆盖文案
                 startForeground(
                     ONGOING_NOTIFY_ID,
                     buildOngoingNotification(
