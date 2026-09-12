@@ -16,17 +16,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ebook.book.R
@@ -124,21 +118,12 @@ private fun BookChapterSelectContent(
         }
     }
 
-    val groups = remember(chapters.size) { chapterGroups(chapters.size) }
-    // 默认只展开含焦点章（阅读器当前章）的那一组：其余折叠后 3000 章 = 30 行组头。
-    // 焦点章取显式 focusChapter（ADR-0034「打开时默认只展开含当前章的那一组」），
-    // 不能从预勾选反推：当前章及其后 50 章全部已缓存/在排队时预勾选为空集，反推必落空。
-    val focusGroupIndex = if (selection.focusChapter >= 0) {
-        groups.indexOfFirst { selection.focusChapter in it.first..it.last }
-    } else -1
-    var expanded by remember {
-        mutableStateOf(if (focusGroupIndex >= 0) setOf(focusGroupIndex) else emptySet())
-    }
     val listState = rememberLazyListState()
+    // 平铺列表：打开时滚动到焦点章（阅读器当前章）附近；批量勾选由顶部快捷选择
+    // （全选/仅未缓存/清除）承担，长目录不做数值分组折叠（见 LazyColumn 上方注释）。
     LaunchedEffect(Unit) {
-        if (focusGroupIndex >= 0) {
-            listState.scrollToItem(rowIndexOfGroup(groups, expanded, focusGroupIndex))
-        }
+        val focus = selection.focusChapter
+        if (focus in chapters.indices) listState.scrollToItem(focus)
     }
 
     // 确认实际下发数（剔除已排队）与跳过统计
@@ -230,7 +215,9 @@ private fun BookChapterSelectContent(
             )
         }
         Spacer(modifier = Modifier.height(12.dp))
-        // 章节列表：整屏可用，分组后导航面 = 组数
+        // 章节列表：平铺整列（与阅读器目录同构），LazyColumn 虚拟化承载几千章；
+        // 行业常规不对长目录做任意数值分组折叠——批量勾选交给顶部快捷选择，
+        // 打开时滚动到焦点章附近（见 listState 的 LaunchedEffect）
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -238,48 +225,18 @@ private fun BookChapterSelectContent(
                 .weight(1f),
             contentPadding = PaddingValues(vertical = 6.dp)
         ) {
-            // 行结构是与 rowIndexOfGroup 的契约：每组恒占 1 行组头 + 展开时 count 行章行
-            groups.forEach { group ->
-                stickyHeader(key = "g${group.index}", contentType = "group") { _ ->
-                    GroupHeaderRow(
-                        rangeText = stringResource(
-                            R.string.chapter_group_range_format,
-                            group.first + 1,
-                            group.last + 1
-                        ),
-                        cachedText = stringResource(
-                            R.string.chapter_group_cached_format,
-                            (group.first..group.last).count { it in selection.cachedIndices },
-                            group.count
-                        ),
-                        state = groupState(group, selected),
-                        expanded = group.index in expanded,
-                        onToggleGroup = { selected = toggleGroup(group, selected) },
-                        onToggleExpand = {
-                            expanded = if (group.index in expanded) {
-                                expanded - group.index
-                            } else {
-                                expanded + group.index
-                            }
-                        }
-                    )
-                }
-                if (group.index in expanded) {
-                    items(
-                        count = group.count,
-                        key = { offset -> "c${group.first + offset}" },
-                        contentType = { "chapter" }
-                    ) { offset ->
-                        val index = group.first + offset
-                        DownloadChapterRow(
-                            index = index,
-                            name = chapters[index].durChapterName,
-                            isChecked = index in selected,
-                            status = statusList[index],
-                        ) {
-                            selected = if (index in selected) selected - index else selected + index
-                        }
-                    }
+            items(
+                count = chapters.size,
+                key = { it },
+                contentType = { "chapter" }
+            ) { index ->
+                DownloadChapterRow(
+                    index = index,
+                    name = chapters[index].durChapterName,
+                    isChecked = index in selected,
+                    status = statusList[index],
+                ) {
+                    selected = if (index in selected) selected - index else selected + index
                 }
             }
         }
@@ -333,60 +290,6 @@ private fun BookChapterSelectContent(
                 }
             }
         )
-    }
-}
-
-/** 组头行：三态勾选框 + 章范围 + 已缓存计数 + 展开箭头（吸附头需实心底色防串字）。 */
-@Composable
-private fun GroupHeaderRow(
-    rangeText: String,
-    cachedText: String,
-    state: GroupState,
-    expanded: Boolean,
-    onToggleGroup: () -> Unit,
-    onToggleExpand: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .clickable(
-                onClickLabel = stringResource(
-                    if (expanded) R.string.chapter_group_collapse
-                    else R.string.chapter_group_expand
-                ),
-                onClick = onToggleExpand
-            )
-            .padding(horizontal = 4.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TriStateCheckbox(
-            state = when (state) {
-                GroupState.ALL -> ToggleableState.On
-                GroupState.PARTIAL -> ToggleableState.Indeterminate
-                GroupState.NONE -> ToggleableState.Off
-            },
-            onClick = onToggleGroup
-        )
-        Text(
-            text = rangeText,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = cachedText,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Icon(
-            imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.width(8.dp))
     }
 }
 

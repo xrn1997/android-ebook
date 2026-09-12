@@ -1,6 +1,6 @@
 # 下载中心重构实施计划
 
-> **状态说明（2026-09-12 实施期修订，以代码与 ADR-0035 修订说明为准）**：Task 2/3 的「全高 BottomSheet 承载」与 Task 4 的「单主 FAB + 列表尾部取消全部」装机后不符合用户预期，已被撤销回退——二级恢复整屏页（`DownloadCenterStep` 导航 + `bookSheet` 装载结果），一级页不设集中控制按钮、删除「取消全部」。各 Task 正文保留原计划作为历史记录，落地形态见 `docs/adr/0035-download-center.md` 修订说明。
+> **状态说明（2026-09-12 实施期修订，以代码与 ADR-0035/0034 修订说明为准）**：Task 2/3 的「全高 BottomSheet 承载」与 Task 4 的「单主 FAB + 列表尾部取消全部」装机后不符合用户预期，已被撤销回退——二级恢复整屏页（`DownloadCenterStep` 导航 + `bookSheet` 装载结果），一级页不设集中控制按钮、删除「取消全部」；二级选章列表改平铺整列（弃「百章分组折叠」，相关分组纯逻辑与用例移除）。各 Task 正文保留原计划作为历史记录，落地形态见 `docs/adr/0035-download-center.md` 与 `docs/adr/0034-long-catalog-browse-and-select.md` 修订说明。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
