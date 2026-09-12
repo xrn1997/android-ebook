@@ -1,6 +1,6 @@
 # 搜索历史语义收敛：纯展示全量、去子串过滤
 
-搜索页的历史面板统一为「纯展示全部历史」：进入页、插入搜索记录、清除后均刷新**该类型全量**历史，面板不做按关键词子串过滤；清除操作清空该类型全部历史。
+搜索页历史面板原用精确匹配查询，导致空串查询永远返回空结果、输入过滤几乎无效。决定将历史面板统一为「纯展示全部历史」：进入页、插入搜索记录、清除后均刷新**该类型全量**历史，面板不做按关键词子串过滤；清除操作清空该类型全部历史。
 
 ## 动机
 
@@ -15,7 +15,7 @@
 
 ## 下游影响
 
-- `SearchHistoryDao`：新增 `getByType` / `clearByType`；`searchByTypeAndContent` / `deleteByTypeAndContent` 移除 `LIKE` 过滤参数。
+- `SearchHistoryDao`：展示与清除只有 `getByType(type)` / `clearByType(type)`（都只带 `type` 条件），`getAll()` / `clearAll()` 是跨类型的整表入口；精确匹配只保留给 upsert 查重的 `findByTypeAndContent(type, content)`，`insert` 按 `OnConflictStrategy.REPLACE` 写。DAO 里不出现 `LIKE`，也不接受内容过滤参数。
 - `SearchHistoryRepository` / `SearchViewModel`：`querySearchHistory` / `cleanSearchHistory` 不再携带 content 参数，恒取该类型全量。
 - `SearchActivity`：`onQueryChange` 不再触发历史查询；`onClean` 清空全部；清空后保留空面板标题行，清除按钮随列表为空自动隐藏。
 - `SearchHistoryDaoTest`：锁定全量查询、全量清除、精确 upsert 查重与类型隔离。
