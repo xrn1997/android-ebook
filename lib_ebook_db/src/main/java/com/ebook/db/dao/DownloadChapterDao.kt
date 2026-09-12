@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.Flow
  * 任务不能只躲在 Intent 里（见 ADR-0018）。
  *
  * 消费方是 `module_book` 的 DownloadService：逐轮取「队头」抓一章、成功或放弃后出队、
- * 延迟 800ms 再取下一章，章节顺序即目录顺序。入队只来自阅读器下载面板
- * （BookReadViewModel.startDownload → DownloadRepository.addTasks），暂停/继续/取消由下载管理页与通知按钮下达。
+ * 延迟 800ms 再取下一章，章节顺序即目录顺序。入队统一经 DownloadRepository.startDownload，
+ * 暂停/继续/取消由下载管理页与通知按钮下达。
  *
  * 键的设计（见 ADR-0003）：主键是自增 `id`（流水型数据），另有 `dur_chapter_url` **唯一索引**
  * 保证一章只排一个任务，`note_url` 普通索引支撑按书取队头与按书取消。

@@ -1,12 +1,10 @@
 package com.ebook.book.mvvm.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.ebook.book.repository.DownloadRepository
 import com.ebook.common.analyze.local.ChapterContent
 import com.ebook.common.repository.BookRepository
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.ChapterListEntity
-import com.ebook.db.entity.DownloadChapterEntity
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
@@ -15,8 +13,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BookReadViewModel @Inject constructor(
-    private val bookRepository: BookRepository,
-    private val downloadRepository: DownloadRepository
+    private val bookRepository: BookRepository
 ) : BaseViewModel<BookRepository>(bookRepository) {
     var isAdd = false
     var bookShelf: BookShelfEntity? = null
@@ -62,18 +59,6 @@ class BookReadViewModel @Inject constructor(
                 addListener?.addSuccess()
             }
         }
-    }
-
-    /**
-     * 下发一批章节下载：**薄委托**到 [DownloadRepository.startDownload]（先入库再拉前台服务的
-     * 唯一实现已在仓库侧，见其 KDoc）。
-     *
-     * Task 6 把阅读器下载入口切换到「打开下载中心」后本方法连同 `ReadBookActivity.startChapterDownload`
-     * 一并删除，届时此 ViewModel 也不再需要 `downloadRepository`。
-     */
-    fun startDownload(chapters: List<DownloadChapterEntity>) {
-        if (chapters.isEmpty()) return
-        viewModelScope.launch { downloadRepository.startDownload(chapters) }
     }
 
     /** 统一章节正文读取（本地书与网络书同路径） */

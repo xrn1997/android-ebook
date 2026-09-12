@@ -129,7 +129,7 @@ import com.xrn1997.common.util.Logger
  * 由 ReadBookScreen（ReadBookActivity.kt）持有，底栏据其高亮当前打开的入口，
  * 故声明在 reader 包内供 chrome 层共用（不再放在 Activity 文件里，避免反向依赖）。
  */
-internal enum class ReaderPanel { NONE, CHAPTER, LIGHT, FONT, SETTING, DOWNLOAD, SOURCE_SWITCH }
+internal enum class ReaderPanel { NONE, CHAPTER, LIGHT, FONT, SETTING, SOURCE_SWITCH }
 
 /**
  * 阅读器 chrome 层局部设计常量。

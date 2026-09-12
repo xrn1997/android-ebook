@@ -1,6 +1,6 @@
 package com.ebook.book
 
-import android.content.Context
+import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
 import android.text.TextPaint
@@ -39,10 +39,8 @@ import com.ebook.book.manager.BitIntentDataManager
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_OTHER
-import com.ebook.book.mvvm.viewmodel.BookChapterSelection
 import com.ebook.book.mvvm.viewmodel.SourceSwitchViewModel
 import com.ebook.book.reader.AddShelfDialog
-import com.ebook.book.reader.BookChapterSelectPage
 import com.ebook.book.reader.ChapterLayoutCache
 import com.ebook.book.reader.ChapterLayoutKey
 import com.ebook.book.reader.ChapterListDrawer
@@ -68,10 +66,8 @@ import com.ebook.common.event.RouteArgs
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.util.reportFailure
 import com.ebook.db.entity.BookShelfEntity
-import com.ebook.db.entity.DownloadChapterEntity
 import com.ebook.db.event.DBCode
 import com.ebook.source.analyze.BookSourceNotFoundException
-import com.permissionx.guolindev.PermissionX
 import com.therouter.TheRouter
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import com.xrn1997.common.ui.LoadingView
@@ -197,20 +193,6 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
                 ToastUtil.showShort(this@ReadBookActivity, getString(R.string.text_open_failed))
             }
         }
-    }
-
-    /**
-     * 下载入口的通知权限请求（对齐原 readBookMenuMorePop 下载分支）。
-     *
-     * 无论授予与否都回调 [onResult]：通知只是进度的展示渠道，把它当成下载的前置门槛，
-     * 会造成"用户拒绝过一次通知 → 点下载完全没反应"（原实现 `if (allGranted) onGranted()` 的缺陷）；
-     * 前台服务与落库本身不需要该权限，Service 侧发不出通知时自行降级（见 DownloadService）。
-     */
-    fun requestDownloadPermission(onResult: () -> Unit) {
-        PermissionX
-            .init(this)
-            .permissions(PermissionX.permission.POST_NOTIFICATIONS)
-            .request { _: Boolean, _: List<String?>?, _: List<String?>? -> onResult() }
     }
 
     /**
@@ -400,15 +382,6 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
 }
 
 /**
- * 下载面板异步参数快照：缓存事实集 + 预勾选集（通知权限/缓存查询完成后才开面板，
- * 避免面板先弹出后闪烁刷新）。
- */
-private data class DownloadSheetArgs(
-    val cachedIndices: Set<Int>,
-    val initialSelected: Set<Int>
-)
-
-/**
  * 阅读器固定浅色色彩方案：整片豁免系统深色。
  *
  * 对齐原阅读界面菜单/面板始终为浅色（原 ll_menu_top/ll_menu_bottom 固定 #ffffff）；
@@ -487,8 +460,6 @@ private fun ReadBookScreen(
     var pagerStarted by remember { mutableStateOf(false) }
     var importingBook by remember { mutableStateOf(false) } // 外部打开文本的导入遮罩
     var addShelfDialogVisible by remember { mutableStateOf(false) }
-    // 下载面板异步参数（见 DownloadSheetArgs）；面板显隐由 panel 枚举驱动，与其他面板一致
-    var downloadArgs by remember { mutableStateOf<DownloadSheetArgs?>(null) }
     // 正文区测量尺寸（Compose 状态，驱动首屏分页启动）；
     // activity.onBodyMeasured 同步存非状态字段供 loadPage 分行使用。
     var bodyWidth by remember { mutableIntStateOf(0) }
@@ -581,28 +552,24 @@ private fun ReadBookScreen(
         }
     }
 
-    // ---------------- 下载面板（章节多选，缓存感知） ----------------
-    // 统一入口：请通知权限 → 从章文件查缓存事实集 → 预勾选 → 开面板。
-    // 预勾选沿用原默认范围语义（当前章 +50 章）：默认勾范围内未缓存章节（一键下载习惯）；
-    // 想刷新缓存就改勾已缓存章节——任务统一带 forceRefresh（见 startChapterDownload）
-    val openDownloadSheet: () -> Unit = {
+    // ---------------- 下载入口（打开「下载中心」直达该书选章二级页） ----------------
+    // 下载任务须挂在书架行上才能被 DownloadService 拉取，且二级页按 note_url 读章目录，
+    // 故先确保该书在架（原「确认下载时加架」语义提前到入口），成功后再带参打开。
+    val openDownloadCenter = {
         menuVisible = false
-        activity.requestDownloadPermission {
-            val shelf = viewModel.bookShelf
-            val chapterList = shelf?.chapterList
-            if (shelf == null || chapterList.isNullOrEmpty()) return@requestDownloadPermission
-            scope.launch {
-                val cachedIndices = activity.bookRepository.getCachedChapterIndices(
-                    shelf, chapterList
+        viewModel.addToShelf(object : BookReadViewModel.OnAddListener {
+            override fun addSuccess() {
+                val shelf = viewModel.bookShelf ?: return
+                context.startActivity(
+                    Intent(context, DownloadManageActivity::class.java).apply {
+                        putExtra(DownloadManageActivity.EXTRA_NOTE_URL, shelf.noteUrl)
+                        putExtra(DownloadManageActivity.EXTRA_TAG, shelf.tag)
+                        putExtra(DownloadManageActivity.EXTRA_FOCUS_CHAPTER, shelf.durChapter)
+                        putExtra(DownloadManageActivity.EXTRA_OPEN_PICK, true)
+                    }
                 )
-                val endIndex = (shelf.durChapter + 50).coerceAtMost(chapterList.size - 1)
-                val initialSelected = (shelf.durChapter..endIndex).filterTo(mutableSetOf()) { i ->
-                    i !in cachedIndices
-                }
-                downloadArgs = DownloadSheetArgs(cachedIndices, initialSelected)
-                panel = ReaderPanel.DOWNLOAD
             }
-        }
+        })
     }
 
     // ---------------- 布局 ----------------
@@ -657,7 +624,7 @@ private fun ReadBookScreen(
                         activity.finish()
                     }
                 },
-                onDownload = openDownloadSheet,
+                onDownload = openDownloadCenter,
                 onRefresh = {
                     menuVisible = false
                     scope.launch {
@@ -793,32 +760,6 @@ private fun ReadBookScreen(
             onDismiss = { panel = ReaderPanel.NONE },
             onClickTurnChanged = { clickTurnEnabled = it }
         )
-        // 下载（已含刷新缓存能力：任务统一带 forceRefresh，勾中已缓存章节即重抓）
-        ReaderPanel.DOWNLOAD -> downloadArgs?.let { args ->
-            // 过渡接线（Task 6 替换为「打开下载中心」并删除本分支）：为保住编译，按面板传入的缓存
-            // 事实与预勾选构造一个 BookChapterSelection 快照喂给新的整屏二级页。队列信息此处无从同步
-            // 取得，暂置空集——确认仍走 startChapterDownload，其 addTasks 按章 URL 去重，行为等价。
-            bookShelf?.let { shelf ->
-                BookChapterSelectPage(
-                    selection = BookChapterSelection(
-                        noteUrl = shelf.noteUrl,
-                        tag = shelf.tag,
-                        bookName = shelf.bookInfo?.name ?: context.getString(R.string.unknown_book),
-                        coverUrl = shelf.bookInfo?.coverUrl ?: "",
-                        chapters = chapters,
-                        cachedIndices = args.cachedIndices,
-                        queuedIndices = emptySet(),
-                        activeChapterIndex = null,
-                        initialSelected = args.initialSelected,
-                    ),
-                    onConfirm = { selected ->
-                        panel = ReaderPanel.NONE
-                        startChapterDownload(viewModel, context, selected)
-                    },
-                    onBack = { panel = ReaderPanel.NONE }
-                )
-            }
-        }
         // 换源（ADR-0016 决策 8，P3-d）：候选来自跨源聚合搜索，点中即执行仓库那条「先插新、后删旧」事务
         ReaderPanel.SOURCE_SWITCH -> bookShelf?.let { shelf ->
             val switchViewModel: SourceSwitchViewModel = hiltViewModel()
@@ -886,43 +827,4 @@ private fun ReadBookScreen(
             onDismiss = { addShelfDialogVisible = false }
         )
     }
-}
-
-/**
- * 发起章节下载：先加入书架 → 按选中索引构建任务列表 → 交给 ViewModel 入库并拉起服务。
- *
- * 任务统一携带 [DownloadChapterEntity.forceRefresh]：下载入口已合并原"强制刷新缓存"入口，
- * 用户显式勾中已缓存章节时必须真正重抓（先删旧内容）；未缓存章节该标记为空操作，
- * 行为与普通下载一致。任务列表按索引升序，保证下载顺序与目录一致。
- */
-private fun startChapterDownload(
-    viewModel: BookReadViewModel,
-    context: Context,
-    selected: Set<Int>
-) {
-    val shelf = viewModel.bookShelf ?: return
-    val bookInfo = shelf.bookInfo
-    viewModel.addToShelf(object : BookReadViewModel.OnAddListener {
-        override fun addSuccess() {
-            val result = selected.sorted().mapNotNull { i ->
-                viewModel.getChapter(i)?.let { chapter ->
-                    DownloadChapterEntity(
-                        noteUrl = shelf.noteUrl,
-                        durChapterIndex = chapter.durChapterIndex,
-                        durChapterName = chapter.durChapterName,
-                        durChapterUrl = chapter.contentRef,
-                        tag = shelf.tag,
-                        bookName = bookInfo?.name ?: context.getString(R.string.unknown_book),
-                        coverUrl = bookInfo?.coverUrl ?: "",
-                        forceRefresh = true
-                    )
-                }
-            }
-            if (result.isEmpty()) return
-            // 入库与前台服务拉起统一交给 BookReadViewModel.startDownload：任务先落库，再经
-            // DownloadService.start 启动（启动被系统拒绝时任务不丢，见那里的注释）；通知权限在入口
-            // 已顺带申请，但拒绝不影响下载（仅看不到进度通知，见 requestDownloadPermission）
-            viewModel.startDownload(result)
-        }
-    })
 }
