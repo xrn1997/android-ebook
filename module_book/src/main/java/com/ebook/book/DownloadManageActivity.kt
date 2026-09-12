@@ -102,11 +102,9 @@ fun DownloadManageScreen(
     // 状态驱动刷新：每章推进/暂停/完成时任务表已变化，重拉分组对齐
     LaunchedEffect(Unit) {
         viewModel.downloadState.collect { s ->
+            viewModel.onDownloadState(s)
             when (s) {
-                is DownloadState.Progress -> {
-                    viewModel.onProgressChapter(s.chapter)
-                    viewModel.loadGroups()
-                }
+                is DownloadState.Progress -> viewModel.loadGroups()
                 DownloadState.Paused, DownloadState.Finished -> viewModel.loadGroups()
             }
         }
@@ -329,7 +327,8 @@ private fun DownloadGroupCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     // 下载进度口径之一：正在下载第几章；与「全书缓存覆盖率」进度条刻意分开
-                    //（下载进度 ≠ 覆盖率，见 DownloadBookGroup KDoc）
+                    //（下载进度 ≠ 覆盖率，见 DownloadBookGroup KDoc）。仅服务 Progress 时展示，
+                    // 暂停/完成不显示（isActive 已随 isDownloading 收起，此分支同样为空）。
                     group.activeChapter?.let { active ->
                         Text(
                             text = stringResource(

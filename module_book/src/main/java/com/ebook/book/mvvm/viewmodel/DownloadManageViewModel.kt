@@ -42,7 +42,7 @@ data class DownloadBookGroup(
     val totalChapters: Int,
     val cachedChapters: Int,
     val isActive: Boolean = false,
-    /** 当前正在下载的章节（仅活跃书有值；下载进度口径之一，见类 KDoc） */
+    /** 当前正在下载的章节（仅活跃书有值；下载进度口径之一，见类 KDoc；仅服务 Progress 时展示，暂停/完成不显示） */
     val activeChapter: DownloadChapterEntity? = null,
 )
 
@@ -84,6 +84,9 @@ class DownloadManageViewModel @Inject constructor(
     /** 当前正在下载的章节 URL（用于判断哪本书处于活跃态） */
     private var activeChapterUrl: String? = null
 
+    /** 服务当前是否在真正下载（只有 Progress 时才能断言「正在下载第 N 章」，暂停/完成时收起） */
+    private var isDownloading: Boolean = false
+
     /**
      * 加载/刷新按书分组：读队列任务表 + 逐书叠加缓存覆盖率。
      *
@@ -99,7 +102,7 @@ class DownloadManageViewModel @Inject constructor(
                     // 换源会把旧 noteUrl 名下的任务整批删掉（见 BookRepository.commitSwitch），
                     // 不会出现「一本书的组里混着两个源的任务」，故不必回查 book_shelf
                     val coverage = model.getCacheCoverage(noteUrl, first.tag)
-                    val active = tasks.any { it.durChapterUrl == activeChapterUrl }
+                    val active = isDownloading && tasks.any { it.durChapterUrl == activeChapterUrl }
                     DownloadBookGroup(
                         noteUrl = noteUrl,
                         bookName = first.bookName,
@@ -119,14 +122,16 @@ class DownloadManageViewModel @Inject constructor(
     }
 
     /**
-     * 标记当前正在下载的章节（由 Progress 事件驱动），并把"活跃"高亮切到所属书。
-     *
-     * 服务同一时刻只抓一章，故活跃书唯一；只在 URL 变化时改写，避免每章重复重组。
+     * 服务状态事件统一入口：Progress 时记录活跃章并高亮所属书；Paused/Finished 时
+     * 收起「正在下载」断言（队列不出队，章还在表里，仅靠队列判会误报）。
      */
-    fun onProgressChapter(chapter: DownloadChapterEntity) {
-        if (activeChapterUrl != chapter.durChapterUrl) {
-            activeChapterUrl = chapter.durChapterUrl
-            _groups.value = _groups.value.map { it.copy(isActive = it.noteUrl == chapter.noteUrl) }
+    fun onDownloadState(state: DownloadState) {
+        isDownloading = state is DownloadState.Progress
+        if (state is DownloadState.Progress) {
+            if (activeChapterUrl != state.chapter.durChapterUrl) {
+                activeChapterUrl = state.chapter.durChapterUrl
+                _groups.value = _groups.value.map { it.copy(isActive = it.noteUrl == state.chapter.noteUrl) }
+            }
         }
     }
 
