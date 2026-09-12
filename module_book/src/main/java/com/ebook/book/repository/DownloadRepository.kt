@@ -200,13 +200,17 @@ class DownloadRepository @Inject constructor(
      * 批量下发下载任务：**先入库、再拉起前台服务**（顺序即「发起方先入库再拉服务」——
      * 服务启动被拒时任务已落库不丢；[addTasks] 按章 URL 去重，重入幂等）。
      *
+     * 启动 Intent 只作**信号**（[DownloadService.buildStartIntent] 空载）：`download_chapter` 表
+     * 是唯一队列事实源（ADR-0035），章节列表不再随 Intent 走——整本大额下载不再接近 Binder
+     * 事务 1MB 上限（TransactionTooLargeException 风险根除），冷启动/重启/续跑统一由服务读库取篇。
+     *
      * 原 `BookReadViewModel.startDownload` 的实现迁移至此，作为全仓唯一下发入口；
      * 启动被拒（dataSync 配额用尽等）时页内提示，不抛未捕获异常。
      */
     suspend fun startDownload(chapters: List<DownloadChapterEntity>) {
         if (chapters.isEmpty()) return
         addTasks(chapters)
-        if (!DownloadService.start(context, DownloadService.buildStartIntent(context, chapters))) {
+        if (!DownloadService.start(context, DownloadService.buildStartIntent(context))) {
             ToastUtil.showShort(context, context.getString(R.string.download_start_restricted))
         }
     }
