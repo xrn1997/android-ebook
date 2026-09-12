@@ -6,13 +6,20 @@
 export LC_ALL=C.UTF-8
 
 MSG_FILE="$1"
-# 使用 printf 避免 echo 解析 -n, -e 等参数
-MSG=$(head -1 "$MSG_FILE")
+# 剥掉行尾 CR：Windows 编辑器可能把 COMMIT_EDITMSG 存成 CRLF，在 Linux/macOS 的 GNU
+# 工具链上会漏检中文句号（句号不在行尾）并使长度虚增 1（Git Bash 实测不受影响，全平台对齐）
+MSG=$(head -n 1 "$MSG_FILE" | tr -d '\r')
 
-# 1. 允许 Merge Commit
+# 1. 放行 git 自动/临时形态：merge 提交，以及 fixup!/squash!/amend! 临时提交
+#    （--fixup/--squash/--fixup=amend: 的中间产物，随后由 rebase -i --autosquash
+#    合并进目标提交、不入永久历史，故不做格式校验）。
+#    git merge 同样触发本钩子，merge -m 自定义消息不满足 Merge * 前缀，按 MERGE_HEAD 存在放行。
 case "$MSG" in
-    Merge\ *) exit 0 ;;
+    Merge\ *|fixup\!*|squash\!*|amend\!*) exit 0 ;;
 esac
+if [ -e "$(git rev-parse --git-path MERGE_HEAD 2>/dev/null)" ]; then
+    exit 0
+fi
 
 # 2. 定义正则
 TYPE_PATTERN='(feat|fix|build|refactor|docs|test|perf|chore|revert)'
