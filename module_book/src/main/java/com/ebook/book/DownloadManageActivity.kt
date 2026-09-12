@@ -186,7 +186,6 @@ private fun DownloadCenterScreen(
             var pendingCancelBook by remember { mutableStateOf<BookChapterSelection?>(null) }
             BookChapterSelectPage(
                 state = bookSheet ?: BookSelectionState.Loading,
-                onBack = viewModel::backToBooks,
                 onConfirm = { selected ->
                     activity.requestDownloadPermission { viewModel.confirmDownload(selected) }
                 },

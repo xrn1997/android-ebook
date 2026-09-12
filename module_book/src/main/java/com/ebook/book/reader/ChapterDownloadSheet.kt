@@ -17,14 +17,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,12 +53,13 @@ import com.ebook.common.ui.InfoChip
  *
  * 顶层负责四态渲染（加载中/书不在架/失败/就绪）；
  * 内容复用原选章页的章节分组/三态/软上限纯逻辑（ChapterSelection.kt 零改动）。
- * 返回（系统 Back 或页头箭头）经 [onBack] 回调，由宿主在 [`DownloadCenterStep`] 间切换。
+ * 顶部导航由宿主基类 Toolbar（标题 + 返回箭头）承担，本页**不自绘返回按钮**，
+ * 避免与基类 Toolbar 出现双返回入口；系统返回/工具栏箭头均经活动层 BackHandler
+ * 在 [DownloadCenterStep] 间切换。
  */
 @Composable
 fun BookChapterSelectPage(
     state: BookSelectionState,
-    onBack: () -> Unit,
     onConfirm: (Set<Int>) -> Unit,
     onCancelBook: (BookChapterSelection) -> Unit,
 ) {
@@ -70,7 +69,6 @@ fun BookChapterSelectPage(
         is BookSelectionState.Failed -> CenteredHint(stringResource(R.string.download_center_load_failed))
         is BookSelectionState.Ready -> BookChapterSelectContent(
             selection = state.selection,
-            onBack = onBack,
             onCancelBook = { onCancelBook(state.selection) },
             onConfirm = onConfirm,
         )
@@ -101,7 +99,6 @@ private fun CenteredHint(text: String) {
 @Composable
 private fun BookChapterSelectContent(
     selection: BookChapterSelection,
-    onBack: () -> Unit,
     onCancelBook: () -> Unit,
     onConfirm: (Set<Int>) -> Unit,
 ) {
@@ -150,20 +147,14 @@ private fun BookChapterSelectContent(
     val confirmEnabled = downloadCount > 0
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // 页头：返回一级 + 封面 + 书名 + 状态徽章 + 「取消本书下载」（书维度操作归书上下文）
+        // 书头：封面 + 书名 + 状态徽章 + 「取消本书下载」（书维度操作归书上下文）。
+        // 顶部返回由基类 Toolbar 承担，本页不再自绘返回箭头（避免双返回入口）。
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+                .padding(horizontal = CommonUiTokens.pagePadding, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                    contentDescription = stringResource(R.string.download_center_back),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
             BookCover(
                 url = selection.coverUrl,
                 modifier = Modifier.size(width = 40.dp, height = 54.dp),

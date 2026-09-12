@@ -56,7 +56,6 @@
     <string name="select_uncached">仅未缓存</string>
     <string name="clear_selection">清除</string>
     <string name="download_skip_queued_format">已跳过 %1$d 章（已在下载队列）</string>
-    <string name="download_center_back">返回下载列表</string>
     <string name="download_center_loading">正在加载…</string>
     <string name="download_center_not_on_shelf">该书不在书架</string>
     <string name="download_center_load_failed">加载失败，请重试</string>
