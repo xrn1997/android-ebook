@@ -41,6 +41,9 @@ import com.ebook.book.R
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
 import com.ebook.db.entity.ChapterListEntity
+
+// 以下三个可组合函数自 ReaderPanels.kt 原样搬入，行为不变（本文件是冻结基线，
+// 后续改造请让 diff 只体现逻辑变更）
 /**
  * 章节多选下载面板（替代原 DownloadRangeDialog 的起止章号输入框）。
  *
