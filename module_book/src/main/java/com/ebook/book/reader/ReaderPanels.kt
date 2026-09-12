@@ -1036,9 +1036,12 @@ private fun ChapterRow(
  * 视觉：轨道常显（弱化的细线）负责"这里可以拖"的可寻性，滑块仅在操作期间出现；
  * 滑块高度按可视条目占比换算（下限 28dp），千章目录下一格高度比固定 18dp 更能
  * 表达"当前处于全书的哪一段"。
+ *
+ * 可见性 internal：除阅读器目录抽屉外，下载中心二级选章页（ChapterDownloadSheet）
+ * 的长目录复用同一组件——同为"几千章里快速定位"的场景，不应各长一套滚动条。
  */
 @Composable
-private fun ReaderFastScroll(
+internal fun ReaderFastScroll(
     listState: LazyListState,
     itemCount: Int,
     modifier: Modifier = Modifier

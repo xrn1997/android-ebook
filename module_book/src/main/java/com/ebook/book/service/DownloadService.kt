@@ -43,7 +43,9 @@ import kotlin.time.Duration.Companion.milliseconds
  * 对外契约全部是 Intent（无 binder，[onBind] 返回 null）：
  * - 信号启动：[buildStartIntent]（空载；任务经 [DownloadRepository.startDownload] 先入 `download_chapter`
  *   库、本服务读库取篇，携带整份章节列表的旧链路已删——见 buildStartIntent 的 KDoc）
- * - 控制动作：[ACTION_PAUSE] / [ACTION_RESUME] / [ACTION_CANCEL]（通知按钮与下载管理页共用）
+ * - 控制动作：[ACTION_PAUSE] / [ACTION_RESUME] / [ACTION_CANCEL]（通知按钮与下载管理页共用；
+ *   这三条是**全局**动作。按书暂停不经 Intent——它是取篇时的队列策略，落在 `paused_book` 表，
+ *   由 [DownloadRepository.getNextDownloadTask] 遍历时跳过，见 ADR-0036）
  * - 进度回传：[DownloadRepository.downloadState]（Service → UI）+ 常驻通知
  *
  * 为何不用命令总线：原 `DownloadCommand` SharedFlow 通道 replay=0，唯一订阅者就是本服务，
@@ -216,9 +218,23 @@ class DownloadService : Service() {
                     if (nextChapter != null && nextChapter.noteUrl.isNotEmpty()) {
                         downloading(nextChapter)
                     } else {
-                        downloadRepository.clearAllTasks()
                         isDownloading = false
-                        finishDownload()
+                        // 取不到下一章 **≠ 队列跑空**（见 ADR-0036）：取篇跳过暂停书后，表里可能还有
+                        // 两类行——暂停书的任务（必须保留，暂停语义就是留着待续跑）与孤儿行（书已
+                        // 不在架，清掉——承接原「跑空时 clearAll」的清理职责，但不能无脑 clearAll，
+                        // 那会把暂停书的任务整批删掉）。
+                        downloadRepository.deleteTasksOutsideShelf()
+                        if (downloadRepository.countTasks() > 0) {
+                            // 剩余任务全部处于暂停书：转入暂停态并**静默停服**——
+                            // 不发 finishDownload 的「全部下载完成」（暂停书的任务没下完，那是误报）；
+                            // 也不保持前台空转（dataSync 24h/6h 配额白烧），继续由用户从下载管理页
+                            // 或通知触发，RESUME Intent 经 getForegroundService 死了也能拉起。
+                            // 停服路径不赌协程调度：tryEmitState 同步落 replay（与 onTimeout 同写法）
+                            downloadRepository.tryEmitState(DownloadState.Paused)
+                            stopService(Intent(application, DownloadService::class.java))
+                        } else {
+                            finishDownload()
+                        }
                     }
                 } catch (e: Throwable) {
                     Logger.e(TAG, "onError: ", e)
@@ -410,7 +426,13 @@ class DownloadService : Service() {
                 if (nextChapter != null && nextChapter.noteUrl.isNotEmpty()) {
                     downloadRepository.emitState(DownloadState.Paused)
                 } else {
-                    downloadRepository.emitState(DownloadState.Finished)
+                    // 队头取不到 ≠ 完成（见 ADR-0036）：表内可能只剩暂停书的任务（或孤儿行）。
+                    // 按表内计数分流——有任务却停着，对用户是「已暂停」而非「已完成」
+                    if (downloadRepository.countTasks() > 0) {
+                        downloadRepository.emitState(DownloadState.Paused)
+                    } else {
+                        downloadRepository.emitState(DownloadState.Finished)
+                    }
                 }
             } catch (e: Throwable) {
                 Logger.e(TAG, "onError: ", e)

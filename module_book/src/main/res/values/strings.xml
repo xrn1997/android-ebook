@@ -51,11 +51,12 @@
     <string name="select_all">全选</string>
     <string name="select_uncached">仅未缓存</string>
     <string name="clear_selection">清除</string>
-    <string name="download_skip_queued_format">已跳过 %1$d 章（已在下载队列）</string>
+    <string name="download_selected_format">已选 %1$d 章</string>
+    <!-- 二级面板底部提示行：按当前勾选**预演**确认后会跳过几章（未按下就有结论，故用「将」不用「已」） -->
+    <string name="download_skip_queued_format">将跳过 %1$d 章（已在下载队列）</string>
     <string name="download_center_loading">正在加载…</string>
     <string name="download_center_not_on_shelf">该书不在书架</string>
     <string name="download_center_load_failed">加载失败，请重试</string>
-    <string name="download_short_format">下载 %1$d 章</string>
     <string name="download_bulk_confirm_message">本次将一次性下发 %1$d 个下载任务。任务较多，下载耗时较长，期间会持续占用离线下载服务。</string>
     <string name="download_bulk_confirm_continue">继续下载</string>
     <string name="cached_count_format">共 %1$d 章 · 已缓存 %2$d 章</string>
@@ -95,18 +96,35 @@
     <string name="theme_green">护眼</string>
     <string name="theme_dark">夜间</string>
     <string name="reader_close">关闭</string>
-    <string name="download_selected_format">已选 %1$d 章</string>
 
     <!-- 下载管理页（替代原书架下载小弹窗，见 DownloadManageActivity） -->
     <string name="download_manage_title">下载管理</string>
     <string name="download_manage_no_task">暂无下载任务</string>
-    <string name="download_manage_remaining_format">剩余 %1$d 章</string>
+    <!-- 空态引导：下载任务只有阅读页一个发起口，空态顺带教用户从哪里发起 -->
+    <string name="download_manage_empty_hint">从阅读页顶部的下载入口，把章节加入离线缓存</string>
+    <!-- 一级书行元信息：全书覆盖率（长期事实）与本批队列余量（瞬时值）合并一行，两个口径见 DownloadBookGroup -->
+    <string name="download_manage_meta_format">已缓存 %1$d/%2$d 章 · 剩余 %3$d 章</string>
     <string name="download_manage_downloading_chapter_format">正在下载 第 %1$d 章 · %2$s</string>
-    <string name="download_manage_coverage_format">已缓存 %1$d/%2$d 章</string>
     <string name="download_manage_active_tag">下载中</string>
     <string name="download_manage_queued_tag">排队中</string>
     <string name="download_manage_cancel_book">取消本书</string>
     <string name="download_manage_cancel_book_confirm">取消《%1$s》的下载任务？已下载的内容不会被删除。</string>
+    <!-- 书头右侧动作列（上下两枚：取消本书 + 一枚三态主操作）与状态胶囊 -->
+    <string name="download_manage_paused_tag">已暂停</string>
+    <string name="download_manage_pause_book">暂停本书</string>
+    <string name="download_manage_resume_book">继续下载</string>
+    <string name="download_manage_panel_expand">展开操作面板</string>
+    <string name="download_manage_panel_collapse">收起操作面板</string>
+    <string name="download_manage_group_select">勾选</string>
+    <string name="download_manage_download">下载</string>
+    <string name="download_manage_range">范围</string>
+    <!-- 书头预演行（在胶囊下方）：勾了但全在队列时说明「按下载不会新增任务」的原因 -->
+    <string name="download_all_queued_hint">已选章节均在下载队列</string>
+    <!-- 范围选章对话框（起止为 1-based 章号，见 parseChapterRange） -->
+    <string name="download_manage_range_title">选择章节范围</string>
+    <string name="download_manage_range_from">起始章</string>
+    <string name="download_manage_range_to">结束章</string>
+    <string name="download_manage_range_invalid">章号需在 1–%1$d 之间，且起始不大于结束</string>
 
     <!-- 下载通知（文案不得硬编码在 Service 里，见 DownloadService） -->
     <string name="notification_channel_ongoing">下载进行中</string>
