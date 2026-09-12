@@ -1,7 +1,6 @@
 package com.ebook.book
 
 import android.os.Bundle
-import androidx.activity.compose.BackHandler
 import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,11 +35,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ebook.book.mvvm.viewmodel.BookSelectionState
+import com.ebook.book.mvvm.viewmodel.BookChapterSelection
 import com.ebook.book.mvvm.viewmodel.DownloadBookGroup
-import com.ebook.book.mvvm.viewmodel.DownloadCenterStep
 import com.ebook.book.mvvm.viewmodel.DownloadManageViewModel
-import com.ebook.book.reader.BookChapterSelectPage
+import com.ebook.book.reader.BookChapterSelectSheet
 import com.ebook.book.repository.DownloadState
 import com.ebook.book.service.DownloadService
 import com.ebook.common.event.KeyCode
@@ -128,9 +126,10 @@ class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
 }
 
 /**
- * 下载中心两级编排：一级按书任务列表，二级该书选章页。
+ * 下载中心编排：一级按书任务列表，二级以全高 ModalBottomSheet 展示该书选章。
  *
- * 硬件返回：二级 → 一级；一级 → 系统默认（退出页面）。
+ * sheet 的收起（swipe / 系统返回）由 ModalBottomSheet 自处理并经 onDismiss 复位状态，
+ * 不再有页面级 BackHandler；返回键语义与 sheet 原生手势一致。
  * 从阅读器带 extras 进入时直达二级（EXTRA_OPEN_PICK）。
  */
 @Composable
@@ -138,13 +137,9 @@ private fun DownloadCenterScreen(
     activity: DownloadManageActivity,
     viewModel: DownloadManageViewModel,
 ) {
-    val step by viewModel.step.collectAsState()
+    val bookSheet by viewModel.bookSheet.collectAsState()
 
-    BackHandler(enabled = step is DownloadCenterStep.PickBook) {
-        viewModel.backToBooks()
-    }
-
-    // 状态驱动刷新：进度每推进一章，一级分组与（若在二级）该书状态标签同步刷新；
+    // 状态驱动刷新：进度每推进一章，一级分组与（若已展开 sheet）该书状态标签同步刷新；
     // 打开页面时若队列有任务则自动续跑（对齐原弹窗 initWait，见 resumeIfPending）
     LaunchedEffect(Unit) {
         viewModel.loadGroups()
@@ -167,34 +162,52 @@ private fun DownloadCenterScreen(
     }
 
     // 阅读器直达：仅冷启动时 activity.pickParams 非空（旋转重建已被 onCreate 门滤掉，
-    // 此时 ViewModel 的 step 已保留用户在二级/一级的现场，不重放直达）
+    // 此时 ViewModel 的 bookSheet 已保留用户在二级/一级的现场，不重放直达）
     LaunchedEffect(Unit) {
         val params = activity.pickParams ?: return@LaunchedEffect
         viewModel.openBook(params.noteUrl, params.tag, params.focusChapter)
     }
 
-    when (val current = step) {
-        is DownloadCenterStep.Books -> DownloadManageScreen(
-            viewModel = viewModel,
-            onOpenBook = { group -> viewModel.openBook(group.noteUrl, group.tag) }
+    DownloadManageScreen(
+        viewModel = viewModel,
+        onOpenBook = { group -> viewModel.openBook(group.noteUrl, group.tag) }
+    )
+
+    // 二级选章 sheet：bookSheet != null 时展开（Loading/Absent/Failed/Ready 四态），
+    // ModalBottomSheet 自带返回收起语义，不再用 BackHandler 干预。
+    var pendingCancelBook by remember { mutableStateOf<BookChapterSelection?>(null) }
+    bookSheet?.let { sheetState ->
+        BookChapterSelectSheet(
+            state = sheetState,
+            onDismiss = viewModel::closeBookSheet,
+            onConfirm = { selected ->
+                activity.requestDownloadPermission { viewModel.confirmDownload(selected) }
+            },
+            onCancelBook = { selection -> pendingCancelBook = selection },
         )
-        is DownloadCenterStep.PickBook -> {
-            val selection by viewModel.selection.collectAsState()
-            // 三态分开渲染：加载中 / 书不在架 / 装载失败各占一段文案，避免把「书不在架」
-            // 或失败说成「正在加载…」（误导用户一直等）；就绪才进选章页
-            when (val state = selection) {
-                is BookSelectionState.Loading -> CenteredHint(stringResource(R.string.download_center_loading))
-                is BookSelectionState.Absent -> CenteredHint(stringResource(R.string.download_center_not_on_shelf))
-                is BookSelectionState.Failed -> CenteredHint(stringResource(R.string.download_center_load_failed))
-                is BookSelectionState.Ready -> BookChapterSelectPage(
-                    selection = state.selection,
-                    onBack = viewModel::backToBooks,
-                    onConfirm = { selected ->
-                        activity.requestDownloadPermission { viewModel.confirmDownload(selected) }
-                    }
-                )
+    }
+    // 取消本书二次确认：书维度操作归书上下文（sheet 头部触发）
+    pendingCancelBook?.let { ready ->
+        AlertDialog(
+            onDismissRequest = { pendingCancelBook = null },
+            text = { Text(stringResource(R.string.download_manage_cancel_book_confirm, ready.bookName)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingCancelBook = null
+                    viewModel.cancelBook(ready.noteUrl)
+                }) {
+                    Text(
+                        stringResource(R.string.download_manage_cancel_book),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingCancelBook = null }) {
+                    Text(stringResource(com.ebook.common.R.string.cancel))
+                }
             }
-        }
+        )
     }
 }
 
@@ -485,20 +498,6 @@ private fun EmptyState(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Text(
             text = stringResource(R.string.download_manage_no_task),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-/**
- * 二级选章页的居中占位文案（加载中 / 书不在架 / 装载失败共用同一版式）。
- */
-@Composable
-private fun CenteredHint(text: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(
-            text = text,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

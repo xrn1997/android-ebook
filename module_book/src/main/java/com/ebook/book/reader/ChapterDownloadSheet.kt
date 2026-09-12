@@ -2,7 +2,6 @@ package com.ebook.book.reader
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,17 +15,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TriStateCheckbox
@@ -46,11 +46,55 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ebook.book.R
 import com.ebook.book.mvvm.viewmodel.BookChapterSelection
+import com.ebook.book.mvvm.viewmodel.BookSelectionState
+import com.ebook.common.ui.BookCover
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
 
 /**
- * 下载中心二级：某书全章节的「状态 + 选章」整屏页（替代原 ModalBottomSheet 下载面板）。
+ * 下载中心二级：全高 BottomSheet（设计 D3）。
+ *
+ * 壳层负责 [ModalBottomSheet] 与四态渲染（加载中/书不在架/失败/就绪）；
+ * 内容复用原选章页的章节分组/三态/软上限纯逻辑（ChapterSelection.kt 零改动）。
+ * 收起（swipe/Back）经 [onDismiss] 回调，不再有页面级 BackHandler。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BookChapterSelectSheet(
+    state: BookSelectionState,
+    onDismiss: () -> Unit,
+    onConfirm: (Set<Int>) -> Unit,
+    onCancelBook: (BookChapterSelection) -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        when (state) {
+            is BookSelectionState.Loading -> SheetCenteredHint(stringResource(R.string.download_center_loading))
+            is BookSelectionState.Absent -> SheetCenteredHint(stringResource(R.string.download_center_not_on_shelf))
+            is BookSelectionState.Failed -> SheetCenteredHint(stringResource(R.string.download_center_load_failed))
+            is BookSelectionState.Ready -> BookChapterSelectContent(
+                selection = state.selection,
+                onCancelBook = { onCancelBook(state.selection) },
+                onConfirm = onConfirm,
+            )
+        }
+    }
+}
+
+/** sheet 内居中占位文案（加载中/书不在架/失败共用）。 */
+@Composable
+private fun SheetCenteredHint(text: String) {
+    Box(modifier = Modifier.fillMaxSize().heightIn(min = 200.dp), contentAlignment = Alignment.Center) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(24.dp)
+        )
+    }
+}
+
+/**
+ * 下载中心二级：某书全章节的「状态 + 选章」全高 sheet 内容（承载于 [ModalBottomSheet]）。
  *
  * 每章状态来自 [chapterDownloadStatus] 的三方合并（已缓存/待下载/下载中），**只作展示**：
  * 勾选语义保持不变——勾中任何章（含已缓存）都按 forceRefresh 重下。
@@ -58,10 +102,10 @@ import com.ebook.common.ui.InfoChip
  * 按钮上方。分组/三态/软上限等语义沿用 ChapterSelection.kt。
  */
 @Composable
-fun BookChapterSelectPage(
+private fun BookChapterSelectContent(
     selection: BookChapterSelection,
+    onCancelBook: () -> Unit,
     onConfirm: (Set<Int>) -> Unit,
-    onBack: () -> Unit,
 ) {
     var selected by remember { mutableStateOf(selection.initialSelected) }
     // 软上限二次确认：超过 500 章时不直接下发（见 exceedsSelectionCap）
@@ -108,29 +152,76 @@ fun BookChapterSelectPage(
     val confirmEnabled = downloadCount > 0
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // 页头：返回 + 书名 + 已选计数
+        // 书头：封面 + 书名 + 状态徽章 + 「取消本书下载」（书维度操作归书上下文）
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = CommonUiTokens.pagePadding, vertical = 8.dp),
+                .padding(horizontal = CommonUiTokens.pagePadding, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                    contentDescription = stringResource(R.string.download_center_back),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+            BookCover(
+                url = selection.coverUrl,
+                modifier = Modifier.size(width = 40.dp, height = 54.dp),
+                contentDescription = selection.bookName
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = selection.bookName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                selection.activeChapterIndex?.let {
+                    Text(
+                        text = stringResource(R.string.download_manage_active_tag),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            TextButton(onClick = onCancelBook) {
+                Text(
+                    stringResource(R.string.download_manage_cancel_book),
+                    color = MaterialTheme.colorScheme.error
                 )
             }
-            Text(
-                text = selection.bookName,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
+        }
+        // 快捷选择：全选 / 仅未缓存 / 清除 + 已选计数（计数 chip 放行尾）
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = CommonUiTokens.pagePadding),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            InfoChip(
+                text = stringResource(R.string.select_all),
+                shape = RoundedCornerShape(50),
+                textStyle = MaterialTheme.typography.labelLarge,
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.weight(1f),
+                onClick = { selected = chapters.indices.toSet() }
             )
             Spacer(modifier = Modifier.width(8.dp))
+            InfoChip(
+                text = stringResource(R.string.select_uncached),
+                shape = RoundedCornerShape(50),
+                textStyle = MaterialTheme.typography.labelLarge,
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.weight(1f),
+                onClick = { selected = uncachedIndices }
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            InfoChip(
+                text = stringResource(R.string.clear_selection),
+                shape = RoundedCornerShape(50),
+                textStyle = MaterialTheme.typography.labelLarge,
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.weight(1f),
+                onClick = { selected = emptySet() }
+            )
+            Spacer(modifier = Modifier.width(12.dp))
             InfoChip(
                 text = stringResource(R.string.download_selected_format, selected.size),
                 shape = RoundedCornerShape(50),
@@ -141,26 +232,6 @@ fun BookChapterSelectPage(
                 textStyle = MaterialTheme.typography.labelMedium,
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
             )
-        }
-        // 快捷选择：全选 / 仅未缓存 / 清除
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = CommonUiTokens.pagePadding),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            QuickSelectChip(
-                label = stringResource(R.string.select_all),
-                modifier = Modifier.weight(1f),
-            ) { selected = chapters.indices.toSet() }
-            QuickSelectChip(
-                label = stringResource(R.string.select_uncached),
-                modifier = Modifier.weight(1f),
-            ) { selected = uncachedIndices }
-            QuickSelectChip(
-                label = stringResource(R.string.clear_selection),
-                modifier = Modifier.weight(1f),
-            ) { selected = emptySet() }
         }
         Spacer(modifier = Modifier.height(12.dp))
         // 章节列表：整屏可用（替代原半屏 ModalBottomSheet），分组后导航面 = 组数
@@ -320,29 +391,6 @@ private fun GroupHeaderRow(
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(8.dp))
-    }
-}
-
-/** 快捷选择胶囊（同原下载面板）。 */
-@Composable
-private fun QuickSelectChip(
-    label: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
