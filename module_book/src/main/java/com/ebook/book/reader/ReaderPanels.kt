@@ -729,9 +729,9 @@ private fun ReaderSlider(
  * 长目录可通过右侧快速滚动条（[ReaderFastScroll]，替代原 RecyclerViewBar）定位。
  *
  * 倒序开关仅本次会话有效（不落盘）：状态声明在本函数顶层而非 AnimatedVisibility 内，
- * 故关抽屉不丢、退出阅读器自然回正序。锁定态打开抽屉才定位当前章（瞄准镜切换，点开当下
- * 立即滚到当前章）；切顺序保持列表进度百分比不变（不主动滚动，停在镜像位置的另一章）并
- * 关闭自动定位；章号一律按原始序显示。
+ * 故关抽屉不丢、退出阅读器自然回正序。打开行为固定且随顺序分化：正序打开定位当前章、
+ * 倒序打开停在顶部（最新章节）；标题栏瞄准镜是一次性「回到当前章」按钮（无常驻状态）；
+ * 切顺序保持列表进度百分比不变（不主动滚动，停在镜像位置的另一章）；章号一律按原始序显示。
  *
  * 注意：本抽屉为自绘覆盖层（非 ModalBottomSheet，无内置返回处置），
  * 返回键关闭由调用侧 BackHandler 收口。
@@ -751,10 +751,6 @@ fun ChapterListDrawer(
     // 用户来回开合会被打回正序。放这里则关抽屉不丢、退出阅读器（组合销毁）自然回正序，
     // 即"仅本次阅读会话有效"（不落盘）。
     var descending by remember { mutableStateOf(false) }
-    // 打开抽屉时是否自动定位当前章：独立于顺序的第二个维度（瞄准镜切换）。
-    // 默认开（打开即定位当前章）；**点过顺序胶囊即关闭**——切顺序说明要浏览，
-    // 不再把用户拽回当前章（ADR-0034「目录倒序会话内有效」口径的延续）。
-    var lockedToCurrent by remember { mutableStateOf(true) }
     val count = chapters.size
     // asReversed() 是 O(1) 的视图不拷贝，但必须 remember：每次重组都新建实例会让 LazyColumn
     // 的 item provider 每帧换身份
@@ -762,18 +758,15 @@ fun ChapterListDrawer(
         if (descending) chapters.asReversed() else chapters
     }
     val listState = rememberLazyListState()
-    // 打开只由 visible 驱动：锁定态才滚动到当前章（未锁定保持上次列表位置）。
-    // lockedToCurrent 仅读取现值、不进 key；切顺序时的位置保持由 display 列表翻转 + listState
-    // 停在原 index 天然达成（见顺序胶囊 onClick）。
+    // 打开行为固定、随顺序分化（不设用户开关，避免出现"开着的开关被切顺序悄悄关掉"的困惑）：
+    // - 正序打开 → 定位到当前章（看"我在哪"）；
+    // - 倒序打开 → 停在列表顶部（最新章节在顶，倒序的意义就是先看最新）。
+    // 只由 visible 驱动，descending 读取时取现值；切顺序本身不滚动（进度百分比保持，
+    // 见顺序胶囊 onClick），故不要把 descending 放进 key——翻转当刻不做任何重新定位。
     LaunchedEffect(visible) {
-        if (visible && lockedToCurrent && durChapter in chapters.indices) {
-            listState.scrollToItem(
-                displayPositionOf(
-                    count = count,
-                    descending = descending,
-                    originalIndex = durChapter
-                )
-            )
+        if (visible && count > 0) {
+            val target = if (descending) 0 else durChapter
+            if (target in 0 until count) listState.scrollToItem(target)
         }
     }
     val scope = rememberCoroutineScope()
@@ -865,13 +858,12 @@ fun ChapterListDrawer(
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp)
                     )
                     Spacer(modifier = Modifier.weight(1f))
-                    // 定位开关（瞄准镜）：显示当前是否「打开即定位当前章」，点一下锁定、再点取消。
-                    // 与顺序胶囊是两套独立逻辑（顺序管排序、锁定管定位），互不隐含。
-                    // 从「关」变「开」的当下就立即滚到当前章（即时反馈），「开」→「关」保持原位，
-                    // 仅影响之后打开抽屉的行为。
+                    // 「回到当前章」：一次性动作（非开关、无常驻状态，任何顺序下语义一致）——
+                    // 点一下即滚动到当前章在当序中的位置（倒序下即跳到当前章的镜像位）。
+                    // 曾做成常驻锁定开关，结果与顺序互为拆台（切顺序悄悄关锁、倒序下无意义），
+                    // 故降级为按需按钮，见 ADR-0034。
                     IconButton(onClick = {
-                        lockedToCurrent = !lockedToCurrent
-                        if (lockedToCurrent && durChapter in chapters.indices) {
+                        if (durChapter in chapters.indices) {
                             scope.launch {
                                 listState.scrollToItem(
                                     displayPositionOf(
@@ -885,12 +877,8 @@ fun ChapterListDrawer(
                     }) {
                         Icon(
                             imageVector = Icons.Outlined.MyLocation,
-                            contentDescription = stringResource(
-                                if (lockedToCurrent) R.string.catalog_lock_enabled
-                                else R.string.catalog_lock_disabled
-                            ),
-                            tint = if (lockedToCurrent) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
+                            contentDescription = stringResource(R.string.catalog_locate_current),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     // 顺序切换：显示"当前模式"而不是"点击后的动作"，避免"点了会变成什么"的歧义；
@@ -911,16 +899,15 @@ fun ChapterListDrawer(
                         textStyle = MaterialTheme.typography.labelSmall,
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
                         onClick = {
-                            // 切顺序只做两件事：翻转顺序 + 关闭自动定位（切过顺序 = 进入浏览态）。
-                            // **不做任何滚动**——display 列表翻转后 listState 停在原 index，
-                            // 列表进度百分比自然不变（约 10% 处倒序后仍停在约 10% 处，看到的章变成
-                            // 镜像位置的另一章，这正是"保持进度而非保持章节"的语义，见 ADR-0034）。
+                            // 切顺序只翻转顺序：**不做任何滚动**——display 列表翻转后 listState
+                            // 停在原 index，列表进度百分比自然不变（约 10% 处倒序后仍停在约 10%
+                            // 处，看到的章变成镜像位置的另一章，这正是"保持进度而非保持章节"的
+                            // 语义，见 ADR-0034）。
                             // **该保持隐式依赖本列表 item 不带 key**（抽屉每行无跨滚动保留状态，
                             // 见下方 itemsIndexed）：若日后补 animateItem 或按内容加 key，翻转时
                             // LazyLayout 会按内容身份重排、位置按内容而非 index 复原，此语义即失效，
                             // 且没有编译错误或测试能拦住——改 key 政策前先想清楚这里。
                             descending = !descending
-                            lockedToCurrent = false
                         }
                     )
                 }

@@ -25,8 +25,7 @@
     <string name="catalog_order_ascending">正序</string>
     <string name="catalog_order_descending">倒序</string>
     <string name="catalog_order_toggle">切换章节顺序</string>
-    <string name="catalog_lock_enabled">定位当前章（开）</string>
-    <string name="catalog_lock_disabled">定位当前章（关）</string>
+    <string name="catalog_locate_current">回到当前章</string>
     <string name="page_indicator_format">%1$d/%2$d</string>
     <string name="chapter_number">%d</string>
     <string name="tv_pop_checkaddshelf">是否将《%s》放入书架？</string>
