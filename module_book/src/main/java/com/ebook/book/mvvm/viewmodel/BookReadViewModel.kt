@@ -1,17 +1,12 @@
 package com.ebook.book.mvvm.viewmodel
 
-import android.content.Context
 import androidx.lifecycle.viewModelScope
-import com.ebook.book.R
 import com.ebook.book.repository.DownloadRepository
-import com.ebook.book.service.DownloadService
 import com.ebook.common.analyze.local.ChapterContent
 import com.ebook.common.repository.BookRepository
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.ChapterListEntity
 import com.ebook.db.entity.DownloadChapterEntity
-import com.xrn1997.common.util.ToastUtil
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
@@ -20,7 +15,6 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BookReadViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val bookRepository: BookRepository,
     private val downloadRepository: DownloadRepository
 ) : BaseViewModel<BookRepository>(bookRepository) {
@@ -71,22 +65,15 @@ class BookReadViewModel @Inject constructor(
     }
 
     /**
-     * 发起一批章节下载：先入库，再拉起前台服务。
+     * 下发一批章节下载：**薄委托**到 [DownloadRepository.startDownload]（先入库再拉前台服务的
+     * 唯一实现已在仓库侧，见其 KDoc）。
      *
-     * 顺序很关键：前台服务启动在 targetSdk 35+ 可能被系统直接拒绝（dataSync 类型 24 小时内共
-     * 6 小时的配额用尽，或应用已处于后台，见 [DownloadService.start]），而任务原先只躲在 Intent
-     * extra 里，一旦启动被拒这批选择就彻底丢了。先入库后，服务任何一次拉起（页面重试、
-     * 下载管理页、START_STICKY 重启）都能按库中未完成任务续跑；[DownloadRepository.addTasks] 按章节
-     * URL 去重，服务收到同批 Intent 再入一次也是幂等的（见其构造分支）。
+     * Task 6 把阅读器下载入口切换到「打开下载中心」后本方法连同 `ReadBookActivity.startChapterDownload`
+     * 一并删除，届时此 ViewModel 也不再需要 `downloadRepository`。
      */
     fun startDownload(chapters: List<DownloadChapterEntity>) {
         if (chapters.isEmpty()) return
-        viewModelScope.launch {
-            downloadRepository.addTasks(chapters)
-            if (!DownloadService.start(context, DownloadService.buildStartIntent(context, chapters))) {
-                ToastUtil.showShort(context, context.getString(R.string.download_start_restricted))
-            }
-        }
+        viewModelScope.launch { downloadRepository.startDownload(chapters) }
     }
 
     /** 统一章节正文读取（本地书与网络书同路径） */

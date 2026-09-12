@@ -1,14 +1,21 @@
 package com.ebook.book.repository
 
+import android.content.Context
+import com.ebook.book.R
+import com.ebook.book.service.DownloadService
 import com.ebook.db.dao.BookShelfDao
 import com.ebook.db.dao.ChapterListDao
 import com.ebook.db.dao.DownloadChapterDao
 import com.ebook.db.entity.BookShelfEntity
+import com.ebook.db.entity.BookShelfFullInfo
+import com.ebook.db.entity.ChapterListEntity
 import com.ebook.db.entity.DownloadChapterEntity
 import com.ebook.common.analyze.local.BookLocation
 import com.ebook.common.analyze.local.BookFormat
 import com.ebook.common.store.BookStore
 import com.xrn1997.common.mvvm.model.BaseModel
+import com.xrn1997.common.util.ToastUtil
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -34,6 +41,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class DownloadRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val downloadChapterDao: DownloadChapterDao,
     private val bookShelfDao: BookShelfDao,
     private val chapterListDao: ChapterListDao,
@@ -160,6 +168,48 @@ class DownloadRepository @Inject constructor(
             val cached = chapters.count { bookStore.hasChapter(location, it.durChapterIndex) }
             CacheCoverage(total = chapters.size, cached = cached)
         }
+
+    /**
+     * 某书完整书架信息（含书名/封面/章节目录）：下载中心二级数据源。
+     * 不在书架返回 null（阅读器入口会先把书加进书架再进下载中心）。
+     */
+    suspend fun getBookFullInfo(noteUrl: String): BookShelfFullInfo? =
+        withContext(Dispatchers.IO) { bookShelfDao.getBookFullInfoByUrl(noteUrl) }
+
+    /** 某书全部待下载任务（按章序）：供二级标注每章状态。 */
+    suspend fun getTasksByBook(noteUrl: String): List<DownloadChapterEntity> =
+        withContext(Dispatchers.IO) { downloadChapterDao.getByNoteUrl(noteUrl) }
+
+    /**
+     * 某书已缓存章集合（网络书，章文件存在性为事实源）。
+     *
+     * 与 [getCacheCoverage] 同一判定口径：二级视图只看网络书（下载任务与书架下载入口
+     * 都排除本地书），故定位直接用 `NETWORK`，不做本地书分支。
+     */
+    suspend fun getCachedIndices(
+        noteUrl: String,
+        tag: String,
+        chapters: List<ChapterListEntity>,
+    ): Set<Int> = withContext(Dispatchers.IO) {
+        val location = BookLocation(noteUrl, BookFormat.NETWORK, tag)
+        chapters.filter { bookStore.hasChapter(location, it.durChapterIndex) }
+            .mapTo(mutableSetOf()) { it.durChapterIndex }
+    }
+
+    /**
+     * 批量下发下载任务：**先入库、再拉起前台服务**（顺序即「发起方先入库再拉服务」——
+     * 服务启动被拒时任务已落库不丢；[addTasks] 按章 URL 去重，重入幂等）。
+     *
+     * 原 `BookReadViewModel.startDownload` 的实现迁移至此，作为全仓唯一下发入口；
+     * 启动被拒（dataSync 配额用尽等）时页内提示，不抛未捕获异常。
+     */
+    suspend fun startDownload(chapters: List<DownloadChapterEntity>) {
+        if (chapters.isEmpty()) return
+        addTasks(chapters)
+        if (!DownloadService.start(context, DownloadService.buildStartIntent(context, chapters))) {
+            ToastUtil.showShort(context, context.getString(R.string.download_start_restricted))
+        }
+    }
 
     suspend fun emitState(state: DownloadState) {
         _downloadState.emit(state)

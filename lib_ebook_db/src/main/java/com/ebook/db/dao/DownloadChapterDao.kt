@@ -51,6 +51,10 @@ interface DownloadChapterDao {
     @Query("SELECT * FROM download_chapter WHERE note_url = :noteUrl ORDER BY dur_chapter_index DESC LIMIT 1")
     suspend fun getLastByNoteUrl(noteUrl: String): DownloadChapterEntity?
 
+    /** 某本书的全部待下载任务（按章序升序）：下载中心二级据此标注「待下载/下载中」 */
+    @Query("SELECT * FROM download_chapter WHERE note_url = :noteUrl ORDER BY dur_chapter_index ASC")
+    suspend fun getByNoteUrl(noteUrl: String): List<DownloadChapterEntity>
+
     /**
      * 跨书的全局队头（仅按章序号取最小，不区分哪本书）。
      *
