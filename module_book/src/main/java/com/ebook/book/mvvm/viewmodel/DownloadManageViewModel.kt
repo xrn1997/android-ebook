@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -29,7 +30,6 @@ import javax.inject.Inject
  *
  * - [remaining]：队列里这本书还没下完的章数（随任务增删变化）
  * - [totalChapters]/[cachedChapters]：全书章节数与已缓存数，构成"全书缓存覆盖率"进度条
- * - [isActive]：该书是否有章节正在被服务抓取（用于高亮当前书）
  * - [tag]：该书书源归属标记（二级视图取 parser 与缓存定位用，来自组内首条任务）
  * - [activeChapter]：当前正在下载的章节（仅活跃书有值）
  *
@@ -45,7 +45,6 @@ data class DownloadBookGroup(
     val remaining: Int,
     val totalChapters: Int,
     val cachedChapters: Int,
-    val isActive: Boolean = false,
     /** 当前正在下载的章节（仅活跃书有值；下载进度口径之一，见类 KDoc；仅服务 Progress 时展示，暂停/完成不显示） */
     val activeChapter: DownloadChapterEntity? = null,
 )
@@ -172,7 +171,6 @@ class DownloadManageViewModel @Inject constructor(
                         remaining = tasks.size,
                         totalChapters = coverage.total,
                         cachedChapters = coverage.cached,
-                        isActive = active,
                         activeChapter = if (active) {
                             tasks.first { it.durChapterUrl == activeChapterUrl }
                         } else null
@@ -188,11 +186,8 @@ class DownloadManageViewModel @Inject constructor(
      */
     fun onDownloadState(state: DownloadState) {
         isDownloading = state is DownloadState.Progress
-        if (state is DownloadState.Progress) {
-            if (activeChapterUrl != state.chapter.durChapterUrl) {
-                activeChapterUrl = state.chapter.durChapterUrl
-                _groups.value = _groups.value.map { it.copy(isActive = it.noteUrl == state.chapter.noteUrl) }
-            }
+        if (state is DownloadState.Progress && activeChapterUrl != state.chapter.durChapterUrl) {
+            activeChapterUrl = state.chapter.durChapterUrl
         }
     }
 
@@ -255,7 +250,10 @@ class DownloadManageViewModel @Inject constructor(
 
     /** 重新装载当前书的二级数据（下载进行中每章推进后刷新状态标签用）。 */
     fun refreshSelection() {
-        if (_bookSheet.value != null) loadSelection()
+        if (_bookSheet.value != null) {
+            loadJob?.cancel()
+            loadSelection()
+        }
     }
 
     /**
@@ -301,6 +299,10 @@ class DownloadManageViewModel @Inject constructor(
                         focusChapter = pendingFocusChapter,
                     )
                 )
+            } catch (e: CancellationException) {
+                // 协程被取消（closeBookSheet/openBook 取消了 loadJob）：这是正常退出，不是装载失败，
+                // 直接让行，绝不写 Failed 态（否则会复活刚收起的 sheet）
+                throw e
             } catch (e: Exception) {
                 Logger.e(TAG, "loadSelection 失败", e)
                 _bookSheet.value = BookSelectionState.Failed
