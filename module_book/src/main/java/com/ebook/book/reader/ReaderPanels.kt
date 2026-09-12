@@ -844,10 +844,13 @@ fun ChapterListDrawer(
                         )
                     }
                 }
+                // 工具行：信息（章节数）与两个工具（排序 / 回到当前章）左聚成组，右侧让位给列表。
+                // 原先排序胶囊与瞄准镜被 weight spacer 顶到右缘孤悬，长目录里两个灰色控件挤在
+                // 角落不易被发现；左聚后三者同属一条"信息 + 操作"带，扫读时一次就能看全。
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 20.dp, end = 8.dp, bottom = 6.dp),
+                        .padding(start = 20.dp, end = 20.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // 章节总数弱化为胶囊标签，避免与书名争夺视觉重心
@@ -857,30 +860,7 @@ fun ChapterListDrawer(
                         textStyle = MaterialTheme.typography.labelSmall,
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp)
                     )
-                    Spacer(modifier = Modifier.weight(1f))
-                    // 「回到当前章」：一次性动作（非开关、无常驻状态，任何顺序下语义一致）——
-                    // 点一下即滚动到当前章在当序中的位置（倒序下即跳到当前章的镜像位）。
-                    // 曾做成常驻锁定开关，结果与顺序互为拆台（切顺序悄悄关锁、倒序下无意义），
-                    // 故降级为按需按钮，见 ADR-0034。
-                    IconButton(onClick = {
-                        if (durChapter in chapters.indices) {
-                            scope.launch {
-                                listState.scrollToItem(
-                                    displayPositionOf(
-                                        count = count,
-                                        descending = descending,
-                                        originalIndex = durChapter
-                                    )
-                                )
-                            }
-                        }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Outlined.MyLocation,
-                            contentDescription = stringResource(R.string.catalog_locate_current),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                     // 顺序切换：显示"当前模式"而不是"点击后的动作"，避免"点了会变成什么"的歧义；
                     // 复用共享 InfoChip 的可点胶囊形态，与左侧章节数标签同一视觉语言（ADR-0006）
                     InfoChip(
@@ -910,6 +890,31 @@ fun ChapterListDrawer(
                             descending = !descending
                         }
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    // 「回到当前章」：一次性动作（非开关、无常驻状态，任何顺序下语义一致）——
+                    // 点一下即滚动到当前章在当序中的位置（倒序下即跳到当前章的镜像位）。
+                    // 曾做成常驻锁定开关，结果与顺序互为拆台（切顺序悄悄关锁、倒序下无意义），
+                    // 故降级为按需按钮，见 ADR-0034。
+                    IconButton(onClick = {
+                        if (durChapter in chapters.indices) {
+                            scope.launch {
+                                listState.scrollToItem(
+                                    displayPositionOf(
+                                        count = count,
+                                        descending = descending,
+                                        originalIndex = durChapter
+                                    )
+                                )
+                            }
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Outlined.MyLocation,
+                            contentDescription = stringResource(R.string.catalog_locate_current),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
                 }
                 // 列表 + 右侧快速滚动条（覆盖层高度与列表一致）
                 Box(
