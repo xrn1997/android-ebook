@@ -50,8 +50,8 @@ import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
 import com.ebook.db.entity.ChapterListEntity
 
-// 以下三个可组合函数自 ReaderPanels.kt 原样搬入，行为不变（本文件是冻结基线，
-// 后续改造请让 diff 只体现逻辑变更）
+// 本文件由 ReaderPanels.kt 搬迁而来：QuickSelectChip / DownloadChapterRow 仍是原样搬入的
+// 冻结基线，ChapterDownloadSheet 已在此之上改为按百章分组（改造请让 diff 只含逻辑变更）
 /**
  * 章节多选下载面板（替代原 DownloadRangeDialog 的起止章号输入框）。
  *
@@ -86,7 +86,8 @@ fun ChapterDownloadSheet(
     // 分组只随章节数变化（章节列表在面板存活期间不会变）
     val groups = remember(chapters.size) { chapterGroups(chapters.size) }
 
-    // 默认只展开含当前章的那一组：其余折叠后 3000 章 = 30 行，首屏一眼看全范围。
+    // 默认只展开含当前章的那一组：其余折叠后 3000 章 = 30 行组头，翻几屏即可扫完全书范围
+    // （组头行高约 48dp，30 行仍要滚动，但比在三千行里找快得多）。
     // 面板是"关闭即离开组合"的，这份状态每次打开都重建 → 每次进面板都回到当前章那组。
     // 组身份一律用 ChapterGroup.index（不是 groups 的列表下标）：两者数值目前相同但语义不同，
     // 且 expanded 会被 rowIndexOfGroup 当序号比较。
@@ -165,7 +166,7 @@ fun ChapterDownloadSheet(
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             // 章节列表：高度仍限半屏（ModalBottomSheet 不该被内容无限撑开），但导航面已从
-            // 「章节数」降到「组数」——每 100 章一行组头，3000 章的书首屏就能看全范围，
+            // 「章节数」降到「组数」——每 100 章一行组头，3000 章的书扫 30 行就能定位到区间，
             // 这也是本面板始终不需要快速滚动条的原因。
             val listHeight = with(LocalDensity.current) {
                 LocalWindowInfo.current.containerSize.height.toDp() / 2
@@ -261,12 +262,19 @@ private fun GroupHeaderRow(
     onToggleGroup: () -> Unit,
     onToggleExpand: () -> Unit,
 ) {
+    // 不做圆角：这是吸附在列表顶部的表头，圆角会让四角透出下方滚过的章行文字
+    // （透明角不是"设计留白"，是穿帮）。实心底色 + 满宽直角才是吸附头的正确形态。
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(onClick = onToggleExpand)
+            .clickable(
+                onClickLabel = stringResource(
+                    if (expanded) R.string.chapter_group_collapse
+                    else R.string.chapter_group_expand
+                ),
+                onClick = onToggleExpand
+            )
             .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -290,11 +298,11 @@ private fun GroupHeaderRow(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        // 箭头是装饰：整行 clickable 会合并子语义，它的动作已由 onClickLabel 表达，
+        // 再挂 contentDescription 只会把"展开/收起"念两遍
         Icon(
             imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-            contentDescription = stringResource(
-                if (expanded) R.string.chapter_group_collapse else R.string.chapter_group_expand
-            ),
+            contentDescription = null,
             modifier = Modifier.size(20.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
