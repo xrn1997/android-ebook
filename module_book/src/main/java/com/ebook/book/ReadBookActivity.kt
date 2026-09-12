@@ -39,9 +39,10 @@ import com.ebook.book.manager.BitIntentDataManager
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_OTHER
+import com.ebook.book.mvvm.viewmodel.BookChapterSelection
 import com.ebook.book.mvvm.viewmodel.SourceSwitchViewModel
 import com.ebook.book.reader.AddShelfDialog
-import com.ebook.book.reader.ChapterDownloadSheet
+import com.ebook.book.reader.BookChapterSelectPage
 import com.ebook.book.reader.ChapterLayoutCache
 import com.ebook.book.reader.ChapterLayoutKey
 import com.ebook.book.reader.ChapterListDrawer
@@ -794,17 +795,29 @@ private fun ReadBookScreen(
         )
         // 下载（已含刷新缓存能力：任务统一带 forceRefresh，勾中已缓存章节即重抓）
         ReaderPanel.DOWNLOAD -> downloadArgs?.let { args ->
-            ChapterDownloadSheet(
-                chapters = chapters,
-                cachedIndices = args.cachedIndices,
-                initialSelected = args.initialSelected,
-                focusIndex = bookShelf?.durChapter ?: 0,
-                onConfirm = { selected ->
-                    panel = ReaderPanel.NONE
-                    startChapterDownload(viewModel, context, selected)
-                },
-                onDismiss = { panel = ReaderPanel.NONE }
-            )
+            // 过渡接线（Task 6 替换为「打开下载中心」并删除本分支）：为保住编译，按面板传入的缓存
+            // 事实与预勾选构造一个 BookChapterSelection 快照喂给新的整屏二级页。队列信息此处无从同步
+            // 取得，暂置空集——确认仍走 startChapterDownload，其 addTasks 按章 URL 去重，行为等价。
+            bookShelf?.let { shelf ->
+                BookChapterSelectPage(
+                    selection = BookChapterSelection(
+                        noteUrl = shelf.noteUrl,
+                        tag = shelf.tag,
+                        bookName = shelf.bookInfo?.name ?: context.getString(R.string.unknown_book),
+                        coverUrl = shelf.bookInfo?.coverUrl ?: "",
+                        chapters = chapters,
+                        cachedIndices = args.cachedIndices,
+                        queuedIndices = emptySet(),
+                        activeChapterIndex = null,
+                        initialSelected = args.initialSelected,
+                    ),
+                    onConfirm = { selected ->
+                        panel = ReaderPanel.NONE
+                        startChapterDownload(viewModel, context, selected)
+                    },
+                    onBack = { panel = ReaderPanel.NONE }
+                )
+            }
         }
         // 换源（ADR-0016 决策 8，P3-d）：候选来自跨源聚合搜索，点中即执行仓库那条「先插新、后删旧」事务
         ReaderPanel.SOURCE_SWITCH -> bookShelf?.let { shelf ->

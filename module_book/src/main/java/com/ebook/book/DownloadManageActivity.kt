@@ -1,6 +1,7 @@
 package com.ebook.book
 
 import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +37,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ebook.book.mvvm.viewmodel.DownloadBookGroup
+import com.ebook.book.mvvm.viewmodel.DownloadCenterStep
 import com.ebook.book.mvvm.viewmodel.DownloadManageViewModel
+import com.ebook.book.reader.BookChapterSelectPage
 import com.ebook.book.repository.DownloadState
 import com.ebook.book.service.DownloadService
 import com.ebook.common.event.KeyCode
@@ -44,6 +47,7 @@ import com.ebook.common.ui.BookCover
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
+import com.permissionx.guolindev.PermissionX
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import dagger.hilt.android.AndroidEntryPoint
@@ -65,6 +69,13 @@ import dagger.hilt.android.AndroidEntryPoint
 class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
     override val viewModel: DownloadManageViewModel by viewModels()
 
+    companion object {
+        const val EXTRA_NOTE_URL = "extra_note_url"
+        const val EXTRA_TAG = "extra_tag"
+        const val EXTRA_FOCUS_CHAPTER = "extra_focus_chapter"
+        const val EXTRA_OPEN_PICK = "extra_open_pick"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         toolbarTitle.value = getString(R.string.download_manage_title)
@@ -72,8 +83,94 @@ class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
 
     @Composable
     override fun PageContent() {
-        // Task 5 接入 viewModel::openBook
-        DownloadManageScreen(viewModel = viewModel, onOpenBook = { })
+        DownloadCenterScreen(activity = this, viewModel = viewModel)
+    }
+
+    /**
+     * 申请下载进度通知权限（POST_NOTIFICATIONS）。
+     *
+     * 无论授予与否都回调 [onResult]：通知只是进度的展示渠道，前台服务与落库不依赖它；
+     * 把它当成下载前置门槛会造成"拒绝过一次通知 → 点下载完全没反应"。
+     */
+    fun requestDownloadPermission(onResult: () -> Unit) {
+        PermissionX
+            .init(this)
+            .permissions(PermissionX.permission.POST_NOTIFICATIONS)
+            .request { _: Boolean, _: List<String?>?, _: List<String?>? -> onResult() }
+    }
+}
+
+/**
+ * 下载中心两级编排：一级按书任务列表，二级该书选章页。
+ *
+ * 硬件返回：二级 → 一级；一级 → 系统默认（退出页面）。
+ * 从阅读器带 extras 进入时直达二级（EXTRA_OPEN_PICK）。
+ */
+@Composable
+private fun DownloadCenterScreen(
+    activity: DownloadManageActivity,
+    viewModel: DownloadManageViewModel,
+) {
+    val step by viewModel.step.collectAsState()
+
+    BackHandler(enabled = step is DownloadCenterStep.PickBook) {
+        viewModel.backToBooks()
+    }
+
+    // 状态驱动刷新：进度每推进一章，一级分组与（若在二级）该书状态标签同步刷新；
+    // 打开页面时若队列有任务则自动续跑（对齐原弹窗 initWait，见 resumeIfPending）
+    LaunchedEffect(Unit) {
+        viewModel.loadGroups()
+        viewModel.resumeIfPending()
+        viewModel.downloadState.collect { s ->
+            viewModel.onDownloadState(s)
+            when (s) {
+                is DownloadState.Progress -> {
+                    viewModel.refreshSelection()
+                    viewModel.loadGroups()
+                }
+                DownloadState.Paused, DownloadState.Finished -> viewModel.loadGroups()
+            }
+        }
+    }
+
+    // 阅读器直达：首次组合即进入某书二级选章
+    LaunchedEffect(Unit) {
+        val intent = activity.intent
+        if (intent.getBooleanExtra(DownloadManageActivity.EXTRA_OPEN_PICK, false)) {
+            val noteUrl = intent.getStringExtra(DownloadManageActivity.EXTRA_NOTE_URL) ?: return@LaunchedEffect
+            val tag = intent.getStringExtra(DownloadManageActivity.EXTRA_TAG) ?: ""
+            val focus = intent.getIntExtra(DownloadManageActivity.EXTRA_FOCUS_CHAPTER, -1)
+            viewModel.openBook(noteUrl, tag, focus)
+        }
+    }
+
+    when (val current = step) {
+        is DownloadCenterStep.Books -> DownloadManageScreen(
+            viewModel = viewModel,
+            onOpenBook = { group -> viewModel.openBook(group.noteUrl, group.tag) }
+        )
+        is DownloadCenterStep.PickBook -> {
+            val selection by viewModel.selection.collectAsState()
+            val sel = selection
+            if (sel == null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = stringResource(R.string.download_center_loading),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                BookChapterSelectPage(
+                    selection = sel,
+                    onBack = viewModel::backToBooks,
+                    onConfirm = { selected ->
+                        activity.requestDownloadPermission { viewModel.confirmDownload(selected) }
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -92,23 +189,6 @@ fun DownloadManageScreen(
     val state by viewModel.downloadState.collectAsState(initial = DownloadState.Finished)
     var showCancelAll by remember { mutableStateOf(false) }
     var pendingCancelBook by remember { mutableStateOf<DownloadBookGroup?>(null) }
-
-    // 打开页面：拉分组 + 有任务则续跑
-    LaunchedEffect(Unit) {
-        viewModel.loadGroups()
-        viewModel.resumeIfPending()
-    }
-
-    // 状态驱动刷新：每章推进/暂停/完成时任务表已变化，重拉分组对齐
-    LaunchedEffect(Unit) {
-        viewModel.downloadState.collect { s ->
-            viewModel.onDownloadState(s)
-            when (s) {
-                is DownloadState.Progress -> viewModel.loadGroups()
-                DownloadState.Paused, DownloadState.Finished -> viewModel.loadGroups()
-            }
-        }
-    }
 
     val totalRemaining = groups.sumOf { it.remaining }
     val isRunning = state is DownloadState.Progress

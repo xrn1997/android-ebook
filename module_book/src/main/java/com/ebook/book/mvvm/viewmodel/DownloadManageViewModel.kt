@@ -6,6 +6,7 @@ import com.ebook.book.R
 import com.ebook.book.repository.DownloadRepository
 import com.ebook.book.repository.DownloadState
 import com.ebook.book.service.DownloadService
+import com.ebook.db.entity.ChapterListEntity
 import com.ebook.db.entity.DownloadChapterEntity
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import com.xrn1997.common.util.ToastUtil
@@ -46,6 +47,30 @@ data class DownloadBookGroup(
     val activeChapter: DownloadChapterEntity? = null,
 )
 
+/** 下载中心页面级步骤：一级按书列表 / 二级某书选章。 */
+sealed interface DownloadCenterStep {
+    data object Books : DownloadCenterStep
+    data class PickBook(val noteUrl: String, val tag: String) : DownloadCenterStep
+}
+
+/**
+ * 二级视图数据：书信息 + 章目录 + 缓存/队列事实 + 当前下载章 + 预勾选。
+ *
+ * [initialSelected] 只在「从阅读器进入（带了 focusChapter）」时非空：沿用原下载面板
+ * 的「当前章 + 50 章内未缓存且未排队者」一键下载预勾选；从一级进入则为空集。
+ */
+data class BookChapterSelection(
+    val noteUrl: String,
+    val tag: String,
+    val bookName: String,
+    val coverUrl: String,
+    val chapters: List<ChapterListEntity>,
+    val cachedIndices: Set<Int>,
+    val queuedIndices: Set<Int>,
+    val activeChapterIndex: Int?,
+    val initialSelected: Set<Int>,
+)
+
 /**
  * 下载管理页 ViewModel（Model = [DownloadRepository]，遵循本仓库"仓库即 Model"约定）。
  *
@@ -71,6 +96,17 @@ class DownloadManageViewModel @Inject constructor(
     /** 按书聚合的任务列表（剩余章数 + 全书缓存覆盖率），页面据此渲染分组卡片。 */
     private val _groups = MutableStateFlow<List<DownloadBookGroup>>(emptyList())
     val groups: StateFlow<List<DownloadBookGroup>> = _groups.asStateFlow()
+
+    /** 下载中心页当前步骤：一级按书列表 / 二级该书选章。 */
+    private val _step = MutableStateFlow<DownloadCenterStep>(DownloadCenterStep.Books)
+    val step: StateFlow<DownloadCenterStep> = _step.asStateFlow()
+
+    /** 二级当前书的视图数据（加载中为 null；书不在架时也置 null → 页面空态）。 */
+    private val _selection = MutableStateFlow<BookChapterSelection?>(null)
+    val selection: StateFlow<BookChapterSelection?> = _selection.asStateFlow()
+
+    /** 阅读器进入时携带的当前章（>=0 才启用「当前章+50」预勾选与定位；一级入口为 -1）。 */
+    private var pendingFocusChapter: Int = -1
 
     /**
      * 队列剩余数的响应式观察（书架下载图标角标）。
@@ -174,5 +210,96 @@ class DownloadManageViewModel @Inject constructor(
             model.deleteTasksForBook(noteUrl)
             loadGroups()
         }
+    }
+
+    /**
+     * 进入某书二级选章态并装载数据。
+     *
+     * [focusChapter] 为阅读器传入的当前章；书不在架时 _selection 置 null（页面空态）。
+     */
+    fun openBook(noteUrl: String, tag: String, focusChapter: Int = -1) {
+        _step.value = DownloadCenterStep.PickBook(noteUrl, tag)
+        pendingFocusChapter = focusChapter
+        loadSelection()
+    }
+
+    /** 重新装载当前书的二级数据（下载进行中每章推进后刷新状态标签用）。 */
+    fun refreshSelection() {
+        if (_step.value is DownloadCenterStep.PickBook) loadSelection()
+    }
+
+    private fun loadSelection() {
+        val step = _step.value as? DownloadCenterStep.PickBook ?: return
+        viewModelScope.launch {
+            val full = model.getBookFullInfo(step.noteUrl)
+            if (full == null) {
+                _selection.value = null
+                return@launch
+            }
+            val chapters = full.chapters
+            val cached = model.getCachedIndices(step.noteUrl, step.tag, chapters)
+            val tasks = model.getTasksByBook(step.noteUrl)
+            val queued = tasks.mapTo(mutableSetOf()) { it.durChapterIndex }
+            val active = tasks.firstOrNull { it.durChapterUrl == activeChapterUrl }?.durChapterIndex
+            val initialSelected = buildInitialSelection(chapters, cached, queued)
+            _selection.value = BookChapterSelection(
+                noteUrl = step.noteUrl,
+                tag = step.tag,
+                bookName = full.info?.name ?: "",
+                coverUrl = full.info?.coverUrl ?: "",
+                chapters = chapters,
+                cachedIndices = cached,
+                queuedIndices = queued,
+                activeChapterIndex = active,
+                initialSelected = initialSelected,
+            )
+        }
+    }
+
+    /**
+     * 预勾选：「当前章 .. 当前章+50」中未缓存且未排队者（原下载面板一键下载习惯）。
+     * **排除已排队**——排队中的章确认时会跳过，预勾上只会让确认文案多一行"已跳过"。
+     */
+    private fun buildInitialSelection(
+        chapters: List<ChapterListEntity>,
+        cached: Set<Int>,
+        queued: Set<Int>,
+    ): Set<Int> {
+        if (chapters.isEmpty() || pendingFocusChapter < 0) return emptySet()
+        val end = (pendingFocusChapter + 50).coerceAtMost(chapters.size - 1)
+        return (pendingFocusChapter..end).filterTo(mutableSetOf()) { i ->
+            i !in cached && i !in queued
+        }
+    }
+
+    /** 从二级返回一级列表。 */
+    fun backToBooks() {
+        _step.value = DownloadCenterStep.Books
+        _selection.value = null
+    }
+
+    /**
+     * 确认下载：**剔除已在队列中的章**（排队中再勾 = 无意义重下，与队列唯一索引语义重复），
+     * 构建任务（forceRefresh=true）后经 [DownloadRepository.startDownload] 统一下发。
+     * 跳过计数由页面读 selection + selected 计算（见 BookChapterSelectPage）。
+     */
+    fun confirmDownload(selected: Set<Int>) {
+        val selection = _selection.value ?: return
+        val tasks = (selected - selection.queuedIndices).sorted().mapNotNull { i ->
+            selection.chapters.getOrNull(i)?.let { chapter ->
+                DownloadChapterEntity(
+                    noteUrl = selection.noteUrl,
+                    durChapterIndex = chapter.durChapterIndex,
+                    durChapterName = chapter.durChapterName,
+                    durChapterUrl = chapter.contentRef,
+                    tag = selection.tag,
+                    bookName = selection.bookName,
+                    coverUrl = selection.coverUrl,
+                    forceRefresh = true,
+                )
+            }
+        }
+        if (tasks.isEmpty()) return
+        viewModelScope.launch { model.startDownload(tasks) }
     }
 }

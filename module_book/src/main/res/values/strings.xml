@@ -56,7 +56,10 @@
     <string name="select_all">全选</string>
     <string name="select_uncached">仅未缓存</string>
     <string name="clear_selection">清除</string>
-    <string name="download_skip_cached_format">下载 %1$d 章（跳过 %2$d 章已缓存）</string>
+    <string name="download_skip_queued_format">已跳过 %1$d 章（已在下载队列）</string>
+    <string name="download_center_back">返回下载列表</string>
+    <string name="download_center_loading">正在加载…</string>
+    <string name="download_short_format">下载 %1$d 章</string>
     <string name="download_bulk_confirm_message">本次将一次性下发 %1$d 个下载任务。任务较多，下载耗时较长，期间会持续占用离线下载服务。</string>
     <string name="download_bulk_confirm_continue">继续下载</string>
     <string name="cached_count_format">共 %1$d 章 · 已缓存 %2$d 章</string>
