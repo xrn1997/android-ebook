@@ -13,6 +13,7 @@ import com.ebook.db.dao.BookShelfDao
 import com.ebook.db.dao.BookSourceDao
 import com.ebook.db.dao.ChapterListDao
 import com.ebook.db.dao.DownloadChapterDao
+import com.ebook.db.dao.PausedBookDao
 import com.ebook.db.dao.SearchHistoryDao
 import dagger.Module
 import dagger.Provides
@@ -173,6 +174,21 @@ object DatabaseModule {
         }
     }
 
+    /**
+     * v7 → v8：新增按书暂停标记表 `paused_book`（见 ADR-0036）。
+     *
+     * 建表语句与 Room 导出的 createSql 同字（`AppDatabaseSchemaTest` 从生成物侧钉住
+     * 「v8 相对 v7 只多这张表」）。纯新增表，无数据搬运、无顺序依赖；旧行为不变——
+     * 表初始为空，升级后没有任何书处于暂停态。
+     */
+    internal val MIGRATION_7_8 = object : Migration(7, 8) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                "CREATE TABLE IF NOT EXISTS `paused_book` (`note_url` TEXT NOT NULL, PRIMARY KEY(`note_url`))"
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
@@ -187,6 +203,7 @@ object DatabaseModule {
             MIGRATION_4_5,
             MIGRATION_5_6,
             MIGRATION_6_7,
+            MIGRATION_7_8,
         ).setDriver(BundledSQLiteDriver()).build()
     }
 
@@ -218,4 +235,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideBookSourceDao(db: AppDatabase): BookSourceDao = db.bookSourceDao()
+
+    /** 按书暂停标记表访问器：由 `module_book` 的 DownloadRepository 消费（取篇跳过/暂停/继续，见 ADR-0036） */
+    @Provides
+    @Singleton
+    fun providePausedBookDao(db: AppDatabase): PausedBookDao = db.pausedBookDao()
 }

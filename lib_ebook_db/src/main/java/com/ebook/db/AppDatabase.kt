@@ -6,14 +6,16 @@ import com.ebook.db.dao.*
 import com.ebook.db.entity.*
 
 /**
- * ebook 本地数据库（Room 3.0.0，artifact 群组 `androidx.room3`），七张表的装配点。
+ * ebook 本地数据库（Room 3.0.0，artifact 群组 `androidx.room3`），八张表的装配点。
  *
  * 承载的都是「离线可读」所需的数据：书架（book_shelf）、书籍信息（book_info）、
  * 章节目录（chapter_list）、搜索历史（search_history）、下载队列（download_chapter）、
- * 作品分组（book_group）、书源（book_source）。其中 `book_group` 承载作品身份（评论桶键与来源条目的关联），
+ * 作品分组（book_group）、书源（book_source）、按书暂停标记（paused_book，v8 新增）。
+ * 其中 `book_group` 承载作品身份（评论桶键与来源条目的关联），
  * 详见 `BookGroupEntity` KDoc；`book_source` 承载多书源共存时代的书源规则（见 ADR-0016），
  * 业务各表的 `tag` 列即指向它的 `url`——本地书行除外：其 `tag` 是常量 `BookShelfEntity.LOCAL_TAG`
- * （`"loc_book"`），不参与按书源 URL 找解析器，按它查不到行不等于书源被删。
+ * （`"loc_book"`），不参与按书源 URL 找解析器，按它查不到行不等于书源被删；
+ * `paused_book` 是下载队列的按书暂停事实源（见 ADR-0036）。
  *
  * 本类只声明表与 DAO 的对应关系，读写一律经各 DAO 由其上层仓库
  * （`lib_book_common` 的 BookRepository、`module_book` 的 DownloadRepository 等）发起。
@@ -22,7 +24,8 @@ import com.ebook.db.entity.*
  * `chapter_list.has_cache` 列在 v4 迁移中收掉（见 DatabaseModule.MIGRATION_3_4）。
  *
  * 主键策略（见 ADR-0003）：书架/书籍用自然键（`note_url`），章节用 `content_ref`
- * （原名 `dur_chapter_url`，改名以承载本地章文件路径），书源用自然键 `url`（一个站点只一份规则）——
+ * （原名 `dur_chapter_url`，改名以承载本地章文件路径），书源用自然键 `url`（一个站点只一份规则），
+ * 暂停标记用自然键 `note_url`（一本书最多一行标记，REPLACE 即幂等重按）——
  * 同一 URL 天然只存一份、upsert 语义清晰；下载任务与搜索历史是流水型数据，用自增 `id`，
  * 去重责任上移到仓库（如 DownloadRepository.addTasks 按 durChapterUrl 查重）。
  *
@@ -42,9 +45,10 @@ import com.ebook.db.entity.*
         SearchHistoryEntity::class,
         DownloadChapterEntity::class,
         BookGroupEntity::class,
-        BookSourceEntity::class
+        BookSourceEntity::class,
+        PausedBookEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -62,6 +66,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun bookGroupDao(): BookGroupDao
     /** 书源表：书源站点与解析规则清单，`lib_book_common` 的 BookSourceManager 的唯一数据源（见 ADR-0016） */
     abstract fun bookSourceDao(): BookSourceDao
+    /** 按书暂停标记表：行存在即该书下载暂停（v8 新增，见 ADR-0036），取篇遍历跳过命中书 */
+    abstract fun pausedBookDao(): PausedBookDao
 
     companion object {
         /** 数据库文件名；改动等于换库（旧数据不再可见），迁移链只对同名文件生效 */
