@@ -26,6 +26,13 @@ internal const val MAX_DOWNLOAD_SELECTION = 500
  * 的闭区间，与列表显示位置无关——倒序、分组展开都不改变这里的值。
  */
 internal data class ChapterGroup(
+    /**
+     * 组的 0 基序号（稠密、自 0 递增）。
+     *
+     * 目前恒等于本组在 [chapterGroups] 返回列表中的下标，但**身份语义是序号而非下标**：
+     * 任何"组的身份集合"（如展开集合）一律存这个序号，不要存某个可能被过滤过的列表下标——
+     * 两者分离时不会报错也不会闪退，只会静默指向错误的组。
+     */
     val index: Int,
     val first: Int,
     val last: Int,

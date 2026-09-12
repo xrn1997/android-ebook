@@ -6,7 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * [ChapterSelection] 的纯逻辑用例：分组切分、组头三态、整组勾选、下载软上限。
+ * `ChapterSelection.kt` 的纯逻辑用例：分组切分、组头三态、整组勾选、下载软上限。
  *
  * 这些语义算错既不会编译失败也不会闪退——只会静默给出错的内容（错位的组范围、少勾的一百章、
  * 该弹的确认没弹），所以集中在纯 JVM 上锁住（本仓 Compose 页面不做装机级单测，见 AGENTS.md）。
