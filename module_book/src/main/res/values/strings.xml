@@ -56,6 +56,7 @@
     <string name="select_uncached">仅未缓存</string>
     <string name="clear_selection">清除</string>
     <string name="download_skip_queued_format">已跳过 %1$d 章（已在下载队列）</string>
+    <string name="download_center_back">返回下载列表</string>
     <string name="download_center_loading">正在加载…</string>
     <string name="download_center_not_on_shelf">该书不在书架</string>
     <string name="download_center_load_failed">加载失败，请重试</string>
@@ -109,11 +110,7 @@
     <string name="download_manage_coverage_format">已缓存 %1$d/%2$d 章</string>
     <string name="download_manage_active_tag">下载中</string>
     <string name="download_manage_queued_tag">排队中</string>
-    <string name="download_manage_resume_all">全部开始</string>
-    <string name="download_manage_pause_all">全部暂停</string>
-    <string name="download_manage_cancel_all">取消全部</string>
     <string name="download_manage_cancel_book">取消本书</string>
-    <string name="download_manage_cancel_all_confirm">取消全部下载任务？已下载的内容不会被删除。</string>
     <string name="download_manage_cancel_book_confirm">取消《%1$s》的下载任务？已下载的内容不会被删除。</string>
 
     <!-- 下载通知（文案不得硬编码在 Service 里，见 DownloadService） -->

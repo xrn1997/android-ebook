@@ -1,6 +1,7 @@
 package com.ebook.book
 
 import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,11 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -42,14 +39,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ebook.book.mvvm.viewmodel.BookChapterSelection
+import com.ebook.book.mvvm.viewmodel.BookSelectionState
 import com.ebook.book.mvvm.viewmodel.DownloadBookGroup
+import com.ebook.book.mvvm.viewmodel.DownloadCenterStep
 import com.ebook.book.mvvm.viewmodel.DownloadManageViewModel
-import com.ebook.book.reader.BookChapterSelectSheet
+import com.ebook.book.reader.BookChapterSelectPage
 import com.ebook.book.repository.DownloadState
-import com.ebook.book.service.DownloadService
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.BookCover
-import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
 import com.permissionx.guolindev.PermissionX
@@ -132,10 +129,9 @@ class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
 }
 
 /**
- * 下载中心编排：一级按书任务列表，二级以全高 ModalBottomSheet 展示该书选章。
+ * 下载中心两级编排：一级按书任务列表，二级该书选章整屏页。
  *
- * sheet 的收起（swipe / 系统返回）由 ModalBottomSheet 自处理并经 onDismiss 复位状态，
- * 不再有页面级 BackHandler；返回键语义与 sheet 原生手势一致。
+ * 系统返回：二级 → 一级；一级 → 退出（finish）。
  * 从阅读器带 extras 进入时直达二级（EXTRA_OPEN_PICK）。
  */
 @Composable
@@ -143,9 +139,13 @@ private fun DownloadCenterScreen(
     activity: DownloadManageActivity,
     viewModel: DownloadManageViewModel,
 ) {
-    val bookSheet by viewModel.bookSheet.collectAsState()
+    val step by viewModel.step.collectAsState()
 
-    // 状态驱动刷新：进度每推进一章，一级分组与（若已展开 sheet）该书状态标签同步刷新；
+    BackHandler(enabled = step is DownloadCenterStep.PickBook) {
+        viewModel.backToBooks()
+    }
+
+    // 状态驱动刷新：进度每推进一章，一级分组与（若在二级）该书状态标签同步刷新；
     // 打开页面时若队列有任务则自动续跑（对齐原弹窗 initWait，见 resumeIfPending）
     LaunchedEffect(Unit) {
         viewModel.loadGroups()
@@ -168,66 +168,66 @@ private fun DownloadCenterScreen(
     }
 
     // 阅读器直达：仅冷启动时 activity.pickParams 非空（旋转重建已被 onCreate 门滤掉，
-    // 此时 ViewModel 的 bookSheet 已保留用户在二级/一级的现场，不重放直达）
+    // 此时 ViewModel 的 step/bookSheet 已保留用户在二级/一级的现场，不重放直达）
     LaunchedEffect(Unit) {
         val params = activity.pickParams ?: return@LaunchedEffect
         viewModel.openBook(params.noteUrl, params.tag, params.focusChapter)
     }
 
-    DownloadManageScreen(
-        viewModel = viewModel,
-        onOpenBook = { group -> viewModel.openBook(group.noteUrl, group.tag) }
-    )
+    when (val current = step) {
+        is DownloadCenterStep.Books -> DownloadManageScreen(
+            viewModel = viewModel,
+            onOpenBook = { group -> viewModel.openBook(group.noteUrl, group.tag) }
+        )
 
-    // 二级选章 sheet：bookSheet != null 时展开（Loading/Absent/Failed/Ready 四态），
-    // ModalBottomSheet 自带返回收起语义，不再用 BackHandler 干预。
-    var pendingCancelBook by remember { mutableStateOf<BookChapterSelection?>(null) }
-    bookSheet?.let { sheetState ->
-        BookChapterSelectSheet(
-            state = sheetState,
-            onDismiss = {
-                pendingCancelBook = null
-                viewModel.closeBookSheet()
-            },
-            onConfirm = { selected ->
-                activity.requestDownloadPermission { viewModel.confirmDownload(selected) }
-            },
-            onCancelBook = { selection -> pendingCancelBook = selection },
-        )
-    }
-    // 取消本书二次确认：书维度操作归书上下文（sheet 头部触发）
-    pendingCancelBook?.let { ready ->
-        AlertDialog(
-            onDismissRequest = { pendingCancelBook = null },
-            text = { Text(stringResource(R.string.download_manage_cancel_book_confirm, ready.bookName)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    pendingCancelBook = null
-                    viewModel.cancelBook(ready.noteUrl)
-                    viewModel.closeBookSheet()
-                }) {
-                    Text(
-                        stringResource(R.string.download_manage_cancel_book),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingCancelBook = null }) {
-                    Text(stringResource(com.ebook.common.R.string.cancel))
-                }
+        is DownloadCenterStep.PickBook -> {
+            val bookSheet by viewModel.bookSheet.collectAsState()
+            // 取消本书二次确认：书维度操作归书上下文（二级页头触发），确认后回一级
+            var pendingCancelBook by remember { mutableStateOf<BookChapterSelection?>(null) }
+            BookChapterSelectPage(
+                state = bookSheet ?: BookSelectionState.Loading,
+                onBack = viewModel::backToBooks,
+                onConfirm = { selected ->
+                    activity.requestDownloadPermission { viewModel.confirmDownload(selected) }
+                },
+                onCancelBook = { selection -> pendingCancelBook = selection },
+            )
+            pendingCancelBook?.let { ready ->
+                AlertDialog(
+                    onDismissRequest = { pendingCancelBook = null },
+                    text = {
+                        Text(stringResource(R.string.download_manage_cancel_book_confirm, ready.bookName))
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            pendingCancelBook = null
+                            viewModel.cancelBook(ready.noteUrl)
+                            viewModel.backToBooks()
+                        }) {
+                            Text(
+                                stringResource(R.string.download_manage_cancel_book),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingCancelBook = null }) {
+                            Text(stringResource(com.ebook.common.R.string.cancel))
+                        }
+                    }
+                )
             }
-        )
+        }
     }
 }
 
 /**
- * 一级：按书下载列表 + 右下单主 FAB（播放/暂停互斥）。
+ * 一级：按书下载列表。
  *
  * - 书行 = [CommonItemCard]（12dp 圆角、listSpacing 行距）：封面 + 书名 + 覆盖率进度条 +
- *   「剩余 N 章 · 正在下载 第 M 章」进行态 + 尾箭头；整行点击展开该书选章 sheet。
- * - 「全部取消」为破坏性操作，不放 FAB（M3 单一主动作），做在列表尾部动作项 + 二次确认。
- * - 全局状态表达：运行/暂停由 FAB 图标互斥；单书进度由行内进行态表达。
+ *   「剩余 N 章 · 正在下载 第 M 章」进行态 + 尾箭头；整行点击进入该书选章二级页。
+ * - 本页不放集中控制按钮（播放/暂停/取消）：全局状态由行内进行态表达，操作经通知或
+ *   二级页上下文承接（设计修订：去掉 FAB 与「取消全部」，保持「只展示 + 导航」单一职责）。
  */
 @Composable
 fun DownloadManageScreen(
@@ -235,114 +235,34 @@ fun DownloadManageScreen(
     onOpenBook: (DownloadBookGroup) -> Unit
 ) {
     val groups by viewModel.groups.collectAsState()
-    val state by viewModel.downloadState.collectAsState(initial = DownloadState.Finished)
-    var showCancelAll by remember { mutableStateOf(false) }
 
-    val hasTask = groups.isNotEmpty()
-    val isRunning = state is DownloadState.Progress
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (!hasTask) {
-            EmptyState(modifier = Modifier.fillMaxSize())
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = CommonUiTokens.pagePadding)
-                    .padding(bottom = 88.dp), // FAB 悬浮区留白，防最后一行被遮挡
-                contentPadding = PaddingValues(
-                    top = CommonUiTokens.listSpacing,
-                    bottom = CommonUiTokens.sectionSpacing
-                ),
-                verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing)
-            ) {
-                items(groups, key = { it.noteUrl }) { group ->
-                    DownloadBookRow(
-                        group = group,
-                        onClick = { onOpenBook(group) }
-                    )
-                }
-                item(key = "cancel_all") {
-                    // 列表尾部破坏性动作：FAB 只管主操作，取消全部放列表上下文 + 二次确认
-                    CommonCard(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showCancelAll = true }
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = stringResource(R.string.download_manage_cancel_all),
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // 主操作 FAB：图标随下载状态互斥（运行中=暂停，否则=播放/继续）
-        if (hasTask) {
-            FloatingActionButton(
-                onClick = {
-                    viewModel.sendAction(
-                        if (isRunning) DownloadService.ACTION_PAUSE
-                        else DownloadService.ACTION_RESUME
-                    )
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(CommonUiTokens.pagePadding)
-            ) {
-                Icon(
-                    imageVector = if (isRunning) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = stringResource(
-                        if (isRunning) R.string.download_manage_pause_all
-                        else R.string.download_manage_resume_all
-                    )
+    if (groups.isEmpty()) {
+        EmptyState(modifier = Modifier.fillMaxSize())
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = CommonUiTokens.pagePadding),
+            contentPadding = PaddingValues(
+                top = CommonUiTokens.listSpacing,
+                bottom = CommonUiTokens.sectionSpacing
+            ),
+            verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing)
+        ) {
+            items(groups, key = { it.noteUrl }) { group ->
+                DownloadBookRow(
+                    group = group,
+                    onClick = { onOpenBook(group) }
                 )
             }
         }
-    }
-
-    // 全部取消确认
-    if (showCancelAll) {
-        AlertDialog(
-            onDismissRequest = { showCancelAll = false },
-            text = { Text(stringResource(R.string.download_manage_cancel_all_confirm)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showCancelAll = false
-                    viewModel.sendAction(DownloadService.ACTION_CANCEL)
-                }) {
-                    Text(
-                        stringResource(R.string.download_manage_cancel_all),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCancelAll = false }) {
-                    Text(stringResource(com.ebook.common.R.string.cancel))
-                }
-            }
-        )
     }
 }
 
 /**
  * 单本书的下载行：封面 + 书名 + 覆盖率进度 + 进行态副行 + 尾箭头。
  *
- * 取消本书不在行内（在选章 sheet 头部）；本行只负责「点进去选章」。
+ * 取消本书不在行内（在选章二级页页头）；本行只负责「点进去选章」。
  * 进行态文案仅 DownloadState.Progress 期间展示（activeChapter 已随 isDownloading 收起）。
  */
 @Composable

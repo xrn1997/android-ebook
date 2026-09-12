@@ -49,6 +49,14 @@ data class DownloadBookGroup(
     val activeChapter: DownloadChapterEntity? = null,
 )
 
+/** 下载中心页面级步骤：一级按书列表 / 二级某书选章（整屏切换）。 */
+sealed interface DownloadCenterStep {
+    data object Books : DownloadCenterStep
+
+    /** [focusChapter]：阅读器进入时携带的当前章（>=0 才启用预勾选与定位；一级入口为 -1）。 */
+    data class PickBook(val noteUrl: String, val tag: String, val focusChapter: Int) : DownloadCenterStep
+}
+
 /**
  * 二级选章页的装载结果，三态分开（加载中 / 书不在架 / 就绪）。
  *
@@ -118,18 +126,18 @@ class DownloadManageViewModel @Inject constructor(
     private val _groups = MutableStateFlow<List<DownloadBookGroup>>(emptyList())
     val groups: StateFlow<List<DownloadBookGroup>> = _groups.asStateFlow()
 
-    /** 二级选章 sheet：null = 收起（一级列表态）；非空 = 该书装载结果（Loading/Absent/Failed/Ready）。 */
+    /** 下载中心页当前步骤：一级按书列表 / 二级该书选章（整屏切换）。 */
+    private val _step = MutableStateFlow<DownloadCenterStep>(DownloadCenterStep.Books)
+    val step: StateFlow<DownloadCenterStep> = _step.asStateFlow()
+
+    /** 二级当前书的装载结果（加载中 / 书不在架 / 装载失败 / 就绪，见 [BookSelectionState]）。 */
     private val _bookSheet = MutableStateFlow<BookSelectionState?>(null)
     val bookSheet: StateFlow<BookSelectionState?> = _bookSheet.asStateFlow()
 
     /** 阅读器进入时携带的当前章（>=0 才启用「当前章+50」预勾选与定位；一级入口为 -1）。 */
     private var pendingFocusChapter: Int = -1
 
-    /** 当前展开 sheet 的书；openBook 时写入，供 loadSelection/refreshSelection 使用。 */
-    private var activeNoteUrl: String = ""
-    private var activeTag: String = ""
-
-    /** 装载协程句柄：openBook/closeBookSheet 时取消，防迟到回写把已收起的 sheet 复活。 */
+    /** 装载协程句柄：openBook/backToBooks 时取消，防迟到回写把已退回一级的旧结果画到二级页上。 */
     private var loadJob: Job? = null
 
     /**
@@ -233,16 +241,15 @@ class DownloadManageViewModel @Inject constructor(
     }
 
     /**
-     * 展开某书二级选章 sheet 并装载数据。
+     * 进入某书二级选章态并装载数据（整屏切换，一级 → 二级）。
      *
-     * [focusChapter] 为阅读器传入的当前章；书不在架时落 [BookSelectionState.Absent]（sheet 内空态）。
+     * [focusChapter] 为阅读器传入的当前章；书不在架时落 [BookSelectionState.Absent]（二级空态）。
      * 先落 [BookSelectionState.Loading]：换书（或上次装载失败）时避免把上一本书的
-     * [BookChapterSelection] 画在下一本书的 sheet 上。
+     * [BookChapterSelection] 画在下一本书的二级页上。
      */
     fun openBook(noteUrl: String, tag: String, focusChapter: Int = -1) {
         loadJob?.cancel()
-        activeNoteUrl = noteUrl
-        activeTag = tag
+        _step.value = DownloadCenterStep.PickBook(noteUrl, tag, focusChapter)
         pendingFocusChapter = focusChapter
         _bookSheet.value = BookSelectionState.Loading
         loadSelection()
@@ -250,7 +257,7 @@ class DownloadManageViewModel @Inject constructor(
 
     /** 重新装载当前书的二级数据（下载进行中每章推进后刷新状态标签用）。 */
     fun refreshSelection() {
-        if (_bookSheet.value != null) {
+        if (_step.value is DownloadCenterStep.PickBook) {
             loadJob?.cancel()
             loadSelection()
         }
@@ -263,9 +270,9 @@ class DownloadManageViewModel @Inject constructor(
      * 不会让页面无限停在「正在加载…」（同模块范式：EditBookMetaViewModel.loadState）。
      */
     private fun loadSelection() {
-        val noteUrl = activeNoteUrl
-        val tag = activeTag
-        if (noteUrl.isEmpty()) return
+        val pick = _step.value as? DownloadCenterStep.PickBook ?: return
+        val noteUrl = pick.noteUrl
+        val tag = pick.tag
         loadJob = viewModelScope.launch {
             try {
                 val full = model.getBookFullInfo(noteUrl)
@@ -300,8 +307,8 @@ class DownloadManageViewModel @Inject constructor(
                     )
                 )
             } catch (e: CancellationException) {
-                // 协程被取消（closeBookSheet/openBook 取消了 loadJob）：这是正常退出，不是装载失败，
-                // 直接让行，绝不写 Failed 态（否则会复活刚收起的 sheet）
+                // 协程被取消（openBook/backToBooks 取消了 loadJob）：这是正常退出，不是装载失败，
+                // 直接让行，绝不写 Failed 态（否则会把已退回一级的旧结果复活到二级页上）
                 throw e
             } catch (e: Exception) {
                 Logger.e(TAG, "loadSelection 失败", e)
@@ -327,9 +334,10 @@ class DownloadManageViewModel @Inject constructor(
         }
     }
 
-    /** 收起二级选章 sheet（[androidx.compose.material3.ModalBottomSheet] 的 onDismiss 触发）。 */
-    fun closeBookSheet() {
+    /** 从二级选章页返回一级列表（取消装载协程，清掉二级结果，避免退回时旧结果短暂上屏）。 */
+    fun backToBooks() {
         loadJob?.cancel()
+        _step.value = DownloadCenterStep.Books
         _bookSheet.value = null
     }
 

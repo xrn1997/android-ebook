@@ -15,18 +15,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TriStateCheckbox
@@ -52,38 +51,36 @@ import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
 
 /**
- * 下载中心二级：全高 BottomSheet（设计 D3）。
+ * 下载中心二级：某书全章节的「状态 + 选章」整屏页（一级点书行进入，返回键回一级）。
  *
- * 壳层负责 [ModalBottomSheet] 与四态渲染（加载中/书不在架/失败/就绪）；
+ * 顶层负责四态渲染（加载中/书不在架/失败/就绪）；
  * 内容复用原选章页的章节分组/三态/软上限纯逻辑（ChapterSelection.kt 零改动）。
- * 收起（swipe/Back）经 [onDismiss] 回调，不再有页面级 BackHandler。
+ * 返回（系统 Back 或页头箭头）经 [onBack] 回调，由宿主在 [`DownloadCenterStep`] 间切换。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookChapterSelectSheet(
+fun BookChapterSelectPage(
     state: BookSelectionState,
-    onDismiss: () -> Unit,
+    onBack: () -> Unit,
     onConfirm: (Set<Int>) -> Unit,
     onCancelBook: (BookChapterSelection) -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        when (state) {
-            is BookSelectionState.Loading -> SheetCenteredHint(stringResource(R.string.download_center_loading))
-            is BookSelectionState.Absent -> SheetCenteredHint(stringResource(R.string.download_center_not_on_shelf))
-            is BookSelectionState.Failed -> SheetCenteredHint(stringResource(R.string.download_center_load_failed))
-            is BookSelectionState.Ready -> BookChapterSelectContent(
-                selection = state.selection,
-                onCancelBook = { onCancelBook(state.selection) },
-                onConfirm = onConfirm,
-            )
-        }
+    when (state) {
+        is BookSelectionState.Loading -> CenteredHint(stringResource(R.string.download_center_loading))
+        is BookSelectionState.Absent -> CenteredHint(stringResource(R.string.download_center_not_on_shelf))
+        is BookSelectionState.Failed -> CenteredHint(stringResource(R.string.download_center_load_failed))
+        is BookSelectionState.Ready -> BookChapterSelectContent(
+            selection = state.selection,
+            onBack = onBack,
+            onCancelBook = { onCancelBook(state.selection) },
+            onConfirm = onConfirm,
+        )
     }
 }
 
-/** sheet 内居中占位文案（加载中/书不在架/失败共用）。 */
+/** 二级页内居中占位文案（加载中/书不在架/失败共用）。 */
 @Composable
-private fun SheetCenteredHint(text: String) {
-    Box(modifier = Modifier.fillMaxSize().heightIn(min = 200.dp), contentAlignment = Alignment.Center) {
+private fun CenteredHint(text: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
@@ -94,7 +91,7 @@ private fun SheetCenteredHint(text: String) {
 }
 
 /**
- * 下载中心二级：某书全章节的「状态 + 选章」全高 sheet 内容（承载于 [ModalBottomSheet]）。
+ * 下载中心二级：某书全章节的「状态 + 选章」整屏内容。
  *
  * 每章状态来自 [chapterDownloadStatus] 的三方合并（已缓存/待下载/下载中），**只作展示**：
  * 勾选语义保持不变——勾中任何章（含已缓存）都按 forceRefresh 重下。
@@ -104,6 +101,7 @@ private fun SheetCenteredHint(text: String) {
 @Composable
 private fun BookChapterSelectContent(
     selection: BookChapterSelection,
+    onBack: () -> Unit,
     onCancelBook: () -> Unit,
     onConfirm: (Set<Int>) -> Unit,
 ) {
@@ -152,13 +150,20 @@ private fun BookChapterSelectContent(
     val confirmEnabled = downloadCount > 0
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // 书头：封面 + 书名 + 状态徽章 + 「取消本书下载」（书维度操作归书上下文）
+        // 页头：返回一级 + 封面 + 书名 + 状态徽章 + 「取消本书下载」（书维度操作归书上下文）
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = CommonUiTokens.pagePadding, vertical = 4.dp),
+                .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = stringResource(R.string.download_center_back),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             BookCover(
                 url = selection.coverUrl,
                 modifier = Modifier.size(width = 40.dp, height = 54.dp),
@@ -234,7 +239,7 @@ private fun BookChapterSelectContent(
             )
         }
         Spacer(modifier = Modifier.height(12.dp))
-        // 章节列表：整屏可用（替代原半屏 ModalBottomSheet），分组后导航面 = 组数
+        // 章节列表：整屏可用，分组后导航面 = 组数
         LazyColumn(
             state = listState,
             modifier = Modifier
