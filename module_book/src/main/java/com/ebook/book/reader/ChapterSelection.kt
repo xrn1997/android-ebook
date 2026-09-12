@@ -92,3 +92,32 @@ internal fun toggleGroup(group: ChapterGroup, selected: Set<Int>): Set<Int> =
 
 /** 是否超出单次下载软上限（超过仅触发二次确认，不阻止下发）。 */
 internal fun exceedsSelectionCap(size: Int): Boolean = size > MAX_DOWNLOAD_SELECTION
+
+/** 列表显示位置 → 原始章序号（正序时两者相同）。 */
+internal fun originalIndexAt(count: Int, descending: Boolean, position: Int): Int =
+    if (descending) count - 1 - position else position
+
+/** 原始章序号 → 列表显示位置（[originalIndexAt] 的逆运算）。 */
+internal fun displayPositionOf(count: Int, descending: Boolean, originalIndex: Int): Int =
+    if (descending) count - 1 - originalIndex else originalIndex
+
+/**
+ * 某组组头在列表中的行号。
+ *
+ * 排在该组之前的每组各占一行组头，**已展开的组还要再多出它的章行**（一组展开就是 100 行，
+ * 不是 1 行）——所以不能简化成"组序号 + 前置展开组数"，那会让滚动目标差出上百行。
+ * 面板打开时要把含当前章的组滚到顶部，用的就是这个行号。
+ */
+internal fun rowIndexOfGroup(
+    groups: List<ChapterGroup>,
+    expanded: Set<Int>,
+    groupIndex: Int,
+): Int {
+    var rows = 0
+    for (group in groups) {
+        if (group.index >= groupIndex) break
+        rows += 1
+        if (group.index in expanded) rows += group.count
+    }
+    return rows
+}

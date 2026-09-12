@@ -79,4 +79,43 @@ class ChapterSelectionTest {
         assertFalse(exceedsSelectionCap(MAX_DOWNLOAD_SELECTION))
         assertTrue(exceedsSelectionCap(MAX_DOWNLOAD_SELECTION + 1))
     }
+
+    @Test
+    fun `倒序换算与正序换算互为逆运算`() {
+        val count = 10
+
+        for (position in 0 until count) {
+            assertEquals(position, originalIndexAt(count, descending = false, position = position))
+        }
+        for (index in 0 until count) {
+            assertEquals(
+                index,
+                originalIndexAt(
+                    count = count,
+                    descending = true,
+                    position = displayPositionOf(count, descending = true, originalIndex = index),
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `倒序时首行是最新章`() {
+        assertEquals(2999, originalIndexAt(count = 3000, descending = true, position = 0))
+        assertEquals(0, originalIndexAt(count = 3000, descending = true, position = 2999))
+    }
+
+    @Test
+    fun `组头行号等于排在它前面的组头行与已展开组的章行之和`() {
+        val groups = chapterGroups(300) // 3 组，每组恰好 100 章
+
+        // 无展开：组 2 的组头紧跟在组 0、组 1 的组头之后
+        assertEquals(2, rowIndexOfGroup(groups, emptySet(), 2))
+        // 组 0 展开：组 2 的组头前多了组 0 的 100 行章行
+        assertEquals(102, rowIndexOfGroup(groups, setOf(0), 2))
+        // 组 0、1 都展开
+        assertEquals(202, rowIndexOfGroup(groups, setOf(0, 1), 2))
+        // 只展开自己、或只展开排在后面的组，都不影响自己的组头行号
+        assertEquals(2, rowIndexOfGroup(groups, setOf(2), 2))
+    }
 }
