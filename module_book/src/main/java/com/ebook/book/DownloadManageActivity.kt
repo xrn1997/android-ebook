@@ -71,7 +71,7 @@ class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
     /**
      * 阅读器直达的一本书（仅在冷启动消费一次）。
      *
-     * 旋转重建（savedInstanceState != null）时 ViewModel 已持有 step/selection 现场，
+     * 旋转重建（savedInstanceState != null）时 ViewModel 已持有 bookSheet 现场，
      * 不重放直达参数，避免把已退回一级列表的用户硬拽回二级选章。
      */
     internal class PickBookParams(
@@ -94,7 +94,7 @@ class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
         super.onCreate(savedInstanceState)
         toolbarTitle.value = getString(R.string.download_manage_title)
         // 阅读器直达只该发生在冷启动：旋转重建（savedInstanceState != null）时 ViewModel 已
-        // 持有 step/selection，不重放直达参数，避免用户退回一级后旋转被硬拽回二级选章。
+        // 持有 bookSheet 现场，不重放直达参数，避免用户退回一级后旋转被硬拽回二级选章。
         if (savedInstanceState == null) {
             pickParams = if (intent.getBooleanExtra(EXTRA_OPEN_PICK, false)) {
                 PickBookParams(
@@ -179,7 +179,10 @@ private fun DownloadCenterScreen(
     bookSheet?.let { sheetState ->
         BookChapterSelectSheet(
             state = sheetState,
-            onDismiss = viewModel::closeBookSheet,
+            onDismiss = {
+                pendingCancelBook = null
+                viewModel.closeBookSheet()
+            },
             onConfirm = { selected ->
                 activity.requestDownloadPermission { viewModel.confirmDownload(selected) }
             },
@@ -195,6 +198,7 @@ private fun DownloadCenterScreen(
                 TextButton(onClick = {
                     pendingCancelBook = null
                     viewModel.cancelBook(ready.noteUrl)
+                    viewModel.closeBookSheet()
                 }) {
                     Text(
                         stringResource(R.string.download_manage_cancel_book),

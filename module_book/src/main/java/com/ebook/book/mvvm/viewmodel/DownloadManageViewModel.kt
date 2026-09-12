@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -128,6 +129,9 @@ class DownloadManageViewModel @Inject constructor(
     /** 当前展开 sheet 的书；openBook 时写入，供 loadSelection/refreshSelection 使用。 */
     private var activeNoteUrl: String = ""
     private var activeTag: String = ""
+
+    /** 装载协程句柄：openBook/closeBookSheet 时取消，防迟到回写把已收起的 sheet 复活。 */
+    private var loadJob: Job? = null
 
     /**
      * 队列剩余数的响应式观察（书架下载图标角标）。
@@ -241,6 +245,7 @@ class DownloadManageViewModel @Inject constructor(
      * [BookChapterSelection] 画在下一本书的 sheet 上。
      */
     fun openBook(noteUrl: String, tag: String, focusChapter: Int = -1) {
+        loadJob?.cancel()
         activeNoteUrl = noteUrl
         activeTag = tag
         pendingFocusChapter = focusChapter
@@ -263,7 +268,7 @@ class DownloadManageViewModel @Inject constructor(
         val noteUrl = activeNoteUrl
         val tag = activeTag
         if (noteUrl.isEmpty()) return
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             try {
                 val full = model.getBookFullInfo(noteUrl)
                 if (full == null) {
@@ -322,6 +327,7 @@ class DownloadManageViewModel @Inject constructor(
 
     /** 收起二级选章 sheet（[androidx.compose.material3.ModalBottomSheet] 的 onDismiss 触发）。 */
     fun closeBookSheet() {
+        loadJob?.cancel()
         _bookSheet.value = null
     }
 

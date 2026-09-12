@@ -58,7 +58,7 @@ import com.ebook.db.entity.SearchBookEntity
  * 所以不会永远差一格，判据见 `SourceSwitchViewModel.finishRound`）。
  *
  * @param viewModel 候选与换源的 ViewModel（`hiltViewModel()` 在宿主处取得后传入，本组件不自己拿：
- *   与下载中心的 [BookChapterSelectPage] 一样保持「纯展示 + 回调」的形态，方便宿主决定用哪个作用域的 VM）
+ *   与下载中心的 [BookChapterSelectSheet] 一样保持「纯展示 + 回调」的形态，方便宿主决定用哪个作用域的 VM）
  * @param oldShelf 阅读器当前正在读的条目：书名/作者用作搜索词，`tag` 用于排除所属源
  * @param onDismiss 关闭弹层
  * @param onSwitched 换源成功：把 [SourceSwitchOutcome] 交给宿主，由它把阅读器整体切到新条目。
