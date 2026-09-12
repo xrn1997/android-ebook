@@ -41,7 +41,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * 离线下载前台服务：逐章抽取正文写入章文件并维护 `download_chapter` 任务队列。
  *
  * 对外契约全部是 Intent（无 binder，[onBind] 返回 null）：
- * - 携带任务启动：[buildStartIntent]（阅读器确认下载范围后直达）
+ * - 携带任务启动：[buildStartIntent]（经 [DownloadRepository.startDownload] 仓库层统一下发入口确认章节范围后直达）
  * - 控制动作：[ACTION_PAUSE] / [ACTION_RESUME] / [ACTION_CANCEL]（通知按钮与下载管理页共用）
  * - 进度回传：[DownloadRepository.downloadState]（Service → UI）+ 常驻通知
  *

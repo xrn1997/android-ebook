@@ -31,7 +31,7 @@
 
 3. **启动收口 `DownloadService.start()`**：内部 try/catch，用类名前缀+后缀比对识别 `*ServiceStartNotAllowedException`（不直接 `catch(ForegroundServiceStartNotAllowedException)`——该类 API 31 才引入，minSdk 26 下 catch 子句要解析该类，低版本设备有 `NoClassDefFoundError` 风险），返回 `false` 由调用方提示用户。理由：统一异常处理避免各调用点各自 catch 不同异常子族。
 
-4. **发起方先入库再拉服务**：`BookReadViewModel.startDownload(chapters)` 先 `downloadRepository.addTasks()` 再 `DownloadService.start()`；`addTasks` 按 `durChapterUrl` 去重，服务侧收到同批 Intent 再入一次是幂等的。理由：服务启动被拒时任务已在库中，不会因启动失败而丢失用户选择。
+4. **发起方先入库再拉服务**：`DownloadRepository.startDownload(chapters)` 先 `downloadRepository.addTasks()` 再 `DownloadService.start()`；`addTasks` 按 `durChapterUrl` 去重，服务侧收到同批 Intent 再入一次是幂等的。理由：服务启动被拒时任务已在库中，不会因启动失败而丢失用户选择。
 
 5. **前台化失败不再自动续跑**：`onStartCommand` 里 `startForeground` 抛异常时置 `fgUnavailable`，「无携带任务」的自动续跑分支据此直接收尾并返回 `START_NOT_STICKY`——没有前台态的下载服务既跑不久，也会被系统反复重启刷同一异常。提示走通知而非仅 Toast（该场景应用通常在后台）。注意：通知权限被拒不会让 `startForeground` 失败（Android 13+ 未授权时 notify 被静默丢弃，前台服务照常），故保留原 `catch(Throwable)` 兜底语义。
 
