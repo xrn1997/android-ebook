@@ -55,6 +55,7 @@
     <string name="select_uncached">仅未缓存</string>
     <string name="clear_selection">清除</string>
     <string name="download_skip_cached_format">下载 %1$d 章（跳过 %2$d 章已缓存）</string>
+    <string name="download_cap_confirm_format">本次将下载 %1$d 章，超过单次上限 %2$d 章。确认后一次性下发这些下载任务。</string>
     <string name="cached_count_format">共 %1$d 章 · 已缓存 %2$d 章</string>
     <string name="add_to_shelf">加入书架</string>
     <string name="exit">退出</string>

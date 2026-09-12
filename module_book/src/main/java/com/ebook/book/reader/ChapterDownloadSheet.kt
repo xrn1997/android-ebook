@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -77,6 +79,9 @@ fun ChapterDownloadSheet(
     onDismiss: () -> Unit
 ) {
     var selected by remember { mutableStateOf(initialSelected) }
+
+    // 软上限的二次确认：超过 500 章时不直接下发，先让用户看到规模
+    var capConfirmVisible by remember { mutableStateOf(false) }
 
     // 未缓存索引集：列表打开期间不变，remember 避免每次勾选重算
     val uncachedIndices = remember(chapters, cachedIndices) {
@@ -228,7 +233,10 @@ fun ChapterDownloadSheet(
             Spacer(modifier = Modifier.height(12.dp))
             // 确认：选中集为空时禁用，避免下发空任务拉起前台服务空转
             Button(
-                onClick = { onConfirm(selected) },
+                onClick = {
+                    if (exceedsSelectionCap(selected.size)) capConfirmVisible = true
+                    else onConfirm(selected)
+                },
                 enabled = selected.isNotEmpty(),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
@@ -239,6 +247,37 @@ fun ChapterDownloadSheet(
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    // 超限确认：点确认后才真正下发；点取消只关弹窗，选择集合原样保留，用户可回到面板继续调整
+    if (capConfirmVisible) {
+        AlertDialog(
+            onDismissRequest = { capConfirmVisible = false },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.download_cap_confirm_format,
+                        selected.size,
+                        MAX_DOWNLOAD_SELECTION
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        capConfirmVisible = false
+                        onConfirm(selected)
+                    }
+                ) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { capConfirmVisible = false }) {
+                    Text(stringResource(com.ebook.common.R.string.cancel))
+                }
+            }
+        )
     }
 }
 
