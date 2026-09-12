@@ -829,26 +829,42 @@ fun ChapterListDrawer(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 6.dp),
+                        .padding(start = 20.dp, end = 8.dp, top = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = bookName,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        // 章节总数弱化为胶囊标签，避免与书名争夺视觉重心
-                        InfoChip(
-                            text = stringResource(R.string.chapter_count_format, chapters.size),
-                            shape = RoundedCornerShape(50),
-                            textStyle = MaterialTheme.typography.labelSmall,
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp)
+                    // 第一行：书名独占剩余宽度（weight 1f），右侧只放关闭键。
+                    // 背景：工具键（瞄准镜/顺序胶囊）曾与书名挤在同一行，长书名被右侧三键压成
+                    // 省略号，故改为两行排布，两行互不抢横向空间。
+                    Text(
+                        text = bookName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = stringResource(R.string.reader_close),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 20.dp, end = 8.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 章节总数弱化为胶囊标签，避免与书名争夺视觉重心
+                    InfoChip(
+                        text = stringResource(R.string.chapter_count_format, chapters.size),
+                        shape = RoundedCornerShape(50),
+                        textStyle = MaterialTheme.typography.labelSmall,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp)
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
                     // 定位开关（瞄准镜）：显示当前是否「打开即定位当前章」，点一下锁定、再点取消。
                     // 与顺序胶囊是两套独立逻辑（顺序管排序、锁定管定位），互不隐含。
                     // 从「关」变「开」的当下就立即滚到当前章（即时反馈），「开」→「关」保持原位，
@@ -907,14 +923,6 @@ fun ChapterListDrawer(
                             lockedToCurrent = false
                         }
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            imageVector = Icons.Outlined.Close,
-                            contentDescription = stringResource(R.string.reader_close),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
                 // 列表 + 右侧快速滚动条（覆盖层高度与列表一致）
                 Box(
