@@ -12,18 +12,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ebook.book.R
@@ -64,6 +72,7 @@ fun ChapterDownloadSheet(
     chapters: List<ChapterListEntity>,
     cachedIndices: Set<Int>,
     initialSelected: Set<Int>,
+    focusIndex: Int,
     onConfirm: (selected: Set<Int>) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -72,6 +81,27 @@ fun ChapterDownloadSheet(
     // 未缓存索引集：列表打开期间不变，remember 避免每次勾选重算
     val uncachedIndices = remember(chapters, cachedIndices) {
         chapters.indices.filterTo(mutableSetOf()) { it !in cachedIndices }
+    }
+
+    // 分组只随章节数变化（章节列表在面板存活期间不会变）
+    val groups = remember(chapters.size) { chapterGroups(chapters.size) }
+
+    // 默认只展开含当前章的那一组：其余折叠后 3000 章 = 30 行，首屏一眼看全范围。
+    // 面板是"关闭即离开组合"的，这份状态每次打开都重建 → 每次进面板都回到当前章那组。
+    // 组身份一律用 ChapterGroup.index（不是 groups 的列表下标）：两者数值目前相同但语义不同，
+    // 且 expanded 会被 rowIndexOfGroup 当序号比较。
+    val focusGroup = groups.firstOrNull { focusIndex in it.first..it.last }
+    var expanded by remember {
+        mutableStateOf(if (focusGroup != null) setOf(focusGroup.index) else emptySet())
+    }
+
+    // 打开即把当前章所在组的组头滚到列表顶部，确保用户在 UI 上直接看见它。
+    // scrollToItem 在列表尚未完成首次测量时也能用（它会等到能滚动时再落位）。
+    val listState = rememberLazyListState()
+    LaunchedEffect(Unit) {
+        if (focusGroup != null) {
+            listState.scrollToItem(rowIndexOfGroup(groups, expanded, focusGroup.index))
+        }
     }
 
     // 跳过数 = 已缓存但未勾选的章节（本次不会下发任务）；确认文案实时反映选择结果
@@ -134,25 +164,63 @@ fun ChapterDownloadSheet(
             }
             Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            // 章节列表：高度限半屏，避免 ModalBottomSheet 被超长目录无限撑开（大目录快速滚动可加，
-            // 本面板以选择为目的、逐行可视更重要，不引入 FastScroll）
+            // 章节列表：高度仍限半屏（ModalBottomSheet 不该被内容无限撑开），但导航面已从
+            // 「章节数」降到「组数」——每 100 章一行组头，3000 章的书首屏就能看全范围，
+            // 这也是本面板始终不需要快速滚动条的原因。
             val listHeight = with(LocalDensity.current) {
                 LocalWindowInfo.current.containerSize.height.toDp() / 2
             }
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(listHeight),
                 contentPadding = PaddingValues(vertical = 6.dp)
             ) {
-                itemsIndexed(chapters, key = { index, _ -> index }) { index, chapter ->
-                    DownloadChapterRow(
-                        index = index,
-                        name = chapter.durChapterName,
-                        isChecked = index in selected,
-                        isCached = index in cachedIndices,
-                    ) {
-                        selected = if (index in selected) selected - index else selected + index
+                groups.forEach { group ->
+                    // 组头与子项的 key 都取自"原始章序号"域内的稳定值，绝不能用显示位置：
+                    // 展开/收起会让其后所有位置整体位移，拿位置当 key 等于每次操作全量重建。
+                    // 两类 item 给不同 contentType，展开/收起时才能真正复用组合。
+                    stickyHeader(key = "g${group.index}", contentType = "group") { _ ->
+                        GroupHeaderRow(
+                            rangeText = stringResource(
+                                R.string.chapter_group_range_format,
+                                group.first + 1,
+                                group.last + 1
+                            ),
+                            cachedText = stringResource(
+                                R.string.chapter_group_cached_format,
+                                (group.first..group.last).count { it in cachedIndices },
+                                group.count
+                            ),
+                            state = groupState(group, selected),
+                            expanded = group.index in expanded,
+                            onToggleGroup = { selected = toggleGroup(group, selected) },
+                            onToggleExpand = {
+                                expanded = if (group.index in expanded) {
+                                    expanded - group.index
+                                } else {
+                                    expanded + group.index
+                                }
+                            }
+                        )
+                    }
+                    if (group.index in expanded) {
+                        items(
+                            count = group.count,
+                            key = { offset -> "c${group.first + offset}" },
+                            contentType = { "chapter" }
+                        ) { offset ->
+                            val index = group.first + offset
+                            DownloadChapterRow(
+                                index = index,
+                                name = chapters[index].durChapterName,
+                                isChecked = index in selected,
+                                isCached = index in cachedIndices,
+                            ) {
+                                selected = if (index in selected) selected - index else selected + index
+                            }
+                        }
                     }
                 }
             }
@@ -170,6 +238,67 @@ fun ChapterDownloadSheet(
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+}
+
+/**
+ * 下载面板的组头行：三态勾选框 + 章范围 + 已缓存计数 + 展开箭头。
+ *
+ * 整行点击 = 展开/收起，勾选框独立响应：一次误触整行没有后果，但落到勾选框上就是一次选中
+ * 100 章，两个热区必须分开（Checkbox 的 onClick 只接自己的点击，行点击另经 clickable）。
+ *
+ * 组头必须有**实心底色**：它是吸附头，滚动时下面的章行会从它背后经过，透明底会串字。
+ *
+ * 已缓存计数只是**信息**——本面板不拿"是否已缓存"做任何决策：缓存文件存在不等于内容正确
+ * （缓存失败时也会落盘），故它既不参与勾选、也不参与上限判定。
+ */
+@Composable
+private fun GroupHeaderRow(
+    rangeText: String,
+    cachedText: String,
+    state: GroupState,
+    expanded: Boolean,
+    onToggleGroup: () -> Unit,
+    onToggleExpand: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(onClick = onToggleExpand)
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        TriStateCheckbox(
+            state = when (state) {
+                GroupState.ALL -> ToggleableState.On
+                GroupState.PARTIAL -> ToggleableState.Indeterminate
+                GroupState.NONE -> ToggleableState.Off
+            },
+            onClick = onToggleGroup
+        )
+        Text(
+            text = rangeText,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = cachedText,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Icon(
+            imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+            contentDescription = stringResource(
+                if (expanded) R.string.chapter_group_collapse else R.string.chapter_group_expand
+            ),
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(8.dp))
     }
 }
 

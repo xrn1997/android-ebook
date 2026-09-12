@@ -798,6 +798,7 @@ private fun ReadBookScreen(
                 chapters = chapters,
                 cachedIndices = args.cachedIndices,
                 initialSelected = args.initialSelected,
+                focusIndex = bookShelf?.durChapter ?: 0,
                 onConfirm = { selected ->
                     panel = ReaderPanel.NONE
                     startChapterDownload(viewModel, context, selected)
