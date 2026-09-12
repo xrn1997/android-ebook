@@ -69,6 +69,21 @@ import dagger.hilt.android.AndroidEntryPoint
 class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
     override val viewModel: DownloadManageViewModel by viewModels()
 
+    /**
+     * 阅读器直达的一本书（仅在冷启动消费一次）。
+     *
+     * 旋转重建（savedInstanceState != null）时 ViewModel 已持有 step/selection 现场，
+     * 不重放直达参数，避免把已退回一级列表的用户硬拽回二级选章。
+     */
+    internal class PickBookParams(
+        val noteUrl: String,
+        val tag: String,
+        val focusChapter: Int,
+    )
+
+    /** 阅读器直达参数：仅在 onCreate(savedInstanceState==null) 时消费一次，旋转重建不再重放。 */
+    internal var pickParams: PickBookParams? = null
+
     companion object {
         const val EXTRA_NOTE_URL = "extra_note_url"
         const val EXTRA_TAG = "extra_tag"
@@ -79,6 +94,17 @@ class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         toolbarTitle.value = getString(R.string.download_manage_title)
+        // 阅读器直达只该发生在冷启动：旋转重建（savedInstanceState != null）时 ViewModel 已
+        // 持有 step/selection，不重放直达参数，避免用户退回一级后旋转被硬拽回二级选章。
+        if (savedInstanceState == null) {
+            pickParams = if (intent.getBooleanExtra(EXTRA_OPEN_PICK, false)) {
+                PickBookParams(
+                    noteUrl = intent.getStringExtra(EXTRA_NOTE_URL) ?: "",
+                    tag = intent.getStringExtra(EXTRA_TAG) ?: "",
+                    focusChapter = intent.getIntExtra(EXTRA_FOCUS_CHAPTER, -1)
+                )
+            } else null
+        }
     }
 
     @Composable
@@ -134,15 +160,11 @@ private fun DownloadCenterScreen(
         }
     }
 
-    // 阅读器直达：首次组合即进入某书二级选章
+    // 阅读器直达：仅冷启动时 activity.pickParams 非空（旋转重建已被 onCreate 门滤掉，
+    // 此时 ViewModel 的 step 已保留用户在二级/一级的现场，不重放直达）
     LaunchedEffect(Unit) {
-        val intent = activity.intent
-        if (intent.getBooleanExtra(DownloadManageActivity.EXTRA_OPEN_PICK, false)) {
-            val noteUrl = intent.getStringExtra(DownloadManageActivity.EXTRA_NOTE_URL) ?: return@LaunchedEffect
-            val tag = intent.getStringExtra(DownloadManageActivity.EXTRA_TAG) ?: ""
-            val focus = intent.getIntExtra(DownloadManageActivity.EXTRA_FOCUS_CHAPTER, -1)
-            viewModel.openBook(noteUrl, tag, focus)
-        }
+        val params = activity.pickParams ?: return@LaunchedEffect
+        viewModel.openBook(params.noteUrl, params.tag, params.focusChapter)
     }
 
     when (val current = step) {
