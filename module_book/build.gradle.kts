@@ -78,6 +78,12 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Compose UI 渲染回归：Robolectric 原生图形下真渲染，经 decorView.draw(Canvas) 同步取像素
+    // （captureToImage 不可用：它走 PixelCopy + frame commit 回调，paused looper 不驱动、必超时），
+    // 用来锁住「布局上存在、画出来被裁掉」这类只有渲染才能发现的缺陷（顶栏下载角标）。
+    // ui-test-manifest 提供测试用 ComponentActivity，两者版本号由 compose BOM 约束
+    // （testImplementation 继承 implementation 上的 platform(bom)）
+    testImplementation(libs.bundles.androidx.compose.ui.test)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
     // 基线仪器测试（ImportBaselineTest）用的 Hilt 测试脚手架：@HiltAndroidTest 需要

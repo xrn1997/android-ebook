@@ -69,6 +69,14 @@
   **仍未覆盖**：`BookCommentsViewModel` 的翻页状态机接线（游标推进、在途闸门、信号时序）
   ——需 Robolectric，与既有「VM 接线需 Robolectric + 假仓库」缺口一并处理
 - [ ] 为 Compose 页面添加 UI 测试
+  —— 首个样例已落地：`module_book/src/test/.../page/DownloadQueueActionRenderTest.kt`，
+  锁住书架顶栏下载角标在 1/2/3/4 位剩余数下都被完整画出（回归的是 material3 1.4.0 起
+  `IconButton` 容器自带 `.clip(shape)`、把悬浮在锚点之外的角标切成齐边口）。
+  可复用的回路是 Robolectric `@GraphicsMode(NATIVE)` + `createAndroidComposeRule<ComponentActivity>`
+  + `decorView.draw(Canvas(bitmap))` 数探针色像素；**`captureToImage` 在此不可用**
+  （走 PixelCopy + frame commit 回调，paused looper 不驱动，2s 必抛 `ComposeTimeoutException`）。
+  **仍未覆盖**：其余 Compose 页面（列表滚动、对话框、手势）同样只能用像素断言锁「画出来没有」，
+  按此回路逐页补
 - [ ] `AuthInterceptor` 测试归属 lib_common（android-practice 仓库，随认证体系对齐后不再在本仓库维护）
 
 ## 本轮（2026-09-03 评审）明确延后的技术债
