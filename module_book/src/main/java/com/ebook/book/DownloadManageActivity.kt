@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ebook.book.mvvm.viewmodel.BookSelectionState
 import com.ebook.book.mvvm.viewmodel.DownloadBookGroup
 import com.ebook.book.mvvm.viewmodel.DownloadCenterStep
 import com.ebook.book.mvvm.viewmodel.DownloadManageViewModel
@@ -179,18 +180,14 @@ private fun DownloadCenterScreen(
         )
         is DownloadCenterStep.PickBook -> {
             val selection by viewModel.selection.collectAsState()
-            val sel = selection
-            if (sel == null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.download_center_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                BookChapterSelectPage(
-                    selection = sel,
+            // 三态分开渲染：加载中 / 书不在架 / 装载失败各占一段文案，避免把「书不在架」
+            // 或失败说成「正在加载…」（误导用户一直等）；就绪才进选章页
+            when (val state = selection) {
+                is BookSelectionState.Loading -> CenteredHint(stringResource(R.string.download_center_loading))
+                is BookSelectionState.Absent -> CenteredHint(stringResource(R.string.download_center_not_on_shelf))
+                is BookSelectionState.Failed -> CenteredHint(stringResource(R.string.download_center_load_failed))
+                is BookSelectionState.Ready -> BookChapterSelectPage(
+                    selection = state.selection,
                     onBack = viewModel::backToBooks,
                     onConfirm = { selected ->
                         activity.requestDownloadPermission { viewModel.confirmDownload(selected) }
@@ -488,6 +485,20 @@ private fun EmptyState(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Text(
             text = stringResource(R.string.download_manage_no_task),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/**
+ * 二级选章页的居中占位文案（加载中 / 书不在架 / 装载失败共用同一版式）。
+ */
+@Composable
+private fun CenteredHint(text: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(
+            text = text,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

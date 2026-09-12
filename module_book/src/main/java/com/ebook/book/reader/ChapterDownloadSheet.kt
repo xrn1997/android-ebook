@@ -86,10 +86,11 @@ fun BookChapterSelectPage(
     }
 
     val groups = remember(chapters.size) { chapterGroups(chapters.size) }
-    // 默认只展开含焦点章（阅读器当前章）的那一组：其余折叠后 3000 章 = 30 行组头
-    val focusChapter = selection.initialSelected.minOrNull() ?: -1
-    val focusGroupIndex = if (focusChapter >= 0) {
-        groups.indexOfFirst { focusChapter in it.first..it.last }
+    // 默认只展开含焦点章（阅读器当前章）的那一组：其余折叠后 3000 章 = 30 行组头。
+    // 焦点章取显式 focusChapter（ADR-0034「打开时默认只展开含当前章的那一组」），
+    // 不能从预勾选反推：当前章及其后 50 章全部已缓存/在排队时预勾选为空集，反推必落空。
+    val focusGroupIndex = if (selection.focusChapter >= 0) {
+        groups.indexOfFirst { selection.focusChapter in it.first..it.last }
     } else -1
     var expanded by remember {
         mutableStateOf(if (focusGroupIndex >= 0) setOf(focusGroupIndex) else emptySet())
