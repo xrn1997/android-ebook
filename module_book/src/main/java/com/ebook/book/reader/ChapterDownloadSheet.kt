@@ -67,6 +67,11 @@ import com.ebook.db.entity.ChapterListEntity
  * 标题右侧新增"已选 N 章"计数胶囊——列表限半屏，滚动后确认按钮文案会脱离视野，
  * 需要一个常驻的选择反馈；行选中态加底色，勾选结果不再只依赖 20dp 的小方框。
  * 配色走 MaterialTheme 语义色（阅读器浅色作用域内自动解析），字号走 Material typography。
+ *
+ * 超量确认：单次选择超过 [MAX_DOWNLOAD_SELECTION] 章时先弹一次确认，**只提醒、不阻止下发**
+ * （点确认照常一次性下发，点取消仅关弹窗、选择集合原样保留）。这道门存在的理由是组头勾选把
+ * "一次选中上百章"压缩成一次点击，长书误触会一口气入库数千条任务并长时间占用前台的离线下载
+ * 服务。判定只按章数、不看是否已缓存：缓存文件存在不等于内容正确，故"已缓存"不参与这道门。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -256,9 +261,8 @@ fun ChapterDownloadSheet(
             text = {
                 Text(
                     stringResource(
-                        R.string.download_cap_confirm_format,
-                        selected.size,
-                        MAX_DOWNLOAD_SELECTION
+                        R.string.download_bulk_confirm_message,
+                        selected.size
                     )
                 )
             },
@@ -269,7 +273,7 @@ fun ChapterDownloadSheet(
                         onConfirm(selected)
                     }
                 ) {
-                    Text(stringResource(R.string.confirm))
+                    Text(stringResource(R.string.download_bulk_confirm_continue))
                 }
             },
             dismissButton = {
