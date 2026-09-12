@@ -899,6 +899,10 @@ fun ChapterListDrawer(
                             // **不做任何滚动**——display 列表翻转后 listState 停在原 index，
                             // 列表进度百分比自然不变（约 10% 处倒序后仍停在约 10% 处，看到的章变成
                             // 镜像位置的另一章，这正是"保持进度而非保持章节"的语义，见 ADR-0034）。
+                            // **该保持隐式依赖本列表 item 不带 key**（抽屉每行无跨滚动保留状态，
+                            // 见下方 itemsIndexed）：若日后补 animateItem 或按内容加 key，翻转时
+                            // LazyLayout 会按内容身份重排、位置按内容而非 index 复原，此语义即失效，
+                            // 且没有编译错误或测试能拦住——改 key 政策前先想清楚这里。
                             descending = !descending
                             lockedToCurrent = false
                         }
