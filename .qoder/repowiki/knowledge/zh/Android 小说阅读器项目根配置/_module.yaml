@@ -1,0 +1,49 @@
+schema_version: 1
+module_path: root
+title: Android 小说阅读器项目根配置
+scope:
+    - README.MD
+    - .gitignore
+    - .gitattributes
+    - build.gradle.kts
+    - settings.gradle.kts
+    - gradle.properties
+    - compose_compiler_config.conf
+    - gradlew.bat
+source_files: []
+depends_on: []
+related_to: []
+kk_module_id: 34dc65db-6062-426b-ae1c-9d3c85333a09
+kk_cards:
+    architecture_design:
+        id: d03190a1-1bb2-4084-9835-3124c4118537
+        title: Android 小说阅读器项目根配置
+    coding_conventions:
+        id: bed6fb40-5569-4d67-bfe2-09649a46e0fa
+        title: Android 小说阅读器项目根配置
+    overview:
+        id: 4be3d1f0-cbde-4903-9170-271ba285fa2b
+        title: Android 小说阅读器项目根配置
+    tech_stack:
+        id: 1dde54a0-087c-4ee0-97b4-3a64ef626e15
+        title: Android 小说阅读器项目根配置
+    unique_setup_and_commands:
+        id: 0dd63af7-191a-4834-bdd4-c9d00d12699b
+        title: Android 小说阅读器项目根配置
+    build_system:
+        id: 8bfafbf2-9e02-4b4b-b542-e11c0b541b18
+        title: Gradle 多模块构建体系与 build-logic 约定插件
+    dependency_management:
+        id: 75744c84-a960-4040-9d3e-f74b44445650
+        title: Gradle 版本目录 + 约定插件的多模块依赖治理
+    error_handling:
+        id: 38be60f3-8ca9-4886-b9a0-4a320d61146e
+        title: 错误处理体系：类型化异常、Result 收敛与 reportFailure 统一上报
+    logging_system:
+        id: 265db4a5-d767-41c8-8a49-367c07a6e29d
+        title: 基于 com.xrn1997.common.util.Logger 的统一日志体系
+kk_repo_cards:
+    - build_system
+    - dependency_management
+    - error_handling
+    - logging_system
