@@ -34,7 +34,9 @@ enum class BookFormat(val extension: String, val isFileBased: Boolean) {
  * 一本书内容仓库的定位值类型（spec §4）。
  *
  * reader 只认它、不认 `File` 也不认 `Uri`：§13 的 SAF 迁移将来只换这个类型的构造方式，
- * 读取路径一行不动。[bookId] 同时是 `book_shelf.note_url`（本地书即内容 md5）与目录名。
+ * 读取路径一行不动。[bookId] 就是 `book_shelf.note_url`（本地书即内容 md5）；磁盘上的书目录名
+ * 由 `BookStore` 从它派生，不是它本身——本地书的 md5 已是合法单段名故派生后原样，网络书的
+ * note_url 是 URL（含分隔符）故派生成 md5 目录名，见 `BookStore.dirName`。
  *
  * @property sourceUrl 该书的**书源归属**（`book_shelf.tag`，值即书源 URL）。多书源共存（见 ADR-0016）后
  * 「用哪个 parser 抓正文」是书级属性而非全局属性，故与 [bookId]、[format] 同处一个书级定位值类型——

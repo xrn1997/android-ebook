@@ -41,8 +41,11 @@ import kotlin.time.Duration.Companion.milliseconds
  * 离线下载前台服务：逐章抽取正文写入章文件并维护 `download_chapter` 任务队列。
  *
  * 对外契约全部是 Intent（无 binder，[onBind] 返回 null）：
- * - 携带任务启动：[buildStartIntent]（阅读器确认下载范围后直达）
- * - 控制动作：[ACTION_PAUSE] / [ACTION_RESUME] / [ACTION_CANCEL]（通知按钮与下载管理页共用）
+ * - 信号启动：[buildStartIntent]（空载；任务经 [DownloadRepository.startDownload] 先入 `download_chapter`
+ *   库、本服务读库取篇，携带整份章节列表的旧链路已删——见 buildStartIntent 的 KDoc）
+ * - 控制动作：[ACTION_PAUSE] / [ACTION_RESUME] / [ACTION_CANCEL]（通知按钮与下载管理页共用；
+ *   这三条是**全局**动作。按书暂停不经 Intent——它是取篇时的队列策略，落在 `paused_book` 表，
+ *   由 [DownloadRepository.getNextDownloadTask] 遍历时跳过，见 ADR-0036）
  * - 进度回传：[DownloadRepository.downloadState]（Service → UI）+ 常驻通知
  *
  * 为何不用命令总线：原 `DownloadCommand` SharedFlow 通道 replay=0，唯一订阅者就是本服务，
@@ -132,7 +135,7 @@ class DownloadService : Service() {
             try {
                 createNotificationChannels()
                 // 必须同步 startForeground：startForegroundService 拉起后 5s 内必须交出前台通知；
-                // 此时任务尚未入库，剩余数传 null（不查库），第一条进度通知紧随其后覆盖文案
+                // 剩余数传 null（不额外查库），第一条进度通知紧随其后覆盖文案
                 startForeground(
                     ONGOING_NOTIFY_ID,
                     buildOngoingNotification(
@@ -168,15 +171,10 @@ class DownloadService : Service() {
             }
         }
 
-        // 任务随 Intent 直达：阅读器确认下载范围后用 buildStartIntent 携带章节列表启动本服务。
-        // 原链路靠 SharedFlow 命令中转（唯一订阅者绑在书架页生命周期上），页面不存活时命令被丢弃、
-        // 下载根本不启动；Intent extra 由系统直达，无时序依赖（见本类 KDoc 的"为何不用命令总线"）
-        val chapters = intent?.let { extractChapters(it) }.orEmpty()
-        if (chapters.isNotEmpty()) {
-            addNewTask(chapters)
-        } else if (!isStartDownload && !isDownloading) {
-            // 无携带任务（书架弹窗打开时拉起 / START_STICKY 重启）：有未完成任务则续跑，无则收尾退出，
-            // 避免前台服务空转。弹窗/通知上的"继续"按钮另走上方 ACTION_RESUME 分支
+        // 启动 Intent 是空载信号（不再携带章节列表，见 DownloadRepository.startDownload 与 buildStartIntent）：
+        // 任务先入库、服务从库取篇——冷启动/START_STICKY 重启/通知续跑统一走这条读库续跑分支。
+        if (!isStartDownload && !isDownloading) {
+            // 无任务则收尾退出，避免前台服务空转；弹窗/通知上的"继续"按钮另走上方 ACTION_RESUME 分支
             if (fgUnavailable) {
                 // 前台态拿不到（dataSync 配额用尽、后台启动被拒、或通知链路异常）：以普通后台服务
                 // 续跑既跑不久、又会被系统反复重启刷同一异常，故直接收尾并留一条可点回应用的提示。
@@ -211,20 +209,6 @@ class DownloadService : Service() {
         return null
     }
 
-    private fun addNewTask(newData: List<DownloadChapterEntity>) {
-        isStartDownload = true
-        serviceScope.launch {
-            try {
-                downloadRepository.addTasks(newData)
-                if (!isDownloading) {
-                    toDownload()
-                }
-            } catch (e: Throwable) {
-                Logger.e(TAG, "onError: ", e)
-            }
-        }
-    }
-
     private fun toDownload() {
         isDownloading = true
         if (isStartDownload) {
@@ -234,9 +218,23 @@ class DownloadService : Service() {
                     if (nextChapter != null && nextChapter.noteUrl.isNotEmpty()) {
                         downloading(nextChapter)
                     } else {
-                        downloadRepository.clearAllTasks()
                         isDownloading = false
-                        finishDownload()
+                        // 取不到下一章 **≠ 队列跑空**（见 ADR-0036）：取篇跳过暂停书后，表里可能还有
+                        // 两类行——暂停书的任务（必须保留，暂停语义就是留着待续跑）与孤儿行（书已
+                        // 不在架，清掉——承接原「跑空时 clearAll」的清理职责，但不能无脑 clearAll，
+                        // 那会把暂停书的任务整批删掉）。
+                        downloadRepository.deleteTasksOutsideShelf()
+                        if (downloadRepository.countTasks() > 0) {
+                            // 剩余任务全部处于暂停书：转入暂停态并**静默停服**——
+                            // 不发 finishDownload 的「全部下载完成」（暂停书的任务没下完，那是误报）；
+                            // 也不保持前台空转（dataSync 24h/6h 配额白烧），继续由用户从下载管理页
+                            // 或通知触发，RESUME Intent 经 getForegroundService 死了也能拉起。
+                            // 停服路径不赌协程调度：tryEmitState 同步落 replay（与 onTimeout 同写法）
+                            downloadRepository.tryEmitState(DownloadState.Paused)
+                            stopService(Intent(application, DownloadService::class.java))
+                        } else {
+                            finishDownload()
+                        }
                     }
                 } catch (e: Throwable) {
                     Logger.e(TAG, "onError: ", e)
@@ -326,7 +324,8 @@ class DownloadService : Service() {
 
                     // 强制刷新重抓成功后失效正文内存缓存（spec §7 的「章节重解析」失效条件）：
                     // ChapterContentCache 是进程级单例，键由 BookRepository.loadChapter 统一取
-                    // `chapterRef(noteUrl, index)`（形如 books/<noteUrl>/cNNNNN.txt），重抓前后不变，
+                    // `chapterRef(noteUrl, index)`（形如 books/<书目录名>/cNNNNN.txt，网络书的目录名
+                    // 是 noteUrl 的 md5、由 BookStore 派生），重抓前后不变，
                     // 故按书剔除即可命中；不失效则已打开的阅读器会继续供给旧正文直到 LRU 挤出或进程重启。
                     // 注意该键与 chapter_list.content_ref 列无关（网络书那一列存的是章节 URL），
                     // 判据以 BookStore.cacheMarker 的 KDoc 为准。
@@ -428,7 +427,13 @@ class DownloadService : Service() {
                 if (nextChapter != null && nextChapter.noteUrl.isNotEmpty()) {
                     downloadRepository.emitState(DownloadState.Paused)
                 } else {
-                    downloadRepository.emitState(DownloadState.Finished)
+                    // 队头取不到 ≠ 完成（见 ADR-0036）：表内可能只剩暂停书的任务（或孤儿行）。
+                    // 按表内计数分流——有任务却停着，对用户是「已暂停」而非「已完成」
+                    if (downloadRepository.countTasks() > 0) {
+                        downloadRepository.emitState(DownloadState.Paused)
+                    } else {
+                        downloadRepository.emitState(DownloadState.Finished)
+                    }
                 }
             } catch (e: Throwable) {
                 Logger.e(TAG, "onError: ", e)
@@ -694,9 +699,6 @@ class DownloadService : Service() {
         /** Intent action：清空队列并取消下载 */
         const val ACTION_CANCEL = "com.ebook.book.action.CANCEL_DOWNLOAD"
 
-        /** Intent extra 键：随启动/重启动作携带的待下载章节列表（Parcelable） */
-        private const val EXTRA_CHAPTERS = "extra_download_chapters"
-
         /**
          * 以前台服务方式启动本服务，并把系统"不允许启动"收口成返回值。
          *
@@ -735,24 +737,14 @@ class DownloadService : Service() {
             Intent(context, DownloadService::class.java).setAction(action)
 
         /**
-         * 构造携带下载任务的启动 Intent。
+         * 构造启动 Intent（空载信号）。
          *
-         * 调用方用 [start] 启动（内含启动被拒的兜底，勿直接调 startForegroundService），
-         * 任务经 onStartCommand 直达服务，不依赖任何页面存活的命令通道。
+         * 调用方用 [start] 启动（内含启动被拒的兜底，勿直接调 startForegroundService）。
+         * 任务已在 `download_chapter` 表入库，本 Intent 不携带章节列表；服务 onStartCommand 读库续跑，
+         * 避免整本大额下载把章节实体塞进 Binder 事务（TransactionTooLargeException 风险）。
          */
-        fun buildStartIntent(context: Context, chapters: List<DownloadChapterEntity>): Intent =
+        fun buildStartIntent(context: Context): Intent =
             Intent(context, DownloadService::class.java)
-                .putParcelableArrayListExtra(EXTRA_CHAPTERS, ArrayList<DownloadChapterEntity>(chapters))
 
-        /** 从启动 Intent 提取章节列表；版本分支规避 API 33 废弃 API（避免编译警告） */
-        private fun extractChapters(intent: Intent): List<DownloadChapterEntity> {
-            val list = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                intent.getParcelableArrayListExtra(EXTRA_CHAPTERS, DownloadChapterEntity::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                intent.getParcelableArrayListExtra(EXTRA_CHAPTERS)
-            }
-            return list.orEmpty()
-        }
     }
 }

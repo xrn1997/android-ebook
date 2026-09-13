@@ -25,6 +25,23 @@ interface BookInfoDao {
     suspend fun insert(bookInfo: BookInfoEntity)
 
     /**
+     * 只写 `final_refresh_data` 一列（章节最后更新时间）。
+     *
+     * 为什么不用现成的 [insert]：那是整行 `OnConflictStrategy.REPLACE`，要求调用方传一个
+     * 字段完整的对象。拿它写时间戳就要先读回整行、改一个字段、再写回去 ——
+     * 中间漏读或漏填任何一个字段（书名、封面、简介…）就会把那列静默抹成实体默认值，
+     * 页面只是少显示几项、不崩不报错，属最难发现的一类数据损坏。
+     * 定向 UPDATE 让「改一列」在 SQL 层面就只碰那一列。
+     *
+     * 主要消费方是目录重抓的限频（见
+     * `com.ebook.common.repository.BookRepository.syncChaptersFromSource`），
+     * 语义是「上次得出结论的时间」而非「上次成功追加的时间」。
+     * 行不存在时静默不写（不抛），调用方不需要先确认存在。
+     */
+    @Query("UPDATE book_info SET final_refresh_data = :timestamp WHERE note_url = :noteUrl")
+    suspend fun setFinalRefreshData(noteUrl: String, timestamp: Long)
+
+    /**
      * 按 URL 删除元数据。无外键级联，从书架移除时必须由调用方显式清理（见 BookRepository.removeFromShelf），
      * 否则会留下 book_shelf 已删、book_info 仍在的反向孤立行。
      */

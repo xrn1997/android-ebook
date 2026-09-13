@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.repository.BookShelfEvent
+import com.ebook.common.repository.ChapterSyncResult
 import com.ebook.common.util.reportFailure
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.SearchBookEntity
@@ -33,12 +34,19 @@ import javax.inject.Inject
  * @property inBookShelf 当前书是否已在书架（书架事件实时修正）
  * @property loading 详情网络拉取中（仅搜索入口）
  * @property loadError 详情网络拉取失败（可点击重试）
+ * @property tocDiverged 目录重抓判定为分叉（本地不是远端的前缀），本地目录未作改动，需用户处置
  */
 data class BookDetailUiState(
     val bookShelf: BookShelfEntity? = null,
     val inBookShelf: Boolean = false,
     val loading: Boolean = false,
     val loadError: Boolean = false,
+    /**
+     * 只在本次会话内成立、不持久化：限频挡掉了窗口内的重复检查，所以用户下一次进来
+     * 看不到这条提示是可接受的（第一次已经看到了），且到期后会重新检查并重新提示 ——
+     * 分叉是持续性故障，重复提示是对的。要做成常驻标记需要落库，属阶段 2。
+     */
+    val tocDiverged: Boolean = false,
 )
 
 @HiltViewModel
@@ -84,14 +92,65 @@ class BookDetailViewModel @Inject constructor(
                     is BookShelfEvent.Removed -> sendFinish()
                     // 阅读进度与详情页无关
                     is BookShelfEvent.ProgressUpdated -> Unit
+                    // 详情页自己就是目录重抓的发起方，状态已就地更新过；再收一遍事件会把
+                    // 刚展示的条目整个换掉，反而盖掉用户此刻的浏览位置
+                    is BookShelfEvent.ChaptersUpdated -> Unit
                 }
             }
         }
     }
 
-    /** 书架入口：本地实体数据完整，直接展示，不发网络请求（对齐原实现语义） */
+    /**
+     * 书架入口：先用本地实体立即渲染（页面不空白），随后静默重抓一次目录。
+     *
+     * 「先渲染后检查」是刻意的次序：静默检查可能耗时数秒（目录要翻好几页），
+     * 摆在渲染之前会让一本完全能读的书白转圈。
+     *
+     * 与搜索入口 [getBookShelfInfo] 的差别：那条是用户主动找书、必须拿网络结果，
+     * 失败要进错误态；本条失败时必须什么都不说 —— 本地目录完好，
+     * 失败只意味着「这次没查到有没有新章」，置 loadError 会让一本正常显示的书凭空变成加载失败。
+     */
     fun initFromBookShelf(shelf: BookShelfEntity) {
         _detailState.update { it.copy(bookShelf = shelf, inBookShelf = true) }
+        syncChaptersQuietly(shelf)
+    }
+
+    /**
+     * 静默目录重抓：只有追加成功时报一句条数、只有判定分叉时留一条常驻提示，
+     * 其余结局（`Throttled` / `UpToDate` / `NotNetworkBook` / `Failed`）都不出声。
+     */
+    private fun syncChaptersQuietly(shelf: BookShelfEntity) {
+        viewModelScope.launch {
+            when (val result = bookRepository.syncChaptersFromSource(shelf)) {
+                is ChapterSyncResult.Appended -> {
+                    // 必须 copy 出新实体经 update 提交：BookShelfEntity 装在 StateFlow 里，
+                    // 就地改它的 chapterList 不改变对象引用，StateFlow 判等后不会重发，
+                    // 页面目录就停在旧长度。「旧 + appended」这个拼接口径由纯追加语义保证正确。
+                    _detailState.update { state ->
+                        val current = state.bookShelf ?: return@update state
+                        state.copy(
+                            bookShelf = current.copy(
+                                chapterList = current.chapterList + result.appended,
+                            )
+                        )
+                    }
+                    sendToast(context.getString(R.string.chapters_appended, result.appended.size))
+                }
+
+                is ChapterSyncResult.Diverged ->
+                    _detailState.update { it.copy(tocDiverged = true) }
+
+                is ChapterSyncResult.Failed -> Logger.e(
+                    TAG,
+                    "目录静默重抓失败，本地目录未受影响因而不打扰用户：${shelf.noteUrl}",
+                    result.cause,
+                )
+
+                ChapterSyncResult.UpToDate,
+                ChapterSyncResult.Throttled,
+                ChapterSyncResult.NotNetworkBook -> Unit
+            }
+        }
     }
 
     /** 搜索入口：先用传入实体展示基本信息，书架状态取列表页标记，详情待网络拉取 */

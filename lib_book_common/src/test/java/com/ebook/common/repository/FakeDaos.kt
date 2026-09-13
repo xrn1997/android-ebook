@@ -88,6 +88,15 @@ internal class FakeBookInfoDao : BookInfoDao {
         infoByNoteUrl[bookInfo.noteUrl] = bookInfo
     }
 
+    /**
+     * 语义对齐真 DAO 的定向 UPDATE：只改 `finalRefreshData` 一个字段，其余逐字不变，
+     * 行不存在时静默不写。假件若整行覆盖，「写时间戳会不会抹掉书名」这条回归就测不出来了
+     * （那条断言由 `lib_ebook_db` 的 BookInfoDaoTest 在真实 SQL 上锁）。
+     */
+    override suspend fun setFinalRefreshData(noteUrl: String, timestamp: Long) {
+        infoByNoteUrl[noteUrl]?.let { it.finalRefreshData = timestamp }
+    }
+
     override suspend fun deleteByUrl(noteUrl: String) {
         infoByNoteUrl.remove(noteUrl)
     }
@@ -169,7 +178,8 @@ internal class FakeBookGroupDao : BookGroupDao {
  *
  * 语义逐条对齐真 DAO（真 SQL 行为由 `lib_ebook_db` 的 DAO 测试锁，这里换的是「假件代替内存库」
  * 的代价，与 `BookSourceManagerImplTest` 里那份书源假件同一口径）：自增 `id`、
- * `dur_chapter_url` 上的唯一索引（同 URL 冲突即 REPLACE 删旧插新）、按 `note_url` + 章序号取队头/队尾。
+ * `dur_chapter_url` 上的唯一索引（同 URL 冲突即 REPLACE 删旧插新）、按 `note_url` + 章序号取队头/队尾
+ * 与取某书全部任务（章序升序）。
  */
 internal class FakeDownloadChapterDao : DownloadChapterDao {
     private val rows = linkedMapOf<Long, DownloadChapterEntity>()
@@ -186,6 +196,8 @@ internal class FakeDownloadChapterDao : DownloadChapterDao {
 
     override suspend fun getLastByNoteUrl(noteUrl: String): DownloadChapterEntity? =
         sortedFor(noteUrl).lastOrNull()
+
+    override suspend fun getByNoteUrl(noteUrl: String): List<DownloadChapterEntity> = sortedFor(noteUrl)
 
     override suspend fun getFirst(): DownloadChapterEntity? =
         rows.values.minByOrNull { it.durChapterIndex }

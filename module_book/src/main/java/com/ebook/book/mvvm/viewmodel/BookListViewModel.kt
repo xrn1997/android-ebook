@@ -42,7 +42,10 @@ class BookListViewModel @Inject constructor(
                 when (event) {
                     is BookShelfEvent.Added,
                     is BookShelfEvent.Removed,
-                    is BookShelfEvent.ProgressUpdated -> refreshData()
+                    is BookShelfEvent.ProgressUpdated,
+                    // 目录变长也是「这本书的数据变了」：条目将来要显示最新章节与更新角标
+                    // （阶段 2），现在虽不展示章节数，重查一次的代价换来的是口径只有一套
+                    is BookShelfEvent.ChaptersUpdated -> refreshData()
                 }
             }
         }

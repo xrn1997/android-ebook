@@ -15,6 +15,7 @@ object ReadBookControl {
     private const val SP_NAME = "CONFIG"
     const val DEFAULT_TEXT = 2
     const val DEFAULT_BG = 1
+    const val DEFAULT_TURN_MODE = 0
 
     /** 字体样式 */
     data class TextKind(val textSize: Int, val textExtra: Int)
@@ -47,6 +48,24 @@ object ReadBookControl {
         TextDrawable("#808080".toColorInt(), "#2D2D33".toColorInt(), R.string.theme_dark)//黑
     )
 
+    /**
+     * 翻页方式。
+     *
+     * 落 SP 的是 [turnModeList] 的**索引**而不是枚举名（与 textKindIndex/textDrawableIndex
+     * 同口径）：索引越界能回落默认，枚举名一旦改名就会让老数据解析失败。
+     * 枚举只活在内存里，不进任何持久化字段。
+     */
+    enum class TurnMode {
+        /** 左右翻页：三页窗口 + 横向拖拽 */
+        PAGE,
+
+        /** 上下滚屏：整章屏块的竖向连续滚动 */
+        SCROLL,
+    }
+
+    /** 翻页方式列表（顺序即设置面板的展示顺序） */
+    private val turnModeList: List<TurnMode> = listOf(TurnMode.PAGE, TurnMode.SCROLL)
+
     // ----------------------------
     // 内存缓存属性
     // ----------------------------
@@ -66,6 +85,12 @@ object ReadBookControl {
         private set
     var canKeyTurn: Boolean
         private set
+    var turnModeIndex: Int
+        private set
+
+    /** 当前翻页方式（= [turnModeList] 的 [turnModeIndex] 项，索引已在 init 里钳过界） */
+    val turnMode: TurnMode
+        get() = turnModeList[turnModeIndex]
 
     init {
         // 从 SP 初始化（只读一次）
@@ -81,6 +106,10 @@ object ReadBookControl {
 
         canClickTurn = SPUtil.get("canClickTurn", true, SP_NAME)
         canKeyTurn = SPUtil.get("canKeyTurn", true, SP_NAME)
+
+        turnModeIndex = SPUtil.get("turnModeIndex", DEFAULT_TURN_MODE, SP_NAME)
+        // 越界回落默认：默认是左右翻页，老用户升级后行为不变，不会一觉醒来变成滚屏
+        if (turnModeIndex !in turnModeList.indices) turnModeIndex = DEFAULT_TURN_MODE
     }
 
     // ----------------------------
@@ -113,9 +142,16 @@ object ReadBookControl {
         SPUtil.put("canKeyTurn", enable, SP_NAME)
     }
 
+    fun updateTurnModeIndex(index: Int) {
+        if (index !in turnModeList.indices) return
+        turnModeIndex = index
+        SPUtil.put("turnModeIndex", index, SP_NAME)
+    }
+
     // ----------------------------
     // 工具方法
     // ----------------------------
     fun getTextKindList(): List<TextKind> = textKindList
     fun getTextDrawableList(): List<TextDrawable> = textDrawableList
+    fun getTurnModeList(): List<TurnMode> = turnModeList
 }

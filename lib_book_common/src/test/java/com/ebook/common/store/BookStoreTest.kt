@@ -5,6 +5,7 @@ import com.ebook.common.analyze.local.BookFormat
 import com.ebook.db.entity.BookShelfEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -108,6 +109,63 @@ class BookStoreTest {
         assertTrue(File(root, bookId).exists())
         assertFalse(File(root, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").exists())
         assertFalse(File(root, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.txt").exists())
+    }
+
+    @Test
+    fun `reconcile 不误删在册网络书的章缓存`() {
+        // 网络书的 bookId 就是 noteUrl，含路径分隔符，落盘后是嵌套目录（真机形态
+        // `books/https:/www.bqquge.com/30/c00000.txt`），而 reconcile 只拿 booksRoot 的
+        // **第一层目录名**与在册 bookId 全串比对——首段（`www.bqquge.com`）永远不等于
+        // noteUrl，于是整棵被当无主目录删掉，每次启动都把网络书的章缓存清空。
+        // 这里刻意用不含冒号的 noteUrl：Windows 上 `https:` 不是合法目录名（mkdirs 静默
+        // 失败、writeChapter 抛 FileNotFoundException），红的是主机差异而不是本缺陷。
+        // 分隔符才是机制所在，真机形态由设备侧回路验。
+        val noteUrl = "www.bqquge.com/30/"
+        val network = BookLocation(noteUrl, BookFormat.NETWORK, noteUrl)
+        store.writeChapter(network, 0, listOf("甲"))
+        assertTrue("前置：网络书章文件已落盘", store.hasChapter(network, 0))
+
+        store.reconcile(setOf(noteUrl))
+
+        assertTrue("在册网络书的章缓存不得被对账回收", store.hasChapter(network, 0))
+    }
+
+    @Test
+    fun `含分隔符的 bookId 派生出单段目录名且不同 URL 不撞目录`() {
+        val noteUrl = "www.bqquge.com/30/"
+
+        val ref = store.chapterRef(noteUrl, 3)
+
+        assertEquals("content_ref 必须仍是 books/<单段目录名>/<章文件> 三段", 3, ref.split('/').size)
+        assertTrue(ref.startsWith("${BookStore.DIR_NAME}/"))
+        assertTrue(ref.endsWith("/c00003.txt"))
+        assertFalse("URL 不得原样进目录名", ref.contains("bqquge"))
+        // 换成「替换非法字符」的实现会让这两条撞成同一个目录 = 串书，md5 不会
+        assertNotEquals(
+            store.chapterRef("www.x.com/a/b/", 0),
+            store.chapterRef("www.x.com/a_b/", 0),
+        )
+    }
+
+    @Test
+    fun `storageUsage 每本网络书各算一册`() {
+        store.writeChapter(BookLocation("www.a.com/1/", BookFormat.NETWORK, "www.a.com/1/"), 0, listOf("甲"))
+        store.writeChapter(BookLocation("www.a.com/2/", BookFormat.NETWORK, "www.a.com/2/"), 0, listOf("乙"))
+
+        assertEquals("旧布局下两本网络书共用一个顶层目录，会被数成 1 册", 2, store.storageUsage().bookCount)
+    }
+
+    @Test
+    fun `deleteBook 不牵连 URL 路径互为前缀的另一本网络书`() {
+        val short = BookLocation("www.a.com/book/", BookFormat.NETWORK, "www.a.com/book/")
+        val nested = BookLocation("www.a.com/book/30/", BookFormat.NETWORK, "www.a.com/book/30/")
+        store.writeChapter(short, 0, listOf("甲"))
+        store.writeChapter(nested, 0, listOf("乙"))
+
+        store.deleteBook(nested)
+
+        assertFalse(store.hasChapter(nested, 0))
+        assertTrue("删一本书不得连带删掉 URL 前缀相同的另一本", store.hasChapter(short, 0))
     }
 
     @Test

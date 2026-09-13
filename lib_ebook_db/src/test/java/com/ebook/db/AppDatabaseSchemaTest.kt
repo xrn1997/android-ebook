@@ -81,6 +81,15 @@ class AppDatabaseSchemaTest {
             .associateBy { it.getString("columnName") }
     }
 
+    /** 取某版 schema 里的全部表名集合（比对跨版本表级增删用） */
+    private fun tableNamesOf(version: Int): Set<String> {
+        val entities = schemaOf(version).getJSONObject("database").getJSONArray("entities")
+        return (0 until entities.length())
+            .map(entities::getJSONObject)
+            .map { it.getString("tableName") }
+            .toSet()
+    }
+
     /** `schemas/` 里实际存在的版本号，升序 */
     private fun exportedVersions(): List<Int> =
         requireNotNull(schemaDir.listFiles()) { "schema 目录不可读：$schemaDir" }
@@ -149,7 +158,40 @@ class AppDatabaseSchemaTest {
         val createSql = entityOf(7, TABLE_BOOK_SOURCE).getString("createSql")
         assertFalse(
             "7.json 的建表语句不该再含 is_user_imported，实际为 $createSql",
-            createSql.contains("is_user_imported"),
+            createSql.contains("is_user_imported")
+        )
+    }
+
+    @Test
+    fun `v8 相对 v7 只多出 paused_book 一张表`() {
+        val before = tableNamesOf(7)
+        val after = tableNamesOf(8)
+
+        assertFalse("v7 不该已有 paused_book 表（否则迁移就成了空操作）", before.contains(TABLE_PAUSED_BOOK))
+        // 只允许这一张表进差集：顺手夹带的别的表改动必须被这条用例挡下
+        assertEquals(setOf(TABLE_PAUSED_BOOK), after - before)
+        assertEquals(before, after - TABLE_PAUSED_BOOK)
+    }
+
+    @Test
+    fun `v8 的 paused_book 主键是 note_url 且建表语句与迁移同字`() {
+        val entity = entityOf(8, TABLE_PAUSED_BOOK)
+
+        // 主键即 note_url（一本书最多一行标记，REPLACE 即幂等重按，见 ADR-0036）：
+        // Room 把主键列同时标进 fields 与 primaryKey.columnNames，两处都要有
+        val pkColumns = entity.getJSONObject("primaryKey").getJSONArray("columnNames")
+        assertEquals(listOf("note_url"), (0 until pkColumns.length()).map(pkColumns::getString))
+        assertTrue(
+            "note_url 应为 NOT NULL（自然键主键参与外键语义时 Room 要求非空）",
+            fieldsOf(8, TABLE_PAUSED_BOOK).getValue("note_url").getBoolean("notNull")
+        )
+
+        // 全新安装走的就是这句建表语句，迁移里的 CREATE TABLE 必须与它同字
+        // （DatabaseModule.MIGRATION_7_8 的 DDL 即此串，改一处必须改另一处）
+        val createSql = entity.getString("createSql")
+        assertTrue(
+            "8.json 的建表语句应为 note_url TEXT NOT NULL 单列自然键，实际为 $createSql",
+            createSql.contains("`note_url` TEXT NOT NULL") && createSql.contains("PRIMARY KEY(`note_url`)")
         )
     }
 
@@ -173,8 +215,10 @@ class AppDatabaseSchemaTest {
         const val MODULE_DIR = "lib_ebook_db"
 
         /** 期望的最新 schema 版本；[AppDatabase] 的 @Database(version) 升版时同步改这里 */
-        const val SCHEMA_LATEST_VERSION = 7
+        const val SCHEMA_LATEST_VERSION = 8
 
         const val TABLE_BOOK_SOURCE = "book_source"
+
+        const val TABLE_PAUSED_BOOK = "paused_book"
     }
 }

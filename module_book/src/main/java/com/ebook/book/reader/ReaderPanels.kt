@@ -54,7 +54,9 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.ModeComment
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.TouchApp
 // 别名避免与 android.provider.Settings 冲突
 import androidx.compose.material.icons.outlined.Settings as SettingsIcon
@@ -62,7 +64,6 @@ import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -71,6 +72,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -100,6 +102,7 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -128,7 +131,7 @@ import com.xrn1997.common.util.Logger
  * 由 ReadBookScreen（ReadBookActivity.kt）持有，底栏据其高亮当前打开的入口，
  * 故声明在 reader 包内供 chrome 层共用（不再放在 Activity 文件里，避免反向依赖）。
  */
-internal enum class ReaderPanel { NONE, CHAPTER, LIGHT, FONT, SETTING, DOWNLOAD, SOURCE_SWITCH }
+internal enum class ReaderPanel { NONE, CHAPTER, LIGHT, FONT, SETTING, SOURCE_SWITCH }
 
 /**
  * 阅读器 chrome 层局部设计常量。
@@ -727,6 +730,11 @@ private fun ReaderSlider(
  * （原仅能点遮罩/返回键关闭，抽屉占屏八成时右上角点击不可靠）。
  * 长目录可通过右侧快速滚动条（[ReaderFastScroll]，替代原 RecyclerViewBar）定位。
  *
+ * 倒序开关仅本次会话有效（不落盘）：状态声明在本函数顶层而非 AnimatedVisibility 内，
+ * 故关抽屉不丢、退出阅读器自然回正序。打开行为固定且随顺序分化：正序打开定位当前章、
+ * 倒序打开停在顶部（最新章节）；标题栏瞄准镜是一次性「回到当前章」按钮（无常驻状态）；
+ * 切顺序保持列表进度百分比不变（不主动滚动，停在镜像位置的另一章）；章号一律按原始序显示。
+ *
  * 注意：本抽屉为自绘覆盖层（非 ModalBottomSheet，无内置返回处置），
  * 返回键关闭由调用侧 BackHandler 收口。
  *
@@ -741,13 +749,29 @@ fun ChapterListDrawer(
     onChapterClick: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
+    // 倒序开关：**声明在 AnimatedVisibility 之外**——放进去每次关抽屉都会随内容一起被丢弃，
+    // 用户来回开合会被打回正序。放这里则关抽屉不丢、退出阅读器（组合销毁）自然回正序，
+    // 即"仅本次阅读会话有效"（不落盘）。
+    var descending by remember { mutableStateOf(false) }
+    val count = chapters.size
+    // asReversed() 是 O(1) 的视图不拷贝，但必须 remember：每次重组都新建实例会让 LazyColumn
+    // 的 item provider 每帧换身份
+    val displayChapters = remember(chapters, descending) {
+        if (descending) chapters.asReversed() else chapters
+    }
     val listState = rememberLazyListState()
-    // 打开即定位当前章节（对齐原 scrollToPositionWithOffset(durChapter, 0)）
+    // 打开行为固定、随顺序分化（不设用户开关，避免出现"开着的开关被切顺序悄悄关掉"的困惑）：
+    // - 正序打开 → 定位到当前章（看"我在哪"）；
+    // - 倒序打开 → 停在列表顶部（最新章节在顶，倒序的意义就是先看最新）。
+    // 只由 visible 驱动，descending 读取时取现值；切顺序本身不滚动（进度百分比保持，
+    // 见顺序胶囊 onClick），故不要把 descending 放进 key——翻转当刻不做任何重新定位。
     LaunchedEffect(visible) {
-        if (visible && durChapter in chapters.indices) {
-            listState.scrollToItem(durChapter)
+        if (visible && count > 0) {
+            val target = if (descending) 0 else durChapter
+            if (target in 0 until count) listState.scrollToItem(target)
         }
     }
+    val scope = rememberCoroutineScope()
 
     // 抽屉宽度：窗口宽度八成、上限 320dp（对齐原侧滑面板观感，兼容宽屏/平板）
     // 使用 LocalWindowInfo 而非 LocalConfiguration：前者反映实际窗口尺寸，
@@ -767,7 +791,7 @@ fun ChapterListDrawer(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                // 抽屉遮罩：scrim 语义色（浅色作用域内即黑色系），对齐 M3 惯例，不硬编码 Color.Black
+                // 抽屉遮罩：scrim 语义色（浅/深调板下都是暗色），对齐 M3 惯例，不硬编码 Color.Black
                 .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
                 .clickable(onClick = onDismiss)
         )
@@ -794,29 +818,26 @@ fun ChapterListDrawer(
                     .statusBarsPadding()
                     .navigationBarsPadding()
             ) {
+                // 无障碍：胶囊文字是"当前模式"，动作语义由 stateDescription 补上——只念"正序"
+                // 听不出这是个可切换的开关（本仓 Compose 页面不做装机级单测，读屏行为需人工验证）
+                val orderToggleStateDescription = stringResource(R.string.catalog_order_toggle)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 6.dp),
+                        .padding(start = 20.dp, end = 8.dp, top = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = bookName,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        // 章节总数弱化为胶囊标签，避免与书名争夺视觉重心
-                        InfoChip(
-                            text = stringResource(R.string.chapter_count_format, chapters.size),
-                            shape = RoundedCornerShape(50),
-                            textStyle = MaterialTheme.typography.labelSmall,
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp)
-                        )
-                    }
+                    // 第一行：书名独占剩余宽度（weight 1f），右侧只放关闭键。
+                    // 背景：工具键（瞄准镜/顺序胶囊）曾与书名挤在同一行，长书名被右侧三键压成
+                    // 省略号，故改为两行排布，两行互不抢横向空间。
+                    Text(
+                        text = bookName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Outlined.Close,
@@ -824,6 +845,78 @@ fun ChapterListDrawer(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+                // 工具行：信息（章节数）与两个工具（排序 / 回到当前章）左聚成组，右侧让位给列表。
+                // 原先排序胶囊与瞄准镜被 weight spacer 顶到右缘孤悬，长目录里两个灰色控件挤在
+                // 角落不易被发现；左聚后三者同属一条"信息 + 操作"带，扫读时一次就能看全。
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 20.dp, end = 20.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 章节总数弱化为胶囊标签，避免与书名争夺视觉重心
+                    InfoChip(
+                        text = stringResource(R.string.chapter_count_format, chapters.size),
+                        shape = RoundedCornerShape(50),
+                        textStyle = MaterialTheme.typography.labelSmall,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    // 顺序切换：显示"当前模式"而不是"点击后的动作"，避免"点了会变成什么"的歧义；
+                    // 复用共享 InfoChip 的可点胶囊形态，与左侧章节数标签同一视觉语言（ADR-0006）
+                    InfoChip(
+                        text = stringResource(
+                            if (descending) R.string.catalog_order_descending
+                            else R.string.catalog_order_ascending
+                        ),
+                        modifier = Modifier.semantics {
+                            stateDescription = orderToggleStateDescription
+                        },
+                        shape = RoundedCornerShape(50),
+                        containerColor = if (descending) MaterialTheme.colorScheme.secondaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (descending) MaterialTheme.colorScheme.onSecondaryContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        textStyle = MaterialTheme.typography.labelSmall,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
+                        onClick = {
+                            // 切顺序只翻转顺序：**不做任何滚动**——display 列表翻转后 listState
+                            // 停在原 index，列表进度百分比自然不变（约 10% 处倒序后仍停在约 10%
+                            // 处，看到的章变成镜像位置的另一章，这正是"保持进度而非保持章节"的
+                            // 语义，见 ADR-0034）。
+                            // **该保持隐式依赖本列表 item 不带 key**（抽屉每行无跨滚动保留状态，
+                            // 见下方 itemsIndexed）：若日后补 animateItem 或按内容加 key，翻转时
+                            // LazyLayout 会按内容身份重排、位置按内容而非 index 复原，此语义即失效，
+                            // 且没有编译错误或测试能拦住——改 key 政策前先想清楚这里。
+                            descending = !descending
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    // 「回到当前章」：一次性动作（非开关、无常驻状态，任何顺序下语义一致）——
+                    // 点一下即滚动到当前章在当序中的位置（倒序下即跳到当前章的镜像位）。
+                    // 曾做成常驻锁定开关，结果与顺序互为拆台（切顺序悄悄关锁、倒序下无意义），
+                    // 故降级为按需按钮，见 ADR-0034。
+                    IconButton(onClick = {
+                        if (durChapter in chapters.indices) {
+                            scope.launch {
+                                listState.scrollToItem(
+                                    displayPositionOf(
+                                        count = count,
+                                        descending = descending,
+                                        originalIndex = durChapter
+                                    )
+                                )
+                            }
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Outlined.MyLocation,
+                            contentDescription = stringResource(R.string.catalog_locate_current),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
                 }
                 // 列表 + 右侧快速滚动条（覆盖层高度与列表一致）
                 Box(
@@ -836,7 +929,17 @@ fun ChapterListDrawer(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                     ) {
-                        itemsIndexed(chapters, key = { index, _ -> index }) { index, chapter ->
+                        // 不带 key：本列表每行没有需要跨滚动保留的状态，而"按 index 作 key"与"缺省 key"
+                        // 在身份上是同一件事（缺省值即 DefaultLazyLayoutKey(index)，逐位唯一），
+                        // 去掉只少一层 keyFactory、行为不变。
+                        itemsIndexed(displayChapters) { position, chapter ->
+                            // 章号、高亮、跳转一律用**原始索引**：倒序后首行仍显示"第 3000 章"，
+                            // 点击跳转语义与正序完全一致
+                            val index = originalIndexAt(
+                                count = count,
+                                descending = descending,
+                                position = position
+                            )
                             ChapterRow(
                                 index = index,
                                 name = chapter.durChapterName,
@@ -863,6 +966,7 @@ fun ChapterListDrawer(
  *
  * 序号列固定宽度，让长短不一的章名左边界对齐，长目录扫读时视线有基准线；
  * 当前章节整行 `secondaryContainer` 底色 + 主色圆点，滚动后仍能一眼定位。
+ * 圆角与底色只建在当前章那一行（其余行不建裁剪层）。
  */
 @Composable
 private fun ChapterRow(
@@ -871,16 +975,25 @@ private fun ChapterRow(
     isCurrent: Boolean,
     onClick: () -> Unit
 ) {
+    // 圆角底与它的裁剪层只给当前章那一行建：非当前行的背景是 Transparent，为它保留 clip
+    // 等于给每个可见行都分配一个渲染层（数千章滚动时的纯浪费）。代价是非当前行的水波纹
+    // 从圆角变直角——那些行本身没有底色，视觉差异可以忽略。
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .padding(vertical = 1.dp)
+        .then(
+            if (isCurrent) {
+                Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+            } else {
+                Modifier
+            }
+        )
+        .clickable(onClick = onClick)
+        .padding(horizontal = 12.dp, vertical = 11.dp)
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 1.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isCurrent) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 11.dp),
+        modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -925,9 +1038,12 @@ private fun ChapterRow(
  * 视觉：轨道常显（弱化的细线）负责"这里可以拖"的可寻性，滑块仅在操作期间出现；
  * 滑块高度按可视条目占比换算（下限 28dp），千章目录下一格高度比固定 18dp 更能
  * 表达"当前处于全书的哪一段"。
+ *
+ * 可见性 internal：除阅读器目录抽屉外，下载中心二级选章页（ChapterDownloadSheet）
+ * 的长目录复用同一组件——同为"几千章里快速定位"的场景，不应各长一套滚动条。
  */
 @Composable
-private fun ReaderFastScroll(
+internal fun ReaderFastScroll(
     listState: LazyListState,
     itemCount: Int,
     modifier: Modifier = Modifier
@@ -1115,6 +1231,62 @@ private fun PanelSwitchRow(
 }
 
 /**
+ * 面板单选行：36dp 彩色图标块 + 标题/说明 + 尾部 RadioButton。
+ *
+ * 与 [PanelSwitchRow] 同一套尺寸口径（[ReaderChromeTokens]），只把尾部控件换成单选钮：
+ * 翻页方式是**互斥的二选一**，用 Switch 会被读成「开/关某个功能」而不是「选哪一档」。
+ * 整行可点（不只尾部控件），与 PanelSwitchRow 的点击面一致；已选中行不可再点。
+ *
+ * 可见性为 internal 而非 private：ReaderTurnModeRowRenderTest 要直接渲染它来锁
+ * 「图标块底色随调板翻转」——该测试防的是颜色角色被写回常量，那种失败布局与文案全对、
+ * 只有像素是错的，只能靠渲染看见。
+ */
+@Composable
+internal fun PanelChoiceRow(
+    icon: ImageVector,
+    label: String,
+    description: String,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    iconContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    iconContentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = !selected, onClick = onSelect)
+            .padding(horizontal = ReaderChromeTokens.switchRowPadding, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(ReaderChromeTokens.iconBox),
+            shape = RoundedCornerShape(10.dp),
+            color = iconContainerColor
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = iconContentColor
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(ReaderChromeTokens.iconGap))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        RadioButton(selected = selected, onClick = onSelect)
+    }
+}
+
+/**
  * 亮度面板（替代原 WindowLightPop）：
  * - 滑条实时写窗口亮度（仅"不跟随系统"时生效），两端低/高亮度图标锚定方向语义；
  *  滑条包在 [CommonCard] 内，与其他模块设置页的卡片分组语言一致（ADR-0006）
@@ -1292,7 +1464,7 @@ internal fun applyReaderBrightness(activity: Activity) {
  *   既显示全量可选值又支持直达。恢复默认移到标题行右侧（次级动作降级到次级位置）
  * - 阅读主题由"纯色圆点"改为「底色纸片 + 正文色预览字 + 主题名」：圆点只表达背景色，
  *   读者真正要选的是"字与底的搭配"，所见即正文才是有效预览
- * - 选中描边由原硬编码 #F3B63F 改为 colorScheme.primary（浅色作用域内自动适配）
+ * - 选中描边由原硬编码 #F3B63F 改为 colorScheme.primary（随当前调板解析，深浅色都自动适配）
  *
  * 变更即时写 [ReadBookControl] 并经回调通知外部重分页/刷新状态栏色。
  * 字号档位仍走点选（不用滑条）：每次变更都要重排全文分页，拖动过程中的连续回调
@@ -1420,9 +1592,10 @@ private fun FontSizeChip(
 /**
  * 阅读主题色卡：以主题的背景色画一块"纸片"，纸片中央用主题正文色写预览字。
  *
- * 预览字与描边色都取自主题自身配色（[ReadBookControl.TextDrawable]），
- * 属于阅读背景主题的呈现，不受阅读器 chrome 固定浅色调板影响；
- * 未选中时 1dp 弱描边保证近白色主题（素白）在白底卡片上仍有可辨边界，
+ * 预览字取主题自身配色（[ReadBookControl.TextDrawable]）——它画在纸上，属阅读背景主题层；
+ * 描边则取当前调板的 outlineVariant：描边压在「纸片与面板的交界」上，可见性由面板决定，
+ * 拿主题自身前景色去描会在深色面板上把夜间色卡整块融进背景（素白配浅色面板同理）。
+ * 未选中 1dp 弱描边保证近白色主题仍有可辨边界，
  * 选中时 2dp 主色描边 + 主题名转主色，双重编码避免只靠颜色表达状态。
  */
 @Composable
@@ -1449,7 +1622,7 @@ private fun ReaderThemeSwatch(
                 .border(
                     width = if (selected) 2.dp else 1.dp,
                     color = if (selected) MaterialTheme.colorScheme.primary
-                    else foreground.copy(alpha = 0.22f),
+                    else MaterialTheme.colorScheme.outlineVariant,
                     shape = RoundedCornerShape(12.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -1472,7 +1645,10 @@ private fun ReaderThemeSwatch(
 }
 
 /**
- * 更多设置面板（替代原 MoreSettingPop）：按键翻页 / 点击翻页开关。
+ * 更多设置面板（替代原 MoreSettingPop）：翻页方式选择 + 按键翻页 / 点击翻页开关。
+ *
+ * 翻页方式（互斥二选一）单独一张卡，与下面的两个开关分开：「选哪一档」与
+ * 「某个输入能不能翻页」是两类设置，单选钮与开关并排会让人以为单选也是一种开关。
  *
  * 开关行收进 [CommonCard] 分组并补齐说明文案（对齐共享设计语言，ADR-0006）；
  * 行间分割线按本面板的图标列缩进（[ReaderChromeTokens.switchDividerIndent]），
@@ -1480,12 +1656,20 @@ private fun ReaderThemeSwatch(
  *
  * @param onClickTurnChanged 点击翻页开关即时回调（面板开启期间正文不可点击，
  *   但 ReadBookScreen 需在切换瞬间同步本地 State 以消除"依赖 panel 变化才重组生效"的隐式耦合）
+ * @param onTurnModeChanged 翻页方式即时回调，传的是 `ReadBookControl.getTurnModeList()` 的索引。
+ *   理由与 [onClickTurnChanged] 同：`ReadBookControl` 的属性不是 Compose State，
+ *   写入不触发重组，不能让「换模式是否生效」依赖面板恰好重组
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MoreSettingPanel(onDismiss: () -> Unit, onClickTurnChanged: (Boolean) -> Unit) {
+fun MoreSettingPanel(
+    onDismiss: () -> Unit,
+    onClickTurnChanged: (Boolean) -> Unit,
+    onTurnModeChanged: (Int) -> Unit,
+) {
     var canKeyTurn by remember { mutableStateOf(ReadBookControl.canKeyTurn) }
     var canClickTurn by remember { mutableStateOf(ReadBookControl.canClickTurn) }
+    var turnModeIndex by remember { mutableIntStateOf(ReadBookControl.turnModeIndex) }
     // dragHandle = null：同亮度面板，标题已表明用途、关闭途径齐全，去掉手柄横杠
     ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null) {
         Column(
@@ -1496,6 +1680,41 @@ fun MoreSettingPanel(onDismiss: () -> Unit, onClickTurnChanged: (Boolean) -> Uni
             SheetHeader(stringResource(R.string.setting))
             Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
             SectionLabel(stringResource(R.string.reader_section_turn))
+            CommonCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                    PanelChoiceRow(
+                        icon = Icons.Outlined.SwapHoriz,
+                        label = stringResource(R.string.turn_mode_page),
+                        description = stringResource(R.string.turn_mode_page_desc),
+                        selected = turnModeIndex == 0,
+                        onSelect = {
+                            turnModeIndex = 0
+                            ReadBookControl.updateTurnModeIndex(0)
+                            onTurnModeChanged(0)
+                        },
+                        iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = ReaderChromeTokens.switchDividerIndent),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    PanelChoiceRow(
+                        icon = Icons.Outlined.SwapVert,
+                        label = stringResource(R.string.turn_mode_scroll),
+                        description = stringResource(R.string.turn_mode_scroll_desc),
+                        selected = turnModeIndex == 1,
+                        onSelect = {
+                            turnModeIndex = 1
+                            ReadBookControl.updateTurnModeIndex(1)
+                            onTurnModeChanged(1)
+                        },
+                        iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        iconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
             CommonCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
                     PanelSwitchRow(
@@ -1530,216 +1749,6 @@ fun MoreSettingPanel(onDismiss: () -> Unit, onClickTurnChanged: (Boolean) -> Uni
                 }
             }
             Spacer(modifier = Modifier.height(ReaderChromeTokens.sheetBottomPadding))
-        }
-    }
-}
-
-/**
- * 章节多选下载面板（替代原 DownloadRangeDialog 的起止章号输入框）。
- *
- * 缓存感知：逐章按 [cachedIndices]（以章文件存在性为事实源，调用方经
- * BookRepository.getCachedChapterIndices 查询）绘制"已缓存"徽章；默认预勾选集合由调用方传入。
- * 已缓存章节勾上即重下：下发任务统一带 forceRefresh 标记（服务端先删旧内容再重抓），
- * 故不再区分"下载"与"强制刷新缓存"两种模式（对未缓存章节该标记为空操作），
- * 刷新缓存的能力已合并进本面板。
- *
- * 视觉：快捷选择由三枚 OutlinedButton 改为等宽胶囊（弱化边框噪声、并排更整齐）；
- * 标题右侧新增"已选 N 章"计数胶囊——列表限半屏，滚动后确认按钮文案会脱离视野，
- * 需要一个常驻的选择反馈；行选中态加底色，勾选结果不再只依赖 20dp 的小方框。
- * 配色走 MaterialTheme 语义色（阅读器浅色作用域内自动解析），字号走 Material typography。
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ChapterDownloadSheet(
-    chapters: List<ChapterListEntity>,
-    cachedIndices: Set<Int>,
-    initialSelected: Set<Int>,
-    onConfirm: (selected: Set<Int>) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var selected by remember { mutableStateOf(initialSelected) }
-
-    // 未缓存索引集：列表打开期间不变，remember 避免每次勾选重算
-    val uncachedIndices = remember(chapters, cachedIndices) {
-        chapters.indices.filterTo(mutableSetOf()) { it !in cachedIndices }
-    }
-
-    // 跳过数 = 已缓存但未勾选的章节（本次不会下发任务）；确认文案实时反映选择结果
-    val skippedCached = (cachedIndices - selected).size
-    val confirmText = stringResource(R.string.download_skip_cached_format, selected.size, skippedCached)
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = CommonUiTokens.pagePadding)
-                .navigationBarsPadding()
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.offline_download),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = stringResource(
-                            R.string.cached_count_format,
-                            chapters.size,
-                            cachedIndices.size
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                // 选择计数：有选择时用 secondaryContainer 提亮，空选择保持弱化底色
-                InfoChip(
-                    text = stringResource(R.string.download_selected_format, selected.size),
-                    shape = RoundedCornerShape(50),
-                    containerColor = if (selected.isEmpty()) MaterialTheme.colorScheme.surfaceVariant
-                    else MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = if (selected.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
-                    else MaterialTheme.colorScheme.onSecondaryContainer,
-                    textStyle = MaterialTheme.typography.labelMedium,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(14.dp))
-            // 快捷选择：全选 / 仅未缓存 / 清除（已缓存章节的"重下/刷新"靠全选或逐行勾选）
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QuickSelectChip(
-                    label = stringResource(R.string.select_all),
-                    modifier = Modifier.weight(1f),
-                ) { selected = chapters.indices.toSet() }
-                QuickSelectChip(
-                    label = stringResource(R.string.select_uncached),
-                    modifier = Modifier.weight(1f),
-                ) { selected = uncachedIndices }
-                QuickSelectChip(
-                    label = stringResource(R.string.clear_selection),
-                    modifier = Modifier.weight(1f),
-                ) { selected = emptySet() }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            // 章节列表：高度限半屏，避免 ModalBottomSheet 被超长目录无限撑开（大目录快速滚动可加，
-            // 本面板以选择为目的、逐行可视更重要，不引入 FastScroll）
-            val listHeight = with(LocalDensity.current) {
-                LocalWindowInfo.current.containerSize.height.toDp() / 2
-            }
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(listHeight),
-                contentPadding = PaddingValues(vertical = 6.dp)
-            ) {
-                itemsIndexed(chapters, key = { index, _ -> index }) { index, chapter ->
-                    DownloadChapterRow(
-                        index = index,
-                        name = chapter.durChapterName,
-                        isChecked = index in selected,
-                        isCached = index in cachedIndices,
-                    ) {
-                        selected = if (index in selected) selected - index else selected + index
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            // 确认：选中集为空时禁用，避免下发空任务拉起前台服务空转
-            Button(
-                onClick = { onConfirm(selected) },
-                enabled = selected.isNotEmpty(),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Text(confirmText)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-    }
-}
-
-/**
- * 快捷选择胶囊：surfaceVariant 底 + 居中文案。
- *
- * 比 OutlinedButton 少一层描边噪声，三枚等宽并排时更整齐，且点击目标铺满整枚胶囊。
- */
-@Composable
-private fun QuickSelectChip(
-    label: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-/**
- * 下载面板章节行：勾选框 + 序号 + 章名 + 已缓存徽章。
- *
- * 整行可点切换勾选；Checkbox 自身 onCheckedChange 置 null 避免双重触发，
- * 勾选态仅作展示（语义由整行点击统一控制）；选中时整行加底色，
- * 长列表里逐行的小勾难以扫读，底色让"已选范围"一眼可见。
- */
-@Composable
-private fun DownloadChapterRow(
-    index: Int,
-    name: String,
-    isChecked: Boolean,
-    isCached: Boolean,
-    onToggle: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isChecked) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent
-            )
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(checked = isChecked, onCheckedChange = null)
-        Text(
-            text = stringResource(R.string.chapter_number, index + 1),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            text = name,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        if (isCached) {
-            // 已缓存徽章：复用共享 InfoChip（语义色小标签），与全书其它标签同语言
-            InfoChip(
-                text = stringResource(R.string.cached_badge),
-                shape = RoundedCornerShape(50),
-                textStyle = MaterialTheme.typography.labelSmall,
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)
-            )
         }
     }
 }

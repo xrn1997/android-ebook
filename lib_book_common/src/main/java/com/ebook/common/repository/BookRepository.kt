@@ -21,6 +21,7 @@ import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.ChapterListEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.db.event.DBCode
+import com.ebook.source.analyze.BookParser
 import com.ebook.source.analyze.BookSourceNotFoundException
 import com.xrn1997.common.mvvm.model.BaseModel
 import kotlinx.coroutines.CancellationException
@@ -155,9 +156,14 @@ class BookRepository @Inject constructor(
      * 本方法**不发事件**，且假设调用方负责线程与事务边界。
      */
     private suspend fun writeEntry(bookShelf: BookShelfEntity) {
-        // 先保存 bookInfo（如果存在）
+        // 先保存 bookInfo（如果存在）。章节时间戳顺手写成「现在」：两个调用方
+        // （加书架、换源）都在刚才那次解析里抓过目录了，不写就等于让用户紧接着进详情页时
+        // 白爬一遍多页目录。已有非零值不覆盖，保留「上次得出结论」的事实。
         bookShelf.bookInfo?.let { bookInfo ->
             bookInfo.noteUrl = bookShelf.noteUrl
+            if (bookInfo.finalRefreshData == 0L) {
+                bookInfo.finalRefreshData = System.currentTimeMillis()
+            }
             bookInfoDao.insert(bookInfo)
         }
         // 保存 bookShelf
@@ -484,6 +490,128 @@ class BookRepository @Inject constructor(
     }
 
     /**
+     * 按需重抓目录并追加新章。
+     *
+     * 做的事：限频判窗 → 按这本书的 `tag` 取 parser → 抓远端目录 → 交 [ChapterTocDiff] 判定 →
+     * 只在「本地每一章都还在远端、相对顺序一致」时把尾部新章追加进去。
+     * 不做的事：**不下载任何正文**、**不删任何既有章**、**不改任何既有章的序号**。
+     *
+     * 为什么只接受纯追加：章文件按序号命名（`filesDir/books/<bookId>/cNNNNN.txt`），
+     * 序号一旦漂移就会静默读错章 —— 用户点第 50 章读到旧的第 50 章，不报错、不闪退、
+     * 页面上一切正常。已下载的章与目录的对应关系没有第二份事实源可以校正它，
+     * 所以站点改版、中间插章、删章重排这几种情形一律判 [ChapterSyncResult.Diverged] 整笔放弃，
+     * 把处置权交回用户（换源有 [switchSource] 兜着）。
+     *
+     * 因为是纯追加，本方法**不需要失效任何缓存**（与 [refreshChapter]、[mergeTailChapters]
+     * 的处置不同，那两处动的是已有章）：[ChapterContentCache] 的键是
+     * `chapterRef(noteUrl, index)`，已有键的取值不变，故不调 `invalidateBook`。
+     * 同理，与「用户正在阅读某一章」天然可并发，不需要加锁。
+     *
+     * @param force 跳过限频。自动触发一律 false；用户主动刷新才 true（阶段 1 没有手动入口）
+     */
+    suspend fun syncChaptersFromSource(
+        bookShelf: BookShelfEntity,
+        force: Boolean = false,
+    ): ChapterSyncResult {
+        // 本地书没有「源」可抓：tag 恒为 loc_book，目录由导入那一刻决定。
+        // 不挡就会拿 loc_book 去查 book_source 表（必然查不到）并误报「书源已失效」——
+        // 同一取舍见 switchSource 开头的注释。
+        if (bookShelf.tag == BookShelfEntity.LOCAL_TAG) return ChapterSyncResult.NotNetworkBook
+
+        val noteUrl = bookShelf.noteUrl
+        val localChapters: List<ChapterListEntity>
+        val lastCheckMillis: Long
+        withContext(Dispatchers.IO) {
+            localChapters = chapterListDao.getChaptersForBook(noteUrl)
+            lastCheckMillis = bookInfoDao.getBookInfoByUrl(noteUrl)?.finalRefreshData ?: 0L
+        }
+        if (!force && !isTocCheckDue(lastCheckMillis, System.currentTimeMillis())) {
+            return ChapterSyncResult.Throttled
+        }
+
+        // 取源在任何 try 之外：null 的成因即「书源不存在/坏行」，本路径按 Failed 带回而非抛，
+        // 理由见 ChapterSyncResult.Failed 的 KDoc。
+        val parser: BookParser = bookSourceManager.getParserFor(bookShelf.tag)
+            ?: return ChapterSyncResult.Failed(
+                BookSourceNotFoundException(bookShelf.tag, detail = "目录重抓 noteUrl=$noteUrl")
+            )
+
+        val remoteChapters: List<ChapterListEntity> = try {
+            parser.getChapterList(bookShelf).data.chapterList
+        } catch (e: CancellationException) {
+            // 取消不是「检查失败」：吞掉会让调用方把销毁中的页面当成一个结论
+            throw e
+        } catch (e: Exception) {
+            return ChapterSyncResult.Failed(e)
+        }
+
+        // 「一本书零章」不是合法状态：更可能是解析规则失配而非站点删光了章。
+        // 判 Diverged 会连带写时间戳，于是规则修好后整个窗口内都不会再试，故按失败处置（不写时间戳）。
+        if (remoteChapters.isEmpty() && localChapters.isNotEmpty()) {
+            return ChapterSyncResult.Failed(
+                IllegalStateException("远端目录为空，不按分叉处置：noteUrl=$noteUrl, tag=${bookShelf.tag}")
+            )
+        }
+
+        return when (val diff = ChapterTocDiff.diff(localChapters, remoteChapters)) {
+            is TocDiff.UpToDate -> {
+                stampTocChecked(noteUrl)
+                ChapterSyncResult.UpToDate
+            }
+
+            is TocDiff.Diverged -> {
+                // 写时间戳：分叉不是暂时性故障，重试无意义，不写就等于每次进详情页重爬一遍目录
+                stampTocChecked(noteUrl)
+                ChapterSyncResult.Diverged
+            }
+
+            is TocDiff.Appendable -> {
+                // 新序号从 max+1 起而不是 size：历史删章会留洞，两者不等时用 size 会撞上既有行。
+                // 也不能沿用远端行自带的序号 —— parser 按位置写 chapters.size，
+                // 有洞时两套口径不同，直接沿用会让两行撞同一个 index 而不报错（只是读错章）。
+                val nextIndex = (localChapters.maxOfOrNull { it.durChapterIndex } ?: -1) + 1
+                val rows = diff.tail.mapIndexed { offset, chapter ->
+                    chapter.copy(
+                        durChapterIndex = nextIndex + offset,
+                        // 归属以入参条目为准：两个 parser 其实都填对了，重写一遍是廉价防线 ——
+                        // 「这一行属于哪本书、归哪个源」的事实源是调用方，不该依赖 parser 记得填
+                        noteUrl = noteUrl,
+                        tag = bookShelf.tag,
+                    )
+                }
+                val updated = bookShelf.copy(chapterList = localChapters + rows)
+                try {
+                    withContext(Dispatchers.IO) {
+                        transactions.run {
+                            chapterListDao.insertAll(rows)
+                            bookInfoDao.setFinalRefreshData(noteUrl, System.currentTimeMillis())
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    return ChapterSyncResult.Failed(e)
+                }
+                // 事件只在事务提交之后发（未提交的写不是事实，口径同 switchSource）
+                _bookShelfEvents.emit(BookShelfEvent.ChaptersUpdated(updated))
+                ChapterSyncResult.Appended(rows)
+            }
+        }
+    }
+
+    /**
+     * 记下「这次检查得出了结论」的时间戳。
+     *
+     * 走定向 UPDATE 而不是读回整行再 [BookInfoDao.insert]：后者是整行 REPLACE，
+     * 漏填任一字段就会把书名/封面静默抹成默认值（取舍见该 DAO 方法的 KDoc）。
+     */
+    private suspend fun stampTocChecked(noteUrl: String) {
+        withContext(Dispatchers.IO) {
+            bookInfoDao.setFinalRefreshData(noteUrl, System.currentTimeMillis())
+        }
+    }
+
+    /**
      * 批量判定哪些章节已有缓存（章文件存在）。
      *
      * 供下载面板绘制"已缓存"徽章：以 BookStore 章文件为事实源。
@@ -751,6 +879,16 @@ sealed class BookShelfEvent {
 
     /** 阅读进度更新 */
     data class ProgressUpdated(val bookShelf: BookShelfEntity) : BookShelfEvent()
+
+    /**
+     * 目录追加了新章（章节正文并未下载，只是目录变长）。
+     *
+     * 不复用 [ProgressUpdated]：动的是目录而不是阅读进度，混在一起消费方就没法区分
+     * 「该重查目录」和「只是进度变了」。
+     *
+     * 目录判定为分叉时**不发本事件**：数据库一行未动，发了等于让消费方去重查一个没变的东西。
+     */
+    data class ChaptersUpdated(val bookShelf: BookShelfEntity) : BookShelfEvent()
 }
 
 /**
@@ -770,6 +908,64 @@ sealed class ImportMergeResult {
     /** 任一条目已不在书架上（用户在弹窗期间手动删除，或导入本身没落库） */
     data object EntryMissing : ImportMergeResult()
 }
+
+/**
+ * [BookRepository.syncChaptersFromSource] 的结局。
+ *
+ * 与同文件的 [ImportMergeResult] 同形态：每个分支都要让 UI 说得出人话，
+ * 因为「自动检查」的绝大多数结局对用户是不可见的（静默），只有 `Appended` 与 `Diverged`
+ * 需要开口。把「不写时间戳」的三种（`Throttled` / `NotNetworkBook` / `Failed`）
+ * 与「写了时间戳」的三种分开，正是「时间戳记的是上次**得出结论**的时间」这条口径的直译。
+ */
+sealed class ChapterSyncResult {
+    /**
+     * 追加成功。[appended] 是已定好序号的新行。
+     *
+     * 因为既有章的序号与 contentRef 逐字不变（纯追加），调用方可以直接
+     * `旧目录 + appended` 拼出新的完整目录，不必回头重查数据库。
+     */
+    data class Appended(val appended: List<ChapterListEntity>) : ChapterSyncResult()
+
+    /** 远端没有本地之外的章，本地已是最新 */
+    data object UpToDate : ChapterSyncResult()
+
+    /** 目录结构分叉，本地未作任何改动，需要用户处置（换源或重新导入） */
+    data object Diverged : ChapterSyncResult()
+
+    /** 限频窗口内，未发任何网络请求 */
+    data object Throttled : ChapterSyncResult()
+
+    /** 本地书没有「远端目录」这回事 */
+    data object NotNetworkBook : ChapterSyncResult()
+
+    /**
+     * 检查未完成（源失效 / 网络 / 解析 / 远端目录为空）。**未写时间戳**，下次会重试。
+     *
+     * **不抛而是带回**：这是一条静默路径（用户没要求检查），抛出会逼每个调用方
+     * try-catch 一遍，而 catch 完通常也只是记一行日志。`cause` 留着，
+     * 只有用户主动刷新时才经 `reportFailure` 提示出去。
+     */
+    data class Failed(val cause: Throwable) : ChapterSyncResult()
+}
+
+/**
+ * 目录重抓是否已到限频窗口。
+ *
+ * 独立成纯函数的理由与「上次检查时间 + 间隔」这类判窗的通用做法同源：判据只有一句
+ * 「距上次得出结论是否已超过间隔」，但它决定要不要发**一批**网络请求（目录可能要翻好几页）。
+ * 混在仓库方法里就得为边界各搭一套假件才能测，抽出来三个断言即可穷举。
+ *
+ * `lastMillis == 0` 是「从来没检查过」，直接放行 —— 存量网络书的 `final_refresh_data`
+ * 全是 0（该列此前只有本地书导入写过一次），升级后第一次进详情页会各触发一次检查，
+ * 这是期望行为而不是需要修补的数据缺陷。
+ *
+ * 边界取 `>=`：恰好到期即放行。
+ */
+internal fun isTocCheckDue(
+    lastMillis: Long,
+    nowMillis: Long,
+    intervalMillis: Long = BookShelfEntity.REFRESH_TIME,
+): Boolean = lastMillis == 0L || nowMillis - lastMillis >= intervalMillis
 
 /**
  * 换源要换过去的那条 `noteUrl` **本来就是书架上另一个条目**。

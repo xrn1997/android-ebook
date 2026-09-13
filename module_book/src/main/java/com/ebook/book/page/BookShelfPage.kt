@@ -2,6 +2,7 @@ package com.ebook.book.page
 
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -69,7 +69,8 @@ import com.ebook.book.R
  * - 顶栏：[TopAppBar] 文字标题 + 导入/下载 actions（对齐书城页形态，ADR-0006 共享设计语言）
  * - 刷新容器：lib_common 的 [RefreshableList]；刷新信号经 [MvvmBinder] 映射到本地状态
  * - 下载入口：下载图标跳转下载管理页（[com.ebook.book.DownloadManageActivity]），
- *   有任务时以角标显示队列剩余数（原 80dp 小弹窗已下线）
+ *   有任务时以角标显示队列剩余数（原 80dp 小弹窗已下线）。角标由 [DownloadQueueAction]
+ *   自行排布、贴在图标右上角，不是 M3 BadgedBox 的悬浮形态（理由见其 KDoc）
  * - 书架变化事件收集已移入 ViewModel（BookListViewModel）
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -136,21 +137,8 @@ fun BookShelfPage(
                     }
                     // 下载管理入口：跳转下载管理页；有任务时角标展示队列剩余数，
                     // 让用户不点开也能知道“还有多少在下”（原小弹窗已下线）
-                    IconButton(onClick = {
+                    DownloadQueueAction(remaining = downloadRemaining) {
                         TheRouter.build(KeyCode.Book.DOWNLOAD_PATH).navigation(context)
-                    }) {
-                        BadgedBox(
-                            badge = {
-                                if (downloadRemaining > 0) {
-                                    Badge { Text(downloadRemaining.toString()) }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Download,
-                                contentDescription = stringResource(R.string.download)
-                            )
-                        }
                     }
                 }
             )
@@ -186,6 +174,36 @@ fun BookShelfPage(
             }
         } // Column
     } // Scaffold
+}
+
+/**
+ * 书架顶栏的下载管理入口：下载图标 + 队列剩余数角标。
+ *
+ * 抽成独立可组合函数只为可测——角标的缺陷是「布局上存在、画出来被祖先 clip 切掉」，
+ * 只有真渲染数像素才能判红，故必须能被单独组合进一个顶栏里跑。
+ *
+ * **角标为什么不用 `BadgedBox`**：1.4.0 起 `IconButton` 的容器自带 `.clip(shape)`，而
+ * `BadgedBox` 是把角标悬浮到锚点右上角之外（横向 `badgeX = 锚点宽 - 12dp` 再向右生长），
+ * 超出的部分就地被切——实测剩余数到 2 位右端就已经是齐边切口，3 位以上只剩两位数字。
+ * 反过来把 `BadgedBox` 整体挪到按钮外面也不通：下载图标是最右侧的 action，角标会长到窗口
+ * 右边界外被裁。故自己排布：图标与角标互为兄弟，角标贴在 Box 的右上角并**参与布局**——数字再长
+ * 也只是这一格变宽（把图标往左推），不会越过任何 clip 边界。代价是角标压在图标右上角。
+ */
+@Composable
+internal fun DownloadQueueAction(remaining: Int, onClick: () -> Unit) {
+    Box(contentAlignment = Alignment.Center) {
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = Icons.Filled.Download,
+                contentDescription = stringResource(R.string.download)
+            )
+        }
+        if (remaining > 0) {
+            Badge(modifier = Modifier.align(Alignment.TopEnd)) {
+                Text(remaining.toString())
+            }
+        }
+    }
 }
 
 /**

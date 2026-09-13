@@ -3,6 +3,7 @@ package com.ebook.common.store
 import com.ebook.common.analyze.local.BookLocation
 import com.ebook.common.util.treeSize
 import java.io.File
+import java.security.MessageDigest
 
 /**
  * 内容仓库的占用统计，由 [BookStore.storageUsage] 一次遍历得出。
@@ -15,10 +16,20 @@ import java.io.File
 data class StorageUsage(val bytes: Long, val bookCount: Int)
 
 /**
- * 本地书籍内容仓库（spec §4）：`filesDir/books/<bookId>/cNNNNN.txt`，一章一个文件。
+ * 本地书籍内容仓库（spec §4）：`filesDir/books/<书目录名>/cNNNNN.txt`，一章一个文件。
  *
  * 只收一个 [booksRoot] 目录参数、不碰 `Context`，因此整本书内容基座可在纯 JVM 下测试。
  * 生产环境由 `ContentStoreModule` 传入 `File(context.filesDir, "books")`。
+ *
+ * **目录名由 [dirName] 从 bookId 派生，不一定等于 bookId**：bookId 即 `book_shelf.note_url`。
+ * 本地书是内容 md5（本身就是合法单段名，原样用作目录名，故 `chapter_list.content_ref` 的既有
+ * 取值一字不变）；网络书是站点 URL——含路径分隔符，直接当目录名会落成一棵嵌套目录树
+ * （`books/https:/host/30/c00000.txt`），于是所有按「`booksRoot` 第一层目录名 = 一本书」工作的
+ * 逻辑全部判错：[reconcile] 拿第一层名（`https:`）与在册 note_url 全串比对、永不相等，把**全部
+ * 网络书的章缓存**当无主目录删掉（每次启动一次，表现为冷启动必读已缓存的章还要重抓）；
+ * [storageUsage] 把所有网络书数成 1 册；[deleteBook] 在一条 URL 的路径是另一条的前缀时连带删除。
+ * 派生规则与「为什么不能对所有 bookId 统一取 md5」见 [dirName] 与 ADR-0038；这一映射只在本类
+ * 内做一次——调用方一律传 bookId，不得自己拼目录名。
  *
  * **章文件存 UTF-8 重编码的规范化前文本**：无损指文本层（字符不缺），字节层统一 UTF-8，
  * 于是读取侧不必再管源编码。段落之间以单个 LF 分隔，不写缩进（缩进是表现层，见 spec §8）。
@@ -27,9 +38,9 @@ class BookStore(private val booksRoot: File) {
 
     /** content_ref 是自包含的 filesDir 相对路径，读取方拿到即用、不回查书级字段（spec §4） */
     fun chapterRef(bookId: String, index: Int): String =
-        "$DIR_NAME/$bookId/${chapterFileName(index)}"
+        "$DIR_NAME/${dirName(bookId)}/${chapterFileName(index)}"
 
-    fun bookDir(location: BookLocation): File = File(booksRoot, location.bookId)
+    fun bookDir(location: BookLocation): File = File(booksRoot, dirName(location.bookId))
 
     fun chapterFile(location: BookLocation, index: Int): File =
         File(bookDir(location), chapterFileName(index))
@@ -50,7 +61,7 @@ class BookStore(private val booksRoot: File) {
 
     /** 导入暂存目录：带 `.tmp` 后缀，未改名的目录在对账时一律作废（spec §4 原子提交点） */
     fun beginImport(bookId: String): File =
-        File(booksRoot, "$bookId$TMP_SUFFIX").apply {
+        File(booksRoot, "${dirName(bookId)}$TMP_SUFFIX").apply {
             if (exists()) deleteRecursively()
             mkdirs()
         }
@@ -75,7 +86,7 @@ class BookStore(private val booksRoot: File) {
     }
 
     fun commitImport(staging: File, bookId: String) {
-        val final = File(booksRoot, bookId)
+        val final = File(booksRoot, dirName(bookId))
         if (final.exists()) final.deleteRecursively()
         // renameTo 同分区是原子操作：要么整本可见，要么完全不存在，不会有半本被读到
         if (!staging.renameTo(final)) {
@@ -132,12 +143,17 @@ class BookStore(private val booksRoot: File) {
      *
      * 存在理由是删书与导入中断都会留下无主文件，而没有对账就没人再发现它们（用户侧表现为
      * "占了空间却看不见书"）。 loose 文件一并清掉是因为正常路径不会在 `books/` 根下产生文件。
+     *
+     * 入参是 bookId（`note_url`）集合，但**比对发生在 [dirName] 派生出的目录名上**：磁盘上只有
+     * 目录名，拿 bookId 原值去比会让网络书（URL → md5 目录名）永远匹配不上，于是每次启动都把
+     * 全部网络书章缓存当无主目录删光——派生规则收在一处，这条就不会再错。
      */
     fun reconcile(liveBookIds: Set<String>) {
+        val liveDirs = liveBookIds.mapTo(mutableSetOf()) { dirName(it) }
         booksRoot.listFiles()?.forEach { entry ->
             when {
                 entry.isDirectory && entry.name.endsWith(TMP_SUFFIX) -> entry.deleteRecursively()
-                entry.isDirectory && entry.name !in liveBookIds -> entry.deleteRecursively()
+                entry.isDirectory && entry.name !in liveDirs -> entry.deleteRecursively()
                 entry.isFile -> entry.delete()
             }
         }
@@ -148,20 +164,53 @@ class BookStore(private val booksRoot: File) {
         const val DIR_NAME = "books"
         private const val TMP_SUFFIX = ".tmp"
 
+        /**
+         * 不能出现在单段目录名里的字符：路径分隔符（各平台）+ Windows 保留字符。
+         *
+         * 带上 Windows 那一组是为了让判据**与宿主无关**：同一个 note_url 在设备与在开发机
+         * 的单测里必须派生出同一个目录名，否则单测绿的形态和真机跑的形态不是一回事
+         * （实测过：`https:` 在 Windows 上根本不是合法目录名，mkdirs 静默失败）。
+         */
+        private const val ILLEGAL_DIR_CHARS = "/\\:*?\"<>|"
+
         /** 序号零填充到 5 位，保证字典序等于数值序；上限 99999 章足够 */
         fun chapterFileName(index: Int): String = "c%05d.txt".format(index)
 
         /**
-         * 缓存失效用的书级片段：`content_ref` 形如 `books/<bookId>/cNNNNN.txt`，
-         * 按 `/<bookId>/` 剔除即覆盖一本书的全部条目。
+         * bookId → 书目录名：本类唯一的命名出口，读写两侧都必须经它（各拼一次就会漂移成
+         * 「写完永远读不到」）。判据是「bookId 本身能不能当一个合法的单段目录名」：能就原样用，
+         * 不能就取 md5。
+         *
+         * **为什么不干脆对所有 bookId 取 md5**（只留一种命名更好讲）：本地书的
+         * `chapter_list.content_ref` 存的正是 `books/<目录名>/cNNNNN.txt`，而该列是自然键——
+         * 目录名一变，既有行全部指向不存在的文件，得配一次 DB 迁移；导入补章又按 `content_ref`
+         * 判重、新章索引取 `max+1`，同一本书混用两种形状的 ref 还会撞键。本地书的 note_url
+         * 本来就是内容 md5（合法单段名），原样用即恒等映射，一行都不用迁。
+         *
+         * **为什么用 md5 而不是把非法字符替换掉**：替换会撞——`https://x/a/b` 与 `https://x/a_b`
+         * 替换后同名，两本书共用一个目录就是串书。md5 与仓内 `LibraryDiskCache` 对 sourceUrl
+         * 取 md5 当文件名的做法同构。代价是目录名不可读，排查时先算一次 md5。
+         */
+        private fun dirName(bookId: String): String =
+            if (bookId.any { it in ILLEGAL_DIR_CHARS }) md5Hex(bookId) else bookId
+
+        private fun md5Hex(key: String): String =
+            MessageDigest.getInstance("MD5").digest(key.toByteArray())
+                .joinToString("") { "%02x".format(it) }
+
+        /**
+         * 缓存失效用的书级片段：`content_ref` 形如 `books/<目录名>/cNNNNN.txt`，
+         * 按 `/<目录名>/` 剔除即覆盖一本书的全部条目。目录名经 [dirName] 派生——拿 bookId
+         * 原值拼这个片段的话，网络书（URL → md5）永远匹配不上，「删书/强刷后失效缓存」对
+         * 网络书全部空转。
          *
          * 只有正文缓存 [ChapterContentCache] 用它——该缓存的键由 `BookRepository.loadChapter`
          * 统一取 `chapterRef(noteUrl, index)`，本地书与网络书都是上面这个形状，故按书剔除两者都命中。
          *
          * **排版缓存不要照搬这条规则**：`ChapterLayoutCache` 的键取自 `chapter_list.content_ref`，
-         * 网络书那一列存的是章节 URL，不含 `/<bookId>/` 片段，按书剔除对网络书永远匹配不上
+         * 网络书那一列存的是章节 URL，不含 `/<目录名>/` 片段，按书剔除对网络书永远匹配不上
          * （而「强制刷新缓存」恰恰只发生在网络书上）。它的失效改由键内的内容指纹承担。
          */
-        fun cacheMarker(bookId: String): String = "/$bookId/"
+        fun cacheMarker(bookId: String): String = "/${dirName(bookId)}/"
     }
 }

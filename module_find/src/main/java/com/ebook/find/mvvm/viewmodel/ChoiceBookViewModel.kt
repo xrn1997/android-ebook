@@ -74,6 +74,7 @@ class ChoiceBookViewModel @Inject constructor(
                         updateBookAddState(event.bookShelf, false)
                     }
                     is BookShelfEvent.ProgressUpdated -> Unit // 阅读进度与列表页无关
+                    is BookShelfEvent.ChaptersUpdated -> Unit // 目录变长与「选哪本」列表无关
                 }
             }
         }

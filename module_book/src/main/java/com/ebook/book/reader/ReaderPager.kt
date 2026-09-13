@@ -22,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,8 +52,6 @@ import com.ebook.book.R
 import com.ebook.db.event.DBCode
 import com.xrn1997.common.util.ToastUtil
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.max
@@ -98,9 +95,10 @@ sealed interface ReaderPageUi {
  * - [drag] 为横向位移（px）：负值=向后翻（当前页左移），正值=向前翻（上一页滑入）
  * - 翻页成功/失败动画、30dp 成功阈值、[isMoving] 动画期手势锁，均复刻原语义
  *
- * 竞态说明：页面加载以 [ReaderPageKey] 为键去重（在途 job 与已 Loaded 的页都不重复请求）；翻页提交后
- * 尚未完成的加载任务自动归属新窗口（完成回调按 key==durKey 判断是否触发窗口重算），
- * 无需原实现的 qTag 时间戳过期校验。跳转（[setInitData]）时取消全部在途任务。
+ * 竞态说明：加载去重、三态与在途任务的取消都在 [ReaderPageStore] 里（两种翻页方式共用），
+ * 本类只负责几何。与窗口相关的那一条是：翻页提交后尚未完成的加载任务会自动归属新窗口
+ * ——仓库的完成回调在这里按 `key == durKey` 判断是否触发窗口重算，无需时间戳过期校验。
+ * 跳转（[setInitData]）时经仓库取消全部在途任务。
  *
  * 窗口收敛规则（[commitNext]/[commitPrev]）：提交翻页时目标页未必是
  * [ReaderPageUi.Loaded]（仍在途或已失败），此时算不出它的前后页，于是**保留来路页
@@ -142,11 +140,18 @@ class ReaderPagerController internal constructor(
     /** 翻页成功阈值（px），30dp 换算，由 [ReaderPager] 写入 */
     var turnThresholdPx: Float = 0f
 
-    private val pages = mutableStateMapOf<ReaderPageKey, ReaderPageUi>()
-    private val jobs = mutableMapOf<ReaderPageKey, Job>()
+    /**
+     * 加载仓库（与滚屏模式共用）。
+     *
+     * 完成回调按 `key == durKey` 判断是否触发窗口重算：翻页途中目标页加载完成时，
+     * 它已经升为当前页，此刻才算得出它的前后页。
+     */
+    private val store = ReaderPageStore(scope, loadPage).apply {
+        onLoaded = { key, loaded -> if (key == durKey) refreshWindow(loaded) }
+    }
 
     /** 取指定页渲染状态（未入窗口按加载中兜底） */
-    fun uiOf(key: ReaderPageKey?): ReaderPageUi = key?.let { pages[it] } ?: ReaderPageUi.Loading
+    fun uiOf(key: ReaderPageKey?): ReaderPageUi = store.uiOf(key)
 
     /** 章节标题（供加载中的页面预显标题，对齐原 loadData(title, ...) 语义） */
     fun titleOf(chapterIndex: Int): String = chapterTitle(chapterIndex)
@@ -156,49 +161,17 @@ class ReaderPagerController internal constructor(
      * 对齐原 setInitData：立即回调一次进度（驱动菜单标题与章节滑条）。
      */
     fun setInitData(chapterIndex: Int, durPageIndex: Int) {
-        jobs.values.forEach { it.cancel() }
-        jobs.clear()
-        pages.clear()
+        store.clear()
         prevKey = null
         nextKey = null
         durKey = ReaderPageKey(chapterIndex, durPageIndex)
         scope.launch { drag.snapTo(0f) }
-        ensureLoad(durKey)
+        store.ensureLoad(durKey)
         onProgress(chapterIndex, durPageIndex)
     }
 
     /** 加载失败重试 */
-    fun reload(key: ReaderPageKey) {
-        jobs.remove(key)?.cancel()
-        ensureLoad(key)
-    }
-
-    private fun ensureLoad(key: ReaderPageKey) {
-        if (jobs.containsKey(key)) return
-        // 已就绪的页不重抓：job 完成即从 [jobs] 注销，只看 jobs 去重会让窗口重算把仍是
-        // Loaded 的来路页打回 Loading 再抓一遍（快速回翻时刚读过的那页会闪一下转圈，
-        // 白跑一次 DB/网络 + 整章重排）。翻页只改窗口、不改排版，Loaded 的正文不会失效；
-        // 真正的换装点（字号/跳章）走 [setInitData]，那里已清空 [pages]，不受本短路影响；
-        // [reload] 只挂在错误态重试按钮上（Error 不是 Loaded），也不会被挡。
-        if (pages[key] is ReaderPageUi.Loaded) return
-        pages[key] = ReaderPageUi.Loading
-        jobs[key] = scope.launch {
-            val myJob = coroutineContext[Job]
-            val loaded = loadPage(key.chapterIndex, key.pageIndex)
-            // 仅当本协程仍是该 key 的当前登记任务时注销：若中途被 setInitData/reload/prune
-            // 取消并移出 jobs，后继任务可能已用同 key 重新登记，此处无条件删除会把后继任务
-            // 误删成孤儿（完成后用陈旧页覆盖已清空的窗口）。身份比对 + isActive 双保险。
-            if (myJob?.isActive == true && jobs[key] === myJob) jobs.remove(key)
-            if (isActive.not()) return@launch
-            if (loaded != null) {
-                pages[key] = loaded
-                // 完成时若该页已是当前页（翻页途中加载完成），立即重算窗口
-                if (key == durKey) refreshWindow(loaded)
-            } else {
-                pages[key] = ReaderPageUi.Error
-            }
-        }
-    }
+    fun reload(key: ReaderPageKey) = store.reload(key)
 
     /** 当前页加载完成后重算前后页窗口（对齐原 setDataFinish → updateOtherPage） */
     private fun refreshWindow(loaded: ReaderPageUi.Loaded) {
@@ -214,8 +187,8 @@ class ReaderPagerController internal constructor(
             if (p < all - 1) ReaderPageKey(c, p + 1)
             else ReaderPageKey(c + 1, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
         } else null
-        prevKey?.let(::ensureLoad)
-        nextKey?.let(::ensureLoad)
+        prevKey?.let(store::ensureLoad)
+        nextKey?.let(store::ensureLoad)
     }
 
     /** 手势拖拽增量（布局坐标，右滑为正）。方向可达性由窗口状态决定 */
@@ -309,7 +282,7 @@ class ReaderPagerController internal constructor(
         val from = durKey
         val nk = nextKey ?: return
         durKey = nk
-        val loaded = pages[nk] as? ReaderPageUi.Loaded
+        val loaded = store.uiOf(nk) as? ReaderPageUi.Loaded
         if (loaded != null) {
             refreshWindow(loaded)
         } else {
@@ -325,7 +298,7 @@ class ReaderPagerController internal constructor(
         val from = durKey
         val pk = prevKey ?: return
         durKey = pk
-        val loaded = pages[pk] as? ReaderPageUi.Loaded
+        val loaded = store.uiOf(pk) as? ReaderPageUi.Loaded
         if (loaded != null) {
             refreshWindow(loaded)
         } else {
@@ -336,14 +309,17 @@ class ReaderPagerController internal constructor(
         onProgress(pk.chapterIndex, pk.pageIndex)
     }
 
-    /** 清理窗口外页面状态与在途任务，防止内存累积 */
-    private fun prune() {
-        val keep = setOfNotNull(durKey, prevKey, nextKey)
-        pages.keys.toList().filter { it !in keep }.forEach {
-            pages.remove(it)
-            jobs.remove(it)?.cancel()
-        }
-    }
+    /**
+     * 把仓库裁到三页窗口（保留集就是窗口的三个键）。
+     *
+     * **翻页模式必须裁**：[refreshWindow] 在章首/章末会把窗口指到相邻章（`(c±1, 哨兵)`），
+     * 而翻页提交不走 `setInitData`、不 `clear`，于是连续阅读会一路跨章累积页状态——
+     * 这是它与滚屏模式相反的地方（那边块列表以章为界、换章必 clear，故不裁）。
+     *
+     * 裁在窗口重算**之后**，落点那一页恒在保留集内，所以回翻不会闪加载态；被剔掉的是
+     * 再往前一页，它在下次 [refreshWindow] 里按需重取。
+     */
+    private fun prune() = store.retain(setOfNotNull(durKey, prevKey, nextKey))
 }
 
 /**
@@ -509,7 +485,7 @@ private fun ReaderPageSlot(
  * 正文区高度才能在 Loading / Error / Loaded 三态间保持恒定（每页行数由正文区实测高度算出，
  * 见 [ReaderPageCard] 与 ReadBookActivity.rePaginate）。
  */
-private object ReaderPageTokens {
+internal object ReaderPageTokens {
     /** 页码行常驻高度：14sp 文本行高 + 底部留白（对齐原 tv_page 的占位节奏） */
     val pageNumberRowHeight = 30.dp
 }
@@ -518,7 +494,7 @@ private object ReaderPageTokens {
  * 页面内容卡片（替代原 BookContentView + adapter_content_switch_item.xml）。
  *
  * 三态互斥：加载中 / 错误（含重试）/ 正文（章节标题 + 整页文本 + 页码）。
- * 配色来自「阅读背景主题」（ReadBookControl），豁免系统深色模式。
+ * 配色来自「阅读背景主题」（ReadBookControl），正文层不随深浅色切换（chrome 层另计）。
  *
  * 两条契约（都直接影响"内容会不会丢"）：
  * 1. **正文区高度与页面状态无关**——每页行数按正文区实测高度算出，Loading/Loaded 两态
@@ -610,8 +586,8 @@ fun ReaderPageCard(
             }
             when (ui) {
                 is ReaderPageUi.Loading -> {
-                    // 配色全部由正文色按透明度派生：本页属「阅读背景主题」层（ADR-0012 整片豁免
-                    // 深色），在此改用 MaterialTheme 语义色会与四色正文主题打架
+                    // 配色全部由正文色按透明度派生：这一态同样画在纸上，属「阅读背景主题」层
+                    // （正文层豁免深浅色切换，见 ADR-0012），改用 MaterialTheme 语义色会与四色正文主题打架
                     Column(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally

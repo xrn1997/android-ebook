@@ -1,6 +1,6 @@
 package com.ebook.book
 
-import android.content.Context
+import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
 import android.text.TextPaint
@@ -13,9 +13,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -41,7 +40,6 @@ import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_OTHER
 import com.ebook.book.mvvm.viewmodel.SourceSwitchViewModel
 import com.ebook.book.reader.AddShelfDialog
-import com.ebook.book.reader.ChapterDownloadSheet
 import com.ebook.book.reader.ChapterLayoutCache
 import com.ebook.book.reader.ChapterLayoutKey
 import com.ebook.book.reader.ChapterListDrawer
@@ -52,6 +50,8 @@ import com.ebook.book.reader.ReaderBottomBar
 import com.ebook.book.reader.ReaderPager
 import com.ebook.book.reader.ReaderPagerController
 import com.ebook.book.reader.ReaderPanel
+import com.ebook.book.reader.ReaderScroll
+import com.ebook.book.reader.ReaderScrollController
 import com.ebook.book.reader.ReaderTopBar
 import com.ebook.book.reader.ReaderTypesetter
 import com.ebook.book.reader.SourceSwitchSheet
@@ -67,10 +67,8 @@ import com.ebook.common.event.RouteArgs
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.util.reportFailure
 import com.ebook.db.entity.BookShelfEntity
-import com.ebook.db.entity.DownloadChapterEntity
 import com.ebook.db.event.DBCode
 import com.ebook.source.analyze.BookSourceNotFoundException
-import com.permissionx.guolindev.PermissionX
 import com.therouter.TheRouter
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import com.xrn1997.common.ui.LoadingView
@@ -94,7 +92,8 @@ import kotlin.math.ceil
  * - 菜单/面板：[ReaderTopBar]/[ReaderBottomBar]/章节目录/亮度/字体/设置（原五个 PopupWindow）
  * - 数据加载：[loadPage]（原 loadContent：DB 缓存 → 网络 → 存库 → StaticLayout 重分行）
  *
- * 配色豁免：阅读界面使用「阅读背景主题」（ReadBookControl），不跟随系统深色模式。
+ * 配色分两层：正文用「阅读背景主题」（ReadBookControl 的四档纸张色），不随深浅色切换；
+ * 菜单/面板（chrome 层）继承全局主题，随外观主题模式走浅色或深色。
  */
 @AndroidEntryPoint
 class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
@@ -108,6 +107,19 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
 
     /** 翻页控制器引用：音量键翻页由 Activity.onKeyUp 转发（组合外入口） */
     var pagerController: ReaderPagerController? = null
+
+    /**
+     * 滚屏控制器引用：音量键滚一屏由 Activity.onKeyUp 转发（组合外入口）。
+     * 与 [pagerController] **同时只有一个非空**——「哪个非空」就是当前翻页方式的判据。
+     */
+    var scrollController: ReaderScrollController? = null
+
+    /** 滚屏模式的块高（px），由 [rePaginate] 按实测落定；0 = 尚未测算 */
+    internal var readerBlockHeightPx: Int = 0
+        private set
+
+    /** 上一次落定的每屏行数，供翻页方式切换时做落点换算（见 [convertPageIndex]） */
+    internal var lastLineCount: Int = 0
 
     /** 正文区实测宽度（px）：StaticLayout 分行宽度，由页面测量回调写入 */
     var readerContentWidthPx: Int = 0
@@ -199,20 +211,6 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     }
 
     /**
-     * 下载入口的通知权限请求（对齐原 readBookMenuMorePop 下载分支）。
-     *
-     * 无论授予与否都回调 [onResult]：通知只是进度的展示渠道，把它当成下载的前置门槛，
-     * 会造成"用户拒绝过一次通知 → 点下载完全没反应"（原实现 `if (allGranted) onGranted()` 的缺陷）；
-     * 前台服务与落库本身不需要该权限，Service 侧发不出通知时自行降级（见 DownloadService）。
-     */
-    fun requestDownloadPermission(onResult: () -> Unit) {
-        PermissionX
-            .init(this)
-            .permissions(PermissionX.permission.POST_NOTIFICATIONS)
-            .request { _: Boolean, _: List<String?>?, _: List<String?>? -> onResult() }
-    }
-
-    /**
      * 跳转章节评论区（M2：跨源评论合并——同一作品多个书源各有 book_group 行，
      * [bookKeys] 为所有关联的书级聚合键，逐一拼章索引后逗号分隔传给评论区做并集查询）。
      *
@@ -254,15 +252,41 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         val width = readerContentWidthPx
         val height = readerBodyHeightPx
         if (width <= 0 || height <= 0) return
-        val lineCount = typesetter.fitRenderLineCount(width, height)
-        if (lineCount <= 0) return
+        // 一次实测同时给出「放得下几行」与「这几行的实测总高」：翻页模式要前者、
+        // 滚屏模式还要后者当块高（块与块要精确无缝拼接，不能用心算的行高）。
+        // 两种翻页方式共用同一条判据（fitLines），对「一屏几行」只可能同解。
+        val metrics = typesetter.measureBlock(width, height) ?: return
+        if (metrics.lineCount <= 0) return
         // 样式与行数一起落定：随后的 loadPage 取的就是这份样式，测算与分页不可能错身
         readerTypesetter = typesetter
-        viewModel.pageLineCount = lineCount
+        viewModel.pageLineCount = metrics.lineCount
+        readerBlockHeightPx = metrics.heightPx
+        // 换算要用「切换前那个模式的行数」与新行数做对比：这份记录必须早于任何模式切换
+        lastLineCount = metrics.lineCount
         val shelf = viewModel.bookShelf ?: return
         if (startFromCurrent) {
+            // 两个控制器都收敛：只有当前模式那个会被渲染，但两边共用一个落点，
+            // 换模式时不必再补一次初始化（换模式的落点换算见 ReadBookScreen 的 pendingTurnModeSwitch）
             pagerController?.setInitData(shelf.durChapter, shelf.durChapterPage)
+            scrollController?.setInitData(shelf.durChapter, shelf.durChapterPage)
         }
+    }
+
+    /**
+     * 翻页方式切换时的落点换算：按**行号**而不是屏号跨模式对齐。
+     *
+     * 两种模式的正文视口高度不同（滚屏模式没有块内标题行，视口更高），因此
+     * `pageLineCount` 不同、同一个屏号指向的不是同一段字。行号是两边共通的量：
+     * 旧模式读到第 oldPage 屏 = 读到了第 `oldPage × oldLineCount` 行，
+     * 新模式下含该行的屏是 `lineOffset / newLineCount`。
+     *
+     * 只在阅读器内切换时调用：冷启动时 `durChapterPage` 与已持久化的模式天然同口径，
+     * 不需要也不应该换算。
+     */
+    internal fun convertPageIndex(oldPageIndex: Int, oldLineCount: Int, newLineCount: Int): Int {
+        if (oldLineCount <= 0 || newLineCount <= 0) return 0
+        val lineOffset = oldPageIndex.coerceAtLeast(0) * oldLineCount
+        return lineOffset / newLineCount
     }
 
     /**
@@ -365,16 +389,25 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         return super.onKeyDown(keyCode, event)
     }
 
-    /** 音量键翻页（受"按键翻页"开关控制），其余按键走系统默认 */
+    /** 音量键翻页/滚一屏（受"按键翻页"开关控制），其余按键走系统默认 */
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         if (ReadBookControl.canKeyTurn) {
             when (keyCode) {
                 KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                    pagerController?.turnNext()
+                    // 两个控制器只有一个非空（方式互斥），非空的那个就是当前方式。
+                    // 用 when 而不是 `?:`：本类里 `pagerController?.turnNext()` 的返回值
+                    // 只为 Unit?，Elvis 的右侧读起来像「失败的兜底」而不是「换个分支」
+                    when {
+                        pagerController != null -> pagerController?.turnNext()
+                        else -> scrollController?.scrollOneScreen(forward = true)
+                    }
                     return true
                 }
                 KeyEvent.KEYCODE_VOLUME_UP -> {
-                    pagerController?.turnPrev()
+                    when {
+                        pagerController != null -> pagerController?.turnPrev()
+                        else -> scrollController?.scrollOneScreen(forward = false)
+                    }
                     return true
                 }
             }
@@ -389,32 +422,13 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
 
     @Composable
     override fun PageContent() {
-        // 阅读器整片豁免系统深色：作用域内固定 lightColorScheme，使顶/底栏、面板、
-        // 弹窗的 MaterialTheme.colorScheme.* 一律解析到浅色，与正文阅读背景主题（
-        // ReadBookControl）保持一致、不随系统深色切换（ADR-0001 记载的豁免情形）。
-        MaterialTheme(colorScheme = ReaderLightColorScheme) {
-            ReadBookScreen(this, viewModel)
-        }
+        // 阅读控制器（顶/底栏、目录抽屉、亮度/字体/设置面板、弹窗）跟随外观主题模式的深浅色：
+        // 不在本页内层再包一层固定浅色 MaterialTheme，直接继承基类 AppTheme 装配点的主题，
+        // chrome 层所有 colorScheme.* 语义色随浅色/深色解析。
+        // 正文层与 chrome 层各管一段：纸张配色由 ReadBookControl 显式给出，深浅色切换不动它。
+        ReadBookScreen(this, viewModel)
     }
 }
-
-/**
- * 下载面板异步参数快照：缓存事实集 + 预勾选集（通知权限/缓存查询完成后才开面板，
- * 避免面板先弹出后闪烁刷新）。
- */
-private data class DownloadSheetArgs(
-    val cachedIndices: Set<Int>,
-    val initialSelected: Set<Int>
-)
-
-/**
- * 阅读器固定浅色色彩方案：整片豁免系统深色。
- *
- * 对齐原阅读界面菜单/面板始终为浅色（原 ll_menu_top/ll_menu_bottom 固定 #ffffff）；
- * 正文背景由 [ReadBookControl] 阅读背景主题独立控制，故本方案仅覆盖 chrome 层的
- * [MaterialTheme.colorScheme]，语义色走默认 Material 浅色调板、不逐组件硬编码颜色。
- */
-private val ReaderLightColorScheme: ColorScheme = lightColorScheme()
 
 /**
  * 构造阅读正文排版的 TextPaint（字号与 Compose 正文一致）。
@@ -451,7 +465,7 @@ private fun ReadBookScreen(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
 
-    // ---------------- 阅读主题（ReadBookControl 原始色值，豁免深色模式） ----------------
+    // ---------------- 阅读主题（ReadBookControl 原始色值，正文层豁免深浅色切换） ----------------
     // 版本号仅用于触发重组以重读单例最新值（ReadBookControl 非 Compose 状态）
     var textKindVersion by remember { mutableIntStateOf(0) }
     var bgVersion by remember { mutableIntStateOf(0) }
@@ -486,8 +500,6 @@ private fun ReadBookScreen(
     var pagerStarted by remember { mutableStateOf(false) }
     var importingBook by remember { mutableStateOf(false) } // 外部打开文本的导入遮罩
     var addShelfDialogVisible by remember { mutableStateOf(false) }
-    // 下载面板异步参数（见 DownloadSheetArgs）；面板显隐由 panel 枚举驱动，与其他面板一致
-    var downloadArgs by remember { mutableStateOf<DownloadSheetArgs?>(null) }
     // 正文区测量尺寸（Compose 状态，驱动首屏分页启动）；
     // activity.onBodyMeasured 同步存非状态字段供 loadPage 分行使用。
     var bodyWidth by remember { mutableIntStateOf(0) }
@@ -495,6 +507,39 @@ private fun ReadBookScreen(
 
     val bookShelf = viewModel.bookShelf
     val chapterAll = viewModel.getChapterListSize()
+
+    /**
+     * 到达末章时静默查一次目录更新。
+     *
+     * 挂在 `onProgress` 而不是别处：它是两种翻页方式（左右翻页 / 上下滚屏）**唯一共用**的
+     * 进度回调，翻页方式与容器无关，挂在这里就不必各接一遍。
+     *
+     * 追加成功后复用换源那条已验证的重载路径，差别有三点：不需要整体替换
+     * `viewModel.bookShelf`（VM 已就地更新它的 chapterList，阅读器现取该字段）、
+     * `startFromCurrent = true`（换源是 false，因为页级进度不跨源）、不调 `gotoPage`
+     * （纯追加不改既有章的序号，位置没动）。
+     * `sliderValue` 与 `chapterTitle` 是页面本地状态、不随 VM 重组，必须一并跟上，
+     * 否则滑条仍按旧的「共 M 章」计算、重组成后读到的章数也停在旧值。
+     *
+     * 声明必须早于下面两个控制器：它们的 lambda 要引用本函数，而 Kotlin 不允许
+     * lambda 前向引用后面才声明的局部 `val`。
+     */
+    val syncAtTailChapter: (Int) -> Unit = { chapterIndex ->
+        if (chapterIndex == viewModel.getChapterListSize() - 1) {
+            scope.launch {
+                val appended = viewModel.appendChaptersIfAny()
+                if (!appended.isNullOrEmpty()) {
+                    activity.rePaginate(typesetter, startFromCurrent = true)
+                    chapterTitle = viewModel.getChapterTitle(chapterIndex)
+                    sliderValue = (chapterIndex + 1).toFloat()
+                    ToastUtil.showShort(
+                        context,
+                        context.getString(R.string.chapters_appended, appended.size),
+                    )
+                }
+            }
+        }
+    }
 
     // ---------------- 翻页控制器 ----------------
     val controller = remember {
@@ -510,12 +555,50 @@ private fun ReadBookScreen(
                 viewModel.updateProgress(c, p)
                 chapterTitle = viewModel.getChapterTitle(c)
                 sliderValue = (c + 1).toFloat()
+                syncAtTailChapter(c)
             }
         )
     }
-    DisposableEffect(controller) {
-        activity.pagerController = controller
-        onDispose { activity.pagerController = null }
+    // 翻页方式的页面级镜像：ReadBookControl.turnModeIndex 不是 Compose State，写入不触发重组。
+    // 与 clickTurnEnabled 同一套理由（见其注释）——不能让「换模式是否生效」依赖面板恰好重组。
+    var turnModeIndex by remember { mutableIntStateOf(ReadBookControl.turnModeIndex) }
+
+    val scrollController = remember {
+        ReaderScrollController(
+            scope = scope,
+            context = context,
+            chapterSize = { viewModel.getChapterListSize() },
+            chapterTitle = { viewModel.getChapterTitle(it) },
+            loadPage = { c, p -> activity.loadPage(c, p) },
+            onProgress = { c, p ->
+                // 与翻页模式同一个回调口径：进度落 ViewModel + 菜单标题 + 章节滑条
+                viewModel.updateProgress(c, p)
+                chapterTitle = viewModel.getChapterTitle(c)
+                sliderValue = (c + 1).toFloat()
+                syncAtTailChapter(c)
+            }
+        )
+    }
+    // 两个控制器都建、只把当前模式那个挂到 Activity：音量键分派靠「哪个非空」判方式（见 onKeyUp）
+    DisposableEffect(turnModeIndex) {
+        val isPage = turnModeIndex == 0
+        activity.pagerController = if (isPage) controller else null
+        activity.scrollController = if (isPage) null else scrollController
+        onDispose {
+            activity.pagerController = null
+            activity.scrollController = null
+        }
+    }
+
+    /**
+     * 跳转统一入口：按当前翻页方式路由到对应控制器（目录跳章、进度条跳章、上下章、换页刷新、换源都用它）。
+     *
+     * 两种控制器的 `setInitData(章号, 页号/哨兵)` 语义相同，故调用方不必知道当前是哪种方式。
+     * 直接调某一个控制器的后果不是崩溃而是**静默失效**：滚屏模式下翻页控制器没挂到视图上，
+     * 跳章只改了它的状态、页面上什么都不会发生。
+     */
+    val gotoPage: (chapterIndex: Int, pageIndex: Int) -> Unit = { c, p ->
+        if (turnModeIndex == 0) controller.setInitData(c, p) else scrollController.setInitData(c, p)
     }
 
     // ---------------- 生命周期与事件 ----------------
@@ -527,9 +610,19 @@ private fun ReadBookScreen(
         }
     }
 
-    // 状态栏色随阅读背景自适应（对齐原 setStatusBarColor(textBackground.detectColor())）
-    LaunchedEffect(bgVersion) {
-        activity.setStatusBarColor(ReadBookControl.textBackground.detectColor())
+    // 状态栏图标随「压在它下面的那一层」取色：顶栏与目录抽屉都把背景延伸到状态栏后面
+    // （避让 padding 写在底色内层），可见时图标要跟 chrome 的 surface 色而非纸张色，
+    // 否则深色控制器 + 素白纸张会把深色图标画在深色栏上。收起菜单后回到纸张色。
+    // chrome 两处（顶栏 surfaceContainer / 抽屉 surfaceContainerLow）在任一调板里都落在
+    // 阈值同一侧，取一处即够；其余面板是底部弹层，其遮罩按亮度叠在纸张上、不改判据方向。
+    val chromeSurface = MaterialTheme.colorScheme.surfaceContainer
+    LaunchedEffect(bgVersion, menuVisible, panel, chromeSurface) {
+        val colorUnderStatusBar = if (menuVisible || panel == ReaderPanel.CHAPTER) {
+            chromeSurface.toArgb()
+        } else {
+            ReadBookControl.textBackground
+        }
+        activity.setStatusBarColor(colorUnderStatusBar.detectColor())
     }
 
     // 书架归属检查完成事件（原 initBaseViewObservable 的 nextInShelfEvent 收集）
@@ -553,10 +646,13 @@ private fun ReadBookScreen(
             sliderValue = ((viewModel.bookShelf?.durChapter ?: 0) + 1).toFloat()
             val shelf = viewModel.bookShelf
             activity.rePaginate(typesetter, startFromCurrent = false)
-            controller.setInitData(
-                shelf?.durChapter ?: 0,
-                shelf?.durChapterPage ?: DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
-            )
+            val initChapter = shelf?.durChapter ?: 0
+            val initPage = shelf?.durChapterPage ?: DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
+            controller.setInitData(initChapter, initPage)
+            // 滚屏控制器同时喂：它此刻没有渲染，但不初始化就会带着「章号 0、块数 0」的
+            // 初值躺在那里；用户一换模式，pendingTurnModeSwitch 会在换算后重新定位它，
+            // 中间那一帧的落点便是错的
+            scrollController.setInitData(initChapter, initPage)
         }
     }
 
@@ -565,6 +661,30 @@ private fun ReadBookScreen(
     // 新样式要等这次重组才生效，直接在回调里重分页就会拿旧样式去量新字号的行数。
     LaunchedEffect(typesetter) {
         if (pagerStarted) activity.rePaginate(typesetter, startFromCurrent = true)
+    }
+
+    // 翻页方式切换：新容器要等重组后才成形、新视口尺寸才回报得上来，因此换算不能在面板回调里
+    // 立刻做（那会拿旧视口量新布局），而是等 bodyHeight 落到新模式的那一份之后再算。
+    // 与「字号变化由 LaunchedEffect(typesetter) 接力」是同一条时序纪律。
+    var pendingTurnModeSwitch by remember { mutableStateOf(false) }
+    LaunchedEffect(bodyHeight, pendingTurnModeSwitch) {
+        if (!pendingTurnModeSwitch) return@LaunchedEffect
+        // 先清标记、再判前置条件：首屏尚未启动时这次切换不需要换算（启动流程会把两个控制器
+        // 一起收敛到持久化落点），但标记必须清掉——留着它会让此后任意一次 bodyHeight 变化
+        // （例如改字号引起的重排）误触发一次换算，把用户当前的位置按行号又搬一次。
+        pendingTurnModeSwitch = false
+        if (!pagerStarted) return@LaunchedEffect
+        val shelf = viewModel.bookShelf ?: return@LaunchedEffect
+        val oldLineCount = activity.lastLineCount
+        activity.rePaginate(typesetter, startFromCurrent = false)
+        val newLineCount = viewModel.pageLineCount
+        val target = activity.convertPageIndex(shelf.durChapterPage, oldLineCount, newLineCount)
+        viewModel.updateProgress(shelf.durChapter, target)
+        if (turnModeIndex == 0) {
+            controller.setInitData(shelf.durChapter, target)
+        } else {
+            scrollController.setInitData(shelf.durChapter, target)
+        }
     }
 
     // 返回键处置链（对齐原 onBackPressedDispatcher 回调）：
@@ -580,28 +700,24 @@ private fun ReadBookScreen(
         }
     }
 
-    // ---------------- 下载面板（章节多选，缓存感知） ----------------
-    // 统一入口：请通知权限 → 从章文件查缓存事实集 → 预勾选 → 开面板。
-    // 预勾选沿用原默认范围语义（当前章 +50 章）：默认勾范围内未缓存章节（一键下载习惯）；
-    // 想刷新缓存就改勾已缓存章节——任务统一带 forceRefresh（见 startChapterDownload）
-    val openDownloadSheet: () -> Unit = {
+    // ---------------- 下载入口（打开「下载中心」直达该书选章二级页） ----------------
+    // 下载任务须挂在书架行上才能被 DownloadService 拉取，且二级页按 note_url 读章目录，
+    // 故先确保该书在架（原「确认下载时加架」语义提前到入口），成功后再带参打开。
+    val openDownloadCenter = {
         menuVisible = false
-        activity.requestDownloadPermission {
-            val shelf = viewModel.bookShelf
-            val chapterList = shelf?.chapterList
-            if (shelf == null || chapterList.isNullOrEmpty()) return@requestDownloadPermission
-            scope.launch {
-                val cachedIndices = activity.bookRepository.getCachedChapterIndices(
-                    shelf, chapterList
+        viewModel.addToShelf(object : BookReadViewModel.OnAddListener {
+            override fun addSuccess() {
+                val shelf = viewModel.bookShelf ?: return
+                context.startActivity(
+                    Intent(context, DownloadManageActivity::class.java).apply {
+                        putExtra(DownloadManageActivity.EXTRA_NOTE_URL, shelf.noteUrl)
+                        putExtra(DownloadManageActivity.EXTRA_TAG, shelf.tag)
+                        putExtra(DownloadManageActivity.EXTRA_FOCUS_CHAPTER, shelf.durChapter)
+                        putExtra(DownloadManageActivity.EXTRA_OPEN_PICK, true)
+                    }
                 )
-                val endIndex = (shelf.durChapter + 50).coerceAtMost(chapterList.size - 1)
-                val initialSelected = (shelf.durChapter..endIndex).filterTo(mutableSetOf()) { i ->
-                    i !in cachedIndices
-                }
-                downloadArgs = DownloadSheetArgs(cachedIndices, initialSelected)
-                panel = ReaderPanel.DOWNLOAD
             }
-        }
+        })
     }
 
     // ---------------- 布局 ----------------
@@ -610,21 +726,43 @@ private fun ReadBookScreen(
     val chapters = bookShelf?.chapterList ?: emptyList()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        ReaderPager(
-            controller = controller,
-            textColor = textColor,
-            bgColor = bgColor,
-            textSizeSp = textSizeSp,
-            lineHeight = lineHeight,
-            canClickTurn = clickTurnEnabled,
-            onCenterTap = { menuVisible = !menuVisible },
-            onBodySizeChanged = { w, h ->
-                activity.onBodyMeasured(w, h)
-                if (w != bodyWidth) bodyWidth = w
-                if (h != bodyHeight) bodyHeight = h
-            },
-            modifier = Modifier.fillMaxSize()
-        )
+        if (turnModeIndex == 0) {
+            ReaderPager(
+                controller = controller,
+                textColor = textColor,
+                bgColor = bgColor,
+                textSizeSp = textSizeSp,
+                lineHeight = lineHeight,
+                canClickTurn = clickTurnEnabled,
+                onCenterTap = { menuVisible = !menuVisible },
+                onBodySizeChanged = { w, h ->
+                    activity.onBodyMeasured(w, h)
+                    if (w != bodyWidth) bodyWidth = w
+                    if (h != bodyHeight) bodyHeight = h
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            ReaderScroll(
+                controller = scrollController,
+                textColor = textColor,
+                bgColor = bgColor,
+                textSizeSp = textSizeSp,
+                lineHeight = lineHeight,
+                blockHeightPx = activity.readerBlockHeightPx,
+                canClickTurn = clickTurnEnabled,
+                onCenterTap = { menuVisible = !menuVisible },
+                // 滚屏的视口尺寸不比翻页模式：块内没有标题行、也没有块内页码行，
+                // 所以视口更高、每屏行数更多——这正是两模式 pageLineCount 不同、
+                // 切模式要按行号换算落点的原因（见 convertPageIndex）
+                onViewportSizeChanged = { w, h ->
+                    activity.onBodyMeasured(w, h)
+                    if (w != bodyWidth) bodyWidth = w
+                    if (h != bodyHeight) bodyHeight = h
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         // 菜单背景（对齐原 v_menu_bg：菜单可见时点击空白关闭）
         if (menuVisible) {
@@ -656,13 +794,13 @@ private fun ReadBookScreen(
                         activity.finish()
                     }
                 },
-                onDownload = openDownloadSheet,
+                onDownload = openDownloadCenter,
                 onRefresh = {
                     menuVisible = false
                     scope.launch {
                         val position = viewModel.refreshCurrentChapter()
                         if (position != null) {
-                            activity.pagerController?.setInitData(position.first, position.second)
+                            gotoPage(position.first, position.second)
                         }
                     }
                 },
@@ -716,10 +854,7 @@ private fun ReadBookScreen(
                     if (realDur < 1) realDur = 1
                     val shelf = viewModel.bookShelf
                     if (shelf != null && realDur - 1 != shelf.durChapter) {
-                        controller.setInitData(
-                            realDur - 1,
-                            DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
-                        )
+                        gotoPage(realDur - 1, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
                     }
                     if (sliderValue != realDur.toFloat()) sliderValue = realDur.toFloat()
                 },
@@ -727,18 +862,12 @@ private fun ReadBookScreen(
                 nextEnabled = sliderValue < chapterAll.toFloat(),
                 onPrevChapter = {
                     viewModel.bookShelf?.let { shelf ->
-                        controller.setInitData(
-                            shelf.durChapter - 1,
-                            DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
-                        )
+                        gotoPage(shelf.durChapter - 1, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
                     }
                 },
                 onNextChapter = {
                     viewModel.bookShelf?.let { shelf ->
-                        controller.setInitData(
-                            shelf.durChapter + 1,
-                            DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
-                        )
+                        gotoPage(shelf.durChapter + 1, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
                     }
                 },
                 onCatalog = { panel = ReaderPanel.CHAPTER },
@@ -749,7 +878,7 @@ private fun ReadBookScreen(
         }
 
         // 外部打开文本的导入遮罩：共享 LoadingView（透明遮罩 + 居中卡片，语义对齐原 MoProgressHUD.showLoading）。
-        // 阅读器浅色作用域内 LoadingView 取当前主题语义色，无需自绘 scrim 层
+        // LoadingView 取当前主题的语义色（chrome 层已随外观主题深浅色），无需自绘 scrim 层
         LoadingView(
             visible = importingBook,
             modifier = Modifier.fillMaxSize(),
@@ -766,7 +895,7 @@ private fun ReadBookScreen(
             durChapter = bookShelf?.durChapter ?: 0,
             onChapterClick = { index ->
                 panel = ReaderPanel.NONE
-                controller.setInitData(index, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
+                gotoPage(index, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
             },
             onDismiss = { panel = ReaderPanel.NONE }
         )
@@ -790,21 +919,17 @@ private fun ReadBookScreen(
         )
         ReaderPanel.SETTING -> MoreSettingPanel(
             onDismiss = { panel = ReaderPanel.NONE },
-            onClickTurnChanged = { clickTurnEnabled = it }
+            onClickTurnChanged = { clickTurnEnabled = it },
+            onTurnModeChanged = { index ->
+                if (index != turnModeIndex) {
+                    turnModeIndex = index
+                    // 切换前先记下旧模式的行数：换算要用两个模式的行数。
+                    // rePaginate 也会刷新 lastLineCount，故这里必须**早于**那次重分页
+                    activity.lastLineCount = viewModel.pageLineCount
+                    pendingTurnModeSwitch = true
+                }
+            }
         )
-        // 下载（已含刷新缓存能力：任务统一带 forceRefresh，勾中已缓存章节即重抓）
-        ReaderPanel.DOWNLOAD -> downloadArgs?.let { args ->
-            ChapterDownloadSheet(
-                chapters = chapters,
-                cachedIndices = args.cachedIndices,
-                initialSelected = args.initialSelected,
-                onConfirm = { selected ->
-                    panel = ReaderPanel.NONE
-                    startChapterDownload(viewModel, context, selected)
-                },
-                onDismiss = { panel = ReaderPanel.NONE }
-            )
-        }
         // 换源（ADR-0016 决策 8，P3-d）：候选来自跨源聚合搜索，点中即执行仓库那条「先插新、后删旧」事务
         ReaderPanel.SOURCE_SWITCH -> bookShelf?.let { shelf ->
             val switchViewModel: SourceSwitchViewModel = hiltViewModel()
@@ -834,10 +959,7 @@ private fun ReadBookScreen(
                     // 目录长度已变、页级进度不跨源（仓库把 durChapterPage 复位为「第一页」）：
                     // 按当前样式重分页后从目标章第一页起排，与首屏同一条启动路径
                     activity.rePaginate(typesetter, startFromCurrent = false)
-                    controller.setInitData(
-                        outcome.targetChapter,
-                        DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
-                    )
+                    gotoPage(outcome.targetChapter, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
                     // 顶栏章节标题与底栏滑条是页面本地状态（不随 VM 重组），必须一并跟上，
                     // 否则换源后标题仍写着旧源「第 N 章 · 共 M 章」
                     chapterTitle = viewModel.getChapterTitle(outcome.targetChapter)
@@ -872,43 +994,4 @@ private fun ReadBookScreen(
             onDismiss = { addShelfDialogVisible = false }
         )
     }
-}
-
-/**
- * 发起章节下载：先加入书架 → 按选中索引构建任务列表 → 交给 ViewModel 入库并拉起服务。
- *
- * 任务统一携带 [DownloadChapterEntity.forceRefresh]：下载入口已合并原"强制刷新缓存"入口，
- * 用户显式勾中已缓存章节时必须真正重抓（先删旧内容）；未缓存章节该标记为空操作，
- * 行为与普通下载一致。任务列表按索引升序，保证下载顺序与目录一致。
- */
-private fun startChapterDownload(
-    viewModel: BookReadViewModel,
-    context: Context,
-    selected: Set<Int>
-) {
-    val shelf = viewModel.bookShelf ?: return
-    val bookInfo = shelf.bookInfo
-    viewModel.addToShelf(object : BookReadViewModel.OnAddListener {
-        override fun addSuccess() {
-            val result = selected.sorted().mapNotNull { i ->
-                viewModel.getChapter(i)?.let { chapter ->
-                    DownloadChapterEntity(
-                        noteUrl = shelf.noteUrl,
-                        durChapterIndex = chapter.durChapterIndex,
-                        durChapterName = chapter.durChapterName,
-                        durChapterUrl = chapter.contentRef,
-                        tag = shelf.tag,
-                        bookName = bookInfo?.name ?: context.getString(R.string.unknown_book),
-                        coverUrl = bookInfo?.coverUrl ?: "",
-                        forceRefresh = true
-                    )
-                }
-            }
-            if (result.isEmpty()) return
-            // 入库与前台服务拉起统一交给 BookReadViewModel.startDownload：任务先落库，再经
-            // DownloadService.start 启动（启动被系统拒绝时任务不丢，见那里的注释）；通知权限在入口
-            // 已顺带申请，但拒绝不影响下载（仅看不到进度通知，见 requestDownloadPermission）
-            viewModel.startDownload(result)
-        }
-    })
 }

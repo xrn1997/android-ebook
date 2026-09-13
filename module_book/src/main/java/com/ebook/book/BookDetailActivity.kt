@@ -297,6 +297,18 @@ fun BookDetailScreen(
             )
         }
 
+        // 目录分叉提示：本地目录一行未动，页面数据完好、能读能下载，只是查不到新章。
+        // 故与上方的 loadError 不是一回事 —— 不做成可点重试（分叉不是暂时性故障，
+        // 重试无意义），也不置 loadError（那会让一本正常显示的书凭空变成加载失败态）。
+        if (state.tocDiverged) {
+            Text(
+                text = stringResource(R.string.toc_diverged_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
+
         // 操作按钮：书架切换（次要）+ 开始阅读（主要）
         Row(modifier = Modifier.fillMaxWidth()) {
             OutlinedButton(

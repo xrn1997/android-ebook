@@ -1,17 +1,11 @@
 package com.ebook.book.mvvm.viewmodel
 
-import android.content.Context
 import androidx.lifecycle.viewModelScope
-import com.ebook.book.R
-import com.ebook.book.repository.DownloadRepository
-import com.ebook.book.service.DownloadService
 import com.ebook.common.analyze.local.ChapterContent
 import com.ebook.common.repository.BookRepository
+import com.ebook.common.repository.ChapterSyncResult
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.ChapterListEntity
-import com.ebook.db.entity.DownloadChapterEntity
-import com.xrn1997.common.util.ToastUtil
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
@@ -20,9 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BookReadViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val bookRepository: BookRepository,
-    private val downloadRepository: DownloadRepository
+    private val bookRepository: BookRepository
 ) : BaseViewModel<BookRepository>(bookRepository) {
     var isAdd = false
     var bookShelf: BookShelfEntity? = null
@@ -70,25 +62,6 @@ class BookReadViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 发起一批章节下载：先入库，再拉起前台服务。
-     *
-     * 顺序很关键：前台服务启动在 targetSdk 35+ 可能被系统直接拒绝（dataSync 类型 24 小时内共
-     * 6 小时的配额用尽，或应用已处于后台，见 [DownloadService.start]），而任务原先只躲在 Intent
-     * extra 里，一旦启动被拒这批选择就彻底丢了。先入库后，服务任何一次拉起（页面重试、
-     * 下载管理页、START_STICKY 重启）都能按库中未完成任务续跑；[DownloadRepository.addTasks] 按章节
-     * URL 去重，服务收到同批 Intent 再入一次也是幂等的（见其构造分支）。
-     */
-    fun startDownload(chapters: List<DownloadChapterEntity>) {
-        if (chapters.isEmpty()) return
-        viewModelScope.launch {
-            downloadRepository.addTasks(chapters)
-            if (!DownloadService.start(context, DownloadService.buildStartIntent(context, chapters))) {
-                ToastUtil.showShort(context, context.getString(R.string.download_start_restricted))
-            }
-        }
-    }
-
     /** 统一章节正文读取（本地书与网络书同路径） */
     suspend fun loadChapter(chapter: ChapterListEntity): ChapterContent? =
         bookShelf?.let {
@@ -108,6 +81,38 @@ class BookReadViewModel @Inject constructor(
         bookRepository.refreshChapter(shelf, chapterIndex)
         return chapterIndex to pageIndex
     }
+
+    /**
+     * 读到末章时静默查一次目录更新。
+     *
+     * 追加成功时**就地更新** `bookShelf.chapterList`：阅读器的一切都现取这个字段
+     * （正文走 `loadChapter`、目录走 [getChapter] / [getChapterListSize]），故替换掉它
+     * 持有的那个 List 即可生效，**不需要整体替换实体** —— 换源那条路径要替换是因为
+     * 换了另一本书，这里还是同一本、只是目录变长。
+     *
+     * 返回值只区分「有新章」（交回新章，宿主据此重分页并跟上滑条与标题）与
+     * 「页面不用动」（其余全部结局，包括失败 —— 那是静默路径，见目录重抓的处置口径）。
+     *
+     * **单飞**：宿主的进度回调在末章每一页翻动时都会调本方法，限频只能保证
+     * 「窗口内一次网络」，挡不住同一批页快速来回翻时并发起来。本方法只在主线程
+     * （Compose 回调）被调，故普通 [Boolean] 足够，不需要原子量。
+     */
+    suspend fun appendChaptersIfAny(): List<ChapterListEntity>? {
+        val shelf = bookShelf ?: return null
+        if (syncInFlight) return null
+        syncInFlight = true
+        try {
+            val result = bookRepository.syncChaptersFromSource(shelf)
+            val appended = (result as? ChapterSyncResult.Appended)?.appended ?: return null
+            bookShelf = shelf.copy(chapterList = shelf.chapterList + appended)
+            return appended
+        } finally {
+            syncInFlight = false
+        }
+    }
+
+    /** 目录检查是否正在进行（单飞标志，见 [appendChaptersIfAny]） */
+    private var syncInFlight = false
 
     /**
      * 获取章节列表大小

@@ -12,8 +12,10 @@ import kotlinx.coroutines.sync.withLock
  * 20 次 open + read + 解码，性能不升反降。容量取 3（当前章 + 前后各一），正好覆盖
  * 预加载上一页/下一页。
  *
- * 键用 `content_ref` 而不是 (书, 章) 二元组：`content_ref` 本身是持久定位符且内含 bookId，
- * 于是 [invalidateBook] 按 `/<bookId>/` 片段剔除即可，不必再维护反向索引。
+ * 键用 `content_ref` 而不是 (书, 章) 二元组：`content_ref` 本身是持久定位符且内含书目录名，
+ * 于是 [invalidateBook] 按 `/<书目录名>/` 片段剔除即可，不必再维护反向索引。片段由
+ * `BookStore.cacheMarker` 从 bookId 派生（网络书的目录名是 md5、不等于 note_url 原值），
+ * 本类不自己拼。
  *
  * 失效入口对应真实事件：删书、合并来源由 `BookRepository` 调 [invalidateBook]；章节重解析
  * （下载服务「强制刷新缓存」重抓成功）由 `DownloadService` 调同一入口——重抓不换 `content_ref`

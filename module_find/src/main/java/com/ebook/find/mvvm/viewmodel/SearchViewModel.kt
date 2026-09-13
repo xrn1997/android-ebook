@@ -121,6 +121,7 @@ class SearchViewModel @Inject constructor(
                         updateBookAddState(event.bookShelf, false)
                     }
                     is BookShelfEvent.ProgressUpdated -> Unit // 阅读进度与搜索页无关
+                    is BookShelfEvent.ChaptersUpdated -> Unit // 目录变长与搜索结果列表无关
                 }
             }
         }

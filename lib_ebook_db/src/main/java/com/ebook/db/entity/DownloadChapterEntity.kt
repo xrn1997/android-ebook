@@ -13,8 +13,9 @@ import kotlinx.parcelize.Parcelize
  * 任务自带跑完它所需的全部信息（书的 note_url、章节序号/URL/名、书源归属标记、书名与封面），
  * 因为 DownloadService 抓取时只拿得到这一条记录，不回查书架；书名与章节名进常驻通知文案，
  * 书名与封面还供下载管理页的分组行展示。
- * 任务由阅读器下载面板构造，既入库排队，也随启动 Intent 直达服务——这就是它需要 [Parcelable]
- * 的原因（见 DownloadService.buildStartIntent）。
+ * 任务由下载中心/阅读器构造并经 `download_chapter` 表持久化，服务侧读库取篇消费（不再随启动
+ * Intent 直达服务，见 DownloadService.buildStartIntent 的空载信号设计）；与包内其他实体一致
+ * 实现 [Parcelable]，保持同层约定。
  *
  * 键的设计（见 ADR-0003）：流水型数据用自增 `id` 主键，"同章不重复排队"由 `dur_chapter_url`
  * 上的唯一索引兜底，`note_url` 普通索引支撑按书取队头与按书取消。

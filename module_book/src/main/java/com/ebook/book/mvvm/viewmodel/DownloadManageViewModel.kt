@@ -5,9 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.book.R
 import com.ebook.book.repository.DownloadRepository
 import com.ebook.book.repository.DownloadState
+import com.ebook.book.reader.defaultChapterWindow
 import com.ebook.book.service.DownloadService
+import com.ebook.common.util.reportFailure
+import com.ebook.db.entity.ChapterListEntity
 import com.ebook.db.entity.DownloadChapterEntity
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
+import com.xrn1997.common.util.Logger
 import com.xrn1997.common.util.ToastUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -15,8 +19,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -25,19 +31,78 @@ import javax.inject.Inject
  *
  * - [remaining]：队列里这本书还没下完的章数（随任务增删变化）
  * - [totalChapters]/[cachedChapters]：全书章节数与已缓存数，构成"全书缓存覆盖率"进度条
- * - [isActive]：该书是否有章节正在被服务抓取（用于高亮当前书）
+ * - [tag]：该书书源归属标记（二级视图取 parser 与缓存定位用，来自组内首条任务）
+ * - [activeChapter]：当前正在下载的章节（仅活跃书有值）
  *
  * 两个进度口径刻意分开：队列剩余反映"这批任务还剩多少"，覆盖率反映"全书已可离线的比例"，
  * 前者随批次消长、后者随阅读/下载单调增长，混在一起会误导用户（见 DownloadRepository.getCacheCoverage）。
+ * 下载进度（[activeChapter] / 队列剩余）≠ 全书覆盖率（[cachedChapters]/[totalChapters]）。
  */
 data class DownloadBookGroup(
     val noteUrl: String,
     val bookName: String,
     val coverUrl: String,
+    val tag: String,
     val remaining: Int,
     val totalChapters: Int,
     val cachedChapters: Int,
-    val isActive: Boolean = false,
+    /** 当前正在下载的章节（仅活跃书有值；下载进度口径之一，见类 KDoc；仅服务 Progress 时展示，暂停/完成不显示） */
+    val activeChapter: DownloadChapterEntity? = null,
+    /** 该书是否处于按书暂停（任务保留、取篇跳过，见 ADR-0036）：一级书行据此显示「已暂停」胶囊 */
+    val paused: Boolean = false,
+)
+
+/** 下载中心页面级步骤：一级按书列表 / 二级某书选章（整屏切换）。 */
+sealed interface DownloadCenterStep {
+    data object Books : DownloadCenterStep
+
+    /** [focusChapter]：阅读器进入时携带的当前章（>=0 才启用预勾选与定位；一级入口为 -1）。 */
+    data class PickBook(val noteUrl: String, val tag: String, val focusChapter: Int) : DownloadCenterStep
+}
+
+/**
+ * 二级选章页的装载结果，三态分开（加载中 / 书不在架 / 就绪）。
+ *
+ * 刻意不把 [Absent] 与 [Loading] 合并成同一个 null：两者都会渲染成页面的替代视图，
+ * 混在一起会把「该书不在书架」的独立空态说成「正在加载…」，误导用户一直等。
+ * 装载过程中的数据库/章文件 IO 异常落 [Failed]，避免卡在加载态或把失败伪装成空。
+ */
+sealed interface BookSelectionState {
+    /** 首次进入 / 换书时的装载中。 */
+    data object Loading : BookSelectionState
+
+    /** 书架查无此书（阅读器入口先确保在架不会到这；一级入口的书被移出书架但队列任务残留时会到这）。 */
+    data object Absent : BookSelectionState
+
+    /** 装载失败（Room / 章文件 IO 异常）。 */
+    data object Failed : BookSelectionState
+
+    /** 装载完成，页面渲染选中数据。 */
+    data class Ready(val selection: BookChapterSelection) : BookSelectionState
+}
+
+/**
+ * 二级视图数据：书信息 + 章目录 + 缓存/队列事实 + 当前下载章 + 预勾选 + 焦点章。
+ *
+ * [initialSelected] 只在「从阅读器进入（带了焦点章）」时非空：沿用原下载面板
+ * 的「当前章 + 50 章内未缓存且未排队者」一键下载预勾选；从一级进入则为空集。
+ * [focusChapter] 与预勾选解耦：它是阅读器当前章本身（>=0），预勾选可能因范围全缓存
+ * 而为空，但它仍用于「默认展开含当前章的那一组」（ADR-0034），不能从预勾选反推。
+ */
+data class BookChapterSelection(
+    val noteUrl: String,
+    val tag: String,
+    val bookName: String,
+    val coverUrl: String,
+    val chapters: List<ChapterListEntity>,
+    val cachedIndices: Set<Int>,
+    val queuedIndices: Set<Int>,
+    val activeChapterIndex: Int?,
+    val initialSelected: Set<Int>,
+    /** 阅读器进入时携带的当前章（>=0 有效；一级入口为 -1）。 */
+    val focusChapter: Int = -1,
+    /** 该书是否处于按书暂停（见 ADR-0036）：二级据此显示「已暂停」胶囊并把主操作切到「继续下载」。 */
+    val paused: Boolean = false,
 )
 
 /**
@@ -66,6 +131,20 @@ class DownloadManageViewModel @Inject constructor(
     private val _groups = MutableStateFlow<List<DownloadBookGroup>>(emptyList())
     val groups: StateFlow<List<DownloadBookGroup>> = _groups.asStateFlow()
 
+    /** 下载中心页当前步骤：一级按书列表 / 二级该书选章（整屏切换）。 */
+    private val _step = MutableStateFlow<DownloadCenterStep>(DownloadCenterStep.Books)
+    val step: StateFlow<DownloadCenterStep> = _step.asStateFlow()
+
+    /** 二级当前书的装载结果（加载中 / 书不在架 / 装载失败 / 就绪，见 [BookSelectionState]）。 */
+    private val _bookSheet = MutableStateFlow<BookSelectionState?>(null)
+    val bookSheet: StateFlow<BookSelectionState?> = _bookSheet.asStateFlow()
+
+    /** 阅读器进入时携带的当前章（>=0 才启用「当前章+50」预勾选与定位；一级入口为 -1）。 */
+    private var pendingFocusChapter: Int = -1
+
+    /** 装载协程句柄：openBook/backToBooks 时取消，防迟到回写把已退回一级的旧结果画到二级页上。 */
+    private var loadJob: Job? = null
+
     /**
      * 队列剩余数的响应式观察（书架下载图标角标）。
      *
@@ -78,6 +157,9 @@ class DownloadManageViewModel @Inject constructor(
     /** 当前正在下载的章节 URL（用于判断哪本书处于活跃态） */
     private var activeChapterUrl: String? = null
 
+    /** 服务当前是否在真正下载（只有 Progress 时才能断言「正在下载第 N 章」，暂停/完成时收起） */
+    private var isDownloading: Boolean = false
+
     /**
      * 加载/刷新按书分组：读队列任务表 + 逐书叠加缓存覆盖率。
      *
@@ -85,6 +167,9 @@ class DownloadManageViewModel @Inject constructor(
      */
     fun loadGroups() {
         viewModelScope.launch {
+            // 暂停集一次取出：分组的「已暂停」胶囊与 activeChapter 的「下载中」口径互斥
+            // （暂停书不可能同时是活跃书——取篇跳过它），一行查一次即够
+            val pausedBooks = model.getPausedBooks()
             val grouped = model.getAllTasks()
                 .groupBy { it.noteUrl }
                 .map { (noteUrl, tasks) ->
@@ -93,14 +178,19 @@ class DownloadManageViewModel @Inject constructor(
                     // 换源会把旧 noteUrl 名下的任务整批删掉（见 BookRepository.commitSwitch），
                     // 不会出现「一本书的组里混着两个源的任务」，故不必回查 book_shelf
                     val coverage = model.getCacheCoverage(noteUrl, first.tag)
+                    val active = isDownloading && tasks.any { it.durChapterUrl == activeChapterUrl }
                     DownloadBookGroup(
                         noteUrl = noteUrl,
                         bookName = first.bookName,
                         coverUrl = first.coverUrl,
+                        tag = first.tag,
                         remaining = tasks.size,
                         totalChapters = coverage.total,
                         cachedChapters = coverage.cached,
-                        isActive = tasks.any { it.durChapterUrl == activeChapterUrl }
+                        activeChapter = if (active) {
+                            tasks.first { it.durChapterUrl == activeChapterUrl }
+                        } else null,
+                        paused = noteUrl in pausedBooks
                     )
                 }
             _groups.value = grouped
@@ -108,14 +198,13 @@ class DownloadManageViewModel @Inject constructor(
     }
 
     /**
-     * 标记当前正在下载的章节（由 Progress 事件驱动），并把"活跃"高亮切到所属书。
-     *
-     * 服务同一时刻只抓一章，故活跃书唯一；只在 URL 变化时改写，避免每章重复重组。
+     * 服务状态事件统一入口：Progress 时记录活跃章并高亮所属书；Paused/Finished 时
+     * 收起「正在下载」断言（队列不出队，章还在表里，仅靠队列判会误报）。
      */
-    fun onProgressChapter(chapter: DownloadChapterEntity) {
-        if (activeChapterUrl != chapter.durChapterUrl) {
-            activeChapterUrl = chapter.durChapterUrl
-            _groups.value = _groups.value.map { it.copy(isActive = it.noteUrl == chapter.noteUrl) }
+    fun onDownloadState(state: DownloadState) {
+        isDownloading = state is DownloadState.Progress
+        if (state is DownloadState.Progress && activeChapterUrl != state.chapter.durChapterUrl) {
+            activeChapterUrl = state.chapter.durChapterUrl
         }
     }
 
@@ -157,6 +246,185 @@ class DownloadManageViewModel @Inject constructor(
         viewModelScope.launch {
             model.deleteTasksForBook(noteUrl)
             loadGroups()
+        }
+    }
+
+    /**
+     * 暂停某本书（见 ADR-0036）：任务保留，服务取篇跳过该书。
+     *
+     * 不打断已发出的当前章请求（该章完成后下一轮生效）。双刷新让一级「已暂停」胶囊
+     * 与二级状态胶囊立即就位，不等下一次进度事件。
+     */
+    fun pauseBook(noteUrl: String) {
+        viewModelScope.launch {
+            model.pauseBook(noteUrl)
+            loadGroups()
+            refreshSelection()
+        }
+    }
+
+    /**
+     * 继续某本书：删暂停标记 + 补发 RESUME。
+     *
+     * RESUME 经 getForegroundService 的 Intent 下发，服务已死时先拉起再续跑；
+     * 服务在跑（isStartDownload=true）时该分支幂等 no-op，本书按书架顺序轮到即下。
+     * 「继续」入口只会在该书仍有排队任务时出现（无任务时面板整组消失），故不存在
+     * 空队列误发 RESUME → 误报「下载完成」的问题。
+     */
+    fun resumeBook(noteUrl: String) {
+        viewModelScope.launch {
+            model.resumeBook(noteUrl)
+            sendAction(DownloadService.ACTION_RESUME)
+            loadGroups()
+            refreshSelection()
+        }
+    }
+
+    /**
+     * 进入某书二级选章态并装载数据（整屏切换，一级 → 二级）。
+     *
+     * [focusChapter] 为阅读器传入的当前章；书不在架时落 [BookSelectionState.Absent]（二级空态）。
+     * 先落 [BookSelectionState.Loading]：换书（或上次装载失败）时避免把上一本书的
+     * [BookChapterSelection] 画在下一本书的二级页上。
+     */
+    fun openBook(noteUrl: String, tag: String, focusChapter: Int = -1) {
+        loadJob?.cancel()
+        _step.value = DownloadCenterStep.PickBook(noteUrl, tag, focusChapter)
+        pendingFocusChapter = focusChapter
+        _bookSheet.value = BookSelectionState.Loading
+        loadSelection()
+    }
+
+    /** 重新装载当前书的二级数据（下载进行中每章推进后刷新状态标签用）。 */
+    fun refreshSelection() {
+        if (_step.value is DownloadCenterStep.PickBook) {
+            loadJob?.cancel()
+            loadSelection()
+        }
+    }
+
+    /**
+     * 装载二级数据：书架信息 + 章目录 + 缓存 + 队列三方合并。
+     *
+     * 失败（Room / 章文件 IO 异常）落 [BookSelectionState.Failed] 并经 [reportFailure] 提示，
+     * 不会让页面无限停在「正在加载…」（同模块范式：EditBookMetaViewModel.loadState）。
+     */
+    private fun loadSelection() {
+        val pick = _step.value as? DownloadCenterStep.PickBook ?: return
+        val noteUrl = pick.noteUrl
+        val tag = pick.tag
+        loadJob = viewModelScope.launch {
+            try {
+                val full = model.getBookFullInfo(noteUrl)
+                if (full == null) {
+                    // 书架无此书：二级无内容可展示。阅读器入口先确保在架不会到这；
+                    // 一级入口的队列书若已被移出书架（任务残留）才会走进这个分支。
+                    _bookSheet.value = BookSelectionState.Absent
+                    return@launch
+                }
+                // 暂停态随装载取出：二级据此显示「已暂停」胶囊并把主操作切到「继续下载」
+                val pausedBooks = model.getPausedBooks()
+                val chapters = full.chapters
+                val cached = model.getCachedIndices(noteUrl, tag, chapters)
+                val tasks = model.getTasksByBook(noteUrl)
+                val queued = tasks.mapTo(mutableSetOf()) { it.durChapterIndex }
+                // 当前下载章只在 Progress 期间断言：暂停/完成时 isDownloading=false，
+                // 即便该章仍在队列里，二级「下载中」徽章也随之收起（与一级卡片同口径）
+                val active = if (isDownloading) {
+                    tasks.firstOrNull { it.durChapterUrl == activeChapterUrl }?.durChapterIndex
+                } else null
+                val initialSelected = buildInitialSelection(chapters, cached, queued)
+                _bookSheet.value = BookSelectionState.Ready(
+                    BookChapterSelection(
+                        noteUrl = noteUrl,
+                        tag = tag,
+                        bookName = full.info?.name ?: "",
+                        coverUrl = full.info?.coverUrl ?: "",
+                        chapters = chapters,
+                        cachedIndices = cached,
+                        queuedIndices = queued,
+                        activeChapterIndex = active,
+                        initialSelected = initialSelected,
+                        focusChapter = pendingFocusChapter,
+                        paused = noteUrl in pausedBooks,
+                    )
+                )
+            } catch (e: CancellationException) {
+                // 协程被取消（openBook/backToBooks 取消了 loadJob）：这是正常退出，不是装载失败，
+                // 直接让行，绝不写 Failed 态（否则会把已退回一级的旧结果复活到二级页上）
+                throw e
+            } catch (e: Exception) {
+                Logger.e(TAG, "loadSelection 失败", e)
+                _bookSheet.value = BookSelectionState.Failed
+                reportFailure(e, context.getString(R.string.download_center_load_failed))
+            }
+        }
+    }
+
+    /**
+     * 预勾选：「当前章 .. 当前章+50」中未缓存且未排队者（原下载面板一键下载习惯）。
+     * **排除已排队**——排队中的章确认时会跳过，预勾上只会让确认文案多一行"将跳过"。
+     *
+     * 窗口本身由 [defaultChapterWindow] 定义，与二级页范围对话框「无勾选时的默认区间」
+     * 同源：两处若各写一个 50，边界上会悄悄分叉成一个 51 章、一个 50 章。
+     */
+    private fun buildInitialSelection(
+        chapters: List<ChapterListEntity>,
+        cached: Set<Int>,
+        queued: Set<Int>,
+    ): Set<Int> {
+        val window = defaultChapterWindow(chapters.size, pendingFocusChapter) ?: return emptySet()
+        return window.filterTo(mutableSetOf()) { i ->
+            i !in cached && i !in queued
+        }
+    }
+
+    /** 从二级选章页返回一级列表（取消装载协程，清掉二级结果，避免退回时旧结果短暂上屏）。 */
+    fun backToBooks() {
+        loadJob?.cancel()
+        _step.value = DownloadCenterStep.Books
+        _bookSheet.value = null
+    }
+
+    /**
+     * 确认下载：**剔除已在队列中的章**（排队中再勾 = 无意义重下，与队列唯一索引语义重复），
+     * 构建任务（forceRefresh=true）后经 [DownloadRepository.startDownload] 统一下发。
+     * 跳过计数由页面读 selection + selected 计算（见 BookChapterSelectContent）。
+     *
+     * 下发前**先解除该书暂停**（见 ADR-0036）：用户刚明确表达「这本书要下」，残留的暂停
+     * 标记会让新入队的任务静默不跑（取篇跳过该书）——那是确认按钮失效，不是暂停语义。
+     *
+     * 下发后**乐观更新**已排队集：新勾章立即打上「排队中」标签，不必等下一次
+     * Progress 事件驱动的 [refreshSelection] 才回显（下载未推进时标签会一直滞后）。
+     */
+    fun confirmDownload(selected: Set<Int>) {
+        val ready = _bookSheet.value as? BookSelectionState.Ready ?: return
+        val selection = ready.selection
+        val tasks = (selected - selection.queuedIndices).sorted().mapNotNull { i ->
+            selection.chapters.getOrNull(i)?.let { chapter ->
+                DownloadChapterEntity(
+                    noteUrl = selection.noteUrl,
+                    durChapterIndex = chapter.durChapterIndex,
+                    durChapterName = chapter.durChapterName,
+                    durChapterUrl = chapter.contentRef,
+                    tag = selection.tag,
+                    bookName = selection.bookName,
+                    coverUrl = selection.coverUrl,
+                    forceRefresh = true,
+                )
+            }
+        }
+        if (tasks.isEmpty()) return
+        // 先解暂停再下发：startDownload 会拉起服务，此刻标记已清，新任务立即进入取篇候选
+        _bookSheet.value = BookSelectionState.Ready(
+            selection.copy(
+                paused = false,
+                queuedIndices = selection.queuedIndices + tasks.map { it.durChapterIndex }
+            )
+        )
+        viewModelScope.launch {
+            model.resumeBook(selection.noteUrl)
+            model.startDownload(tasks)
         }
     }
 }

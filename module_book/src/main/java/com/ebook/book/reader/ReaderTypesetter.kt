@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.ebook.book.ReadBookActivity
+import kotlin.math.ceil
 /**
  * 正文排版的事实源：分页样式（字号/行高/对齐）+ 测量器 + 密度。
  *
@@ -56,21 +57,31 @@ internal class ReaderTypesetter(
     }
 
     /**
-     * 正文区高度放得下多少渲染行：逐行读实测底部位置，取不越界的最大行数。
+     * 正文区高度放得下多少渲染行（翻页模式用：它只需要行数）。
      *
      * 不再用 `(高度 - 段距) / (字高 + 段距)` 估算——该公式拿平台字体度量算字高，
      * 与 Compose 实际行高（含整数进位）每行差约 0.7px，25 行累计近 20px，
      * 叠上「分行行数 != 渲染行数」就会把整行挤出可见区。这里直接问渲染引擎本身。
      */
-    fun fitRenderLineCount(widthPx: Int, heightPx: Int): Int {
-        if (widthPx <= 0 || heightPx <= 0) return 0
+    fun fitRenderLineCount(widthPx: Int, heightPx: Int): Int =
+        measureBlock(widthPx, heightPx)?.lineCount ?: 0
+
+    /**
+     * 一次测量同时给出「视口放得下几行」与「这几行的实测总高」（滚屏模式用：块高要精确）。
+     *
+     * 与 [fitRenderLineCount] 共用同一把探针与同一条 [fitLines] 判据，
+     * 因此两种翻页方式对「一屏几行」的回答只可能一致。
+     */
+    fun measureBlock(widthPx: Int, viewportHeightPx: Int): ReaderBlockMetrics? {
+        if (widthPx <= 0 || viewportHeightPx <= 0) return null
         val layout = measure(probeText, widthPx)
-        var fit = 0
-        for (i in 0 until layout.lineCount) {
-            if (layout.getLineBottom(i) > heightPx) break
-            fit = i + 1
-        }
-        return fit
+        // getLineBottom 是 Float，转 Int 必须**向上取整**：向下取整会把「底部恰好越界」的行
+        // 压回界内（100.6 → 100 不再 > 100），fitRenderLineCount 就会多算进一行放不下的行，
+        // 与改动前 `Float > Int` 的比较口径不一致。ceil(b) > h 与 b > h 在整数 h 下等价。
+        return fitLines(
+            IntArray(layout.lineCount) { ceil(layout.getLineBottom(it)).toInt() },
+            viewportHeightPx,
+        )
     }
 
     private fun measure(text: String, widthPx: Int) = measurer.measure(
@@ -133,3 +144,32 @@ internal fun readerBodyTextStyle(textSizeSp: Float, lineHeight: TextUnit): TextS
         trim = LineHeightStyle.Trim.None
     )
 )
+
+/**
+ * 一屏正文块的度量：放得下几行 + 这几行的实测总高。
+ *
+ * [heightPx] 是滚屏模式的**块高**：块与块要精确无缝拼接，高度必须取渲染引擎实测的
+ * 行底部，不能用 `lineCount × lineHeight` 心算——那是拿度量猜几何，每行差零点几像素、
+ * 25 行累计近 20px（同 [ReaderTypesetter.fitRenderLineCount] KDoc 记的老病根）。
+ */
+internal data class ReaderBlockMetrics(val lineCount: Int, val heightPx: Int)
+
+/**
+ * 给定每行的实测底部位置，求视口放得下几行、以及这几行的实测总高。
+ *
+ * 纯函数（不碰排版引擎），故可单测；[ReaderTypesetter.measureBlock] 与
+ * [ReaderTypesetter.fitRenderLineCount] 都由它给结论，两者不可能算出不同的行数。
+ *
+ * @param lineBottoms 逐行的实测底部位置（升序），取自探针布局
+ * @return 一行都放不下（或布局为空）时为 null——调用方据此不分块，
+ *   而不是切出 0 行的空块让页面永远空白
+ */
+internal fun fitLines(lineBottoms: IntArray, viewportHeightPx: Int): ReaderBlockMetrics? {
+    var fit = 0
+    for (i in lineBottoms.indices) {
+        if (lineBottoms[i] > viewportHeightPx) break
+        fit = i + 1
+    }
+    if (fit == 0) return null
+    return ReaderBlockMetrics(lineCount = fit, heightPx = lineBottoms[fit - 1])
+}
