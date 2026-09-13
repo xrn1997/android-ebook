@@ -377,7 +377,7 @@ BREAKING CHANGE: AuthenticationManager.onLoginEvent() 已删除
 
 ### 提交前验证
 
-- **首次 clone 后**执行 `bash scripts/install-hooks.sh`，把 `commit-msg` 校验钩子装进 `.git/hooks/`（钩子实现在 `scripts/commit-msg`）。它**强制**的只有四项：header 的 `type(scope)!: description` 结构、`type` 在白名单内、revert 形态的 body 必须含 `This reverts commit <hash>`、description 不以中文句号结尾且不超 72 字符；**动词前置、禁嵌 issue 编号、body 分行与语言等约定不受脚本强制**，靠本文件与评审约束——钩子放行不等于合规
+- **首次 clone 后**执行 `bash scripts/install-hooks.sh`，把 `commit-msg` 校验钩子装进 `.git/hooks/`（钩子实现在 `scripts/commit-msg`）。`.git/hooks/` 里是**复制件而非软链**，故改完 `scripts/commit-msg` 必须重跑该脚本，否则本机仍按旧版钩子拦截提交（症状：仓库里已修好的误拦照旧复现）。它**强制**的只有四项：header 的 `type(scope)!: description` 结构、`type` 在白名单内、revert 形态的 body 必须含 `This reverts commit <hash>`、description 不以中文句号结尾且不超 72 字符；**动词前置、禁嵌 issue 编号、body 分行与语言等约定不受脚本强制**，靠本文件与评审约束——钩子放行不等于合规。它只校验**作者手写的消息**：git 自动生成或临时的形态（merge、`merge --squash`、`fixup!`/`squash!`/`amend!`）一律放行，模板注释/前导空行也不当作 header——这些常规工作流被拦属钩子缺陷，不要按「写法不规范」解释
 
 - 运行 `./gradlew test`，并对涉及模块执行 `./gradlew :module:assembleDebug`
 

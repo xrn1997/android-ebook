@@ -6,18 +6,29 @@
 export LC_ALL=C.UTF-8
 
 MSG_FILE="$1"
-# 剥掉行尾 CR：Windows 编辑器可能把 COMMIT_EDITMSG 存成 CRLF，在 Linux/macOS 的 GNU
+# 取「作者写的那一行」当提交头：git 在调用本钩子之后才做 cleanup（剥注释行、首尾空行），
+# 直接 head -n 1 读原始文件会把模板注释/前导空行当成头——配了 commit.template 或 GUI 预填
+# 注释时，正文写得再规范也会被误拦。故先按 git 自己的清理语义（stripspace --strip-comments）
+# 对齐最终入库口径，再取首行。
+# 另剥掉行尾 CR：Windows 编辑器可能把 COMMIT_EDITMSG 存成 CRLF，在 Linux/macOS 的 GNU
 # 工具链上会漏检中文句号（句号不在行尾）并使长度虚增 1（Git Bash 实测不受影响，全平台对齐）
-MSG=$(head -n 1 "$MSG_FILE" | tr -d '\r')
+MSG=$(git stripspace --strip-comments < "$MSG_FILE" | head -n 1 | tr -d '\r')
 
-# 1. 放行 git 自动/临时形态：merge 提交，以及 fixup!/squash!/amend! 临时提交
-#    （--fixup/--squash/--fixup=amend: 的中间产物，随后由 rebase -i --autosquash
-#    合并进目标提交、不入永久历史，故不做格式校验）。
-#    git merge 同样触发本钩子，merge -m 自定义消息不满足 Merge * 前缀，按 MERGE_HEAD 存在放行。
+# 1. 放行 git 生成/临时的形态，只校验「作者写的消息」：
+#    - merge 提交（Merge * 前缀），以及 fixup!/squash!/amend! 临时提交
+#      （--fixup/--squash/--fixup=amend: 的中间产物，随后由 rebase -i --autosquash
+#      合并进目标提交、不入永久历史，故不做格式校验）。
+#    - git merge 同样触发本钩子，merge -m 自定义消息不满足 Merge * 前缀，按 MERGE_HEAD 存在放行。
+#    - git merge --squash 刻意不写 MERGE_HEAD（合并信息改由 SQUASH_MSG 承载），消息固定为
+#      "Squashed commit of the following:"；只看 MERGE_HEAD 会把 squash and merge 的默认消息
+#      当作者消息去校验而拦下。SQUASH_MSG 在提交成功那一刻就被 git 删除（实测：成功后紧接着的
+#      一条非规范消息仍被拦），故该标记只覆盖 merge --squash → commit 这段窗口、不会成为后门；
+#      提交成功后再 --amend --no-edit 复用同一条消息时标记已不在了，因此按消息内容再兜一层。
 case "$MSG" in
-    Merge\ *|fixup\!*|squash\!*|amend\!*) exit 0 ;;
+    Merge\ *|fixup\!*|squash\!*|amend\!*|Squashed\ commit\ of\ the\ following:*) exit 0 ;;
 esac
-if [ -e "$(git rev-parse --git-path MERGE_HEAD 2>/dev/null)" ]; then
+if [ -e "$(git rev-parse --git-path MERGE_HEAD 2>/dev/null)" ] || \
+   [ -e "$(git rev-parse --git-path SQUASH_MSG 2>/dev/null)" ]; then
     exit 0
 fi
 
