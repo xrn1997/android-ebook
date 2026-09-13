@@ -10,8 +10,8 @@ android {
     namespace = "com.ebook"
     defaultConfig {
         applicationId = "com.ebook"
-        versionCode = 10
-        versionName = "1.2.0"
+        versionCode = 13
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     flavorDimensions += "network"
