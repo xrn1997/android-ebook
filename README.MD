@@ -18,7 +18,7 @@
 
 - **书架与阅读**：本地 txt 导入与书源在线下载，章节缓存离线阅读，阅读界面设置（背景主题/字号等），阅读中可跨书源换书（进度按章序号带过去），下载为前台服务（兼容 Android 14+）
 
-- **书城与搜索**：书源由 **JSON 规则**驱动，适配新网站优先改 JSON 规则；**多书源共存**——内置源随应用出货、用户源可导入导出，「我的 → 设置 → 书源管理」可启用/禁用/删除并设默认源（内置源不可删），每本书绑定自己的源各自解析；搜索为跨源聚合（结果标注所属源，单源失败不影响其余），书城顶部可切换浏览源；搜索历史支持快捷点选与一键清除（粒子爆炸动效）
+- **书城与搜索**：书源由 **JSON 规则**驱动，适配新网站优先改 JSON 规则；**多书源共存**——书源全部由用户自行导入（应用不随包携带任何书源，见 ADR-0033），「我的 → 设置 → 书源管理」可启用/禁用/删除并设默认源，每本书绑定自己的源各自解析；支持原生规则与脚本书源两种出身，脚本在零权限沙箱进程中执行；搜索为跨源聚合（结果标注所属源，单源失败不影响其余），书城顶部可切换浏览源；搜索历史支持快捷点选与一键清除（粒子爆炸动效）。**注意**：应用只保证书源解析引擎（规则词法/求值/取文 + JS 沙箱执行器）的正确性，不保证用户导入的具体书源能正常加载——书源规则由第三方社区维护，站点改版或规则编写错误可能导致解析失败
 
 - **章节评论**：按章浏览与发表评论，个人中心可管理（长按删除）自己的评论
 
@@ -79,25 +79,26 @@ git clone git@github.com:xrn1997/android-ebook.git
 
 - **后端基址**：经 `local.properties` 的 `ebook.server.host` 注入（缺省 `10.0.2.2`，即模拟器访问宿主机）。局域网真机调试时改成宿主机 IP
 
-- **lib\_common 联动**：基础库 `lib_common` 仍在迭代，根 `settings.gradle.kts`的`includeBuild`当前启用，经`lib-common-build/`迷你独立构建以**相对路径**引用源码（两边可同步改）。lib\_common 稳定后注释掉 `includeBuild` 即改回 Maven 依赖（`io.github.xrn1997:common`）
+- **lib\_common 联动**：基础库 `lib_common` 仍在迭代，根 `settings.gradle.kts` 默认走 Maven 中央坐标（`io.github.xrn1997:common`）。本地源码联调时取消 `includeBuild` 注释，经 `lib-common-build/` 迷你独立构建以**相对路径**引用源码（两边可同步改），改完切回中央坐标、联动态不提交
 
 - **独立模块开发**：`gradle.properties` 中 `isModule=true` 时，各功能模块可作为独立 App 运行（自带 mock 数据源，免后端），便于单模块开发调试
 
 ## 项目结构
 
-依赖方向：**业务模块 → lib\_book\_common → lib\_ebook\_api → lib\_ebook\_db**（功能模块互不依赖，跨模块走 TheRouter + Provider 接口）。
+依赖方向：**业务模块 → lib\_book\_common → lib\_book\_source → lib\_ebook\_api / lib\_ebook\_db**（lib\_book\_common 与 lib\_book\_source 都对 lib\_ebook\_api、lib\_ebook\_db 并列 `api` 依赖；功能模块互不依赖，跨模块走 TheRouter + Provider 接口）。
 
 ```
 module_app        → 应用入口，组装所有功能模块（real/mock 双 flavor）
 module_main       → 主页、启动页
-module_book       → 书籍阅读、管理、评论
+module_book       → 书籍阅读、管理、评论（含阅读器，全部 Compose）
 module_find       → 书城、搜索、书库浏览
-module_me         → 个人中心、头像、评论管理
+module_me         → 个人中心、头像、评论管理、版本更新检查
 module_login      → 登录/注册/密码
-lib_book_common   → ebook 域共享 UI 组件、Provider 接口、书源解析（通用工具类/基类归 lib_common）
+lib_book_common   → ebook 域共享 UI 组件、Provider 接口、书源管理器（通用工具类/基类归 lib_common）
+lib_book_source   → 书源解析专用层：原生解析器、脚本书源解释器（规则词法/求值/取文）、`:js` 沙箱执行器（vendored QuickJS + JNI 桥）
 lib_ebook_api     → 网络层：Retrofit 服务、数据实体、OkHttp 拦截器
 lib_ebook_db      → Room 数据库实体与 DAO
-lib-common-build/ → lib_common 迷你独立构建（临时联动方案）
+lib-common-build/ → lib_common 迷你独立构建（本地源码联调时启用）
 build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 docs/adr/         → 架构决策记录（ADR）
 ```
@@ -112,7 +113,9 @@ docs/adr/         → 架构决策记录（ADR）
 
 - **架构**：MVVM（Model → ViewModel → View），Hilt 依赖注入，Coroutines + Flow（RxJava 已全部移除）
 
-- **网络与数据**：Retrofit + OkHttp、Room、Jsoup（书源解析）、Coil（图片）
+- **网络与数据**：Retrofit + OkHttp、Room、Jsoup（原生书源解析）、Coil（图片）
+
+- **书源引擎**：原生规则解析器（Jsoup）+ 脚本书源解释器（规则词法/求值/取文）+ `:js` 沙箱执行器（vendored QuickJS C 引擎 + JNI 桥，零权限隔离进程）
 
 - **跨模块**：TheRouter 路由 + Provider 接口
 
@@ -180,8 +183,6 @@ docs/adr/         → 架构决策记录（ADR）
 
 - 补充本地书籍格式支持
 
-- 继续优化书源机制，从单一书源演变为多书源
-
 - 持续完善后端（ebook-server）能力
 
 - 加一些有趣功能（看心情 😎）
@@ -191,6 +192,8 @@ docs/adr/         → 架构决策记录（ADR）
 欢迎 Issue 与 PR：
 
 - 协作与贡献指南（构建命令、架构约定、提交规范）见 [AGENTS.md](AGENTS.md)
+
+- 书源规则说明（格式、导入、创建）见 [docs/book-source-rules.md](docs/book-source-rules.md)
 
 - 重大架构决策以 [docs/adr/](docs/adr/) 的 ADR 为准，术语定义见 [CONTEXT.md](CONTEXT.md)
 
