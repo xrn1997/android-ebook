@@ -65,11 +65,13 @@ import com.ebook.common.domain.CommentKey
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
 import com.ebook.common.repository.BookRepository
+import com.ebook.common.store.ReaderResumeStore
 import com.ebook.common.util.reportFailure
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.event.DBCode
 import com.ebook.source.analyze.BookSourceNotFoundException
 import com.therouter.TheRouter
+import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import com.xrn1997.common.ui.LoadingView
 import com.xrn1997.common.util.Logger
@@ -94,8 +96,15 @@ import kotlin.math.ceil
  *
  * 配色分两层：正文用「阅读背景主题」（ReadBookControl 的四档纸张色），不随深浅色切换；
  * 菜单/面板（chrome 层）继承全局主题，随外观主题模式走浅色或深色。
+ *
+ * 三种入口（判定顺序见 ReadBookScreen 的 LaunchedEffect）：
+ * - 应用内点书：[Intent] 带 `from=OPEN_FROM_APP` + `data_key`（[BitIntentDataManager] 进程内暂存区）
+ * - 应用外打开文本：[Intent] 带 `data`（Uri），导入后加入书架
+ * - **启动页恢复**：TheRouter 带 [RouteArgs.RESUME_NOTE_URL]（上次异常关闭时的书），
+ *   本条路径跨进程，暂存区为空，按 noteUrl 回 Room 现取实体（见 [openBookForResume]）
  */
 @AndroidEntryPoint
+@Route(path = KeyCode.Book.READ_PATH)
 class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     override val viewModel: BookReadViewModel by viewModels()
 
@@ -184,6 +193,8 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
             return
         }
         viewModel.bookShelf = bookShelf
+        // 记下「阅读会话进行中」，供启动页在异常关闭后恢复（见 ReaderResumeStore）
+        ReaderResumeStore.markReading(bookShelf.noteUrl)
         viewModel.checkInShelf()
     }
 
@@ -200,6 +211,8 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
                     bookImportRepository.import(uri)
                 }
                 viewModel.bookShelf = result.bookShelf
+                // 应用外导入后同样记标记：这一类会话被划掉时也该恢复到刚导入的这本书上
+                ReaderResumeStore.markReading(result.bookShelf.noteUrl)
                 onImporting(false)
                 viewModel.checkInShelf()
             } catch (e: Exception) {
@@ -207,6 +220,40 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
                 onImporting(false)
                 ToastUtil.showShort(this@ReadBookActivity, getString(R.string.text_open_failed))
             }
+        }
+    }
+
+    /**
+     * 恢复阅读（启动页入口）：按 noteUrl 从库里取回书架条目，走与书架点击同一条打开链路。
+     *
+     * 与 [openBookFromApp] 的差别只在「实体从哪来」：本条路径跨进程冷启动，
+     * [BitIntentDataManager] 的进程内暂存区是空的，且 module_main 也拿不到它（暂存区在 module_book 内），
+     * 故只能由阅读器自己回 Room 现取——实体只在一处构造，不会出现两份可能不一致的快照。
+     *
+     * 取不到（书已被删）即提示并退出：阅读器没有可渲染的内容，停在空白页等于让用户对着死页发呆。
+     * 启动栈里已垫了主页（见 SplashActivity.tryResumeReading），finish 后自然落回书架。
+     */
+    fun openBookForResume(noteUrl: String?) {
+        if (noteUrl.isNullOrBlank()) {
+            Logger.e(TAG, "openBookForResume: noteUrl 缺失")
+            finish()
+            return
+        }
+        lifecycleScope.launch {
+            // 必须用 getBookWithDetails 而不是 getBookByUrl：后者只给一行 book_shelf，
+            // bookInfo/chapterList 是 @Ignore 字段不会被带出来，章节列表为空会让阅读器
+            // 停在空白页（loadPage 在 chapterSize == 0 时直接返回 null）
+            val shelf = withContext(Dispatchers.IO) { bookRepository.getBookWithDetails(noteUrl) }
+            if (shelf == null) {
+                Logger.e(TAG, "openBookForResume: 条目已不存在 $noteUrl")
+                ToastUtil.showShort(this@ReadBookActivity, getString(R.string.reader_load_failed))
+                finish()
+                return@launch
+            }
+            viewModel.bookShelf = shelf
+            // 恢复进来后重新落一次标记：用户可能继续读很久再被划掉，标记必须仍是这本书
+            ReaderResumeStore.markReading(shelf.noteUrl)
+            viewModel.checkInShelf()
         }
     }
 
@@ -418,6 +465,20 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     override fun onPause() {
         super.onPause()
         viewModel.saveProgress()
+    }
+
+    /**
+     * 正常退出即清掉「阅读会话进行中」标记（见 [ReaderResumeStore]）。
+     *
+     * 不清的后果是下次启动把这次正常退出误判成异常关闭，每次都强行把用户拉回阅读界面。
+     *
+     * 判据必须是 `isFinishing`：旋转重建、系统回收（内存压力）同样会走 onDestroy，
+     * 但那不属于「用户离开了阅读界面」——重建后用户还在读同一本书，标记必须留下。
+     * 反之，进程被划掉/强杀时本方法根本不会执行，标记自然残留，这正是恢复的判据来源。
+     */
+    override fun onDestroy() {
+        if (isFinishing) ReaderResumeStore.clear()
+        super.onDestroy()
     }
 
     @Composable
@@ -632,10 +693,17 @@ private fun ReadBookScreen(
 
     // 打开书籍（对齐原 csvBook.bookReadInit 回调）
     LaunchedEffect(Unit) {
-        if (activity.intent.getIntExtra("from", OPEN_FROM_OTHER) == OPEN_FROM_APP) {
-            activity.openBookFromApp()
-        } else {
-            activity.openBookFromOther { importingBook = it }
+        when {
+            // 恢复分支必须**先判**：启动页的恢复跳转不带 `from`，走 getIntExtra 的默认值
+            // 会落进「应用外打开文本」分支（那条路要 intent.data，为 null 直接 return，
+            // 页面就此停在空白）——判据只能是「有没有恢复参数」，不能靠 from 的缺省值
+            activity.intent.hasExtra(RouteArgs.RESUME_NOTE_URL) ->
+                activity.openBookForResume(activity.intent.getStringExtra(RouteArgs.RESUME_NOTE_URL))
+
+            activity.intent.getIntExtra("from", OPEN_FROM_OTHER) == OPEN_FROM_APP ->
+                activity.openBookFromApp()
+
+            else -> activity.openBookFromOther { importingBook = it }
         }
     }
 
@@ -953,6 +1021,9 @@ private fun ReadBookScreen(
                     // （旧行已被换源事务删掉，写回去等于凭空造一本不存在的书的行）。
                     // 反面做法是「另存一份新条目 + 各处继续读旧条目」——两处各自演进，早晚写错书。
                     viewModel.bookShelf = outcome.newShelf
+                    // 换源即换 noteUrl，恢复标记必须跟着换：旧条目的行已被换源事务删掉，
+                    // 下次按旧 noteUrl 恢复只会查不到实体、白跑一趟恢复流程
+                    ReaderResumeStore.markReading(outcome.newShelf.noteUrl)
                     // 换源是「先插新、后删旧」，此刻新条目确实已在架上；不跟着置真就残留
                     // 「未加入书架」的旧判定，返回时弹一次无意义的加架确认
                     viewModel.isAdd = true

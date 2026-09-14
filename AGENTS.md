@@ -224,6 +224,8 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 - 涉及前台服务/离线下载改动时，先读 ADR-0018（要点已收进上面「构建约定 → 前台服务约定」）
 
+- 涉及启动页/冷启动跳转到业务页的改动时，先读 ADR-0040：**TheRouter 的路由表是异步加载的**（`RouteMapKt.asyncInitRouteMap` 走 `TheRouterThreadPool`），启动期用 `matchRouteMap` 探测会把「还没加载完」误判成「没有这条路由」而静默跳过——需要「路由不可用时降级」就用 `createIntent(ctx)` 拿 Intent、判 `component` 非空后自己 `startActivity`，并在启动业务页之前先把主页垫进栈（否则页面起不来时用户停在一片空白）；`navigation()` 不给「是否落地」的反馈，凡是要区分成败的启动期跳转都别用它。另注：阅读进度只在 `onPause` 落库（`initData` 那次因 `bookShelf` 尚未赋值而空转），前台 force-stop 与崩溃时 `onPause`/`onDestroy` 都不执行——所以「异常关闭后恢复」的判据只能是**标记残留**，不能靠进度本身
+
 - 涉及 Room 实体操作，注意主键策略是两套：自然键表（`note_url`/`content_ref`——`content_ref` 是内容定位符：本地书存章文件相对路径、网络书存章节 URL）直接 `OnConflictStrategy.REPLACE` 整行替换；自增键的流水表（下载队列）主键是自增 `id` 另挂唯一索引，upsert 必须先查回旧行、用 `existing?.id ?: 0L` 回填主键才算**原地覆盖**——传 0 是让 SQLite 分配新行，同唯一索引会撞成「先删后插」（实例见 `DownloadChapterDao.getChapterByUrl` 与 `DownloadRepository.addTasks`）（见 ADR-0003）
 
 - **改实体必须接迁移链**：version +1、在链上追加紧邻的 `MIGRATION_n_n+1`（不跳版、不删旧迁移）、提交 Room 生成的新 schema JSON；禁止启用 `fallbackToDestructiveMigration`（ADR-0003「Schema 演进」）

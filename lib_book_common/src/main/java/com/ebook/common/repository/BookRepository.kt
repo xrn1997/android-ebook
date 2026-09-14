@@ -134,6 +134,29 @@ class BookRepository @Inject constructor(
     }
 
     /**
+     * 按 URL 取「可直接交给阅读器/UI 的完整条目」：书架行 + 书籍元数据 + 章节列表。
+     *
+     * 与 [getBookByUrl] 的差别是补齐 `bookInfo` / `chapterList` 两个关联字段——它们标了 `@Ignore`、
+     * 不落库，Room 的按行查询不会带出来。拿到裸行直接开阅读器会因章节列表为空而渲染成空白页
+     * （`ReadBookActivity.loadPage` 在 `chapterSize == 0` 时直接返回 null），这条坑只有装机才看得见。
+     *
+     * 与 [getAllBooksWithDetails] 的差别是只查一本、且**不清理孤立记录**：清理是有写副作用的对账，
+     * 属书架页的一次性职责，不该由「启动恢复」这条纯读路径顺带触发。
+     *
+     * @return null = 该书不在架上（调用方按「不可恢复」处理）
+     */
+    suspend fun getBookWithDetails(noteUrl: String): BookShelfEntity? = withContext(Dispatchers.IO) {
+        bookShelfDao.getBookFullInfoByUrl(noteUrl)?.let { fullInfo ->
+            fullInfo.bookShelf.apply {
+                bookInfo = fullInfo.info
+                // 与 getAllBooksWithDetails 同一口径显式排序：@Relation 不保证 ORDER BY，
+                // 按物理 rowid 返回，历史上被 REPLACE（先删后插）过的行会跳表尾导致章节错序
+                chapterList = fullInfo.chapters.sortedBy { it.durChapterIndex }
+            }
+        }
+    }
+
+    /**
      * 保存阅读进度（`dur_chapter` 是**列表位置**，不是章序号）。
      *
      * **落点必须钳到库内行数以内**：调用方（阅读器）持有的 `chapterList` 是别人交进来的

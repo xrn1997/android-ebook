@@ -30,4 +30,21 @@ object RouteArgs {
 
     /** 书籍 noteUrl（修键面板定位书架条目用，见 EditBookMetaActivity） */
     const val NOTE_URL = "noteUrl"
+
+    /**
+     * 恢复阅读的书籍 noteUrl（module_main 启动页 → module_book 阅读页）。
+     *
+     * 不复用 [NOTE_URL]：两者虽然值形相同，但所处路由与接收方语义都不是一回事
+     * （一个是「打开修键面板、定位条目」，一个是「直接进阅读器、按此回查实体」）。
+     * 共用一个 key 后接收方只能靠「自己在哪条路由上」反推含义，再加一处用途就会静默串味。
+     *
+     * 传 noteUrl 而不是整书实体，两条理由：
+     * 1) 暂存区路线走不通——`BitIntentDataManager` 的进程内暂存区在 module_book 内，
+     *    启动页（module_main）拿不到它；
+     * 2) 即使改走 Bundle 直传 Parcelable 也不划算：`chapterList` 动辄上千条，
+     *    撞上 binder 的 1MB 事务上限就是 `TransactionTooLargeException`，
+     *    且这类崩溃只在长篇书上复现、短篇测不出来。按 key 现取还顺带拿到
+     *    「这本书是否已被用户删掉」的最新事实（阅读器据此决定是开还是收摊）。
+     */
+    const val RESUME_NOTE_URL = "resumeNoteUrl"
 }
