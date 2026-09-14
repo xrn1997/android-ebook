@@ -93,6 +93,12 @@ class BookReadViewModel @Inject constructor(
      * 返回值只区分「有新章」（交回新章，宿主据此重分页并跟上滑条与标题）与
      * 「页面不用动」（其余全部结局，包括失败 —— 那是静默路径，见目录重抓的处置口径）。
      *
+     * **落库前先认归属**：书架行不存在、或书架行的 `tag` 与本次解析的 `tag` 不一致时
+     * 静默跳过本次追更（不发网络、不写库、不写结论时间戳）。跨源浏览进阅读器时手上
+     * 那份是别家源的目录——用它去 diff 不但几乎必判分叉，还会把「检查得出分叉结论」
+     * 写进 `final_refresh_data`，占掉这本书自己的检查窗口；未加书架时库里没有这本书的
+     * 行，追更写进去的是永远没人清理的 `chapter_list` 孤行。与详情页的同名门同一口径。
+     *
      * **单飞**：宿主的进度回调在末章每一页翻动时都会调本方法，限频只能保证
      * 「窗口内一次网络」，挡不住同一批页快速来回翻时并发起来。本方法只在主线程
      * （Compose 回调）被调，故普通 [Boolean] 足够，不需要原子量。
@@ -102,6 +108,8 @@ class BookReadViewModel @Inject constructor(
         if (syncInFlight) return null
         syncInFlight = true
         try {
+            val stored = bookRepository.getBookByUrl(shelf.noteUrl)
+            if (stored == null || stored.tag != shelf.tag) return null
             val result = bookRepository.syncChaptersFromSource(shelf)
             val appended = (result as? ChapterSyncResult.Appended)?.appended ?: return null
             // 目录回读库里那份，不在这里拼基数：`shelf.chapterList` 是调用方交进来的那一份，

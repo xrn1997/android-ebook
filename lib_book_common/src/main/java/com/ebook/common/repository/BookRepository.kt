@@ -631,65 +631,70 @@ class BookRepository @Inject constructor(
         if (bookShelf.tag == BookShelfEntity.LOCAL_TAG) return ChapterSyncResult.NotNetworkBook
 
         val noteUrl = bookShelf.noteUrl
-        // 本地目录在**抓完之后**才读：抓目录要翻好几页，那几秒里阅读器的末章追更可能刚落库一批。
-        // 拿抓取前的快照做 diff 会把已落库的章再算成新增，而 `content_ref` 是整表主键、
-        // insertAll 是整行 REPLACE —— 撞键不报错，只会把既有那一行静默搬到表尾（序号错位）。
-        val localChapters = withContext(Dispatchers.IO) {
-            chapterListDao.getChaptersForBook(noteUrl)
-        }
+        // 读-判-写收在**同一个写事务**里：事务外读快照再回事务里写的话，读与写之间
+        // 若并发落进一批追更（详情页落库 vs 阅读器末章追更是两个独立调用方），diff 用的
+        // 还是旧快照 —— `content_ref` 是整表主键、insertAll 是整行 REPLACE，
+        // 撞键不报错，只会把既有那一行静默搬到表尾（序号错位）。事务把窗口关死。
+        var updatedShelf: BookShelfEntity? = null
+        val result = try {
+            withContext(Dispatchers.IO) {
+                transactions.run {
+                    val localChapters = chapterListDao.getChaptersForBook(noteUrl)
 
-        // 「一本书零章」不是合法状态：更可能是解析规则失配而非站点删光了章。
-        // 判 Diverged 会连带写时间戳，于是规则修好后整个窗口内都不会再试，故按失败处置（不写时间戳）。
-        if (remoteChapters.isEmpty() && localChapters.isNotEmpty()) {
-            return ChapterSyncResult.Failed(
-                IllegalStateException("远端目录为空，不按分叉处置：noteUrl=$noteUrl, tag=${bookShelf.tag}")
-            )
-        }
+                    // 「一本书零章」不是合法状态：更可能是解析规则失配而非站点删光了章。
+                    // 判 Diverged 会连带写时间戳，于是规则修好后整个窗口内都不会再试，
+                    // 故按失败处置（不写时间戳）。
+                    if (remoteChapters.isEmpty() && localChapters.isNotEmpty()) {
+                        return@run ChapterSyncResult.Failed(
+                            IllegalStateException("远端目录为空，不按分叉处置：noteUrl=$noteUrl, tag=${bookShelf.tag}")
+                        )
+                    }
 
-        return when (val diff = ChapterTocDiff.diff(localChapters, remoteChapters)) {
-            is TocDiff.UpToDate -> {
-                stampTocChecked(noteUrl)
-                ChapterSyncResult.UpToDate
-            }
+                    when (val diff = ChapterTocDiff.diff(localChapters, remoteChapters)) {
+                        is TocDiff.UpToDate -> {
+                            // 写时间戳走定向 UPDATE（不是读回整行再 insert）：后者是整行 REPLACE，
+                            // 漏填字段会把书名/封面静默抹掉（取舍见 BookInfoDao.setFinalRefreshData）
+                            bookInfoDao.setFinalRefreshData(noteUrl, System.currentTimeMillis())
+                            ChapterSyncResult.UpToDate
+                        }
 
-            is TocDiff.Diverged -> {
-                // 写时间戳：分叉不是暂时性故障，重试无意义，不写就等于每次进详情页重爬一遍目录
-                stampTocChecked(noteUrl)
-                ChapterSyncResult.Diverged
-            }
+                        is TocDiff.Diverged -> {
+                            // 写时间戳：分叉不是暂时性故障，重试无意义，不写就等于每次进详情页重爬一遍目录
+                            bookInfoDao.setFinalRefreshData(noteUrl, System.currentTimeMillis())
+                            ChapterSyncResult.Diverged
+                        }
 
-            is TocDiff.Appendable -> {
-                // 新序号从 max+1 起而不是 size：历史删章会留洞，两者不等时用 size 会撞上既有行。
-                // 也不能沿用远端行自带的序号 —— parser 按位置写 chapters.size，
-                // 有洞时两套口径不同，直接沿用会让两行撞同一个 index 而不报错（只是读错章）。
-                val nextIndex = (localChapters.maxOfOrNull { it.durChapterIndex } ?: -1) + 1
-                val rows = diff.tail.mapIndexed { offset, chapter ->
-                    chapter.copy(
-                        durChapterIndex = nextIndex + offset,
-                        // 归属以入参条目为准：两个 parser 其实都填对了，重写一遍是廉价防线 ——
-                        // 「这一行属于哪本书、归哪个源」的事实源是调用方，不该依赖 parser 记得填
-                        noteUrl = noteUrl,
-                        tag = bookShelf.tag,
-                    )
-                }
-                val updated = bookShelf.copy(chapterList = localChapters + rows)
-                try {
-                    withContext(Dispatchers.IO) {
-                        transactions.run {
+                        is TocDiff.Appendable -> {
+                            // 新序号从 max+1 起而不是 size：历史删章会留洞，两者不等时用 size 会撞上既有行。
+                            // 也不能沿用远端行自带的序号 —— parser 按位置写 chapters.size，
+                            // 有洞时两套口径不同，直接沿用会让两行撞同一个 index 而不报错（只是读错章）。
+                            val nextIndex = (localChapters.maxOfOrNull { it.durChapterIndex } ?: -1) + 1
+                            val rows = diff.tail.mapIndexed { offset, chapter ->
+                                chapter.copy(
+                                    durChapterIndex = nextIndex + offset,
+                                    // 归属以入参条目为准：两个 parser 其实都填对了，重写一遍是廉价防线 ——
+                                    // 「这一行属于哪本书、归哪个源」的事实源是调用方，不该依赖 parser 记得填
+                                    noteUrl = noteUrl,
+                                    tag = bookShelf.tag,
+                                )
+                            }
                             chapterListDao.insertAll(rows)
                             bookInfoDao.setFinalRefreshData(noteUrl, System.currentTimeMillis())
+                            // 事件在事务提交之后才发（未提交的写不是事实），updatedShelf 带出去
+                            updatedShelf = bookShelf.copy(chapterList = localChapters + rows)
+                            ChapterSyncResult.Appended(rows)
                         }
                     }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    return ChapterSyncResult.Failed(e)
                 }
-                // 事件只在事务提交之后发（未提交的写不是事实，口径同 switchSource）
-                _bookShelfEvents.emit(BookShelfEvent.ChaptersUpdated(updated))
-                ChapterSyncResult.Appended(rows)
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return ChapterSyncResult.Failed(e)
         }
+        // 事件只在事务提交之后发（未提交的写不是事实，口径同 switchSource）
+        updatedShelf?.let { _bookShelfEvents.emit(BookShelfEvent.ChaptersUpdated(it)) }
+        return result
     }
 
     /**
@@ -703,18 +708,6 @@ class BookRepository @Inject constructor(
      */
     suspend fun getStoredChapters(noteUrl: String): List<ChapterListEntity> =
         withContext(Dispatchers.IO) { chapterListDao.getChaptersForBook(noteUrl) }
-
-    /**
-     * 记下「这次检查得出了结论」的时间戳。
-     *
-     * 走定向 UPDATE 而不是读回整行再 [BookInfoDao.insert]：后者是整行 REPLACE，
-     * 漏填任一字段就会把书名/封面静默抹成默认值（取舍见该 DAO 方法的 KDoc）。
-     */
-    private suspend fun stampTocChecked(noteUrl: String) {
-        withContext(Dispatchers.IO) {
-            bookInfoDao.setFinalRefreshData(noteUrl, System.currentTimeMillis())
-        }
-    }
 
     /**
      * 批量判定哪些章节已有缓存（章文件存在）。

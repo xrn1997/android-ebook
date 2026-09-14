@@ -330,4 +330,54 @@ class ReadingProgressFlowTest {
             !detail.detailState.value.tocDiverged,
         )
     }
+
+    @Test
+    fun `跨源打开的书在阅读器里读到末章，追更该被归属门静默跳过`(): Unit = runTest(mainDispatcher) {
+        // 书架上这本绑 A 源；用户从 B 源的搜索结果进详情再点开阅读 —— 详情页的归属门跳过了落库，
+        // 但把 tag=B、目录=库内 A 源行的实体交给了阅读器（生产上 BookDetailActivity 传的就是这份）
+        seedLocal(localIndices = listOf(0, 1, 2))
+        val stampBefore = runBlocking { db.bookInfoDao().getBookInfoByUrl(NOTE_URL)?.finalRefreshData }
+        var chapterListCalls = 0
+        parsers[SOURCE_B] = parserStub((0 until 5).map { chapter(SOURCE_B, it) }) { chapterListCalls++ }
+        val reader = BookReadViewModel(repository).apply {
+            bookShelf = BookShelfEntity(noteUrl = NOTE_URL, tag = SOURCE_B).copy(
+                chapterList = runBlocking { repository.getStoredChapters(NOTE_URL) },
+            )
+        }
+
+        assertNull(
+            "tag 与书架行不符，追更必须整次跳过",
+            reader.appendChaptersIfAny(),
+        )
+        assertEquals("归属不符时连目录页都不该翻", 0, chapterListCalls)
+        val stored = runBlocking { repository.getStoredChapters(NOTE_URL) }
+        assertEquals("别家源的目录不该落进这本书", 3, stored.size)
+        assertEquals("一行都不该被改动", listOf(0, 1, 2), stored.map { it.durChapterIndex })
+        assertEquals(
+            "跨源追更不该占掉这本书自己的检查窗口",
+            stampBefore,
+            runBlocking { db.bookInfoDao().getBookInfoByUrl(NOTE_URL)?.finalRefreshData },
+        )
+    }
+
+    @Test
+    fun `未加书架读到末章，追更该被归属门跳过而不是写出孤行`(): Unit = runTest(mainDispatcher) {
+        // 从搜索直接开读（库里零行）：追更写进去的是永远没人清理的 chapter_list 孤行 ——
+        // book_shelf 没有对应行，书架读不到它，而「移出书架」清理章节又是从书架行发起的
+        var chapterListCalls = 0
+        parsers[SOURCE_A] = parserStub((0 until 5).map { chapter(SOURCE_A, it) }) { chapterListCalls++ }
+        val reader = BookReadViewModel(repository).apply {
+            bookShelf = BookShelfEntity(noteUrl = NOTE_URL, tag = SOURCE_A)
+                .copy(chapterList = (0 until 3).map { chapter(SOURCE_A, it) })
+        }
+
+        assertNull("不在书架上的书追更必须整次跳过", reader.appendChaptersIfAny())
+        assertEquals("跳过时连目录页都不该翻", 0, chapterListCalls)
+        assertEquals(
+            "chapter_list 里不该出现无书架行配对的孤行",
+            0,
+            runBlocking { repository.getStoredChapters(NOTE_URL).size },
+        )
+        assertNull("也不该写出书架行", shelfRow())
+    }
 }

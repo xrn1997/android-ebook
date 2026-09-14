@@ -124,7 +124,7 @@ class BookDetailViewModelSourceTest {
             displayed.size,
             displayed.map { it.contentRef }.distinct().size,
         )
-        assertEquals("改用库里那份不该把进度抹回默认值", 1, state.bookShelf?.durChapter)
+        assertEquals("改用库里那份不该把进度抹回默认值", 1, state.bookShelf!!.durChapter)
         assertEquals("为落库不该再翻一遍目录页", 1, parserB.chapterListCalls)
     }
 
