@@ -125,14 +125,13 @@ class BookDetailViewModel @Inject constructor(
                 is ChapterSyncResult.Appended -> {
                     // 必须 copy 出新实体经 update 提交：BookShelfEntity 装在 StateFlow 里，
                     // 就地改它的 chapterList 不改变对象引用，StateFlow 判等后不会重发，
-                    // 页面目录就停在旧长度。「旧 + appended」这个拼接口径由纯追加语义保证正确。
+                    // 页面目录就停在旧长度。
+                    // 目录取库里那份，不用「旧 + appended」拼：拼出来的基数是页面自己那份目录，
+                    // 不保证等于库内行数，而阅读器据它写回的 dur_chapter 是列表位置（见 getStoredChapters）
+                    val stored = bookRepository.getStoredChapters(shelf.noteUrl)
                     _detailState.update { state ->
                         val current = state.bookShelf ?: return@update state
-                        state.copy(
-                            bookShelf = current.copy(
-                                chapterList = current.chapterList + result.appended,
-                            )
-                        )
+                        state.copy(bookShelf = current.copy(chapterList = stored))
                     }
                     sendToast(context.getString(R.string.chapters_appended, result.appended.size))
                 }
@@ -185,21 +184,63 @@ class BookDetailViewModel @Inject constructor(
                     return@launch
                 }
 
-                val inShelf = bookShelfList.any { it.noteUrl == bookShelf.noteUrl }
-                if (inShelf) {
-                    bookShelfList.find { it.noteUrl == bookShelf.noteUrl }?.let {
-                        bookShelf.durChapter = it.durChapter
-                        bookShelf.durChapterPage = it.durChapterPage
-                    }
+                val shelfRow = bookShelfList.find { it.noteUrl == bookShelf.noteUrl }
+                shelfRow?.let {
+                    // 进度取书架那条记录的：用户读到哪儿是库内的事实
+                    bookShelf.durChapter = it.durChapter
+                    bookShelf.durChapterPage = it.durChapterPage
                 }
 
                 val bookShelfWebChapter = fetchChapterList(bookShelf)
-                if (bookShelfWebChapter != null) {
-                    _detailState.update {
-                        it.copy(bookShelf = bookShelfWebChapter, inBookShelf = inShelf, loading = false)
-                    }
-                } else {
+                if (bookShelfWebChapter == null) {
                     _detailState.update { it.copy(loading = false, loadError = true) }
+                    return@launch
+                }
+                val displayShelf = if (shelfRow != null) {
+                    // **已在书架：落库先认归属，页面与阅读器一律改用库里那份。**
+                    // 直接展示源上那份的话，页面上点得到、阅读器里翻得到的那几章在 chapter_list
+                    // 里并不存在，而阅读器退出时按它写回的 dur_chapter 是**列表位置** ——
+                    // 书架再按 getOrNull(durChapter) 读就落空（读至空白 + 点进去提示加载失败）。
+                    // 判定与序号重排都在仓库那半截里，这里不为落库再翻一遍目录页。
+                    if (shelfRow.tag == bookShelf.tag) {
+                        when (val result = bookRepository.appendRemoteChapters(
+                            bookShelf,
+                            bookShelfWebChapter.chapterList,
+                        )) {
+                            is ChapterSyncResult.Appended ->
+                                sendToast(context.getString(R.string.chapters_appended, result.appended.size))
+
+                            // 分叉：库里那份追不上远端，更不能把库里没有的章交给阅读器 ——
+                            // 落到下面的回读，页面显示的就是实际可读的那些章，另给一条常驻提示
+                            is ChapterSyncResult.Diverged ->
+                                _detailState.update { it.copy(tocDiverged = true) }
+
+                            is ChapterSyncResult.Failed -> Logger.e(
+                                TAG,
+                                "搜索入口的目录落库未完成，页面改用库里那份：${bookShelf.noteUrl}",
+                                result.cause,
+                            )
+
+                            ChapterSyncResult.UpToDate,
+                            ChapterSyncResult.Throttled,
+                            ChapterSyncResult.NotNetworkBook -> Unit
+                        }
+                    }
+                    // 归属不是同一条源时上面整段跳过。别小看这一挡：diff 按 content_ref 定位，
+                    // 确实一行都不会写，但落库那半截会把「这次检查得出分叉结论」写进
+                    // `final_refresh_data` 并弹一条本地目录已失效的提示条 ——
+                    // 那是**另一条源**的目录与这本书的本地目录在比，不是这本书的事实。
+                    bookShelfWebChapter.copy(
+                        chapterList = bookRepository.getStoredChapters(bookShelf.noteUrl),
+                    )
+                } else {
+                    // 未加书架：库里没有这本书的任何目录行，源上这份就是唯一可渲染、可阅读的一份
+                    // （它的进度也就无从持久化 —— saveProgress 写出的书架行没有 book_info 配对，
+                    // 会被 getAllBooksWithDetails 当孤立记录清掉，这是加书架前阅读的一贯行为）
+                    bookShelfWebChapter
+                }
+                _detailState.update {
+                    it.copy(bookShelf = displayShelf, inBookShelf = shelfRow != null, loading = false)
                 }
             } catch (e: Exception) {
                 Logger.e(TAG, "subscribe onError: ", e)

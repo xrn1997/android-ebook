@@ -19,6 +19,7 @@ import com.ebook.db.dao.BookShelfDao
 import com.ebook.db.dao.ChapterListDao
 import com.ebook.db.dao.DownloadChapterDao
 import com.ebook.db.entity.BookShelfEntity
+import com.ebook.db.entity.ChapterListEntity
 import com.ebook.db.entity.LibraryEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.db.entity.WebChapterEntity
@@ -85,6 +86,103 @@ class BookDetailViewModelSourceTest {
         Dispatchers.resetMain()
     }
 
+    @Test
+    fun `书已在书架时详情页把抓到的目录落库并改用库里那份`(): Unit = runTest(mainDispatcher) {
+        // 本地 3 行、源上 5 章：这正是「读至变空白」的前置状态。详情页手上那份是**源上的 5 章**，
+        // 直接展示并交给阅读器，阅读器退出时按它写回的列表位置在库内越界（dur_chapter 是位置）。
+        // 两套目录的章名各带前缀：库里那份与源上那份才分辨得出（定位符同一条链，判定才是纯追加）。
+        val chapters = FakeChapterStore(
+            listOf(storedChapter(0, "库"), storedChapter(1, "库"), storedChapter(2, "库"))
+        )
+        val shelfRow = BookShelfEntity(noteUrl = NOTE_URL, tag = SOURCE_B, durChapter = 1)
+        val parserB = FakeParser(SOURCE_B).apply {
+            chapterListResult = (0 until 5).map { storedChapter(it, "源") }
+        }
+        val manager = FakeSourceManager(parsers = mapOf(SOURCE_B to parserB))
+        val viewModel = BookDetailViewModel(repository(manager, chapters, shelfRow), manager)
+        viewModel.initFromSearch(SearchBookEntity(noteUrl = NOTE_URL, tag = SOURCE_B))
+
+        viewModel.getBookShelfInfo()
+        awaitUntil("详情流程已结束") { !viewModel.detailState.value.loading }
+
+        val state = viewModel.detailState.value
+        assertFalse("成功路径不该留错误态", state.loadError)
+        assertTrue("书架里有这一行，页面必须认得", state.inBookShelf)
+        assertEquals(
+            "抓到的目录要真的落库（库里从 3 行长到 5 行）",
+            5,
+            chapters.rows.size,
+        )
+        val displayed = state.bookShelf!!.chapterList
+        assertEquals(
+            "页面与阅读器用的目录必须就是库里那份（旧写法在这里会拿到源上那份，章名前缀不同）",
+            listOf("库第1章", "库第2章", "库第3章", "源第4章", "源第5章"),
+            displayed.map { it.durChapterName },
+        )
+        assertEquals(
+            "目录里不许出现重复定位符（旧写法「远端 + appended」会长出两遍末章）",
+            displayed.size,
+            displayed.map { it.contentRef }.distinct().size,
+        )
+        assertEquals("改用库里那份不该把进度抹回默认值", 1, state.bookShelf?.durChapter)
+        assertEquals("为落库不该再翻一遍目录页", 1, parserB.chapterListCalls)
+    }
+
+    /** 按方法名给返回值的 DAO 替身；白名单外（map 里没有）的方法被调用即抛，口径同 [emptyDaoStub] */
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : Any> daoStub(clazz: Class<T>, results: Map<String, Any?>): T =
+        Proxy.newProxyInstance(clazz.classLoader, arrayOf(clazz)) { _, method, _ ->
+            when {
+                results.containsKey(method.name) -> results[method.name]
+                method.name == "equals" -> false
+                method.name == "hashCode" -> System.identityHashCode(clazz)
+                method.name == "toString" -> "DaoStub<${clazz.simpleName}>"
+                else -> throw UnsupportedOperationException(
+                    "${clazz.simpleName}.${method.name} 不该被本用例调用（确需调用请加进 results）"
+                )
+            }
+        } as T
+
+    /**
+     * 有状态的 `chapter_list` 替身：本组用例要看到「落库之后再回读」的结果，
+     * 而 [emptyDaoStub] 只会一律回空集。
+     *
+     * 按真 DAO 的两条语义实现：主键是 `content_ref` 且 `insertAll` 是整行 REPLACE，
+     * 回读按 `dur_chapter_index` 升序。跨模块看不到 lib_book_common 里那份同名假件
+     * （Kotlin internal 不出模块），改动 `ChapterListDao` 时两处都要跟。
+     */
+    private class FakeChapterStore(initial: List<ChapterListEntity>) : ChapterListDao {
+        /** 按序号升序的当前库内容（用例直接读它做断言） */
+        val rows: List<ChapterListEntity>
+            get() = byRef.values.sortedBy { it.durChapterIndex }
+
+        private val byRef = LinkedHashMap(initial.associateBy { it.contentRef })
+
+        override suspend fun getChaptersForBook(bookNoteUrl: String): List<ChapterListEntity> =
+            rows.filter { it.noteUrl == bookNoteUrl }
+
+        override suspend fun countForBook(bookNoteUrl: String): Int =
+            rows.count { it.noteUrl == bookNoteUrl }
+
+        override suspend fun getChapterByUrl(chapterUrl: String): ChapterListEntity? = byRef[chapterUrl]
+
+        override suspend fun insertAll(chapters: List<ChapterListEntity>) {
+            chapters.forEach { byRef[it.contentRef] = it }
+        }
+
+        override suspend fun deleteChaptersForBook(bookNoteUrl: String) {
+            byRef.entries.removeAll { it.value.noteUrl == bookNoteUrl }
+        }
+    }
+
+    private fun storedChapter(index: Int, namePrefix: String = "") = ChapterListEntity(
+        noteUrl = NOTE_URL,
+        durChapterIndex = index,
+        contentRef = "$SOURCE_B/chapter/${index + 1}.html",
+        durChapterName = "${namePrefix}第${index + 1}章",
+        tag = SOURCE_B,
+    )
+
     /** 只喂一个空书架：详情页流程里仓库只被问 `getAllBooks` */
     private fun repository(manager: BookSourceManager): BookRepository = BookRepository(
         bookShelfDao = emptyDaoStub(BookShelfDao::class.java, "getAllBooks"),
@@ -103,6 +201,30 @@ class BookDetailViewModelSourceTest {
 
     private fun viewModelWith(manager: FakeSourceManager): BookDetailViewModel =
         BookDetailViewModel(repository(manager), manager)
+
+    /**
+     * 换成「有状态章节表 + 单行书架」的仓库：详情页的目录落库流程要先读库、写库、再回读，
+     * 一律回空集的 [emptyDaoStub] 撑不起这条链。
+     *
+     * `BookInfoDao` 只放行 [com.ebook.db.dao.BookInfoDao.setFinalRefreshData]：追加成功要写
+     * 「上次得出结论」的时间戳，其余成员一旦被问就是走错了路径。
+     */
+    private fun repository(
+        manager: BookSourceManager,
+        chapters: ChapterListDao,
+        shelfRow: BookShelfEntity,
+    ): BookRepository = BookRepository(
+        bookShelfDao = daoStub(BookShelfDao::class.java, mapOf("getAllBooks" to listOf(shelfRow))),
+        bookInfoDao = daoStub(BookInfoDao::class.java, mapOf("setFinalRefreshData" to null)),
+        chapterListDao = chapters,
+        bookGroupDao = emptyDaoStub(BookGroupDao::class.java),
+        downloadChapterDao = emptyDaoStub(DownloadChapterDao::class.java),
+        chapterReaders = emptyMap<BookFormat, ChapterReader>(),
+        bookSourceManager = manager,
+        bookStore = BookStore(File(System.getProperty("java.io.tmpdir"), "book-detail-test-books")),
+        contentCache = ChapterContentCache(capacity = 3),
+        transactions = DirectRunner,
+    )
 
     /**
      * 轮询等到 [cond] 成立：交替推进测试调度器与真实时间。
@@ -262,6 +384,9 @@ class BookDetailViewModelSourceTest {
         /** 让目录解析抛「书源已失效」，用来锁「详情成功、目录失败」这条中间态 */
         var failChapterList: Boolean = false
 
+        /** 源上这份目录的内容；null 表示沿用入参实体的目录（既有两条用例的口径） */
+        var chapterListResult: List<ChapterListEntity>? = null
+
         override suspend fun getBookInfo(bookShelf: BookShelfEntity): BookShelfEntity {
             bookInfoCalls++
             return bookShelf
@@ -270,7 +395,10 @@ class BookDetailViewModelSourceTest {
         override suspend fun getChapterList(bookShelf: BookShelfEntity): WebChapterEntity<BookShelfEntity> {
             chapterListCalls++
             if (failChapterList) throw BookSourceNotFoundException(ownedSourceUrl)
-            return WebChapterEntity(data = bookShelf, next = false)
+            return WebChapterEntity(
+                data = chapterListResult?.let { bookShelf.copy(chapterList = it) } ?: bookShelf,
+                next = false,
+            )
         }
 
         private fun unsupported(who: String): Nothing =

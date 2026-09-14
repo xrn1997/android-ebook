@@ -104,7 +104,10 @@ class BookReadViewModel @Inject constructor(
         try {
             val result = bookRepository.syncChaptersFromSource(shelf)
             val appended = (result as? ChapterSyncResult.Appended)?.appended ?: return null
-            bookShelf = shelf.copy(chapterList = shelf.chapterList + appended)
+            // 目录回读库里那份，不在这里拼基数：`shelf.chapterList` 是调用方交进来的那一份，
+            // 详情页的搜索入口交进来的是源上的远端目录，「远端 + appended」会拼出重复的章，
+            // 按它写回的列表位置在书架侧越界（见 BookRepository.getStoredChapters 的契约）
+            bookShelf = shelf.copy(chapterList = bookRepository.getStoredChapters(shelf.noteUrl))
             return appended
         } finally {
             syncInFlight = false

@@ -73,6 +73,10 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
 
     testImplementation(libs.junit)
+    // Room 运行时：`ReadingProgressFlowTest` 要起内存库跑真 SQL（真仓库 + 真 DAO 的落库/回读互作，
+    // 空库替身看不见）。room 在 lib_book_common 是 implementation、不传递到这里的编译类路径，
+    // 而生产代码从不直接碰 Room（一律经 lib_ebook_db 的 DAO），所以只在测试类路径上补。
+    testImplementation(libs.room.runtime)
     // Robolectric：ReaderPagerController 窗口状态机的 JVM 回归测试（只为提供 Context 与资源，
     // 不涉及 View/Compose 渲染）；与 lib_ebook_db 的 DAO 测试同一口径
     testImplementation(libs.robolectric)

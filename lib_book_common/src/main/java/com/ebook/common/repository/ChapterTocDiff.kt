@@ -47,7 +47,9 @@ internal object ChapterTocDiff {
      * 1. 本地为空 → 远端全部即新章（加书架时目录抓取失败的书走这条，把整本目录补齐）；
      * 2. 本地末章的 `contentRef` 不在远端 → `Diverged`（末章都没了，谈不上追加）；
      * 3. 本地任一章不在远端，或出现在本地末章**之后**，或相对顺序与远端不一致 → `Diverged`；
-     * 4. 远端在本地末章之后的那些章即 `tail`；为空则 `UpToDate`。
+     * 4. 远端在本地末章之后的那些章即 `tail`；为空则 `UpToDate`；
+     * 5. `tail` 与本地既有定位符重合、或 `tail` 内部自撞 → `Diverged`：`content_ref` 是整表主键
+     *    而落库是整行 REPLACE，撞键不报错，只会搬走既有行或让两行互吃。
      *
      * 为什么不按「逐位比对」：本地 `durChapterIndex` 可能有洞（历史删章，AGENTS.md 明载
      * 「新索引取 `max + 1` 不用 `size`」正是为此），而远端序号是 parser 按位置连写的。
@@ -67,10 +69,11 @@ internal object ChapterTocDiff {
         val remoteSorted = remote.sortedBy { it.durChapterIndex }
 
         if (byIndex.isEmpty()) {
-            return if (remoteSorted.isEmpty()) {
-                TocDiff.UpToDate
-            } else {
-                TocDiff.Appendable(remoteSorted)
+            return when {
+                remoteSorted.isEmpty() -> TocDiff.UpToDate
+                // 本地为空也要过一遍键冲突：整本补齐时两行同主键会互相吃掉，凭空少一章
+                !hasDistinctRefs(remoteSorted) -> TocDiff.Diverged
+                else -> TocDiff.Appendable(remoteSorted)
             }
         }
 
@@ -93,6 +96,20 @@ internal object ChapterTocDiff {
         }
 
         val tail = remoteSorted.drop(tailOfLocal + 1)
+        // 撞主键守卫：`content_ref` 是 chapter_list 的整表主键，而 insertAll 是整行 REPLACE
+        // （先删后插）。tail 里若有哪一行的定位符与本地既有行重合，落库不会报错，而是把既有那一行
+        // **搬到表尾** —— 序号静默错位（用户点第 3 章读到别的内容），且调用方按「本地 + tail」
+        // 数出来的条数会比库里多；tail 内部自撞则会让两行互相吃掉，一本书凭空少一章。
+        // 远端目录出现这种自相矛盾，说明这份清单整体不可信，按 I1 整笔放弃（两个 parser 正常都会
+        // 用 seenRefs 去重，走到这里意味着规则失配或站点侧真的挂了两遍）。
+        val localRefs = byIndex.mapTo(HashSet()) { it.contentRef }
+        if (!hasDistinctRefs(tail) || tail.any { it.contentRef in localRefs }) {
+            return TocDiff.Diverged
+        }
         return if (tail.isEmpty()) TocDiff.UpToDate else TocDiff.Appendable(tail)
     }
+
+    /** 一批行的 `content_ref` 是否互不相同（空集平凡通过） */
+    private fun hasDistinctRefs(chapters: List<ChapterListEntity>): Boolean =
+        chapters.map { it.contentRef }.distinct().size == chapters.size
 }
