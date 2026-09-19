@@ -1,5 +1,6 @@
 package com.ebook.find.mvvm.viewmodel
 
+import androidx.lifecycle.viewModelScope
 import com.ebook.api.entity.BookSourceRule
 import com.ebook.api.entity.FindRule
 import com.ebook.api.entity.KindItem
@@ -17,8 +18,10 @@ import com.ebook.find.entity.BookType
 import com.ebook.find.repository.BookSourceRepository
 import com.ebook.source.analyze.BookParser
 import java.nio.file.Files
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -68,6 +71,23 @@ class LibraryViewModelTest {
 
     private val mainDispatcher = StandardTestDispatcher()
 
+    /**
+     * 用例造出的 ViewModel，逐个记下来供收尾时取消（正常路径在 [runVmTest] 里收，`@After` 只兜底）。
+     *
+     * 为什么非收不可：[LibraryViewModel] 的三条 `stateIn(viewModelScope, Eagerly)` 在构造那一刻就
+     * 启动收集，默认源那一路的上游是 `MutableStateFlow`——**永不完成**，于是收集协程（以及它派生出的
+     * `Dispatchers.IO` 取数）到用例结束时还活着，而它们最后都要回到 Main 收尾。`Dispatchers.Main`
+     * 是 kotlinx-coroutines-test 那个全局 `TestMainDispatcher`，它的 delegate 由
+     * `setMain`/`resetMain` 反复改写，因此两种现场都会出现，红的**总是别的用例**：
+     * - 在途协程恰好在一次写入的当口读它 → 异常先被记下、下一次写入才抛，
+     *   `IllegalStateException: Dispatchers.Main is used concurrently with setting it`；
+     * - 收尾时 Main 已被 `resetMain()` 摘掉 → `CompletionHandlerException ... ProducerCoroutine{Cancelled}`，
+     *   caused by `Dispatchers.Main was accessed ... after Dispatchers.resetMain()`。
+     *
+     * 两种症状在只跑本类时就各复现过（注掉收尾代码后 15 连跑红 3 次），单条用例单跑恒绿。
+     */
+    private val liveViewModels = mutableListOf<LibraryViewModel>()
+
     @Before
     fun setUp() {
         Dispatchers.setMain(mainDispatcher)
@@ -75,6 +95,10 @@ class LibraryViewModelTest {
 
     @After
     fun tearDown() {
+        // 兜底：正常路径已在 runVmTest 里取消并等过收尾，这里只接住用例中途抛异常留下的残留。
+        // 顺序要紧：先取消再换掉 Main（取消本身要往 Main 派发）
+        liveViewModels.forEach { it.viewModelScope.cancel() }
+        liveViewModels.clear()
         Dispatchers.resetMain()
     }
 
@@ -290,7 +314,9 @@ class LibraryViewModelTest {
             manager,
             LibraryDiskCache(Files.createTempDirectory("library-vm-test").toFile().apply { deleteOnExit() }),
         )
-        return Fixture(manager, LibraryViewModel(repository, manager), parsers)
+        // VM 必须记进 liveViewModels，否则收尾时收不掉它的 viewModelScope（见该字段 KDoc）
+        val viewModel = LibraryViewModel(repository, manager).also { liveViewModels += it }
+        return Fixture(manager, viewModel, parsers)
     }
 
     /**
@@ -310,10 +336,47 @@ class LibraryViewModelTest {
         advanceUntilIdle()
     }
 
+    /**
+     * 本类每个用例的固定跑法：跑完 body 后在 **runTest 内部**把 VM 协程收尾干净。
+     *
+     * 收尾不能挪到 `@After`：那时调度器已经没人推进了，见 [releaseViewModels]。
+     * [releaseViewModels] 放在 `finally` 里，用例断言失败也要收，否则泄漏的协程会去红下一个用例。
+     */
+    private fun runVmTest(body: suspend TestScope.() -> Unit): Unit = runTest(mainDispatcher) {
+        try {
+            body()
+        } finally {
+            releaseViewModels()
+        }
+    }
+
+    /**
+     * 取消本用例建出的每个 `viewModelScope`，并**等它们真正完成收尾**。
+     *
+     * 只 cancel 不够：取消那一刻若还有跑在 `Dispatchers.IO` 上的取数在途（仓库的
+     * `getLibraryData` 是 `flowOn(Dispatchers.IO)`），它完成后要回到 Main 才走得完最后的
+     * 收尾；而 `@After` 的 `Dispatchers.resetMain()` 可能抢先执行，于是那条迟到回到 Main 的
+     * 续体撞上「Main 已被摘掉」，现场是 `CompletionHandlerException: Exception in completion
+     * handler ChildCompletion ... ProducerCoroutine{Cancelled}`，
+     * caused by `Dispatchers.Main was accessed ... after Dispatchers.resetMain()`——红的仍是别人家
+     * 的用例（实测：`@After` 里只 cancel 不等待，本类连跑 30 次仍红 4 次，全是这一种；
+     * 加上等待后同口径 30 次全绿）。等待因此必须留在 runTest 里：这里还能用 [awaitUntil]
+     * 交替推进调度器与真实时间。
+     */
+    private suspend fun TestScope.releaseViewModels() {
+        val jobs = liveViewModels.mapNotNull { it.viewModelScope.coroutineContext[Job] }
+        liveViewModels.forEach { it.viewModelScope.cancel() }
+        liveViewModels.clear()
+        jobs.forEach { job ->
+            // isCompleted 才是「收尾走完」：cancel() 之后 isActive 立刻为假，孩子在途时它仍是假的
+            awaitUntil("viewModelScope 已收尾") { job.isCompleted }
+        }
+    }
+
     // endregion
 
     @Test
-    fun `初始默认源到位后分类入口与书库都按该源给出`(): Unit = runTest(mainDispatcher) {
+    fun `初始默认源到位后分类入口与书库都按该源给出`(): Unit = runVmTest {
         val f = fixture(listOf(item(ruleA())), defaultUrl = URL_A)
 
         awaitUntil("A 源的书库已到手") { f.viewModel.list.value.isNotEmpty() }
@@ -332,7 +395,7 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun `切换器清单只列启用中的源且只带规则`(): Unit = runTest(mainDispatcher) {
+    fun `切换器清单只列启用中的源且只带规则`(): Unit = runVmTest {
         val f = fixture(
             items = listOf(item(ruleA()), item(ruleB(enabled = false)), item(ruleC())),
             // 默认源是启用中的 A：禁用项不该出现在候选里，但默认源本身该在
@@ -358,7 +421,7 @@ class LibraryViewModelTest {
      * 旧边界（脚本行点不动）的成因已消失：setDefaultSource 对脚本行生效、getParserFor 给真解析器。
      */
     @Test
-    fun `脚本书源进切换器候选且能成为当前源`(): Unit = runTest(mainDispatcher) {
+    fun `脚本书源进切换器候选且能成为当前源`(): Unit = runVmTest {
         val f = fixture(
             items = listOf(item(ruleA()), scriptItem(), item(ruleC())),
             defaultUrl = URL_A,
@@ -382,7 +445,7 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun `脚本源作默认源时页面 Ready 分类入口为空`(): Unit = runTest(mainDispatcher) {
+    fun `脚本源作默认源时页面 Ready 分类入口为空`(): Unit = runVmTest {
         val f = fixture(items = listOf(scriptItem()), defaultUrl = URL_SCRIPT)
         // 等终态而不是「不等于 NoSource」：首帧初值是 Unknown，后者在起点就成立、等不到任何东西
         awaitUntil("档位就位") { f.viewModel.sourceState.value == LibrarySourceState.Ready }
@@ -393,7 +456,7 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun `切换书源即设为默认并按新源重拉书库`(): Unit = runTest(mainDispatcher) {
+    fun `切换书源即设为默认并按新源重拉书库`(): Unit = runVmTest {
         val f = fixture(listOf(item(ruleA()), item(ruleB())), defaultUrl = URL_A)
         awaitUntil("A 源的书库已到手") { f.viewModel.list.value.isNotEmpty() }
 
@@ -417,7 +480,7 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun `没有任何启用中的源时进引导态且不发请求`(): Unit = runTest(mainDispatcher) {
+    fun `没有任何启用中的源时进引导态且不发请求`(): Unit = runVmTest {
         val f = fixture(
             items = listOf(item(ruleA(enabled = false)), item(ruleB(enabled = false))),
             // 全禁用：Manager 的同步面与订阅面同时为 null
@@ -458,7 +521,7 @@ class LibraryViewModelTest {
      * 不许跟着用户跑到新源那一屏上。
      */
     @Test
-    fun `有源但当前源解析不出时报失效源而不是无源`(): Unit = runTest(mainDispatcher) {
+    fun `有源但当前源解析不出时报失效源而不是无源`(): Unit = runVmTest {
         val f = fixture(
             items = listOf(item(ruleA()), item(ruleB())),
             defaultUrl = URL_A,
@@ -511,7 +574,7 @@ class LibraryViewModelTest {
      * Room 回来说的是「有源」——错误信息比空白更糟，故首帧单独占一档、页面整片留空。
      */
     @Test
-    fun `首帧档位是 Unknown 而不是无源`(): Unit = runTest(mainDispatcher) {
+    fun `首帧档位是 Unknown 而不是无源`(): Unit = runVmTest {
         // 刻意不推进调度器：stateIn 的初值在构造时同步就位，Room 那一跳还没跑
         val f = fixture(listOf(item(ruleA())), defaultUrl = URL_A)
 
@@ -526,7 +589,7 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun `换源后分类入口跟着换成新源的那一套`(): Unit = runTest(mainDispatcher) {
+    fun `换源后分类入口跟着换成新源的那一套`(): Unit = runVmTest {
         val f = fixture(listOf(item(ruleA()), item(ruleB())), defaultUrl = URL_A)
         awaitUntil("A 源的分类入口已就位") { f.viewModel.bookTypeList.value.isNotEmpty() }
         assertEquals(
@@ -545,7 +608,7 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun `同源下拉刷新保留列表而换源先清空`(): Unit = runTest(mainDispatcher) {
+    fun `同源下拉刷新保留列表而换源先清空`(): Unit = runVmTest {
         val f = fixture(listOf(item(ruleA()), item(ruleB())), defaultUrl = URL_A)
         awaitUntil("A 源的书库已到手") { f.viewModel.list.value.isNotEmpty() }
 
@@ -590,7 +653,7 @@ class LibraryViewModelTest {
      * ——假 parser 是唯一的数据来源，没被调就没有数据来过。
      */
     @Test
-    fun `换源后再切回已缓存的书源立即显示缓存书目且不再发请求`(): Unit = runTest(mainDispatcher) {
+    fun `换源后再切回已缓存的书源立即显示缓存书目且不再发请求`(): Unit = runVmTest {
         val f = fixture(listOf(item(ruleA()), item(ruleB())), defaultUrl = URL_A)
         awaitUntil("A 源的书库已到手") { f.viewModel.list.value.isNotEmpty() }
 
@@ -619,7 +682,7 @@ class LibraryViewModelTest {
      *   支去重导一条本来没坏的源。
      */
     @Test
-    fun `刷新期间网络失败时列表保留旧数据且不误报源失效`(): Unit = runTest(mainDispatcher) {
+    fun `刷新期间网络失败时列表保留旧数据且不误报源失效`(): Unit = runVmTest {
         val f = fixture(listOf(item(ruleA())), defaultUrl = URL_A)
         awaitUntil("A 源的书库已到手") { f.viewModel.list.value.isNotEmpty() }
 

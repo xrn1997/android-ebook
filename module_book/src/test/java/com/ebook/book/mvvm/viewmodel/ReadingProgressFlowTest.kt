@@ -289,7 +289,19 @@ class ReadingProgressFlowTest {
         awaitUntil("进度行已写过一次（此时还没有 book_info，是条孤立记录）") { shelfRow() != null }
 
         reader.addToShelf(null)
-        awaitUntil("已加入书架") { runBlocking { repository.getAllBooksWithDetails().size } == 1 }
+        // 等的是「整个条目到位」，不是「书架上先长出一行」：生产的 `addToShelf` 把四张表收进一笔
+        // 写事务，读方看不到半截条目；本文件的假事务接缝刻意就地执行 block（真 Room 事务在 runTest
+        // 的 Main 下等不到 Robolectric 主 looper，见 setUp 里那条注释），所以「书架行已在、100 章
+        // 还没写完」这个窗口在测试里仍然存在。只等 `size == 1` 就会挤进窗口读到空目录，
+        // 「读至 第100章」偶发为 null（症状像落点钳制出手，实际是读落在了半截条目上）。
+        // 「半截不可见」这条不变量由 `lib_book_common` 的
+        // `addToShelf 把整个条目收进一次写事务并在提交后才发事件` 在纯 JVM 侧锁住。
+        awaitUntil("已加入书架") {
+            runBlocking {
+                repository.getAllBooksWithDetails().size == 1 &&
+                    repository.getStoredChapters(NOTE_URL).size == 100
+            }
+        }
 
         assertEquals(
             "加书架写进去的进度必须还是用户在读的那一章",
