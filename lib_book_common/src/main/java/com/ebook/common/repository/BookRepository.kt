@@ -197,20 +197,32 @@ class BookRepository @Inject constructor(
         _bookShelfEvents.emit(BookShelfEvent.ProgressUpdated(bookShelf))
     }
 
-    /** 添加到书架 */
+    /**
+     * 添加到书架：一个条目的四张表收进**一次**写事务，`Added` 事件等提交返回之后再发。
+     *
+     * 事务不是整洁性问题而是这条路径的正确性前提：条目由 `book_info` → `book_shelf` →
+     * `chapter_list` → `book_group` 组成，逐张提交会留出一个窗口，让并发读方（书架页与阅读器
+     * 入口都走 [getAllBooksWithDetails]）看到「书架行已在、章节行还没写完」的半截条目——刚加的
+     * 那本究竟有几章，取决于那一瞬间有没有人路过。更糟的是这条读路径会把「取不到 book_info」
+     * 的行当孤立记录**删掉**，于是半截状态不只被读到，还会被写实。
+     * 由 [com.ebook.db.entity.BookShelfFullInfo] 的 `@Relation` 读侧看，半截与孤儿无法区分。
+     *
+     * 事件放在事务之外：**未提交的写不是事实**（与 [switchSource] 的 `publishSwitched` 同一口径）。
+     */
     suspend fun addToShelf(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
-        writeEntry(bookShelf)
+        transactions.run { writeEntry(bookShelf) }
         _bookShelfEvents.emit(BookShelfEvent.Added(bookShelf))
     }
 
     /**
      * 写「一个书架条目」的全部库内行：book_info → book_shelf → chapter_list → book_group 主键行。
      *
-     * 从 [addToShelf] 抽出而不复制：[switchSource] 要在**同一个写事务**里落下完整的新条目，
-     * 而 `addToShelf` 自带的 `withContext` 与事件发射都不能嵌进事务（前者会跳出 Room 的事务线程、
-     * 后者会把「未提交的写」当成事实广播出去）。两处共用同一份「一个条目由哪些行组成」的事实，
-     * 将来加一张表 / 一列时不会只改到一边、留下半个条目。
+     * 从 [addToShelf] 抽出而不复制：[switchSource] 要在**同一个写事务**里落下完整的新条目
+     * （见 [commitSwitch]，它在这份行之外还多删旧条目）。两处共用同一份「一个条目由哪些行组成」
+     * 的事实，将来加一张表 / 一列时不会只改到一边、留下半个条目。
      *
+     * **本方法自己不开事务、也不带 `withContext`**：事务由调用方开（`commitSwitch` 还要在同一笔
+     * 里删旧行，事务边界只能有一处），而 `withContext` 写在方法内会跳出 Room 的事务线程。
      * 本方法**不发事件**，且假设调用方负责线程与事务边界。
      */
     private suspend fun writeEntry(bookShelf: BookShelfEntity) {
