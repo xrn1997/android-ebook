@@ -4,7 +4,8 @@
 
 - [x] 为 `BookRepository` 添加单元测试（loadBookContent / saveBookContent / updateChapterCache / bookShelfEvents）
   —— 已由 `lib_book_common/src/test/.../repository/BookRepositoryTest.kt` 覆盖（手写 Fake DAO，纯 JVM），
-  另含 addToShelf/removeFromShelf 级联、getCachedChapterUrls 短路、getAllBooksWithDetails 孤立清理与章节排序
+  另含 addToShelf/removeFromShelf 级联、addToShelf 的写事务原子性（整个条目一笔提交、事件在提交后才发）、
+  getCachedChapterUrls 短路、getAllBooksWithDetails 孤立清理与章节排序
 - [x] 为 `UserSessionManager` 补充 token 同步 TokenHolder 的测试用例
   —— 已完成：`FakeUserSessionManager` 已注入并同步 `TokenHolder`，`UserSessionManagerTest` 已含
   `saveSession should sync token to TokenHolder` / `saveSession with empty token should clear TokenHolder` 等用例。
@@ -625,3 +626,32 @@ isolated 不再需要 `dumpsys` 手工核对：`SandboxConnectionTest` 在 host 
 4. **杀进程重进落点不变**：停在某章中间某一屏（含跨章滚动之后的落点），杀进程重进应回到同一屏。
 5. **跳转入口都落到正确的章与屏**：目录跳章、进度条跳章、底栏「上一章/下一章」按钮在滚屏模式下都经
    `gotoPage`；跳章后落点应是该章标题项（能看到章名），不是标题已滚走的正文。
+
+## 人工装机验证清单（找书/书架条目三行重设计与加书架写事务，2026-09-19）
+
+条目形态的口径（三行 = 书名 / 简介（无简介才回落末章）/ 作者+书源、卡片等高只在同一列表内、
+形态分派走纯函数 `searchBookInfoRows`/`shelfInfoRows` 再各走各的 Composable）见 ADR-0006 的共享设计语言
+与 `BookItemLayout` 的 KDoc；`origin` 必须露出、形态随页面定这条写在 ADR-0016。
+
+自动化侧已锁：`BookItemLayoutTest`（9 例，含 76dp 档的行数阶梯与 1dp 余量边界）、`SearchBookItemTest`
+（`listBlurb` 回落与行数分派 8 例）、`ShelfItemRowsTest`（书架侧 4 例）、`JsoupBookParserSearchTest`
+（3 例：原生解析器补 `desc`、重复 `noteUrl` 不丢条目）、`BookRepositoryTest` 里新增的
+`addToShelf 把整个条目收进一次写事务并在提交后才发事件`（加书架四张表一笔提交、事件在提交后发）。
+`testDebugUnitTest` 全模块通过，`module_find`/`module_book` 各连跑 10 轮无红（两条时序敏感用例已各自根治）。
+以下只列自动化够不到的**设备项**。
+
+1. **书城首页横排卡封面 101×123 的裁切能接受**（本轮定的取舍）：这一档**刻意不等比**，`Crop` 会从封面
+   上下各啃掉约 6dp。挑一本把书名与作者印在封面底边的书进书城首屏，看那一条是否缺得难受——若难受，
+   替代档是 92×123（不裁但窄 9dp）与 101×135（不裁但整行高 12dp），两个都已被否过一次，改回来要有新理由。
+2. **加书架图标的可点性与误触率**：图标是浮在正文列右上角的覆盖层，命中框 24dp（与字形等大，不外扩）。
+   ① 点图标要点得中；② 点在图标外圈那圈空白时应落在整张卡上（进详情），不该被图标吃掉；
+   ③ 已加过的书显示 Check，**看得出它是点不动的**（禁用态只有 38% 前景色这一条线索，没有别的标记）。
+3. **加书架之后立刻进书架**（写事务那条改动的现场）：从搜索结果/书城点加书架，随后马上回书架——
+   那本书要在架上、能进阅读器打开、目录不为空；连点几本不同源的书再回书架同样要看得到。改前的窗口是
+   「书架行已在、章节还没写完」，读到的是空目录（不报错、只是点开是空白）。
+4. **三行条目的行距与密度**（搜索结果页与分类选书页共用 `SearchBookItem`）：长简介**满 3 行后省略、
+   不溢出卡片**；无简介的书回落最新章节；作者/书源两个字段都缺时底行留空槽、不跟着涨。
+   系统字号放大一档再看：中间区行数应自己减到 2 行甚至 1 行，**不许把底行顶出卡片**。
+5. **书架条目的两档形态**：三行书（有读至 + 作者/章数）与两行书（刚导入还没读过的）混在同一列表里时，
+   同列表内卡片仍严格等高、两行那条的第二行垂直居中；「读至」只有 1 行，长章名要省略而不是换行撑高。
+6. **书源贴右**：底行作者靠左、书源贴卡片右内边距；长源名截在自己的 120dp 内，不把同行作者压成 0 宽。
