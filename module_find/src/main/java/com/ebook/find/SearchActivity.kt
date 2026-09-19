@@ -532,8 +532,9 @@ private fun SearchBarRow(
  *   不再用 surfaceVariant 整面板铺灰）
  * - 可交互胶囊（历史词条）：primaryContainer + onPrimaryContainer（与书城页书籍类型胶囊一致；
  *   原实底 primary 弱化为主色容器，避免面板内大面积强主色）
- * - 中性信息标签（状态/分类/字数）：InfoChip 默认 surfaceVariant + onSurfaceVariant
- * - 主操作（清除/搜索/更多/加入书架按钮）：primary
+ * - 主操作（清除/搜索/更多）与列表条目里的加书架图标：primary
+ *   （本模块已不渲染「中性信息标签」那一档：状态/字数解析器从不写，分类在新条目结构里没有位置，
+ *   书源改成第三行的普通文本——[com.ebook.common.ui.InfoChip] 的默认 surfaceVariant 档在别的模块用）
  *
  * 标签从旧 shape_search_history_roundrect（3dp 圆角 + primary 底 + onPrimary 文字）
  * 重设计为 InfoChip 胶囊形态（50 圆角 + labelLarge）。清除时先取各标签中心坐标触发

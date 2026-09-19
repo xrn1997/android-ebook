@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,8 +12,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -41,6 +44,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -54,8 +59,10 @@ import com.ebook.common.event.FROM_BOOKSHELF
 import com.ebook.common.event.KeyCode
 import com.ebook.common.importer.ParsingBook
 import com.ebook.common.ui.BookCover
+import com.ebook.common.ui.BookItemLayout
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.ui.bookItemLineCount
 import com.ebook.db.entity.BookShelfEntity
 import com.therouter.TheRouter
 import com.xrn1997.common.mvvm.IBaseRefreshView
@@ -245,49 +252,206 @@ fun BookShelfList(
 }
 
 /**
- * "解析中"占位行：形态对齐 [BookShelfItem]（同尺寸封面占位 + 标题），副行是小转圈 +
- * 解析中文案。不可点击——章文件与索引行都还没落库，此刻点进去只会看到空白书。
+ * 书架条目能凑出几行有效信息（书名恒一行）：读至一行 + 元信息（作者 / 共 N 章）一行。
+ *
+ * 与找书条目同一套思路：**形态由条数决定，布局内部不留分支**。这条判据单独成函数以便钉住
+ * （见 ShelfItemRowsTest）——它错一格就是一张顶对齐、底下空一整片的卡。
+ */
+internal fun shelfInfoRows(readToChapter: String, author: String, chapterCount: Int): Int =
+    1 + (if (readToChapter.isNotEmpty()) 1 else 0) +
+        (if (author.isNotEmpty() || chapterCount > 0) 1 else 0)
+
+/**
+ * 书架条目的外壳：定高正文列 + 封面 + 书名。与 [com.ebook.find.view.SearchBookItem] 的
+ * `BookItemFrame` 同一档尺寸（[BookItemLayout]：列高 76dp、封面 57×76 即 3:4、卡内边距 10dp
+ * → 卡片恒 96dp），所以翻到的书和书架上的书扫下来一样高；改档两处跟着一起动。
+ *
+ * 顶对齐是刻意的：封面顶边与书名顶边是同一条基线，谁都不该因为比书名高就把它挤到中间。
+ *
+ * @param body 书名之下那一坨（`ColumnScope`，所以两个变体能用 weight 排空白）
  */
 @Composable
-private fun ParsingShelfItem(title: String) {
-    CommonItemCard(enabled = false, onClick = {}, shadowElevation = 0.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+private fun ShelfItemFrame(
+    coverUrl: String,
+    coverDescription: String?,
+    title: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)?,
+    body: @Composable ColumnScope.() -> Unit,
+) {
+    val typography = MaterialTheme.typography
+    CommonItemCard(
+        onClick = onClick,
+        onLongClick = onLongClick,
+        enabled = enabled,
+        shadowElevation = if (enabled) 1.dp else 0.dp,
+        contentPadding = PaddingValues(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
             BookCover(
-                url = "",
-                contentDescription = null,
-                modifier = Modifier.size(width = 72.dp, height = 105.dp),
+                url = coverUrl,
+                contentDescription = coverDescription,
+                modifier = Modifier.size(
+                    width = BookItemLayout.coverWidth(BookItemLayout.columnHeight),
+                    height = BookItemLayout.columnHeight
+                ),
                 shape = RoundedCornerShape(6.dp)
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(BookItemLayout.columnHeight)
+                    .padding(start = 12.dp)
+            ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(12.dp),
-                        strokeWidth = 1.5.dp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.shelf_parsing, title),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                body()
             }
         }
     }
 }
 
 /**
- * 书架条目（ADR-0006 共享设计语言重设计，替代原 adapter_book_list_item.xml 的
- * 重阴影卡 + 等宽字体样式）：12dp 圆角条目卡 + [BookCover] 封面 + Material typography。
+ * 三行形态：书名 → 中间行（紧跟，恒定 [BookItemLayout.middleSpacing]）→ 元信息贴底。
+ * 空白只有一处，落在中间行与元信息之间；三行齐全时不把行距摊开。
+ */
+@Composable
+private fun ShelfItemFull(
+    coverUrl: String,
+    coverDescription: String?,
+    title: String,
+    bottomLeft: String,
+    bottomRight: String,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    middle: @Composable () -> Unit,
+) {
+    ShelfItemFrame(
+        coverUrl = coverUrl,
+        coverDescription = coverDescription,
+        title = title,
+        enabled = true,
+        onClick = onClick,
+        onLongClick = onLongClick,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = BookItemLayout.middleSpacing)
+        ) { middle() }
+        Spacer(modifier = Modifier.weight(1f))
+        ShelfItemMetaRow(bottomLeft, bottomRight)
+    }
+}
+
+/**
+ * 两行形态：书名 + 一行信息，那一行在剩下的地方上下等分、垂直居中。
+ * 只有两行内容时若仍顶对齐，卡片底下会空出一整片。布局里没有条件分支。
+ */
+@Composable
+private fun ShelfItemCompact(
+    coverUrl: String,
+    coverDescription: String?,
+    title: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit = {},
+    onLongClick: (() -> Unit)? = null,
+    middle: @Composable () -> Unit,
+) {
+    ShelfItemFrame(
+        coverUrl = coverUrl,
+        coverDescription = coverDescription,
+        title = title,
+        enabled = enabled,
+        onClick = onClick,
+        onLongClick = onLongClick,
+    ) {
+        Spacer(modifier = Modifier.weight(1f))
+        Box(modifier = Modifier.fillMaxWidth()) { middle() }
+        Spacer(modifier = Modifier.weight(1f))
+    }
+}
+
+/**
+ * 元信息行：左（作者）+ 右（共 N 章）。右列空串时不渲染，但左列仍带 weight 占满整行宽，
+ * 免得只有一项时它被挤到一半位置。
+ */
+@Composable
+private fun ShelfItemMetaRow(bottomLeft: String, bottomRight: String) {
+    val typography = MaterialTheme.typography
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = bottomLeft,
+            style = typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        if (bottomRight.isNotEmpty()) {
+            Text(
+                text = bottomRight,
+                style = typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                textAlign = TextAlign.End,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .widthIn(max = 120.dp)
+            )
+        }
+    }
+}
+
+/**
+ * "解析中"占位行：走 [ShelfItemCompact]（只有书名 + 一行状态），小转圈 + 解析中文案居中。
+ * 不可点击——章文件与索引行都还没落库，此刻点进去只会看到空白书。
+ */
+@Composable
+private fun ParsingShelfItem(title: String) {
+    ShelfItemCompact(
+        coverUrl = "",
+        coverDescription = null,
+        title = title,
+        enabled = false,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(12.dp),
+                strokeWidth = 1.5.dp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = stringResource(R.string.shelf_parsing, title),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+/**
+ * 书架条目：**书名 → 读至：当前章名 → 作者（左）· 共 N 章（右）**，
+ * 与搜索结果 / 分类选书条目同一档尺寸、同一套"按条数选形态"的做法
+ * （见 [ShelfItemFrame]、[shelfInfoRows]）。
+ *
+ * 中间行放"读至"而不是简介：书架上的书是用户已经决定读的，"更到哪了、读到哪了"才是
+ * 这一屏要回答的问题；章节名往往很长，所以它的行数和找书条目的简介一样由中间区高度算出来
+ * （[bookItemLineCount]）——系统字号越大显示的行越少，卡片始终等高。
+ * 没读到任何章节（章列表为空）时那一格不渲染，两行内容就走 [ShelfItemCompact]。
  *
  * 点击进阅读器，长按进详情页（修键面板的入口在详情页正文底部）。
  */
@@ -297,47 +461,59 @@ fun BookShelfItem(
     onItemClick: () -> Unit,
     onItemLongClick: () -> Unit,
 ) {
-    CommonItemCard(
-        onClick = onItemClick,
-        onLongClick = onItemLongClick,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // 封面：共享 BookCover（条目内小封面用小圆角变体）
-            BookCover(
-                url = bookShelf.bookInfo?.coverUrl ?: "",
-                contentDescription = stringResource(R.string.cover),
-                modifier = Modifier.size(width = 72.dp, height = 105.dp),
-                shape = RoundedCornerShape(6.dp)
+    val typography = MaterialTheme.typography
+    // 读 bookShelf.chapterList（书架查询时由 getAllBooksWithDetails() 回填；本地书由
+    // LocalBookImporter 回填），不用 bookInfo.chapterList——它是 @Ignore 不入库、书架流不填充，
+    // 会导致"读至："后为空。与 ReadBookActivity.kt 取章节列表的约定一致。
+    val chapters = bookShelf.chapterList
+    val readToChapter = chapters.getOrNull(bookShelf.durChapter)?.durChapterName.orEmpty()
+    val author = bookShelf.bookInfo?.author ?: ""
+    val maxLines = bookItemLineCount(
+        columnHeight = BookItemLayout.columnHeight,
+        nameStyle = typography.titleSmall,
+        bottomStyle = typography.labelSmall,
+        bodyStyle = typography.bodySmall,
+        spacing = BookItemLayout.middleSpacing,
+    )
+    val middle: @Composable () -> Unit = {
+        if (maxLines > 0 && readToChapter.isNotEmpty()) {
+            Text(
+                text = stringResource(R.string.read_to) + readToChapter,
+                style = typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = maxLines,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = bookShelf.bookInfo?.name ?: "",
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = bookShelf.bookInfo?.author ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    // 读 bookShelf.chapterList（书架查询时由 getAllBooksWithDetails() 回填；本地书由
-                    // LocalBookImporter 回填），不用 bookInfo.chapterList——它是 @Ignore 不入库、书架流不填充，
-                    // 会导致"读至："后为空。与 ReadBookActivity.kt 取章节列表的约定一致。
-                    text = stringResource(R.string.read_to) +
-                            (bookShelf.chapterList.getOrNull(bookShelf.durChapter)?.durChapterName ?: ""),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
         }
+    }
+    val coverUrl = bookShelf.bookInfo?.coverUrl ?: ""
+    val coverDescription = stringResource(R.string.cover)
+    val title = bookShelf.bookInfo?.name ?: ""
+    val bottomRight = if (chapters.isNotEmpty()) {
+        stringResource(R.string.chapter_count_format, chapters.size)
+    } else {
+        ""
+    }
+    if (shelfInfoRows(readToChapter, author, chapters.size) >= 3) {
+        ShelfItemFull(
+            coverUrl = coverUrl,
+            coverDescription = coverDescription,
+            title = title,
+            bottomLeft = author,
+            bottomRight = bottomRight,
+            onClick = onItemClick,
+            onLongClick = onItemLongClick,
+            middle = middle,
+        )
+    } else {
+        ShelfItemCompact(
+            coverUrl = coverUrl,
+            coverDescription = coverDescription,
+            title = title,
+            onClick = onItemClick,
+            onLongClick = onItemLongClick,
+            middle = middle,
+        )
     }
 }

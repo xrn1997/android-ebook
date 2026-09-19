@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -520,7 +519,14 @@ private fun KindBookSection(kind: LibraryKindBookListEntity, sourceUrl: String) 
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(kind.books, key = { it.noteUrl }) { searchBook ->
+            // **key 取位置，不能取 `noteUrl`**：同一分类行里可以出现两条 `noteUrl` 相同的书——
+            // 解析器只挡空 url（`JsoupBookParser.parseSearchBookWithRule` 与 `ScriptBookParser`
+            // 的发现页条目都是「空则丢弃」），而书城这条链路不像分类选书页那样按 `noteUrl` 去重，
+            // 拿它作 key 会抛 `Key ... was already used` 崩在主线程。
+            // 本卡无每项状态、列表在换源/刷新时整份替换，位置参与 key 的代价在这里不成立
+            // （与上方 kindBooks 同一取法）。也不在页面上 `distinctBy` 收：那等于把重复条目
+            // 可能代表的书整条吞掉，而 key 换成位置就已经不需要靠去重保唯一。
+            itemsIndexed(kind.books, key = { index, _ -> index }) { _, searchBook ->
                 LibraryBookCard(searchBook)
             }
         }
@@ -529,6 +535,15 @@ private fun KindBookSection(kind: LibraryKindBookListEntity, sourceUrl: String) 
 
 /**
  * 横向书籍卡片：封面（共享 [BookCover]，外包 Card 提供轻阴影）+ 书名 + 作者。
+ *
+ * 封面 **101×123 是刻意不等比的**（2026-09-19 定）：按三行条目那套 3:4 的系数，101 宽的高应是
+ * ≈135（见 [com.ebook.common.ui.BookItemLayout.coverWidth] 的说明），但书城首屏那一行不为封面的
+ * 比例再涨 12dp。[BookCover] 自身不含固有比例、只按 `ContentScale.Crop` 把图裁满框，于是这个框
+ * 上下各啃掉约 6dp——把书名与作者印在封面底边的那批站点会缺那一条。**这是权衡掉的代价，
+ * 不是漏改**：窄 9dp（92×123，不裁不涨）与高 12dp（101×135，不裁）两个替代方案都在同一轮被否。
+ *
+ * 作者为空时不渲染：否则仍占一行行高，同一条横向列表里卡片底部参差
+ * （与 [com.ebook.find.view.SearchBookItem] 的「空字段不占位」同一口径）。
  */
 @Composable
 private fun LibraryBookCard(searchBook: SearchBookEntity) {
@@ -566,14 +581,16 @@ private fun LibraryBookCard(searchBook: SearchBookEntity) {
                 .fillMaxWidth()
                 .padding(top = 4.dp)
         )
-        Text(
-            text = searchBook.author,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (searchBook.author.isNotEmpty()) {
+            Text(
+                text = searchBook.author,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }

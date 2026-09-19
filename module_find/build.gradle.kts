@@ -53,6 +53,10 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.coil.kt.compose)
+    // 列表项的加书架图标用 LibraryAdd，core 图标集里没有这一枚（core 只有 List/Add/Check）。
+    // 体积代价只在模块独立运行时（isModule=true 单独打包）；集成态 module_book / module_main /
+    // module_me 早已带同一 artifact，APK 里本来就有它。
+    implementation(libs.androidx.compose.material.iconsExtended)
     ksp(libs.router.apt)
     implementation(libs.router)
     //Dagger

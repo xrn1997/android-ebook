@@ -19,7 +19,7 @@ import coil.compose.AsyncImage
  * 需要阴影/描边时由调用方外包 Card/Surface（如书城横向书卡），本组件保持纯粹。
  *
  * @param url 封面图片地址（Coil 内部处理空串/失败 → error 占位）
- * @param modifier 尺寸由调用方决定（如 `Modifier.size(60.dp, 90.dp)`）
+ * @param modifier 尺寸与比例都由调用方决定（本组件没有固有比例，[ContentScale.Crop] 按这个框裁切填满）
  * @param contentDescription 无障碍描述
  * @param shape 圆角，默认 [CommonUiTokens.coverCorner]；条目内小封面可传更小圆角
  */
