@@ -44,13 +44,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.annotation.StringRes
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
 import com.ebook.common.ui.CommonListItem
+import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.SectionLabel
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
 import com.ebook.me.mvvm.viewmodel.CacheManageViewModel
 import com.ebook.me.mvvm.viewmodel.categoryTitleRes
@@ -139,7 +143,8 @@ fun CacheManageScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
+                // 页面左右留白取统一令牌（唯一事实源），不在页内写同语义的 16dp 字面值
+                .padding(horizontal = CommonUiTokens.pagePadding)
         ) {
             // 总占用摘要：让用户先建立整体量级认知，再看明细
             CommonCard(modifier = Modifier.fillMaxWidth()) {
@@ -163,7 +168,8 @@ fun CacheManageScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            // 总占用摘要卡与分类明细卡之间的区块间距取统一令牌：与书城等页密度一致
+            Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
 
             SectionLabel(text = stringResource(R.string.cache_section_detail))
             CommonCard(modifier = Modifier.fillMaxWidth()) {
@@ -183,7 +189,8 @@ fun CacheManageScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // 分类明细卡与书籍内容卡之间的区块间距，同上取统一令牌
+            Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
 
             // 书籍内容：解释「缓存总占用」为什么远小于手机报的应用占用。它不参与本页清理
             // （删书的唯一入口仍是书架长按），但书架路由可达时这一行可点，把人送到能删的地方。
@@ -223,7 +230,9 @@ fun CacheManageScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // 书籍内容卡与全量清理按钮之间的区块间距：按钮是页面最后一个区块，
+            // 与卡片之间同用区块间距令牌（此前 24dp 比卡片之间多一倍，密度不齐）
+            Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
 
             // 全量清理：影响面大（含未识别目录），按钮置灰零缓存 + 点击二次确认
             Button(
@@ -274,6 +283,9 @@ fun CacheManageScreen(
  * 分类明细 BottomSheet：分类说明 + 内容列表（名称 + 大小）+ 底部清理按钮。
  *
  * 列表高度限制 40%（长列表内部滚动），避免 Sheet 占满全屏。
+ *
+ * 内容区的整体左右内边距取 [CommonUiTokens.pagePadding]：它是弹层内容区的页面级留白，
+ * 与页面正文同一语义（不是某个局部元素的额外缩进），故用同一令牌。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -289,7 +301,8 @@ private fun CacheDetailSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                // 弹层内容区整体左右内边距＝页面级留白语义，取统一令牌（本页此前为 24dp）
+                .padding(horizontal = CommonUiTokens.pagePadding)
                 .navigationBarsPadding()
         ) {
             Text(
@@ -413,4 +426,70 @@ private fun categoryColors(type: CacheType): Pair<Color, Color> = when (type) {
             MaterialTheme.colorScheme.onSecondaryContainer
     CacheType.OTHER -> MaterialTheme.colorScheme.tertiaryContainer to
             MaterialTheme.colorScheme.onTertiaryContainer
+}
+
+/**
+ * 预览：缓存管理页，三档分类都有内容。
+ *
+ * 页面上的两件事都在这里核对：① 「可清理总量」与「书籍内容占用」是**两个口径**，
+ * 后者不计入前者、也不在本页删（删书唯一入口是书架长按，见 ADR-0026）；② 三档分类各自
+ * 的图标容器语义色（primary/secondary/tertiary container）互不重复。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun CacheManageScreenPreview() {
+    AppPreview {
+        CacheManageScreen(
+            uiState = CacheManageViewModel.CacheUiState(
+                items = listOf(
+                    CacheManageViewModel.CacheItemState(CacheType.IMAGE, "12.8 MB"),
+                    CacheManageViewModel.CacheItemState(CacheType.TEMP, "4.1 MB"),
+                    CacheManageViewModel.CacheItemState(CacheType.OTHER, "1.5 MB"),
+                ),
+                totalText = "18.4 MB",
+                totalBytes = 19_294_208L,
+                booksSizeText = "142.6 MB",
+                bookCount = 12,
+            ),
+            // 明细抽屉关闭：BottomSheet 是「点进某一档之后」才出现的形态，
+            // 静态预览里弹着它反而挡住了本页真正要看的两行占用口径
+            detailState = null,
+            onOpenDetail = {},
+            onDismissDetail = {},
+            onClearCategory = {},
+            onClearAll = {},
+            canOpenShelf = true,
+            onOpenShelf = {},
+        )
+    }
+}
+
+/**
+ * 预览：首帧「计算中」+ 独立运行态。
+ *
+ * `totalText`/`booksSizeText` 给空串走 `common_pending` 占位（进页面第一眼必然是这个形态，
+ * 目录遍历还没回来）；`canOpenShelf = false` 是模块独立运行时没有书架路由的退化档——
+ * 那一行应当不可点、不留假箭头。
+ */
+@PreviewLightDark
+@Composable
+private fun CacheManageScreenPendingPreview() {
+    AppPreview {
+        CacheManageScreen(
+            uiState = CacheManageViewModel.CacheUiState(
+                items = listOf(
+                    CacheManageViewModel.CacheItemState(CacheType.IMAGE, ""),
+                    CacheManageViewModel.CacheItemState(CacheType.TEMP, ""),
+                    CacheManageViewModel.CacheItemState(CacheType.OTHER, ""),
+                ),
+            ),
+            detailState = null,
+            onOpenDetail = {},
+            onDismissDetail = {},
+            onClearCategory = {},
+            onClearAll = {},
+            canOpenShelf = false,
+            onOpenShelf = {},
+        )
+    }
 }

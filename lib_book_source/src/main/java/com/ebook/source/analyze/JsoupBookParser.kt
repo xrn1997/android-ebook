@@ -75,7 +75,15 @@ class JsoupBookParser(
         return parseSearchBookWithRule(html, rule.ruleSearch)
     }
 
-    private fun parseSearchBookWithRule(html: String, searchRule: SearchRule): List<SearchBookEntity> {
+    /**
+     * 按给定搜索规则解析一段 HTML。
+     *
+     * 可见性为 `internal`（不是 private）：这是搜索与书城分类**共用**的那条链
+     * （`searchBook` 走 `ruleSearch`，`fetchLibraryData` 走 `ruleFind.ruleSearch` 回落 `ruleSearch`），
+     * 对它的直接断言一次锁住两个入口的字段口径，不必为测一行赋值而假造网络层。
+     * 同模块测试源可见 `internal`，跨模块不可见（见 AGENTS.md 的跨模块可见性口径）。
+     */
+    internal fun parseSearchBookWithRule(html: String, searchRule: SearchRule): List<SearchBookEntity> {
         val doc = Jsoup.parse(html)
         val elements = JsoupHelper.selectElements(doc, searchRule.list)
         val books = mutableListOf<SearchBookEntity>()
@@ -87,6 +95,11 @@ class JsoupBookParser(
             book.coverUrl = JsoupHelper.parseUrl(rule.url, JsoupHelper.selectAttr(el, searchRule.coverUrl))
             book.lastChapter = JsoupHelper.selectText(el, searchRule.lastChapter)
             book.kind = JsoupHelper.selectText(el, searchRule.kind)
+            // 原生侧此前漏读 `SearchRule.intro`：规则字段与文档都在，只是这里少一行赋值，
+            // 于是 desc 恒为空——列表那格永远只能显示最新章节，详情页（未加书架时走列表实体）
+            // 的简介也是一片空。脚本侧 `ScriptBookParser` 一直在读 intro，补上这行是让两种格式对齐；
+            // 列表项「简介优先、无简介回落最新章」（见 module_find 的 listBlurb）也才有余地。
+            book.desc = JsoupHelper.selectText(el, searchRule.intro)
             book.tag = rule.url
             book.origin = rule.name
             if (book.name.isNotEmpty() && book.noteUrl.isNotEmpty()) {

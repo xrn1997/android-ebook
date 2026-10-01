@@ -43,7 +43,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.BrightnessHigh
 import androidx.compose.material.icons.outlined.BrightnessLow
@@ -55,6 +54,7 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.ModeComment
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.TouchApp
@@ -106,6 +106,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -115,6 +116,7 @@ import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
 import com.ebook.common.ui.SectionLabel
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.db.entity.ChapterListEntity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -290,8 +292,10 @@ fun ReaderTopBar(
                                 moreExpanded = false
                                 onDownload()
                             }
+                            // 与同一菜单里的下载/换源/评论同为 Outlined：同一个菜单里混用实心与描边
+                            // 会让"哪个是当前态"这类形状语义失效（返回箭头是例外，见文件头/顶栏注释）
                             ReaderMenuItem(
-                                icon = Icons.Filled.Refresh,
+                                icon = Icons.Outlined.Refresh,
                                 text = stringResource(R.string.refresh),
                             ) {
                                 moreExpanded = false
@@ -493,10 +497,12 @@ private fun ChapterStepButton(
     enabled: Boolean,
     onClick: () -> Unit
 ) {
+    // 禁用态用 M3 的内容禁用透明度（0.38），与同一批面板里的其它禁用态（如字体/亮度块的
+    // 滑块）取同一个值——同为"禁用灰"却有 0.32/0.38 两种是没有理由的分叉
     val contentColor = if (enabled) {
         MaterialTheme.colorScheme.onSurfaceVariant
     } else {
-        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.32f)
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
     }
     IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(44.dp)) {
         Box(
@@ -858,7 +864,7 @@ fun ChapterListDrawer(
                     // 章节总数弱化为胶囊标签，避免与书名争夺视觉重心
                     InfoChip(
                         text = stringResource(R.string.chapter_count_format, chapters.size),
-                        shape = RoundedCornerShape(50),
+                        shape = CommonUiTokens.pillShape,
                         textStyle = MaterialTheme.typography.labelSmall,
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp)
                     )
@@ -873,7 +879,7 @@ fun ChapterListDrawer(
                         modifier = Modifier.semantics {
                             stateDescription = orderToggleStateDescription
                         },
-                        shape = RoundedCornerShape(50),
+                        shape = CommonUiTokens.pillShape,
                         containerColor = if (descending) MaterialTheme.colorScheme.secondaryContainer
                         else MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = if (descending) MaterialTheme.colorScheme.onSecondaryContainer
@@ -1287,18 +1293,17 @@ internal fun PanelChoiceRow(
 }
 
 /**
- * 亮度面板（替代原 WindowLightPop）：
- * - 滑条实时写窗口亮度（仅"不跟随系统"时生效），两端低/高亮度图标锚定方向语义；
- *  滑条包在 [CommonCard] 内，与其他模块设置页的卡片分组语言一致（ADR-0006）
- * - 数值文本实时显示当前亮度百分比（跟随系统时显示"自动"），
- *   原面板只有滑条，"调到哪一档"只能靠肉眼观察屏幕变化
- * - 「跟随系统」开关从卡片外的裸行收进同一张卡（与开关行统一为图标行语言），
- *   开启后恢复 BRIGHTNESS_OVERRIDE_NONE；关闭立即应用当前手动亮度，
- *   避免"关闭后屏幕亮度不变、必须拖一下滑条才生效"的错位；
- *   Switch 本体显式接线（onCheckedChange 传回调），与整行点击共用 setFollowSys 入口，
- *   保证开关状态与窗口实际亮度同步变化（对齐原 Checkbox 修复逻辑）
- * - 关闭面板时持久化到 SP（键与原实现一致，升级无感）；
- *   重新进入阅读器由 [applyReaderBrightness] 恢复手动亮度（窗口亮度不跨生命周期）
+ * 亮度面板的**壳层**（替代原 WindowLightPop）：把需要 Activity 的三件事留在这里——
+ * 读 SP 初值、写窗口亮度、关闭时持久化；长相交给无状态根 [LightPanelContent]。
+ *
+ * `light` / `followSys` 两个本地状态仍归这一层：它们是面板的单一事实源（滑条、数值文本、
+ * 持久化共用同一个 `light`，对齐原 WindowLightPop），根组件只看它们的当前值。
+ * 把状态一起挪进根组件，关闭时就得从组件外面把值捞回来——那才是第二个事实源。
+ *
+ * 调用点（[com.ebook.book.ReadBookActivity] 的面板分支）签名保持不变：
+ * `LightPanel(activity = activity, onDismiss = ...)`。
+ *
+ * 面板的长相与联动判据见 [LightPanelContent]。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1307,20 +1312,6 @@ fun LightPanel(activity: Activity, onDismiss: () -> Unit) {
     var followSys by remember { mutableStateOf(preferences.getBoolean(KEY_FOLLOW_SYS, true)) }
     // 单一事实源：滑条与持久化共用 light，避免镜像状态漂移（对齐原 WindowLightPop）
     var light by remember { mutableIntStateOf(preferences.getInt(KEY_LIGHT, getSystemBrightness(activity))) }
-
-    // 切换"跟随系统"的唯一入口：勾选恢复系统亮度；取消勾选立即应用手动亮度，
-    // 保证复选框状态与窗口实际亮度同步变化（不依赖滑条拖动）
-    fun setFollowSys(follow: Boolean) {
-        followSys = follow
-        if (follow) {
-            val params = activity.window.attributes
-            params.screenBrightness =
-                WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-            activity.window.attributes = params
-        } else {
-            setWindowBrightness(activity, light)
-        }
-    }
 
     ModalBottomSheet(
         onDismissRequest = {
@@ -1334,80 +1325,139 @@ fun LightPanel(activity: Activity, onDismiss: () -> Unit) {
         // 面板自带标题且下滑/点遮罩/返回键均可关闭，默认拖动手柄横杠冗余，去掉
         dragHandle = null
     ) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = CommonUiTokens.pagePadding)
-                .padding(top = ReaderChromeTokens.sheetTopPadding)
-        ) {
-            SheetHeader(stringResource(R.string.luminance))
-            Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
-            CommonCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp)
-                ) {
-                    // 数值行：手动态显示百分比（主色，强调"这是可调值"），跟随系统态显示"自动"
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = stringResource(R.string.reader_current_brightness),
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Text(
-                            text = if (followSys) {
-                                stringResource(R.string.brightness_auto)
-                            } else {
-                                stringResource(R.string.reader_brightness_percent_format, light)
-                            },
-                            style = MaterialTheme.typography.labelLarge,
-                            color = if (followSys) MaterialTheme.colorScheme.onSurfaceVariant
-                            else MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // 亮度滑条：两端图标锚定低/高方向语义，禁用态（跟随系统）由滑条淡出表达
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Outlined.BrightnessLow,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        ReaderSlider(
-                            value = light.toFloat(),
-                            valueRange = 0f..255f,
-                            enabled = !followSys,
-                            onValueChange = { value ->
-                                light = value.roundToInt()
-                                setWindowBrightness(activity, light)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 8.dp),
-                            contentDescription = stringResource(R.string.luminance)
-                        )
-                        Icon(
-                            imageVector = Icons.Outlined.BrightnessHigh,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 10.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant
+        LightPanelContent(
+            brightness = light,
+            followSystem = followSys,
+            // 滑条拖动与「取消跟随系统」共用这条出口：先落内存值、再立刻应用到窗口，
+            // 不留"关闭后屏幕亮度不变、必须拖一下滑条才生效"的错位
+            onBrightnessChange = { value ->
+                light = value
+                setWindowBrightness(activity, value)
+            },
+            // 勾选「跟随系统」：窗口亮度交还系统（BRIGHTNESS_OVERRIDE_NONE），滑条随即进禁用态
+            onSystemBrightnessRestore = {
+                val params = activity.window.attributes
+                params.screenBrightness =
+                    WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                activity.window.attributes = params
+            },
+            onFollowSystemChange = { follow -> followSys = follow },
+        )
+    }
+}
+
+/**
+ * 亮度面板的**无状态根**（AGENTS.md「屏幕的无状态根」）：只吃当前值与三个出口，
+ * 于是这块 chrome 第一次可以预览、也能被 JVM 渲染用例组合出来。
+ *
+ * 长相与判据（逐条对齐原 WindowLightPop）：
+ * - 滑条实时上报亮度（仅"不跟随系统"时可达），两端低/高亮度图标锚定方向语义；
+ *  滑条包在 [CommonCard] 内，与其他模块设置页的卡片分组语言一致（ADR-0006）
+ * - 数值文本实时显示当前亮度百分比（跟随系统时显示"自动"），
+ *   原面板只有滑条，"调到哪一档"只能靠肉眼观察屏幕变化
+ * - 「跟随系统」开关从卡片外的裸行收进同一张卡（与开关行统一为图标行语言），
+ *   开启后恢复 BRIGHTNESS_OVERRIDE_NONE；关闭立即应用当前手动亮度，
+ *   避免"关闭后屏幕亮度不变、必须拖一下滑条才生效"的错位；
+ *   Switch 本体显式接线（onCheckedChange 传回调），与整行点击共用面板内的 `setFollowSys` 入口，
+ *   保证开关状态与窗口实际亮度同步变化（对齐原 Checkbox 修复逻辑）
+ * - 关闭面板时持久化到 SP（键与原实现一致，升级无感）由壳层 [LightPanel] 负责，
+ *   重新进入阅读器由 [applyReaderBrightness] 恢复手动亮度（窗口亮度不跨生命周期）
+ *
+ * @param brightness 当前手动亮度（0~255，与落库的 `light` 同单位；上屏按百分比换算）
+ * @param followSystem 是否跟随系统亮度：为真时滑条禁用、数值行改说"自动"
+ * @param onSystemBrightnessRestore 把窗口亮度交还系统（写 BRIGHTNESS_OVERRIDE_NONE）
+ */
+@Composable
+fun LightPanelContent(
+    brightness: Int,
+    followSystem: Boolean,
+    onBrightnessChange: (Int) -> Unit,
+    onSystemBrightnessRestore: () -> Unit,
+    onFollowSystemChange: (Boolean) -> Unit,
+) {
+    // 切换"跟随系统"的唯一入口：勾选恢复系统亮度；取消勾选立即应用手动亮度，
+    // 保证复选框状态与窗口实际亮度同步变化（不依赖滑条拖动）
+    fun setFollowSys(follow: Boolean) {
+        onFollowSystemChange(follow)
+        if (follow) {
+            onSystemBrightnessRestore()
+        } else {
+            onBrightnessChange(brightness)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .padding(horizontal = CommonUiTokens.pagePadding)
+            .padding(top = ReaderChromeTokens.sheetTopPadding)
+    ) {
+        SheetHeader(stringResource(R.string.luminance))
+        Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
+        CommonCard(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp)
+            ) {
+                // 数值行：手动态显示百分比（主色，强调"这是可调值"），跟随系统态显示"自动"
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.reader_current_brightness),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge
                     )
-                    // 跟随系统亮度：整行可点，Switch 本体与行点击共用同一切换入口（见类注释）
-                    PanelSwitchRow(
-                        icon = Icons.Outlined.Tune,
-                        label = stringResource(R.string.follow_system_brightness),
-                        description = stringResource(R.string.follow_system_brightness_desc),
-                        checked = followSys,
-                        onCheckedChange = { setFollowSys(it) }
+                    Text(
+                        text = if (followSystem) {
+                            stringResource(R.string.brightness_auto)
+                        } else {
+                            stringResource(R.string.reader_brightness_percent_format, brightness)
+                        },
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (followSystem) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.primary
                     )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                // 亮度滑条：两端图标锚定低/高方向语义，禁用态（跟随系统）由滑条淡出表达
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.BrightnessLow,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    ReaderSlider(
+                        value = brightness.toFloat(),
+                        valueRange = 0f..255f,
+                        enabled = !followSystem,
+                        onValueChange = { value ->
+                            onBrightnessChange(value.roundToInt())
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp),
+                        contentDescription = stringResource(R.string.luminance)
+                    )
+                    Icon(
+                        imageVector = Icons.Outlined.BrightnessHigh,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 10.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+                // 跟随系统亮度：整行可点，Switch 本体与行点击共用同一切换入口（见类注释）
+                PanelSwitchRow(
+                    icon = Icons.Outlined.Tune,
+                    label = stringResource(R.string.follow_system_brightness),
+                    description = stringResource(R.string.follow_system_brightness_desc),
+                    checked = followSystem,
+                    onCheckedChange = { setFollowSys(it) }
+                )
             }
-            Spacer(modifier = Modifier.height(ReaderChromeTokens.sheetBottomPadding))
         }
+        Spacer(modifier = Modifier.height(ReaderChromeTokens.sheetBottomPadding))
     }
 }
 
@@ -1777,10 +1827,9 @@ fun AddShelfDialog(
         },
         text = { Text(stringResource(R.string.tv_pop_checkaddshelf, bookName)) },
         confirmButton = {
-            Button(
-                onClick = onAddShelf,
-                shape = RoundedCornerShape(50)
-            ) {
+            // 与全仓其余对话框主动作同为 TextButton：M3 里对话框的按钮就是文字按钮，
+            // 同一种"对话框里的主动作"不该在这里是胶囊实心 Button、在别处是 TextButton
+            TextButton(onClick = onAddShelf) {
                 Text(stringResource(R.string.add_to_shelf))
             }
         },
@@ -1790,4 +1839,106 @@ fun AddShelfDialog(
             }
         }
     )
+}
+
+/**
+ * 预览：亮度面板的四种长相——**跟随系统** / 手动 128 档 / 手动 0 档 / 手动 255 档。
+ *
+ * 这四档全是「不崩、不报错，只是说不对一句话或点不动一下」的形态：
+ * - 「自动」与百分比各走各的分支：写死其中一条不会红，只会让跟随系统时屏幕上还挂着一个
+ *   可调数字（用户就会去拖一根实际不起作用的滑条），或让手动态只说「自动」。
+ *   注：数值文本直接打的是 0~255 那个整数带 `%` 后缀（`reader_brightness_percent_format`，
+ *   原实现的口径，本次没有改动），所以 255 那一张上看到的是「255%」而不是「100%」。
+ * - 滑条的禁用态由淡出表达（`enabled = !followSystem`）：传反了就是「跟随系统开着、
+ *   滑条却还能拖」，拖完又被系统亮度覆盖，看上去像滑条坏了。
+ * - 最后两张是端点：本仓滑条是自绘的（触点→数值按固定基准映射，见 [ReaderSlider]），
+ *   旋钮在 0 与 255 处是否贴到轨道两端只有拍出来量得准——画歪一档的症状是「拖不到底」，
+ *   数值与屏幕亮度本身仍然对得上，所以功能上看不出毛病。
+ *
+ * 深浅两档各一组：数值行的主色/次要色（`primary` 与 `onSurfaceVariant`）随调板换，
+ * 硬编码在深色档会糊成一片。
+ */
+@PreviewLightDark
+@Composable
+private fun LightPanelContentPreview() {
+    AppPreview {
+        Column {
+            // 进面板的默认档：滑条不可动，右侧说"自动"
+            LightPanelContent(
+                brightness = 204,
+                followSystem = true,
+                onBrightnessChange = {},
+                onSystemBrightnessRestore = {},
+                onFollowSystemChange = {},
+            )
+            LightPanelContent(
+                brightness = 128,
+                followSystem = false,
+                onBrightnessChange = {},
+                onSystemBrightnessRestore = {},
+                onFollowSystemChange = {},
+            )
+            LightPanelContent(
+                brightness = 0,
+                followSystem = false,
+                onBrightnessChange = {},
+                onSystemBrightnessRestore = {},
+                onFollowSystemChange = {},
+            )
+            LightPanelContent(
+                brightness = 255,
+                followSystem = false,
+                onBrightnessChange = {},
+                onSystemBrightnessRestore = {},
+                onFollowSystemChange = {},
+            )
+        }
+    }
+}
+
+/**
+ * 预览：设置面板的单选行三档——**已选中** / 未选中 / 文案长到要换行。
+ *
+ * 「已选中行不可再点」是这一行的全部语义（`clickable(enabled = !selected, ...)` 与尾部
+ * [RadioButton] 共用 `onSelect`）：写反了不报错，只会变成「选中的那档还能点、没选的那档点不动」，
+ * 而翻页方式这种互斥二选一一旦点歪，界面与实际翻页行为就分叉了。
+ * 最后一档看的是长标签把尾部单选钮挤不挤出可视区（单选钮是唯一的"当前选了哪档"的凭据，
+ * 被挤出去就等于整行没有结论），以及说明行换行后与 36dp 图标块的垂直关系。
+ *
+ * 底色是否真的取自当前调板由 `ReaderTurnModeRowRenderTest` 在像素层锁住；这两张只看排版。
+ */
+@PreviewLightDark
+@Composable
+private fun PanelChoiceRowPreview() {
+    AppPreview {
+        Column {
+            // 与 MoreSettingPanel 里那两行同色同文（primary / secondary 两档容器色）
+            PanelChoiceRow(
+                icon = Icons.Outlined.SwapHoriz,
+                label = stringResource(R.string.turn_mode_page),
+                description = stringResource(R.string.turn_mode_page_desc),
+                selected = true,
+                onSelect = {},
+                iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            PanelChoiceRow(
+                icon = Icons.Outlined.SwapVert,
+                label = stringResource(R.string.turn_mode_scroll),
+                description = stringResource(R.string.turn_mode_scroll_desc),
+                selected = false,
+                onSelect = {},
+                iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                iconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            PanelChoiceRow(
+                icon = Icons.AutoMirrored.Outlined.VolumeUp,
+                label = "一条足够长的标签用来看它会不会把右侧的单选钮挤走",
+                description = "说明文字同样给到换行的长度：两行文案与 36dp 图标块、尾部单选钮同行时，" +
+                    "行高与垂直居中只能在这张图上量得准",
+                selected = false,
+                onSelect = {},
+            )
+        }
+    }
 }

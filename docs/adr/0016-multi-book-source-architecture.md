@@ -104,7 +104,7 @@
    - **「哪些源已到底」由调用方每轮带进来**（`skipSourceUrls`）：Manager 不持有搜索会话状态——它跨页面、跨关键词，任何「记住上一轮」的做法都会在 VM 之外长出第二个事实源；而这个信息只有握着游标的那一方知道，不带进来下一轮就会对已结束的源重复发请求。
    - 事件流：`AggregateSearchEvent` = `SourceStarted(url)` / `SourceResult(url, books)` / `SourceFailed(url, err)` / `SourceFinished(url, hasMore)` / `AllFinished`；UI 层按需渲染「已收到 X/Y 书源结果」进度条。**收尾判据是 `AllFinished`，不是「Finished 计数 == Started 计数」**：单源异常一律收敛成 `SourceFailed` + `SourceFinished(hasMore = false)`，但 `CancellationException` 原样上抛（否则换关键词重搜掐不掉旧轮次），代价是某一路被取消时 `flatMapMerge` 丢弃整路、该源连 Finished 都不发，只数 Finished 会让进度永远差一格。
    - 去重策略：按 `noteUrl` 全局去重（同一 URL 只可能出现一次）；不按 name+author 去重——不同书源的同名书是有效备选，交给用户在换源时选择。
-   - 每条结果自带 `origin`（书源名）与 `tag`（书源 URL），UI 用 `InfoChip` 显示书源标签。理由：聚合搜索让用户体验一次搜全站，并发上限与独立游标平衡了风控风险与可用性。
+   - 每条结果自带 `origin`（书源名）与 `tag`（书源 URL），UI 必须把它露出来——聚合搜索后一份列表混着多站的条目，`origin` 是「这条是谁家的」的判据（渲染形态随页面定：搜索条目上是第三行右侧的普通文本，整页锁定单一书源的分类选书页则不重复显示，详情页用 `InfoChip`）。理由：聚合搜索让用户体验一次搜全站，并发上限与独立游标平衡了风控风险与可用性。
 
 7. **书城：顶部书源切换器 + 缓存按源分区**
    - `LibraryViewModel` 的当前源是 `StateFlow<SourceDefinition?>`（订阅 `observeDefaultSource()`），切换器候选 `sources: StateFlow<List<BookSourceRule>>` 来自 `observeSources()` 的启用过滤——**不按格式过滤**：脚本行同样进得来、同样能被立为当前源。分类入口与书库两件事都由这一条当前源流驱动，页面不再自己 `triggerRefresh`。

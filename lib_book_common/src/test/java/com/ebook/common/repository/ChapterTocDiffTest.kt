@@ -60,6 +60,23 @@ class ChapterTocDiffTest {
     }
 
     @Test
+    fun `远端把本地已有的定位符重复挂在尾部时按分叉放弃`() {
+        // 站点在目录里把同一章写了两遍（第 3 章的 URL 又出现在末尾）。`content_ref` 是整表主键、
+        // insertAll 是整行 REPLACE —— 撞键既不报错也不闪退，只会把既有那一行**搬到表尾**：
+        // 序号静默错位（用户点第 3 章读到别的内容），而调用方按「本地 + tail」算出的条数还比库里多。
+        val remote = at(4) + chapter(2).copy(durChapterIndex = 4)
+        assertEquals(TocDiff.Diverged, ChapterTocDiff.diff(at(3), remote))
+    }
+
+    @Test
+    fun `远端多出的那几章内部自撞定位符时按分叉放弃`() {
+        // 同一批 tail 里两行同主键：落库时后一行把前一行的位置占掉，一本书凭空少一章，
+        // 而事件带出去的目录仍算它两份 —— 宁可不追，也不能写出一份自相矛盾的目录
+        val remote = at(4) + chapter(3).copy(durChapterIndex = 4)
+        assertEquals(TocDiff.Diverged, ChapterTocDiff.diff(at(3), remote))
+    }
+
+    @Test
     fun `本地为空而远端非空时带出全部远端`() {
         // 加书架时目录抓取失败的书，下一次重抓走这条路径把目录补齐
         val result = ChapterTocDiff.diff(emptyList(), at(3)) as TocDiff.Appendable

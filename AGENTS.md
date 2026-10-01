@@ -62,7 +62,7 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 
 - **功能模块**依赖 `lib_book_common`，互不依赖；跨模块导航使用 TheRouter，服务经 `provider/` 接口暴露。
 
-- **跨模块页面**：主 Tab 页面（书架/书城/我的）由 Provider 接口暴露 `@Composable () -> Unit`（非 Fragment），由 module\_main 的 NavHost 直接组合；Provider 由 TheRouter 创建（非 Hilt），页面依赖经页面级 `@HiltViewModel` 注入。
+- **跨模块页面**：主 Tab 页面（书架/书城/我的）由 Provider 接口暴露 `@Composable () -> Unit`（非 Fragment），由 module\_main 的 NavHost 直接组合；Provider 由 TheRouter 创建（非 Hilt），页面依赖经页面级 `@HiltViewModel` 注入。**页面需要宿主提供的能力时，用可空参数向下传**（宿主知道 Tab 路由、模块内不知道，独立运行态传 null 即降级不渲染），实例是 `IBookProvider.mainBookPage` 的 `onGoBookstore`；不要用 `CompositionLocal` 或另开 TheRouter 路由表达「切 Tab」
 
 - **MVVM**：ViewModel 继承 lib\_common 的 `BaseViewModel`/`BaseRefreshViewModel`，经 Hilt 构造注入。
 
@@ -155,6 +155,14 @@ BaseActivity (Compose)
 
 - **翻页方式有两种且共用分块链**（左右翻页 / 上下滚屏，`ReadBookControl.turnMode`）：两者都由同一条排版分块链给出「第 N 屏的正文」，差别只在容器（三页窗口 + 横向拖拽 / **跨章连续**的竖向列表，章界只有一个标题项、没有「上一章/下一章」链接），故进度口径同为「章内第几屏」、`dur_chapter_page` 语义不变。**块高一律取排版实测值**（`ReaderTypesetter.measureBlock`），不得用「行数 × 行高」心算；两种模式的正文视口高度不同（滚屏块内不含标题行），故 `pageLineCount` 不同，切换时按**行号**换算落点（`ReadBookActivity.convertPageIndex`）。页面上的跳转一律走 `gotoPage`（按当前方式路由到对应控制器）——直接调某一个控制器在另一种方式下不报错、只静默失效。滚屏那条连续列表另有三条硬约束：**item 必须带稳定且全局唯一的 key，且 key 只由 `(章, 块)` 构成、不含扁平序号**（LazyColumn 靠 key 在「锚点上方插入 item」时保住画面，而扁平序号会随插入整体平移；重复 key 会锚到另一项、位置静默跳变）；**锚点存 `(章, 块)` 语义值而不是 item 序号**（存序号等于相邻章段一展开就把进度写偏一屏）；**单次上方插入不超过约 100 项**（平台的 key→index 映射只索引锚点附近一个窗口，超窗即锚定失败且不自愈）
 
+- **屏幕的无状态根**：`@Preview` 只标**无参** `@Composable`、设计期渲染不经 Hilt，故每个屏幕的 UI 收在「不可变状态 + 回调」的无状态根里，状态收集留在有状态外壳（`XxxPage(viewModel = hiltViewModel())` 或 `PageContent()`）；宿主提供的能力（切 Tab、改窗口亮度、FileProvider uri）按 ADR-0041 的口径作可空回调向下传，预览侧传 no-op。约定**向前生效**：新页面照此写，既有页面在它下次被改动时补齐，不一次性追溯改造
+
+  - 预览函数与组件**同文件就近**（`private` 组件因此无需放开可见性；先例是 `module_find` 的 `SearchActivity`）；外层套 `lib_book_common` 的 `ui/preview/AppPreview`。它 `dynamicColor = false`（图要可比）、`darkTheme` 跟随 `isSystemInDarkTheme()`，于是深浅档一律用官方 `@PreviewLightDark` 翻 `uiMode`——与运行时 `ThemeMode.SYSTEM` 同一个判定入口，而不是在预览里手写一个方向；要看壁纸取色用 `@PreviewDynamicColors`
+  - 样例数据只从 `ui/preview/PreviewSamples` 取：条目那层「书架行 → `book_info` → 章节」的嵌套少填一层就画成半截，据此判断布局是错的；各模块的渲染冒烟测试吃**同一份**样例，两处各写必然漂移。多形态交给官方 `@PreviewParameter` + `PreviewParameterProvider`（书城 `LibrarySourceState` 四档一次出四张图）
+  - **可见性允许时**（根为 `internal`/`public`）每个被预览的屏幕根配一个 Robolectric 渲染用例（配方见 `EmptyStateTest`：`@GraphicsMode(NATIVE)` + `@Config(sdk = [34], qualifiers = …)` + `createAndroidComposeRule<ComponentActivity>()`），锁「组合得出来」与「取值顺序对」——这两类错不崩、不报错，只在渲染时显形。`private` 根（「预览函数与组件同文件就近」那条下的常态）测试源集看不见，那一档由预览面板人工确认，不必为一个用例把它放开
+  - **阅读器的正文排版层不进预览**：翻页/滚屏正文要吃 `ReadBookActivity` 的窗口旗标与排版实测块高，硬凑可预览等于再造一套假排版器，出来的图反而误导。预览范围止于**控制器层**（顶/底栏、目录抽屉、亮度/字体面板、各类弹层），它们本就继承全局主题
+  - 验证分工照旧：Agent 锁到 JVM 渲染，预览面板里的观感仍由人工在 Android Studio 打开确认
+
 ### Hilt 注入模式
 
 ```kotlin
@@ -224,7 +232,9 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 - 涉及前台服务/离线下载改动时，先读 ADR-0018（要点已收进上面「构建约定 → 前台服务约定」）
 
-- 涉及 Room 实体操作，注意主键策略是两套：自然键表（`note_url`/`content_ref`——`content_ref` 是内容定位符：本地书存章文件相对路径、网络书存章节 URL）直接 `OnConflictStrategy.REPLACE` 整行替换；自增键的流水表（下载队列）主键是自增 `id` 另挂唯一索引，upsert 必须先查回旧行、用 `existing?.id ?: 0L` 回填主键才算**原地覆盖**——传 0 是让 SQLite 分配新行，同唯一索引会撞成「先删后插」（实例见 `DownloadChapterDao.getChapterByUrl` 与 `DownloadRepository.addTasks`）（见 ADR-0003）
+- 涉及启动页/冷启动跳转到业务页的改动时，先读 ADR-0040：**TheRouter 的路由表是异步加载的**（`RouteMapKt.asyncInitRouteMap` 走 `TheRouterThreadPool`），启动期用 `matchRouteMap` 探测会把「还没加载完」误判成「没有这条路由」而静默跳过——需要「路由不可用时降级」就用 `createIntent(ctx)` 拿 Intent、判 `component` 非空后自己 `startActivity`，并在启动业务页之前先把主页垫进栈（否则页面起不来时用户停在一片空白）；`navigation()` 不给「是否落地」的反馈，凡是要区分成败的启动期跳转都别用它。另注：阅读进度只在 `onPause` 落库（`initData` 那次因 `bookShelf` 尚未赋值而空转），前台 force-stop 与崩溃时 `onPause`/`onDestroy` 都不执行——所以「异常关闭后恢复」的判据只能是**标记残留**，不能靠进度本身
+
+- 涉及 Room 实体操作，注意主键策略是两套：自然键表（`note_url`/`content_ref`——`content_ref` 是内容定位符：本地书存章文件相对路径、网络书存章节 URL）直接 `OnConflictStrategy.REPLACE` 整行替换；自增键的流水表（下载队列）主键是自增 `id` 另挂唯一索引，upsert 必须先查回旧行、用 `existing?.id ?: 0L` 回填主键才算**原地覆盖**——传 0 是让 SQLite 分配新行，同唯一索引会撞成「先删后插」（实例见 `DownloadChapterDao.getChapterByUrl` 与 `DownloadRepository.addTasks`）（见 ADR-0003）。**写「一个书架条目」的四张表一律收在同一笔写事务里**（`BookRepository.addToShelf` 与换源的 `commitSwitch` 都经 `WriteTransactionRunner`，事件在事务返回后才发）：逐张提交会留出窗口，让并发读方 `getAllBooksWithDetails` 看到「书架行已在、章节还没写完」的半截条目，而它把「取不到 `book_info`」的行当孤立记录**删掉**——半截状态不只被读到，还会被写实；该不变量由 `BookRepositoryTest` 的 `addToShelf 把整个条目收进一次写事务并在提交后才发事件` 在纯 JVM 侧锁住，别按「这几处写看着独立」把它拆回去
 
 - **改实体必须接迁移链**：version +1、在链上追加紧邻的 `MIGRATION_n_n+1`（不跳版、不删旧迁移）、提交 Room 生成的新 schema JSON；禁止启用 `fallbackToDestructiveMigration`（ADR-0003「Schema 演进」）
 
@@ -232,7 +242,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 - 涉及列表分页（分类页/搜索页 URL 模板）时：模板**必须带 `{{page}}`**，否则「加载更多」每页都在请求同一个首页；页码换算与渲染统一走 `JsoupBookParser` 的 `ListPageUrl`（它把以 `/{{page}}` 结尾的模板在首页裁掉页码段——裸路径首页 `/xuanhuan/1` 是 404），故取首页的调用也必须经它，不要自己 `replace("{{page}}", "1")`。判「到底」不能只看空页：**越界页会以 HTTP 200 重复返回首页书目**（软 404），因此追加页一律按 `noteUrl` 去重、无新条目即置 `hasMore=false`——列表页以 `noteUrl` 作 item key，重复条目直接抛异常。形态由 `ListPageUrlTest` 与 `BookPageMergeTest` 锁死
 
-- 涉及目录重抓／章节更新检查时，先读 ADR-0039：**只有「本地每一章都还在远端、相对顺序一致」才追加**，分叉一律整笔放弃（章文件按序号命名，序号漂移＝静默读错章）。四条别重新发现：判定**按 `content_ref` 定位、不按位置逐位比**（本地序号可能有洞＝用户删过章，按位置硬比会让这本书永远判成分叉、再也追不了更）；新索引取 `max(durChapterIndex) + 1` 不用 `size`；**远端行自带的序号不可沿用**，那是 parser 按位置写的 `chapters.size`，有洞时直接沿用会让两行撞同一个 index 而不报错（主键是 `content_ref`）；追加成功时**不需要失效任何缓存**（既有章的 index 与 contentRef 逐字不变，与 `refreshChapter`／`mergeTailChapters` 的处置不同）。限频落在 `book_info.final_refresh_data`（`isTocCheckDue` + `BookShelfEntity.REFRESH_TIME`）：**得出结论就写时间戳**（`UpToDate`／`Diverged` 都写，分叉重试无意义），失败一律不写（那是暂时性故障）；写它必须走 `BookInfoDao.setFinalRefreshData` 那条定向 UPDATE，读回整行再 `insert` 是整行 REPLACE，漏填字段会把书名封面静默抹掉。`Diverged` 不发事件（库没动），`Appended` 发 `BookShelfEvent.ChaptersUpdated` —— 加该分支会让 4 个穷举 `when` 的消费方编译失败，一并补齐
+- 涉及目录重抓／章节更新检查时，先读 ADR-0039：**只有「本地每一章都还在远端、相对顺序一致」才追加**，分叉一律整笔放弃（章文件按序号命名，序号漂移＝静默读错章），以下各条别重新发现：判定**按 `content_ref` 定位、不按位置逐位比**（本地序号可能有洞＝用户删过章，按位置硬比会让这本书永远判成分叉、再也追不了更）；新索引取 `max(durChapterIndex) + 1` 不用 `size`；**远端行自带的序号不可沿用**，那是 parser 按位置写的 `chapters.size`，有洞时直接沿用会让两行撞同一个 index 而不报错（主键是 `content_ref`）；**撞主键一律整笔放弃**——`ChapterTocDiff` 会检查算出的 tail：与本地既有 `content_ref` 重合、或 tail 内部自撞即判 `Diverged`，因为整行 REPLACE 撞键不报错、只把既有那一行搬到表尾（序号静默错位），而详情页现在也会落库，污染不再只留在内存；追加成功时**不需要失效任何缓存**（既有章的 index 与 contentRef 逐字不变，与 `refreshChapter`／`mergeTailChapters` 的处置不同）；**`book_shelf.dur_chapter` 是列表位置**，而**目录的单一事实源是 `chapter_list`**：要渲染或写进度一律回读 `BookRepository.getStoredChapters`，**不要拿「手上那份目录 + appended」自己拼**（`Appended` 只带新增的那几行，够报条数不够拼），基数不保证等于库内行数，差一章的症状是「读至」变空白＋点进去提示章节加载失败、目录还会长出两遍末章。详情页的搜索/书城入口为它**已经抓到的**远端目录调 `appendRemoteChapters` 落库（「抓 + 落」两半，见 ADR-0039），落库后页面与阅读器都改用库里那份。`saveProgress` 写库前按行数钳住落点是**第二道**防线，兜今后新长出来的自拼目录，不替代处方（库里零行时它**不出手**——零行没有「最后一行」可钳，提前钳成 0 会把「未加书架先读、中途点加书架」的进度抹回第一章）。**落库前先认归属**：比较 `书架行的 tag == 本次解析用的 tag`，跨源浏览同一 `noteUrl` 时手上那份是别家的目录，diff 虽然一行不写，但会占掉这本书自己的检查窗口并弹出「本地目录已失效」的误导提示。**这道门有两个入口，都要有**：详情页在落库前比（不符跳过落库但仍回读库里那份），阅读器在 `BookReadViewModel.appendChaptersIfAny` 追更前比（书架行不存在或 tag 不同即静默跳过，不发网络——未加书架时追更写进去的是永远没人清理的 `chapter_list` 孤行）。**追加的判定与落库收在同一写事务里**（`appendRemoteChapters` 内读-判-写不拆开）：事务外读快照、事务内写的话，并发落进的另一批追更会让 diff 基于旧快照，撞 `content_ref` 的整行 REPLACE 把既有行静默搬到表尾。限频落在 `book_info.final_refresh_data`（`isTocCheckDue` + `BookShelfEntity.REFRESH_TIME`）：**得出结论就写时间戳**（`UpToDate`／`Diverged` 都写，分叉重试无意义），失败一律不写（那是暂时性故障）；写它必须走 `BookInfoDao.setFinalRefreshData` 那条定向 UPDATE，读回整行再 `insert` 是整行 REPLACE，漏填字段会把书名封面静默抹掉。`Diverged` 不发事件（库没动），`Appended` 发 `BookShelfEvent.ChaptersUpdated` —— 加该分支会让 4 个穷举 `when` 的消费方编译失败，一并补齐
 
 - 涉及本地书籍导入或章节正文读取时，先读 `docs/superpowers/specs/2026-09-04-local-book-import-design.md`。**导入判重（见 ADR-0023）**：口径是待导入文件的 `comment_key` 等于书架某条目的**当前主键**，不是比 `book_info.name` 书名——键含作者，只比书名会把同名不同作者的两本书判成一本并给出删除入口。处置四个动作（继续添加/智能合并/覆盖/取消——最后一个不导入本文件、批次里的其余文件照常走），非破坏的「继续添加」占主按钮位；顺序一律**先导入新条目、后处置旧条目**，覆盖删旧之前先 `absorbGroupKeys` 吸收旧条目的关联键。补章只对本地目标书，且要求旧书归一化章名序列是新书的**前缀**，分叉即整笔放弃；新索引取现有最大 `durChapterIndex + 1`，不用 `size`（历史删章留下的洞会让二者不等，从而覆写既有章文件）
 
@@ -240,7 +250,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 - 涉及缓存管理页改动时：本页「缓存」只指 `cacheDir`（图片/临时/其他三档，可清，`cacheBreakdown` 一次遍历分档）；书籍内容住在 `filesDir/books`，由 `BookStore.storageUsage()` 一次遍历给出「占用 + 册数」并单列一行——**不计入可清理总量、本页不删书**（删书唯一入口是书架长按），该行可点，用 `CLEAR_TOP` 回主页（其 `startDestination` 即书架）；独立运行无该路由时按 `matchRouteMap` 退化为不可点，别留假箭头。把两者合并或在本页顺手加删除，会造出第二个删书入口与两种占用口径（见 ADR-0026）
 
-- 跨模块共享的 Compose 组件（卡片/列表项/标签/封面/头像等）统一归口 `lib_book_common` 的 `com.ebook.common.ui`（`CommonUiTokens` 设计常量 + `CommonCard`/`CommonListItem`/`InfoChip`/`BookCover`/`Avatar` 等），字号走 Material typography，兜底默认图与组件同处一档（`drawable-xxhdpi`，不在业务模块留副本），不要在模块内新建重复实现（见 ADR-0006）
+- 跨模块共享的 Compose 组件（卡片/列表项/标签/封面/头像/空态等）统一归口 `lib_book_common` 的 `com.ebook.common.ui`（`CommonUiTokens` 设计常量 + `CommonCard`/`CommonListItem`/`InfoChip`/`BookCover`/`Avatar`/`EmptyState` 等），字号走 Material typography，兜底默认图与组件同处一档（`drawable-xxhdpi`，不在业务模块留副本），不要在模块内新建重复实现（见 ADR-0006）。**「三行书条目」这一族的版式（`BookItemLayout` 常量 + `BookItemFrame` 外壳 + `BookItemMetaRow` 底行）同理**——找书条目与书架条目共用它，谁都不该在模块里另起一份同构实现；**空态与「取不到内容」的失败态一律走 `EmptyState`**（图标由调用方模块给，共享库依赖不到 iconsExtended），`lib_common` 的 `NoDataView` 位图插画本仓刻意不用（见 ADR-0042）
 
 - **共享件上浮两步走**：迭代中发现明显的跨模块共性（域无关的工具函数、通用组件等），**优先抽到 `lib_book_common`** 消除重复，不必等到能上 `lib_common` 才动手——过早跨仓协调出太多版本不利于开发和维护。等 `lib_book_common` 里同类共性积累到能组成一份完整、通用的功能集时，再整体推荐迁入外部库 `lib_common`（`FileTree.treeSize` 即此类待迁移候选）
 

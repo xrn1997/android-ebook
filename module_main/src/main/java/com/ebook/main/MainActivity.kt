@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -33,6 +34,7 @@ import com.ebook.api.auth.SessionEvent
 import com.ebook.api.auth.SessionEventBus
 import com.ebook.common.domain.UserSessionManager
 import com.ebook.common.event.KeyCode
+import com.ebook.common.ui.preview.AppPreview
 import com.therouter.TheRouter
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseActivity
@@ -127,6 +129,46 @@ sealed class Screen(val route: String, @param:StringRes val titleRes: Int, val i
 }
 
 /**
+ * 主页底部导航（无状态根）。
+ *
+ * 只吃「当前选中路由」与「选中回调」两样：[selectedRoute] 由调用方从导航回退栈派生
+ * （`backStackEntry?.destination?.route`），组件自身不持有选中状态——与 [MainScreen] 一样，
+ * 选中态只有一份事实源，避免本地状态与回退栈在进程恢复时不同步。
+ *
+ * 存在的理由是**可预览**：[MainScreen] 里有 [BackHandler] 与 `NavHost`，两者都要求组合环境里
+ * 有对应的 owner（`LocalOnBackPressedDispatcherOwner` / `LocalViewModelStoreOwner`），预览渲染
+ * 环境没有，直接抛 `IllegalStateException`——于是整页拍不出图。把底部导航拆出来后，三个 Tab 的
+ * 高亮形态就能单独拍，而「哪一格该亮」这种错既不崩也不报错，只有对着图才看得出来。
+ *
+ * [onSelect] 必须是宿主里那个唯一的 `switchTab(route)` 入口（见 ADR-0041：Tab 切换收敛成一个入口）：
+ * `popUpTo(start)` + `saveState` + `launchSingleTop` + `restoreState` 四个回退栈选项漏掉任何一个
+ * （尤其 `saveState`/`restoreState`），切回来就是一张全新页面，而这里多写一遍迟早与宿主那份不一致。
+ *
+ * @param selectedRoute 当前选中的 Tab 路由；null 或不属于本页的路由（首帧还没有回退栈条目）
+ *   时三格都不高亮——这是「不知道在哪」的诚实表达，比默认点亮第一格更不易误导用户。
+ * @param onSelect 用户点某格时回调该格的路由（本组件不做导航）。
+ * @param modifier 附加到 [NavigationBar] 容器上；手势条避让由 [NavigationBar] 自带，无需外部 insets。
+ */
+@Composable
+fun MainBottomBar(
+    selectedRoute: String?,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    NavigationBar(modifier = modifier) {
+        val screens = listOf(Screen.Bookshelf, Screen.Bookstore, Screen.Me)
+        screens.forEach { screen ->
+            NavigationBarItem(
+                icon = { Icon(screen.icon, contentDescription = stringResource(screen.titleRes)) },
+                label = { Text(stringResource(screen.titleRes)) },
+                selected = selectedRoute == screen.route,
+                onClick = { onSelect(screen.route) }
+            )
+        }
+    }
+}
+
+/**
  * 主页骨架：底部导航 + 三个 Tab 的 NavHost。
  *
  * 选中态单一数据源为 navController 的回退栈（派生自 currentBackStackEntryAsState），
@@ -144,31 +186,30 @@ fun MainScreen(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
+    // Tab 切换的唯一入口：底部导航与「书架空态 → 去书城」共用同一套回退栈选项。
+    // 两处各写一遍迟早不一致（saveState/restoreState 漏一个，切回来就是全新页面）。
+    val switchTab: (String) -> Unit = { route ->
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     BackHandler {
         onBackPress()
     }
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                val screens = listOf(Screen.Bookshelf, Screen.Bookstore, Screen.Me)
-                screens.forEach { screen ->
-                    NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = stringResource(screen.titleRes)) },
-                        label = { Text(stringResource(screen.titleRes)) },
-                        selected = currentRoute == screen.route,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                }
-            }
+            // 底部导航是无状态根：选中态往下给、点哪一格往上报，导航动作仍由上面那个
+            // switchTab 执行（回退栈选项只此一份，见 MainBottomBar 的 KDoc）
+            MainBottomBar(
+                selectedRoute = currentRoute,
+                onSelect = switchTab
+            )
         },
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->
@@ -184,7 +225,10 @@ fun MainScreen(
             // 各 Tab 直接组合 Provider 暴露的 Compose 页面（替代原 FragmentContainerView 嵌 Fragment）：
             // 页面 ViewModel 经 hiltViewModel() 绑定 NavBackStackEntry，切 Tab 保留状态、返回栈退出时销毁
             composable(Screen.Bookshelf.route) {
-                TheRouter.get(IBookProvider::class.java)?.mainBookPage?.invoke()
+                // 把「切到书城」的能力递给书架页（书架空态要一句「去书城找书」，见 IBookProvider）
+                TheRouter.get(IBookProvider::class.java)?.mainBookPage?.invoke {
+                    switchTab(Screen.Bookstore.route)
+                }
             }
             composable(Screen.Bookstore.route) {
                 TheRouter.get(IFindProvider::class.java)?.mainFindPage?.invoke()
@@ -193,5 +237,54 @@ fun MainScreen(
                 TheRouter.get(IMeProvider::class.java)?.mainMePage?.invoke()
             }
         }
+    }
+}
+
+/**
+ * 预览：书架 Tab 选中（`startDestination`，主页首帧的形态）。
+ *
+ * 三档选中态各拍一张，因为「哪一格亮」是 [MainBottomBar] 之外算好递进来的（派生自导航回退栈），
+ * 传错路由既不报错也不闪退，只是高亮停在用户没在的那个 Tab 上——这类错位只有对着图才看得出来。
+ * 深浅两档由 [PreviewLightDark] 翻 `uiMode`（与运行时「跟随系统」同一个判定），两档一起看才能确认
+ * 高亮与文案取的是 [NavigationBar] 的语义色而不是硬编码颜色。
+ */
+@PreviewLightDark
+@Composable
+private fun MainBottomBarBookshelfPreview() {
+    AppPreview {
+        MainBottomBar(selectedRoute = Screen.Bookshelf.route, onSelect = {})
+    }
+}
+
+/** 预览：书城 Tab 选中。与上一张唯一差别是入参路由，用于看高亮是否跟着路由走。 */
+@PreviewLightDark
+@Composable
+private fun MainBottomBarBookstorePreview() {
+    AppPreview {
+        MainBottomBar(selectedRoute = Screen.Bookstore.route, onSelect = {})
+    }
+}
+
+/** 预览：「我的」Tab 选中。三格里只有它可能因为末位排版（间距/权重）长得不对。 */
+@PreviewLightDark
+@Composable
+private fun MainBottomBarMePreview() {
+    AppPreview {
+        MainBottomBar(selectedRoute = Screen.Me.route, onSelect = {})
+    }
+}
+
+/**
+ * 预览：还不知道在哪一档——`selectedRoute` 为 null（回退栈还没有条目）或是不属于本页的路由。
+ *
+ * 这一档要拍是因为它的处方是「三格都不高亮」而不是「兜底点亮第一格」：首帧就把书架点亮，用户会
+ * 看到「高亮在书架、内容却是别的 Tab」的错位；而把 null 当错误路由处理成全部不高亮，
+ * 导航失败与首帧未就绪这两种状态才会显形成同一种样子。
+ */
+@PreviewLightDark
+@Composable
+private fun MainBottomBarUnknownRoutePreview() {
+    AppPreview {
+        MainBottomBar(selectedRoute = null, onSelect = {})
     }
 }

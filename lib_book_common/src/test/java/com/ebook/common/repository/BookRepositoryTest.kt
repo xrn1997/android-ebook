@@ -10,6 +10,7 @@ import com.ebook.common.domain.CommentKey
 import com.ebook.common.importer.ImmediateTransactionRunner
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
+import com.ebook.common.store.WriteTransactionRunner
 import com.ebook.db.entity.BookGroupEntity
 import com.ebook.db.entity.BookInfoEntity
 import com.ebook.db.entity.BookShelfEntity
@@ -108,6 +109,77 @@ class BookRepositoryTest {
         assertEquals(1, groupRows.size)
         assertEquals(CommentKey.compute("斗破苍穹", ""), groupRows[0].commentKey)
         assertEquals("http://book", groupRows[0].noteUrl)
+    }
+
+    /**
+     * 「一个书架条目」在四张表里的总行数，供事务边界取样。
+     *
+     * 取的是假件内存表的即期行数（`storedValues()` 是同步的），因此能在 block 进入与返回的
+     * 那一刻各读一次——换成 suspend 查询就得排队到事务之外，测不到窗口内的事实。
+     */
+    private fun entryRowCount(): Int =
+        daos.info.storedValues().size + daos.shelf.storedValues().size +
+            daos.chapter.storedValues().size + daos.group.storedValues().size
+
+    /**
+     * 加书架的原子性：一个条目的四张表收进**一次**写事务，且 `Added` 事件在事务返回后才发。
+     *
+     * 事务外顺序写四张表时，读方能在窗口里看到「book_info、book_shelf 都在，chapter_list 还是空的」
+     * 这种半截条目。`getAllBooksWithDetails` 正是书架的读路径，于是「刚加的那本 100 章还是 0 章」
+     * 取决于那一瞬间有没有人路过 —— `module_book` 的 `ReadingProgressFlowTest` 里
+     * 「读至 第100章」偶发为 null，就是轮询者挤进了这个窗口（不是被落点钳制抹掉的）。
+     *
+     * 断言取样的是 block **进入时**与**返回时**的库内行数：只数「事务跑了几次」证明不了
+     * 写落在事务**里面**，而落在外面才是这次要根治的东西。
+     */
+    @Test
+    fun `addToShelf 把整个条目收进一次写事务并在提交后才发事件`() : Unit = runTest {
+        val events = mutableListOf<BookShelfEvent>()
+        var runs = 0
+        var rowsAtEntry = -1
+        var rowsAtExit = -1
+        var eventsAtExit = -1
+        val txRepository = BookRepository(
+            bookShelfDao = daos.shelf,
+            bookInfoDao = daos.info,
+            chapterListDao = daos.chapter,
+            bookGroupDao = daos.group,
+            downloadChapterDao = daos.download,
+            chapterReaders = mapOf(BookFormat.TXT to FakeChapterReader()),
+            bookSourceManager = FakeBookSourceManager(),
+            bookStore = store,
+            contentCache = ChapterContentCache(),
+            transactions = object : WriteTransactionRunner {
+                override suspend fun <R> run(block: suspend () -> R): R {
+                    runs++
+                    rowsAtEntry = entryRowCount()
+                    return block().also {
+                        rowsAtExit = entryRowCount()
+                        eventsAtExit = events.size
+                    }
+                }
+            },
+        )
+        backgroundScope.launch { txRepository.bookShelfEvents.toList(events) }
+        runCurrent() // SharedFlow 无 replay，先让订阅者就位
+
+        txRepository.addToShelf(
+            BookShelfEntity(noteUrl = "http://book").apply {
+                bookInfo = BookInfoEntity(name = "斗破苍穹")
+                chapterList = listOf(
+                    ChapterListEntity(contentRef = "http://a/1", durChapterIndex = 0),
+                    ChapterListEntity(contentRef = "http://a/2", durChapterIndex = 1),
+                )
+            }
+        )
+        runCurrent()
+
+        assertEquals("整个条目只该提交一次写事务", 1, runs)
+        assertEquals("事务开始时库内不得有半截条目可被读到", 0, rowsAtEntry)
+        // 1 book_info + 1 book_shelf + 2 chapter_list + 1 book_group
+        assertEquals("事务返回时整个条目已就位", 5, rowsAtExit)
+        assertEquals("未提交的写不是事实：事务内不该已经广播 Added", 0, eventsAtExit)
+        assertTrue("提交后才发事件", events.any { it is BookShelfEvent.Added })
     }
 
     @Test
@@ -405,11 +477,13 @@ class BookRepositoryTest {
         }
         txRepository.addToShelf(shelf)
 
+        // 只数「被测这一次调用」提交了几笔：加书架自己也是一笔写事务，混进总数就锁不住本用例
+        val runsBeforeSwitchKey = runs
         txRepository.updateMatchMeta("http://book", "斗破苍穹", "土豆")
 
         // 键行写入 + matchName/matchAuthor 更新必须在同一个事务里：
         // 分开提交会留下「书名已改、主键仍是旧键」或「零行 primary」两种半截状态
-        assertEquals(1, runs)
+        assertEquals(1, runs - runsBeforeSwitchKey)
     }
 
     @Test

@@ -41,6 +41,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    // 认证页的渲染冒烟测试要经资源解析（表单全是 stringResource），故开启合并资源；
+    // 全量开启会拖慢所有模块的配置阶段，所以只在本模块开（同 module_find / module_me 先例）
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 kotlin {
     compilerOptions {
@@ -57,6 +64,12 @@ dependencies {
     ksp(libs.dagger.compiler)
 
     testImplementation(libs.junit)
+    // 屏幕渲染冒烟（预览组合的同一组状态在 JVM 上跑一遍）：
+    // Robolectric 提供 SDK 环境、compose ui-test 提供 createAndroidComposeRule
+    // （声明与 module_me / module_find 对齐）
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.bundles.androidx.compose.ui.test)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 }

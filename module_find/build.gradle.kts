@@ -41,6 +41,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    // 预览的渲染冒烟测试要经资源解析（条目卡里的 stringResource），故开启合并资源；
+    // 全量开启会拖慢所有模块的配置阶段，所以只在本模块开（同 module_book / module_me 先例）
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 kotlin {
     compilerOptions {
@@ -53,6 +60,10 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.coil.kt.compose)
+    // 列表项的加书架图标用 LibraryAdd，core 图标集里没有这一枚（core 只有 List/Add/Check）。
+    // 体积代价只在模块独立运行时（isModule=true 单独打包）；集成态 module_book / module_main /
+    // module_me 早已带同一 artifact，APK 里本来就有它。
+    implementation(libs.androidx.compose.material.iconsExtended)
     ksp(libs.router.apt)
     implementation(libs.router)
     //Dagger
@@ -64,6 +75,11 @@ dependencies {
     // SearchViewModelTest 驱动 viewModelScope（其协程挂在 Dispatchers.Main），
     // setMain + 虚拟时钟是仓内 ViewModel 用例的统一跑法（同 module_book / module_me）
     testImplementation(libs.kotlinx.coroutines.test)
+    // 预览的渲染冒烟测试：Robolectric 提供 SDK 环境、compose ui-test 提供 createAndroidComposeRule
+    // （声明与 lib_book_common / module_book 对齐）
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.bundles.androidx.compose.ui.test)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 }

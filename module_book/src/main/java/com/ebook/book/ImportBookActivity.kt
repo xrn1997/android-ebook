@@ -47,6 +47,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -55,6 +57,10 @@ import com.ebook.book.mvvm.viewmodel.BookImportViewModel
 import com.ebook.common.importer.ImportDuplicateState
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.ui.preview.AppPreview
+import com.ebook.common.ui.preview.SAMPLE_LOCAL_STORAGE_ROOT
+import com.ebook.common.ui.preview.sampleImportDuplicate
+import com.ebook.common.ui.preview.sampleLocalBookFiles
 import com.ebook.common.util.formatSize
 import com.permissionx.guolindev.PermissionX
 import com.permissionx.guolindev.request.ExplainScope
@@ -354,14 +360,16 @@ private fun ImportBookScreen(
                 stringResource(R.string.import_adding),
         )
 
-        // 导入失败信息弹窗（替代 MoProgressHUD.showInfo("放入书架失败!")）
+        // 导入失败信息弹窗（替代 MoProgressHUD.showInfo("放入书架失败!")）。
+        // 只有一个按钮且语义是「知道了」（关掉这句提示），故文案用「确定」而不是「取消」
         if (showImportError) {
             AlertDialog(
                 onDismissRequest = onDismissImportError,
+                title = { Text(stringResource(R.string.import_add_failed_title)) },
                 text = { Text(stringResource(R.string.import_add_failed)) },
                 confirmButton = {
                     TextButton(onClick = onDismissImportError) {
-                        Text(stringResource(com.ebook.common.R.string.cancel))
+                        Text(stringResource(R.string.confirm))
                     }
                 }
             )
@@ -371,6 +379,7 @@ private fun ImportBookScreen(
         if (showFilesPermissionDialog) {
             AlertDialog(
                 onDismissRequest = { },
+                title = { Text(stringResource(R.string.import_android11_files_permission_title)) },
                 text = { Text(stringResource(R.string.import_android11_files_permission)) },
                 confirmButton = {
                     TextButton(onClick = onConfirmFilesPermission) {
@@ -459,7 +468,9 @@ private fun DuplicateDispositionDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onKeepBoth) {
+            // 主按钮位由槽位表达（M3 的 confirmButton），形态与全仓其余对话框统一走 TextButton：
+            // 这里曾是实心 Button，但「对话框里的主动作」在别处都是文字按钮，同一种语义不该两种长相
+            TextButton(onClick = onKeepBoth) {
                 Text(stringResource(R.string.import_duplicate_keep_both))
             }
         },
@@ -639,6 +650,274 @@ private fun ImportBookItem(
             } else {
                 Spacer(modifier = Modifier.width(34.dp))
             }
+        }
+    }
+}
+
+// ── 预览 ────────────────────────────────────────────────────────────────────────
+
+/**
+ * 预览用的调用样板：[ImportBookScreen] 十九个入参里，十个是与「要看的那一档」无关的回调。
+ *
+ * 收在一处的理由是**别让某一档被默认值蒙过去**：每个预览只翻自己要看的开关，其余一律留在
+ * 「不弹错误框、不弹授权框、不弹处置框」的基线上，于是几张全屏图之间的差别一眼可数；
+ * 将来页面再加开关，也只改这一处而不是逐个预览补十九行。
+ */
+@Composable
+private fun previewImportBookScreen(
+    books: List<File> = emptyList(),
+    scanning: Boolean = false,
+    canCheck: Boolean = false,
+    importing: Boolean = false,
+    progress: Int = 0,
+    totalCount: Int = 0,
+    showFilesPermissionDialog: Boolean = false,
+    duplicateState: ImportDuplicateState = ImportDuplicateState.Idle,
+) {
+    ImportBookScreen(
+        books = books,
+        scanning = scanning,
+        canCheck = canCheck,
+        importing = importing,
+        progress = progress,
+        totalCount = totalCount,
+        showImportError = false,
+        showFilesPermissionDialog = showFilesPermissionDialog,
+        duplicateState = duplicateState,
+        onStartScan = {},
+        onCancelScan = {},
+        onAddShelf = {},
+        onDismissImportError = {},
+        onConfirmFilesPermission = {},
+        onCancelFilesPermission = {},
+        onResolveKeepBoth = {},
+        onResolveOverwrite = {},
+        onResolveMerge = {},
+        onResolveCancel = {},
+    )
+}
+
+/**
+ * 预览：**还没扫描**的导入页——空列表 + 底栏那颗「扫描」。
+ *
+ * 这是进页面的第一帧，两处静默错都在这张图上：列表为空时页面必须仍然画得出底栏
+ * （底栏是唯一的起动作物，跟着列表一起消失就等于页面死了）；以及 `canCheck = false` 时
+ * 每一条都不该有勾选框——这一档本来没有条目，把它和「扫完但还没开放勾选」区分开的办法
+ * 只有下一张。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun ImportBookScreenEmptyPreview() {
+    AppPreview { previewImportBookScreen() }
+}
+
+/**
+ * 预览：**扫描中**的导入页——底栏换成转圈 +「取消扫描」。
+ *
+ * 防的是「扫完不收口」这一类：底栏的扫描区由 `scanning` 一个布尔决定长相，写反了不报错，
+ * 只会让用户在扫完之后仍然只看见转圈（或扫描中看见「扫描」再点一次并发两轮）。
+ * 这里给的是扫描中 + 零条结果的形态，与下一张「扫完 3 条、可勾选」对照着看。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun ImportBookScreenScanningPreview() {
+    AppPreview { previewImportBookScreen(scanning = true) }
+}
+
+/**
+ * 预览：**扫完可勾选**的导入页——三条结果、勾选框开放、底栏报「共 3 本」。
+ *
+ * 这一张同时钉两件事：
+ * - `canCheck = true` 时每条右侧才长出勾选框（未勾选与已勾选的差别见 [ImportBookItemPreview]）；
+ * - 底栏右侧换成条目计数，而**左侧没有「加入书架」**——那颗按钮只在有选中项时出现，
+ *   而选中集合是页面内部状态（`remember { mutableStateListOf() }`），预览没法替用户点，
+ *   所以「两区并排」那一档由 [BottomBarPreview] 直接拍底栏补上。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun ImportBookScreenCheckablePreview() {
+    AppPreview {
+        previewImportBookScreen(books = sampleLocalBookFiles(3), canCheck = true)
+    }
+}
+
+/**
+ * 预览：**导入中**的遮罩与进度文案（`导入中 3/10`）。
+ *
+ * 遮罩的显隐由进程级协调器的批次状态驱动（重进页面也能看到仍在跑的批次），文案却在
+ * `progress > 0` 与 `== 0` 之间换句子：起批时总数已锁定、而第一条还没跑完，那一刻只能说
+ * 「放入书架中...」。两张一起拍（progress 0 与 3），是因为只拍有数字的那张就看不见
+ * 「遮罩在但没有进度」这一档——它恰恰是用户最容易以为卡死的时候。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun ImportBookScreenImportingPreview() {
+    AppPreview {
+        previewImportBookScreen(
+            books = sampleLocalBookFiles(3),
+            canCheck = true,
+            importing = true,
+            progress = 3,
+            totalCount = 10,
+        )
+    }
+}
+
+/**
+ * 预览：导入页的**起始进度**档（遮罩在、进度还没数字）。
+ *
+ * 与 [ImportBookScreenImportingPreview] 是同一处 `if (progress > 0)` 的两条分支，分开两张拍
+ * 才看得出句子确实换过：写死其中一条不会崩，只是「刚点导入」那一刻显示 0/10 这种没意义的数字。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun ImportBookScreenImportingStartPreview() {
+    AppPreview {
+        previewImportBookScreen(
+            books = sampleLocalBookFiles(3),
+            canCheck = true,
+            importing = true,
+            totalCount = 10,
+        )
+    }
+}
+
+/**
+ * 预览：Android 11+ 的**全部文件访问**授权框。
+ *
+ * 这一框是导入页能否工作的前提：授权没拿到就没有扫描能力，取消即退出页面（`onCancelFilesPermission`
+ * 走 `finish()`）。它点框外不关闭（`onDismissRequest = { }`），所以拍一张出来看的不是样式而是
+ * 「这段说明读不读得懂」——文案写得太笼统，用户按了确定却仍然扫不到文件，而页面这边不会报错。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun ImportBookScreenFilesPermissionDialogPreview() {
+    AppPreview { previewImportBookScreen(showFilesPermissionDialog = true) }
+}
+
+/**
+ * 预览：判重处置框——**有本地命中**那一档，四个动作全在。
+ *
+ * 「智能合并」只在此时出现（补章的载体是本机章文件），主按钮位是**非破坏的「继续添加」**，
+ * 破坏性的「覆盖」降到次要位并取 error 色。这几个位置写反都不报错，只会让用户在看不见后果的
+ * 情况下删掉旧条目，所以处置框的两档都要拍出来。
+ *
+ * 命中行有两行（一本地一网络）也是刻意的：同一 `comment_key` 下可能挂着多个条目，
+ * 只展示第一条等于让用户在看不见后果的情况下按按钮。
+ */
+@PreviewLightDark
+@Composable
+private fun DuplicateDispositionDialogLocalPreview() {
+    AppPreview {
+        DuplicateDispositionDialog(
+            detected = sampleImportDuplicate(hasLocalMatch = true),
+            onKeepBoth = {},
+            onMerge = {},
+            onOverwrite = {},
+            onCancel = {},
+        )
+    }
+}
+
+/**
+ * 预览：判重处置框——**命中项全是网络书**那一档，只剩三个动作。
+ *
+ * 与上一张的差别只有「智能合并」在不在：网络书的正文在书源那边，本机没有章文件可补。
+ * 这一档若照旧画出「智能合并」，用户点了只会得到一句「目标不是本地书」的提示，
+ * 而按 [ImportBookScreen] 的接线那一刻遮罩已经撤掉——白点一次，且看不出是自己操作错了。
+ */
+@PreviewLightDark
+@Composable
+private fun DuplicateDispositionDialogNetworkOnlyPreview() {
+    AppPreview {
+        DuplicateDispositionDialog(
+            detected = sampleImportDuplicate(hasLocalMatch = false),
+            onKeepBoth = {},
+            onMerge = {},
+            onOverwrite = {},
+            onCancel = {},
+        )
+    }
+}
+
+/**
+ * 预览：导入页底栏四档——空列表「扫描」/ 有结果计数 / 有选中项（两区并排）/ 扫描中转圈。
+ *
+ * 「有选中项」那一档必须单独拍：选中集合是 [ImportBookScreen] 的内部状态，全屏预览点不动它，
+ * 于是那一档在页面级预览里永远看不到。而这一栏的排布判据正是「左边有没有那颗按钮」——
+ * 无选中项时扫描区占满全宽居中、有选中项时两区各占一半，写坏了不报错，只是按钮把计数挤没
+ * 或者两个动作叠在同一处。
+ */
+@Preview(showBackground = true, widthDp = 411)
+@Composable
+private fun BottomBarPreview() {
+    val files = sampleLocalBookFiles(3)
+    AppPreview {
+        Column {
+            BottomBar(
+                scanning = false,
+                books = emptyList(),
+                selected = emptyList(),
+                onStartScan = {},
+                onCancelScan = {},
+                onAddShelf = {},
+            )
+            BottomBar(
+                scanning = false,
+                books = files,
+                selected = emptyList(),
+                onStartScan = {},
+                onCancelScan = {},
+                onAddShelf = {},
+            )
+            // 有选中项：左侧「加入书架」出现，右侧计数被挤到一半宽度
+            BottomBar(
+                scanning = false,
+                books = files,
+                selected = files.take(1),
+                onStartScan = {},
+                onCancelScan = {},
+                onAddShelf = {},
+            )
+            BottomBar(
+                scanning = true,
+                books = files,
+                selected = emptyList(),
+                onStartScan = {},
+                onCancelScan = {},
+                onAddShelf = {},
+            )
+        }
+    }
+}
+
+/**
+ * 预览：导入文件条目四档——不可勾选 / 未勾选 / 已勾选 / 超长文件名。
+ *
+ * 第一档防的是「扫描中还能勾」：`canCheck = false` 时整卡点不动（`CommonItemCard(enabled = false)`）
+ * 且右侧**不画勾选框**，只留一段 34dp 空位保证四行等高——画成「框在但点不动」用户就会一路点下去
+ * 却一个都勾不上。最后一档看的是文件名与体积抢同一行的取舍：`weight(1f, fill = false)` 让名字
+ * 只吃剩下的地方，体积永远贴右，写坏成 `fill = true` 就会把体积挤出可视区。
+ *
+ * 体积那一格恒为 `0 B`、路径那一行在 Windows 宿主上显示成宿主风格：样例只给路径、不落磁盘，
+ * 而页面取的是 `File.absolutePath`（见 [com.ebook.common.ui.preview.sampleLocalBookFiles] 的说明）。
+ * 两者都是预期形态而不是漏填；「把存储根换成"存储空间"文案」那一档只能在设备上看到。
+ */
+@PreviewLightDark
+@Composable
+private fun ImportBookItemPreview() {
+    val file = sampleLocalBookFiles(1).first()
+    val longNameFile = File("$SAMPLE_LOCAL_STORAGE_ROOT/download/一部书名长得该被省略掉的本地文本文件示例.txt")
+    AppPreview {
+        Column(
+            modifier = Modifier.padding(CommonUiTokens.pagePadding),
+            verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing),
+        ) {
+            // 扫描中/还没扫完：不给勾选框，整卡点不动
+            ImportBookItem(file = file, canCheck = false, checked = false, onToggle = {})
+            ImportBookItem(file = file, canCheck = true, checked = false, onToggle = {})
+            ImportBookItem(file = file, canCheck = true, checked = true, onToggle = {})
+            ImportBookItem(file = longNameFile, canCheck = true, checked = false, onToggle = {})
         }
     }
 }

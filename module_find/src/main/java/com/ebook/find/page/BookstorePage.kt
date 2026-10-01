@@ -18,12 +18,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.Source
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -33,7 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -50,6 +51,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ebook.api.entity.BookSourceRule
@@ -58,7 +63,16 @@ import com.ebook.common.event.FROM_SEARCH
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.BookCover
 import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.ui.EmptyState
 import com.ebook.common.ui.InfoChip
+import com.ebook.common.ui.preview.AppPreview
+import com.ebook.common.ui.preview.SAMPLE_SOURCE_URL
+import com.ebook.common.ui.preview.sampleKindSection
+import com.ebook.common.ui.preview.sampleKindSections
+import com.ebook.common.ui.preview.sampleNativeSource
+import com.ebook.common.ui.preview.sampleScriptSource
+import com.ebook.common.ui.preview.sampleSearchBook
+import com.ebook.common.ui.preview.sampleSearchBooks
 import com.ebook.db.entity.LibraryKindBookListEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.find.R
@@ -141,7 +155,7 @@ fun BookstorePage(viewModel: LibraryViewModel = hiltViewModel()) {
 /**
  * 书源切换胶囊（ADR-0016 P3-c）：当前书源名 + 下拉箭头，点击弹 [DropdownMenu] 列出启用中的源。
  *
- * 形态沿用本仓既有的胶囊语言（[InfoChip] 那套 `RoundedCornerShape(50)` + primaryContainer，
+ * 形态沿用本仓既有的胶囊语言（[InfoChip] 那套 `CommonUiTokens.pillShape` + primaryContainer，
  * 见同文件 [BookTypeChip] 的配色说明），只是 [InfoChip] 的内容槽只收文本、放不下箭头，
  * 故这里用同一组语义色自己拼一行。配色全部走 `MaterialTheme.colorScheme`，无硬编码色值。
  *
@@ -172,7 +186,7 @@ private fun BookSourceSelector(
     val canSwitch = sources.size > 1
     Box(modifier = modifier) {
         Surface(
-            shape = RoundedCornerShape(50),
+            shape = CommonUiTokens.pillShape,
             color = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.clickable(
@@ -328,7 +342,7 @@ private fun LibraryContent(
                     .height(48.dp)
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(50)
+                        shape = CommonUiTokens.pillShape
                     )
                     .clickable { TheRouter.build(KeyCode.Find.SEARCH_PATH).navigation(context) },
                 contentAlignment = Alignment.Center
@@ -356,20 +370,21 @@ private fun LibraryContent(
 }
 
 /**
- * 书城页的区块标题排版：`titleSmall` + `SemiBold`（书籍类型、书源引导标题、分类区块名共用一个定义）。
+ * 书城页的区块标题排版：`titleSmall` + `SemiBold`（书籍类型、分类区块名共用一个定义）。
  *
  * **为什么不用 lib_book_common 的 `SectionLabel`**：那是「卡片上方弱化分组标签」的语言
- * （labelMedium + onSurfaceVariant + 12dp 起始缩进），而本页这三处是**区块主标题**——重设计时
+ * （labelMedium + onSurfaceVariant + 12dp 起始缩进），而本页这两处是**区块主标题**——重设计时
  * 特意提升到 titleSmall / SemiBold 与各分类区块标题对齐（见 [LibraryContent] 的 KDoc），
  * 且要能带 `weight(1f)` 与单行省略（分类名右侧还有「更多」）。直接换用会一次性改掉字号、颜色与内边距，
  * 等于把已定稿的观感回退。共享组件按 ADR-0006 只能长在 `lib_book_common` 里，本模块改不动那边，
- * 故先把这三处收成一个私有组件：排版从此只有这一份定义，三处不会各自漂移。
+ * 故先把这两处收成一个私有组件：排版从此只有这一份定义，两处不会各自漂移。
  * **等共享库补出「区块主标题」这一档（或给 [com.ebook.common.ui.SectionLabel] 加上排版参数），
  * 应把它整体上提，本文件不保留副本。**
  *
+ * （书源引导态曾也走这里，是第三处；迁到共享 [EmptyState] 后其标题由组件定档，故不含在内。）
+ *
  * @param text 标题文本
- * @param modifier 外层修饰：对齐/间距/占位由调用方决定（页面级标题要上边距、分类名要 `weight(1f)`、
- *   引导态标题居中）
+ * @param modifier 外层修饰：对齐/间距/占位由调用方决定（页面级标题要上边距、分类名要 `weight(1f)`）
  * @param maxLines 最大行数，默认不限；分类名限单行
  * @param overflow 溢出策略，默认裁剪；分类名省略号收尾
  */
@@ -400,7 +415,7 @@ private fun SectionTitle(
 private fun BookTypeChip(bookType: BookType, onClick: () -> Unit) {
     InfoChip(
         text = bookType.bookType,
-        shape = RoundedCornerShape(50),
+        shape = CommonUiTokens.pillShape,
         containerColor = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         textStyle = MaterialTheme.typography.labelLarge,
@@ -426,6 +441,10 @@ private fun BookTypeChip(bookType: BookType, onClick: () -> Unit) {
  * 而刷新态由 VM 当场收掉。BrokenSource 同样整片换掉：那一刻列表里就算有东西也是上一轮的残留，
  * 配一句「这个源已失效」比继续逛那份可能过期的书目安全。
  *
+ * 形态走共享 [EmptyState]（ADR-0042）：图标/主副文案/动作槽与全仓空态同一套词汇，本页不再自绘
+ * 标题与正文——那正是「同一个 App 里空态有四五种写法」的来源。图标由业务模块给（`CloudOff`
+ * 这类在 iconsExtended 里、共享库依赖不到），故两档各配一枚线性图标。
+ *
  * **NoSource 档给「去导入书源」按钮，跨模块路由由独立模式占位承接**：这条路由属于 `module_me`，
  * 模块独立运行时（`isModule=true`）本模块没有这个路由；占位页 [KeyCode.Find.TEST_BOOK_SOURCE_PATH]
  * 与 `TestApplication` 的路径替换（`Me.BOOK_SOURCE_PATH` → 它）正是为此存在，所以按钮在两种
@@ -433,6 +452,7 @@ private fun BookTypeChip(bookType: BookType, onClick: () -> Unit) {
  *
  * **BrokenSource 档刻意不给按钮**：那一刻顶部切换器就在页面上（这个源是存在的、只是解不动），
  * 用户的动作是当场换源或在书源管理里重导，按钮把他支走反而离开了他真正要操作的地方。
+ * 「文案与回调必须同时给才渲染」这一条由 [EmptyState] 自己挡下，这里只需两处都不给。
  *
  * 文案走**穷尽 when**：将来给 [LibrarySourceState] 加一档时这里编译不过，
  * 不会出现「新档位静默沿用无源那句」的分裂。
@@ -440,41 +460,39 @@ private fun BookTypeChip(bookType: BookType, onClick: () -> Unit) {
 @Composable
 private fun SourceGuidance(state: LibrarySourceState) {
     val context = LocalContext.current
-    val (titleRes, bodyRes) = when (state) {
-        LibrarySourceState.NoSource ->
-            R.string.no_book_source_title to R.string.no_book_source_guidance
-        LibrarySourceState.BrokenSource ->
-            R.string.broken_book_source_title to R.string.broken_book_source_guidance
+    val (icon, titleRes, bodyRes) = when (state) {
+        LibrarySourceState.NoSource -> Triple(
+            Icons.Outlined.Source,
+            R.string.no_book_source_title,
+            R.string.no_book_source_guidance
+        )
+        LibrarySourceState.BrokenSource -> Triple(
+            Icons.Outlined.CloudOff,
+            R.string.broken_book_source_title,
+            R.string.broken_book_source_guidance
+        )
         // 页面只在这两档画这一坨；Ready 走到这里说明调用点的判据写错了
         LibrarySourceState.Ready -> error("Ready 档位不该渲染引导态")
         // Unknown 是首帧占位：页面那一刻整片留空，根本不会走到这里
         LibrarySourceState.Unknown -> error("Unknown 档位不该渲染引导态")
     }
-    Column(
+    // 无源档才给入口：这是整页唯一一处「自己走不通、必须去别处操作」的处境，
+    // 按钮把「去哪导入」这一步直接递到手上（文案已写全动作，按钮只是让它一键可达）
+    val onAction: (() -> Unit)? = if (state == LibrarySourceState.NoSource) {
+        { TheRouter.build(KeyCode.Me.BOOK_SOURCE_PATH).navigation(context) }
+    } else {
+        null
+    }
+    EmptyState(
+        icon = icon,
+        title = stringResource(titleRes),
+        hint = stringResource(bodyRes),
+        actionText = if (onAction != null) stringResource(R.string.go_import_book_source) else null,
+        onAction = onAction,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // 标题与分类区块名共用 [SectionTitle]，只是这里由外层 Column 居中
-        SectionTitle(text = stringResource(titleRes))
-        Text(
-            text = stringResource(bodyRes),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        // 无源档才给入口：这是整页唯一一处「自己走不通、必须去别处操作」的处境，
-        // 按钮把「去哪导入」这一步直接递到手上（文案已写全动作，按钮只是让它一键可达）
-        if (state == LibrarySourceState.NoSource) {
-            TextButton(onClick = {
-                TheRouter.build(KeyCode.Me.BOOK_SOURCE_PATH).navigation(context)
-            }) {
-                Text(text = stringResource(R.string.go_import_book_source))
-            }
-        }
-    }
+            .padding(vertical = 48.dp)
+    )
 }
 
 /**
@@ -520,7 +538,14 @@ private fun KindBookSection(kind: LibraryKindBookListEntity, sourceUrl: String) 
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(kind.books, key = { it.noteUrl }) { searchBook ->
+            // **key 取位置，不能取 `noteUrl`**：同一分类行里可以出现两条 `noteUrl` 相同的书——
+            // 解析器只挡空 url（`JsoupBookParser.parseSearchBookWithRule` 与 `ScriptBookParser`
+            // 的发现页条目都是「空则丢弃」），而书城这条链路不像分类选书页那样按 `noteUrl` 去重，
+            // 拿它作 key 会抛 `Key ... was already used` 崩在主线程。
+            // 本卡无每项状态、列表在换源/刷新时整份替换，位置参与 key 的代价在这里不成立
+            // （与上方 kindBooks 同一取法）。也不在页面上 `distinctBy` 收：那等于把重复条目
+            // 可能代表的书整条吞掉，而 key 换成位置就已经不需要靠去重保唯一。
+            itemsIndexed(kind.books, key = { index, _ -> index }) { _, searchBook ->
                 LibraryBookCard(searchBook)
             }
         }
@@ -529,6 +554,15 @@ private fun KindBookSection(kind: LibraryKindBookListEntity, sourceUrl: String) 
 
 /**
  * 横向书籍卡片：封面（共享 [BookCover]，外包 Card 提供轻阴影）+ 书名 + 作者。
+ *
+ * 封面 **101×123 是刻意不等比的**（2026-09-19 定）：按三行条目那套 3:4 的系数，101 宽的高应是
+ * ≈135（见 [com.ebook.common.ui.BookItemLayout.coverWidth] 的说明），但书城首屏那一行不为封面的
+ * 比例再涨 12dp。[BookCover] 自身不含固有比例、只按 `ContentScale.Crop` 把图裁满框，于是这个框
+ * 上下各啃掉约 6dp——把书名与作者印在封面底边的那批站点会缺那一条。**这是权衡掉的代价，
+ * 不是漏改**：窄 9dp（92×123，不裁不涨）与高 12dp（101×135，不裁）两个替代方案都在同一轮被否。
+ *
+ * 作者为空时不渲染：否则仍占一行行高，同一条横向列表里卡片底部参差
+ * （与 [com.ebook.find.view.SearchBookItem] 的「空字段不占位」同一口径）。
  */
 @Composable
 private fun LibraryBookCard(searchBook: SearchBookEntity) {
@@ -566,14 +600,169 @@ private fun LibraryBookCard(searchBook: SearchBookEntity) {
                 .fillMaxWidth()
                 .padding(top = 4.dp)
         )
-        Text(
-            text = searchBook.author,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+        if (searchBook.author.isNotEmpty()) {
+            Text(
+                text = searchBook.author,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+/**
+ * 预览：书城首屏。用官方 `@PreviewParameter` 一次出**四档源状态**，因为这四档就是本页的判据
+ * （`when (sourceState)` 穷尽分支），而四句话各走各的：`Unknown` 整片留空、`NoSource` 与
+ * `BrokenSource` 是两套不同的引导语。只预览 `Ready` 等于没预览到最容易写错的三档。
+ *
+ * [LibraryContent] 的第一个形参是 `LazyListState`（真机上由 `RefreshableList` 供给），
+ * 预览没有滚动位置可言，新建一个即可。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun LibraryContentPreview(
+    @PreviewParameter(LibrarySourceStateProvider::class) sourceState: LibrarySourceState,
+) {
+    AppPreview {
+        LibraryContent(
+            listState = rememberLazyListState(),
+            kindBooks = sampleKindSections(),
+            bookTypes = sampleBookTypes(),
+            sourceState = sourceState,
+            sourceUrl = SAMPLE_SOURCE_URL,
         )
+    }
+}
+
+/** 按枚举声明顺序给四档，图上直接用枚举名标注，免得对着图猜哪张是「当前源解析不出来」 */
+private class LibrarySourceStateProvider : PreviewParameterProvider<LibrarySourceState> {
+    override val values: Sequence<LibrarySourceState>
+        get() = LibrarySourceState.entries.toList().asSequence()
+
+    override fun getDisplayName(index: Int): String = LibrarySourceState.entries[index].name
+}
+
+/**
+ * 预览：横向书卡三张——常规、超长书名（省略号）、**作者为空**。
+ * 第三张验证的是「空字段不占位」：作者为空那一格不该留出行高，否则同一行卡片底部参差。
+ */
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+private fun LibraryBookCardPreview() {
+    AppPreview {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            LibraryBookCard(searchBook = sampleSearchBook(index = 1))
+            LibraryBookCard(
+                searchBook = sampleSearchBook(index = 2, name = "一部书名长得会被省略掉后半段的示例作品"),
+            )
+            LibraryBookCard(searchBook = sampleSearchBook(index = 3, author = ""))
+        }
+    }
+}
+
+/** 分类胶囊的样例：`BookType` 是 module_find 自己的类型，样例就地给，不塞进共享门面 */
+private fun sampleBookTypes(): List<BookType> =
+    listOf("玄幻", "都市", "科幻", "历史", "悬疑", "武侠", "奇幻", "军事")
+        .mapIndexed { index, title -> BookType(bookType = title, url = "$SAMPLE_SOURCE_URL/kind/$index") }
+
+/**
+ * 预览：书源切换胶囊的三档——**多条源可切 / 单条源不可切 / 当前源是脚本书源**。
+ *
+ * 这颗胶囊的判据只有一条（`sources.size > 1`），但它决定的是「点了有没有反应」，而两种写反都
+ * 不报错、不闪退，只在观感上骗人，所以要一次拍全：
+ * - 只有一条启用源却照画箭头 → 点开是一份只写着「已选中」的菜单，白点一次（禁用态连涟漪都不该给）；
+ * - 有多条源却不画箭头 → 页面上明明还有别的站，看起来却像没得切，用户会被支去书源管理页；
+ * - 当前默认源是**脚本行**：默认源载体是格式中立的 [SourceDefinition]，脚本行同样可承载，其展示
+ *   信息取自实体列而不解析 `rule_json`。这一档若取错了名，胶囊会画成空壳或空白，而原生源那两张
+ *   照样是对的——只看第一张图就会以为这条链路没问题。
+ *
+ * 无源档（`currentSource == null`）刻意不在这里组合：那一刻整块不渲染，画出来是一张空图，
+ * 与「预览坏了」在图上看不出区别；页面那侧由 [LibraryContentPreview] 的 `NoSource` 那张接手。
+ */
+@PreviewLightDark
+@Composable
+private fun BookSourceSelectorPreview() {
+    AppPreview {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            // 多条启用源：画箭头、可点（下拉菜单要 expanded 才挂，这里只拍胶囊本体）
+            BookSourceSelector(
+                currentSource = sampleNativeSource(),
+                sources = listOf(
+                    sampleNativeSource().rule,
+                    sampleNativeSource(name = "另一家站点", url = "$SAMPLE_SOURCE_URL/alt").rule,
+                    BookSourceRule(name = "样例脚本书源", url = "$SAMPLE_SOURCE_URL/script"),
+                ),
+                onSelectSource = {},
+            )
+            // 只有一条启用源：不画箭头，且整块收不到点击
+            BookSourceSelector(
+                currentSource = sampleNativeSource(),
+                sources = listOf(sampleNativeSource().rule),
+                onSelectSource = {},
+            )
+            // 当前默认源是脚本书源：展示名来自实体列
+            BookSourceSelector(
+                currentSource = sampleScriptSource(),
+                sources = listOf(
+                    sampleNativeSource().rule,
+                    BookSourceRule(name = "样例脚本书源", url = "$SAMPLE_SOURCE_URL/script"),
+                ),
+                onSelectSource = {},
+            )
+        }
+    }
+}
+
+/**
+ * 预览：书城首页分类区块的四种标题行形态。
+ *
+ * 右侧那颗「更多」由 `kind.kindUrl` 决定画不画，而分类条目来自**用户导入的书源**，两种形态都会
+ * 真实出现，各自防一种静默错：
+ * - 有 kindUrl：标题吃满剩余宽度、「更多」贴右；
+ * - 超长分类名：标题单行省略，绝不把「更多」挤掉（两者抢的是同一行宽度，挤掉的代价是这一分类
+ *   再没有入口，而图上看只是"少了两个字"）；
+ * - **无 kindUrl**：不给「更多」——留一个点不动的入口比不给更糟（点了没反应、也不报错）；
+ * - 空书目：标题行照画、横排空着。`LazyRow` 空列表不崩，但「整块消失」与「只剩标题」是两种结果，
+ *   后者才是对的：那一行还在告诉用户这个分类存在，只是这一次没抓到书。
+ *
+ * 区块间距走 [CommonUiTokens.sectionSpacing]，对齐 [LibraryContent] 里 LazyColumn 的 spacedBy，
+ * 于是这里看到的间隔就是页面上一段的间隔。
+ */
+@Preview(showBackground = true, widthDp = 411)
+@Composable
+private fun KindBookSectionPreview() {
+    AppPreview {
+        Column(
+            modifier = Modifier.padding(CommonUiTokens.pagePadding),
+            verticalArrangement = Arrangement.spacedBy(CommonUiTokens.sectionSpacing),
+        ) {
+            KindBookSection(kind = sampleKindSection(kindName = "玄幻"), sourceUrl = SAMPLE_SOURCE_URL)
+            KindBookSection(
+                kind = sampleKindSection(kindName = "一部分类名长得该被省略掉的示例分类", bookCount = 3),
+                sourceUrl = SAMPLE_SOURCE_URL,
+            )
+            // 无 kindUrl：这一行不该出现「更多」
+            KindBookSection(
+                kind = LibraryKindBookListEntity(
+                    kindName = "悬疑",
+                    kindUrl = "",
+                    books = sampleSearchBooks(2),
+                ),
+                sourceUrl = SAMPLE_SOURCE_URL,
+            )
+            // 空书目：只剩标题行，区块不被吞掉
+            KindBookSection(kind = sampleKindSection(bookCount = 0), sourceUrl = SAMPLE_SOURCE_URL)
+        }
     }
 }

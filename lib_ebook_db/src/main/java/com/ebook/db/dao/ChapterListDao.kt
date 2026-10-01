@@ -21,6 +21,16 @@ interface ChapterListDao {
     @Query("SELECT * FROM chapter_list WHERE note_url = :bookNoteUrl ORDER BY dur_chapter_index ASC")
     suspend fun getChaptersForBook(bookNoteUrl: String): List<ChapterListEntity>
 
+    /**
+     * 某书在库里的章节行数。
+     *
+     * 与 [getChaptersForBook] 的分工：只要「有几行」时用它。调用点在
+     * `BookRepository.saveProgress`（每次进阅读界面与每次 onPause 都会走），
+     * 取回整份目录再数会把上千行实体白白构造出来。走 `idx_chapter_list_note_url` 索引。
+     */
+    @Query("SELECT COUNT(*) FROM chapter_list WHERE note_url = :bookNoteUrl")
+    suspend fun countForBook(bookNoteUrl: String): Int
+
     /** 按内容定位符取单章（主键直查）：阅读器由进度里的 URL 反查章名/序号时使用 */
     @Query("SELECT * FROM chapter_list WHERE content_ref = :chapterUrl")
     suspend fun getChapterByUrl(chapterUrl: String): ChapterListEntity?

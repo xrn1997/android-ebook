@@ -11,8 +11,9 @@
     <string name="book_type">书籍类型</string>
     <string name="search_hint">请输入书名/作者</string>
     <string name="more">更多</string>
-    <string name="added">已添加</string>
-    <string name="add">+添加</string>
+    <!-- 列表项加书架是图标按钮，文案不上屏、只作无障碍名，故写成动作/状态而不是「+添加」 -->
+    <string name="add_to_shelf">加入书架</string>
+    <string name="already_on_shelf">已在书架</string>
     <string name="search">搜索</string>
     <!-- 按书绑源（ADR-0016）：加入书架时这本书归属的书源已被删除/规则读不出。
          异常自身消息形如「书源已失效：<URL>」，不带行动指引也不该上屏，故走资源 -->

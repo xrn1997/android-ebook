@@ -2,22 +2,29 @@ package com.ebook.common.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,9 +33,13 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ebook.common.ui.preview.AppPreview
 
 /**
  * 跨模块共享的 Compose UI 组件库（ADR-0006）。
@@ -57,11 +68,22 @@ object CommonUiTokens {
     /** 列表条目卡圆角（搜索结果、评论等条目卡片） */
     val cardCornerSmall = 12.dp
 
-    /** 信息小标签圆角（[InfoChip] 默认；胶囊场景调用方传 `RoundedCornerShape(50)`） */
+    /** 信息小标签圆角（[InfoChip] 默认；胶囊场景调用方传 [pillShape]） */
     val chipCorner = 4.dp
+
+    /**
+     * 胶囊形（全圆角）：标签/筛选器/自绘按钮共用。
+     *
+     * 存在的理由：`RoundedCornerShape(50)` 曾在全仓 15+ 处裸写，形态本身是一致的，
+     * 但没有名字就无从检查"是否还有别处写了别的百分比"，故收成一个形状令牌。
+     */
+    val pillShape = RoundedCornerShape(50)
 
     /** 书籍封面圆角（[BookCover] 默认） */
     val coverCorner = 10.dp
+
+    /** 居中状态块（[EmptyState]）的图标边长 */
+    val stateIcon = 48.dp
 
     /** 页面水平边距 */
     val pagePadding = 16.dp
@@ -259,12 +281,12 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
  *
  * 统一三类重复实现：评论条目的章节小标签（默认 4dp 圆角 + surfaceVariant）、
  * 书籍条目的状态/分类/字数标签、书型与搜索历史的胶囊标签
- * （[shape] 传 `RoundedCornerShape(50)`、[textStyle] 传 labelLarge）。
+ * （[shape] 传 [CommonUiTokens.pillShape]、[textStyle] 传 labelLarge）。
  *
  * @param text 标签文本
  * @param modifier 外层修饰（点击命中区即 Surface 本身，外部量测如
  *   `onGloballyPositioned` 挂在 [modifier] 上可得到含内边距的整体坐标）
- * @param shape 圆角形状，默认小圆角标签；胶囊传 `RoundedCornerShape(50)`
+ * @param shape 圆角形状，默认小圆角标签；胶囊传 [CommonUiTokens.pillShape]
  * @param containerColor 背景语义色，默认 surfaceVariant（弱化）
  * @param contentColor 文本语义色，默认 onSurfaceVariant
  * @param textStyle 排版，默认 labelSmall；胶囊场景传 labelLarge
@@ -304,5 +326,201 @@ fun InfoChip(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(contentPadding)
         )
+    }
+}
+
+/**
+ * 居中状态块：图标 + 主文案 + 副文案 + 可选动作。**空态与「取不到内容」的失败态共用一套词汇。**
+ *
+ * 为什么要把这两件事收进同一个组件：它们在各页原本是各写各的，于是同一个 App 里
+ * 空态有「位图插画 / 单色矢量图标」两个流派、主文案在 `titleMedium` 与 `bodyLarge` 之间摇摆、
+ * 失败态的重试控件有「可点文字 / TextButton / 自绘胶囊」三种。形态本就同构，差异全是漂移。
+ *
+ * 词汇（改这里即改全仓，不要再在页面里各调一遍）：
+ * 图标 [CommonUiTokens.stateIcon]（48dp）+ `onSurfaceVariant`、主文案 `titleMedium` / `onSurface`、
+ * 副文案 `bodySmall` / `onSurfaceVariant`、动作 `TextButton`（M3 的次要动作形态）。
+ * 图标**不叠 alpha**——弱化交给"线性图标"本身，叠透明度会让不同页的灰各不相同。
+ *
+ * **图标由调用方传入**而不是在组件内按类型选：本模块只依赖 material-icons-core（见文件头约束），
+ * 业务页用的 `CloudOff`/`CloudDownload` 等扩展图标在各自模块声明，这里收不进来。
+ *
+ * @param icon 线性图标（扩展集由调用方模块提供）
+ * @param title 主文案（必给；空态说清"没有什么"，失败态说清"什么失败了"）
+ * @param hint 副文案，**空串不渲染**（不留空槽，与仓里「空字段不占位」口径一致）
+ * @param actionText 动作文案；与 [onAction] **必须同时给出**才渲染——只给文案不给回调
+ *   会画出一个点不动的按钮（该形态编译期过得去、运行期静默失效，故在此挡下）
+ * @param onAction 动作回调
+ */
+@Composable
+fun EmptyState(
+    icon: ImageVector,
+    title: String,
+    modifier: Modifier = Modifier,
+    hint: String = "",
+    actionText: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(CommonUiTokens.stateIcon)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        if (hint.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = hint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+        if (actionText != null && onAction != null) {
+            Spacer(modifier = Modifier.height(20.dp))
+            TextButton(onClick = onAction) {
+                Text(text = actionText)
+            }
+        }
+    }
+}
+
+/**
+ * 预览：分组卡。一屏里同时给出**常规项 / 带值项 / 无箭头项 / 置灰项**四种形态——
+ * [CommonListItem] 的 `enabled = false` 分支会换一套语义色，只预览可用态就看不出置灰长什么样。
+ *
+ * 用 [PreviewLightDark] 而不是手写 `darkTheme`：它翻的是系统 `uiMode`，与运行时「跟随系统」
+ * 那一档走同一个判定入口（详见 [AppPreview]）。
+ */
+@PreviewLightDark
+@Composable
+private fun CommonCardPreview() {
+    AppPreview {
+        CommonCard(modifier = Modifier.padding(16.dp)) {
+            Column {
+                SectionLabel(text = "通用")
+                CommonListItem(
+                    icon = Icons.Filled.Settings,
+                    title = "阅读偏好",
+                    iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    trailingText = "宋体 · 21sp",
+                ) {}
+                CommonListDivider()
+                CommonListItem(
+                    icon = Icons.Filled.Search,
+                    title = "清除搜索历史",
+                    iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    iconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    showArrow = false,
+                ) {}
+                CommonListDivider()
+                CommonListItem(
+                    icon = Icons.Filled.Warning,
+                    title = "内置书源不可删除",
+                    iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    iconContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    enabled = false,
+                ) {}
+            }
+        }
+    }
+}
+
+/** 预览：条目卡容器——纯展示（无点击面）与可点 + 可长按两种命中形态。 */
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+private fun CommonItemCardPreview() {
+    AppPreview {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(CommonUiTokens.listSpacing),
+        ) {
+            CommonItemCard {
+                Text(text = "纯展示条目：不给 onClick 也不给 onLongClick，整卡不挂点击面")
+            }
+            CommonItemCard(onClick = {}, onLongClick = {}) {
+                Text(text = "可点且可长按：走 combinedClickable，ripple 随 12dp 圆角裁剪")
+            }
+            CommonItemCard(
+                shadowElevation = 0.dp,
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+            ) {
+                Text(text = "无阴影 + 自定义内边距：列表密集排布时的档位")
+            }
+        }
+    }
+}
+
+/** 预览：信息标签。常规小标签（4dp）与胶囊（pillShape）两档，外加一个可点形态。 */
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+private fun InfoChipPreview() {
+    AppPreview {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            InfoChip(text = "第 12 章 · 3.2k 字")
+            InfoChip(
+                text = "连载中",
+                shape = CommonUiTokens.pillShape,
+                textStyle = MaterialTheme.typography.labelLarge,
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+            )
+            InfoChip(
+                text = "玄幻",
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                onClick = {},
+            )
+        }
+    }
+}
+
+/**
+ * 预览：居中状态块。三张图对应 [EmptyState] 的三条处方——
+ * 空态（无动作）、失败态（文案与回调同时给出）、以及**只给文案不给回调**时动作槽不渲染
+ * （画出来就是个点不动的按钮，组件挡下这种形态，这里让它可见）。
+ */
+@PreviewLightDark
+@Composable
+private fun EmptyStatePreview() {
+    AppPreview {
+        Column(
+            modifier = Modifier.padding(vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(40.dp),
+        ) {
+            EmptyState(
+                icon = Icons.Filled.Search,
+                title = "没有找到相关书籍",
+                hint = "换个词，或到书城按分类浏览",
+            )
+            EmptyState(
+                icon = Icons.Filled.Warning,
+                title = "加载失败",
+                hint = "这一页的内容没取回来，可以重试",
+                actionText = "重试",
+                onAction = {},
+            )
+            // 只有 actionText、没有 onAction：动作槽应当整块不出现
+            EmptyState(
+                icon = Icons.Filled.Warning,
+                title = "文案给了但回调没给",
+                actionText = "重试",
+            )
+        }
     }
 }

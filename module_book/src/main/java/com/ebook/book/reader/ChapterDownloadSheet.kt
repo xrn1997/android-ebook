@@ -72,6 +72,7 @@ import com.ebook.book.mvvm.viewmodel.BookChapterSelection
 import com.ebook.book.mvvm.viewmodel.BookSelectionState
 import com.ebook.common.ui.BookCover
 import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.ui.EmptyState
 import com.ebook.common.ui.InfoChip
 import kotlinx.coroutines.launch
 
@@ -142,8 +143,9 @@ private val HeaderActionGap = 4.dp
  * 由活动层按直达态分流，见 DownloadCenterScreen 的 BackHandler）。
  *
  * 顶层负责四态渲染（加载中/书不在架/失败/就绪）：加载中是转圈而非文字（「正在加载」
- * 的一句话没有进度反馈，spinner 是通用语言）；不在架/失败带弱化图标 + 文案，失败
- * 另给「重试」按钮——只写「请重试」却不给按钮，等于让用户找不到重试的落点。
+ * 的一句话没有进度反馈，spinner 是通用语言，见 [LoadingState]）；不在架/失败走共享
+ * [EmptyState]（线性图标 + 主文案），失败另给「重试」动作——只写「请重试」却不给按钮，
+ * 等于让用户找不到重试的落点。
  * 内容复用原选章页的章节三态/软上限纯逻辑（ChapterSelection.kt）。
  * 顶部导航由宿主基类 Toolbar（标题 + 返回箭头）承担，本页**不自绘返回按钮**，
  * 避免与基类 Toolbar 出现双返回入口；系统返回/工具栏箭头均经活动层 BackHandler
@@ -159,15 +161,24 @@ fun BookChapterSelectPage(
     onRetry: () -> Unit,
 ) {
     when (state) {
-        is BookSelectionState.Loading -> CenteredState(text = stringResource(R.string.download_center_loading))
-        is BookSelectionState.Absent -> CenteredState(
-            text = stringResource(R.string.download_center_not_on_shelf),
+        is BookSelectionState.Loading -> LoadingState()
+        is BookSelectionState.Absent -> EmptyState(
             icon = Icons.Outlined.SearchOff,
+            title = stringResource(R.string.download_center_not_on_shelf),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
         )
-        is BookSelectionState.Failed -> CenteredState(
-            text = stringResource(R.string.download_center_load_failed),
+        is BookSelectionState.Failed -> EmptyState(
             icon = Icons.Outlined.ErrorOutline,
-            onRetry = onRetry,
+            // 主文案只说「什么失败了」，「重试」由下面的动作槽承担：写成「加载失败，请重试」
+            // 就是同一句话在标题与按钮上各说一遍（全仓失败态统一走 load_failed 这套词汇）
+            title = stringResource(R.string.load_failed),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            actionText = stringResource(R.string.retry),
+            onAction = onRetry,
         )
         is BookSelectionState.Ready -> BookChapterSelectContent(
             selection = state.selection,
@@ -180,16 +191,15 @@ fun BookChapterSelectPage(
 }
 
 /**
- * 二级页居中占位（加载中/书不在架/失败共用骨架：可选图标 + 文案 + 可选重试）。
+ * 二级页加载态占位：spinner + 一行文案，居中。
  *
- * 图标走 outlined 系 + 弱化透明度：占位是「暂时的、次要的」，不能比内容更抢眼。
+ * **加载态与空/失败态分属两种语义，故不共用 [EmptyState]**：后者说的是「这里没有内容」，
+ * 需要一个图标来定性（没有书 / 加载失败）；加载说的是「正在等结果」，用转圈表达进展即可，
+ * 硬塞一个图标反而把「暂时没有结论」说成了某种既成结果。
+ * 尺寸与旧的三态骨架一致（32dp spinner + 16dp 间距），留住原有的版面节奏。
  */
 @Composable
-private fun CenteredState(
-    text: String,
-    icon: ImageVector? = null,
-    onRetry: (() -> Unit)? = null,
-) {
+private fun LoadingState() {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -197,34 +207,17 @@ private fun CenteredState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.size(40.dp)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-        if (icon == null) {
-            // 无图标的加载态用 spinner 表达「进行中」，比静默文字多一层时间感
-            CircularProgressIndicator(
-                strokeWidth = 3.dp,
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
+        // 转圈比静默文字多一层时间感（「正在加载」一句话没有进度反馈，spinner 是通用语言）
+        CircularProgressIndicator(
+            strokeWidth = 3.dp,
+            modifier = Modifier.size(32.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = text,
+            text = stringResource(R.string.download_center_loading),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        if (onRetry != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            TextButton(onClick = onRetry) {
-                Text(stringResource(R.string.retry))
-            }
-        }
     }
 }
 
@@ -345,14 +338,14 @@ private fun BookChapterSelectContent(
                 ) {
                     InfoChip(
                         text = stringResource(R.string.chapter_count_format, chapters.size),
-                        shape = RoundedCornerShape(50),
+                        shape = CommonUiTokens.pillShape,
                         textStyle = MaterialTheme.typography.labelSmall,
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp)
                     )
                     if (selected.isNotEmpty()) {
                         InfoChip(
                             text = stringResource(R.string.download_selected_format, selected.size),
-                            shape = RoundedCornerShape(50),
+                            shape = CommonUiTokens.pillShape,
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                             textStyle = MaterialTheme.typography.labelSmall,
@@ -362,7 +355,7 @@ private fun BookChapterSelectContent(
                     if (selection.paused) {
                         InfoChip(
                             text = stringResource(R.string.download_manage_paused_tag),
-                            shape = RoundedCornerShape(50),
+                            shape = CommonUiTokens.pillShape,
                             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                             contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                             textStyle = MaterialTheme.typography.labelSmall,
@@ -371,7 +364,7 @@ private fun BookChapterSelectContent(
                     } else if (selection.activeChapterIndex != null) {
                         InfoChip(
                             text = stringResource(R.string.download_manage_active_tag),
-                            shape = RoundedCornerShape(50),
+                            shape = CommonUiTokens.pillShape,
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             textStyle = MaterialTheme.typography.labelSmall,
@@ -382,7 +375,7 @@ private fun BookChapterSelectContent(
                         // 原先这一格什么都不画，于是右边那枚明明给着「暂停」，头上却说不出这本书在干什么
                         InfoChip(
                             text = stringResource(R.string.download_manage_queued_tag),
-                            shape = RoundedCornerShape(50),
+                            shape = CommonUiTokens.pillShape,
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             textStyle = MaterialTheme.typography.labelSmall,
@@ -514,6 +507,7 @@ private fun BookChapterSelectContent(
     if (capConfirmVisible) {
         AlertDialog(
             onDismissRequest = { capConfirmVisible = false },
+            title = { Text(stringResource(R.string.download_bulk_confirm_title)) },
             text = {
                 Text(stringResource(R.string.download_bulk_confirm_message, effectiveCount))
             },
@@ -966,7 +960,7 @@ private fun DownloadChapterRow(
         if (chipText != null) {
             InfoChip(
                 text = stringResource(chipText),
-                shape = RoundedCornerShape(50),
+                shape = CommonUiTokens.pillShape,
                 containerColor = if (status == ChapterDownloadStatus.DOWNLOADING) {
                     MaterialTheme.colorScheme.primaryContainer
                 } else {

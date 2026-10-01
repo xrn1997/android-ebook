@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CloudDownload
@@ -38,6 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ebook.book.mvvm.viewmodel.BookChapterSelection
 import com.ebook.book.mvvm.viewmodel.BookSelectionState
@@ -50,7 +51,12 @@ import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.BookCover
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.ui.EmptyState
 import com.ebook.common.ui.InfoChip
+import com.ebook.common.ui.preview.AppPreview
+import com.ebook.common.ui.preview.SAMPLE_COVER_URL
+import com.ebook.common.ui.preview.SAMPLE_SOURCE_URL
+import com.ebook.common.ui.preview.sampleDownloadChapter
 import com.permissionx.guolindev.PermissionX
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
@@ -139,12 +145,112 @@ class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
 }
 
 /**
- * 下载中心两级编排：一级按书任务列表，二级该书选章整屏页。
+ * 下载中心两级编排：一级按书任务列表，二级该书选章整屏页（**无状态根**）。
  *
  * 系统返回：二级 → 一级；一级 → 退出（finish）。
  * 从阅读器带 extras 进入时直达二级（EXTRA_OPEN_PICK），此时二级返回**直接退出**
  * 回阅读器（用户不是从一级来的，回落一级是绕路）；经显式导航（取消本书后回一级）
  * 清掉直达标记后，返回栈恢复常规语义。
+ *
+ * 「在直达态」这件事在这里只是一个布尔量：它的**事实源**是 Activity 上的 [pickParams]
+ * （旋转重建后仍在，见 [DownloadManageActivity.pickParams] 的说明），由壳层读出来传进来。
+ * 直接把 Activity 交给这一层的话，本页就再也无法预览——`@Preview` 不经 Hilt、也没有 Activity。
+ *
+ * `pendingCancelBook`（待确认的「取消本书」）留在二级这一支的槽位里，与搬动前的位置语义相同：
+ * 退回一级时这个 `remember` 随分支一起销毁。若把它 hoist 到根组件顶上，一级顶上就可能残留
+ * 一张「确认取消《某书》？」的框——那是本页唯一一条「状态活得比它描述的对象久」的失败形态。
+ *
+ * **这一层不配预览**：它带 [BackHandler]，而设计期没有 Activity、也就没有可绑的
+ * `OnBackPressedDispatcherOwner`，拍出来只会是一张贴图。两级编排的状态透传由
+ * `BookScreensRenderTest` 在 JVM 上锁（那里的 `ComponentActivity` 提供 dispatcher），
+ * 一级的长相由 [DownloadManageScreenPreview] 与 [DownloadManageEmptyPreview] 负责。
+ */
+@Composable
+internal fun DownloadCenterContent(
+    step: DownloadCenterStep,
+    groups: List<DownloadBookGroup>,
+    bookSheet: BookSelectionState?,
+    /** 阅读器直达态：二级返回时直接退出本页，而不是回落一级 */
+    isDirectFromReader: Boolean,
+    onBackToBooks: () -> Unit,
+    onFinish: () -> Unit,
+    onOpenBook: (DownloadBookGroup) -> Unit,
+    /** 确认下载（通知权限已在壳层问过，无论授予与否都会走到这里） */
+    onConfirmDownload: (Set<Int>) -> Unit,
+    onPauseBook: (String) -> Unit,
+    onResumeBook: (String) -> Unit,
+    /** 已确认的「取消本书」：壳层据此清掉直达标记并回一级 */
+    onCancelBook: (BookChapterSelection) -> Unit,
+    onRetry: () -> Unit,
+) {
+    BackHandler(enabled = step is DownloadCenterStep.PickBook) {
+        if (isDirectFromReader) {
+            // 阅读器直达态：返回直接退出本页回阅读器，不再回落一级
+            onFinish()
+        } else {
+            // 从一级点书进入的二级：返回回一级（既有栈语义）
+            onBackToBooks()
+        }
+    }
+
+    when (val current = step) {
+        is DownloadCenterStep.Books -> DownloadManageScreen(
+            groups = groups,
+            onOpenBook = onOpenBook
+        )
+
+        is DownloadCenterStep.PickBook -> {
+            // 取消本书二次确认：书维度操作归书上下文（二级操作面板触发），确认后回一级
+            var pendingCancelBook by remember { mutableStateOf<BookChapterSelection?>(null) }
+            BookChapterSelectPage(
+                state = bookSheet ?: BookSelectionState.Loading,
+                onConfirm = onConfirmDownload,
+                // 暂停/继续都只作用于「本书」这一维度，不需要二次确认：
+                // 暂停不丢任务、继续只是恢复取篇，两者都可逆（ADR-0036 决策 1/3）
+                onPauseBook = { selection -> onPauseBook(selection.noteUrl) },
+                onResumeBook = { selection -> onResumeBook(selection.noteUrl) },
+                onCancelBook = { selection -> pendingCancelBook = selection },
+                onRetry = onRetry,
+            )
+            pendingCancelBook?.let { ready ->
+                AlertDialog(
+                    onDismissRequest = { pendingCancelBook = null },
+                    title = { Text(stringResource(R.string.download_manage_cancel_book_title)) },
+                    text = {
+                        Text(stringResource(R.string.download_manage_cancel_book_confirm, ready.bookName))
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            pendingCancelBook = null
+                            onCancelBook(ready)
+                        }) {
+                            Text(
+                                stringResource(R.string.download_manage_cancel_book),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingCancelBook = null }) {
+                            Text(stringResource(com.ebook.common.R.string.cancel))
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 下载中心两级编排的**壳层**：状态流收集、进度驱动的刷新、Activity 侧的动作都在这里。
+ *
+ * `activity` 在这页只用于三件事，全部换成根组件收得下的窄口径（行为逐字不变）：
+ * - [DownloadManageActivity.pickParams] 的**当前值** → `isDirectFromReader`（返回语义分流）
+ * - [DownloadManageActivity.requestDownloadPermission] → 包在 `onConfirmDownload` 里，
+ *   权限问完仍然照原样继续（通知只是展示渠道，不作为下载前置门槛）
+ * - `finish()` 与清标记 → 两个回调，动作本身没被搬进 UI
+ *
+ * `LaunchedEffect` 留在这一层：它绑的是 ViewModel 的状态流，而根组件不该认识 ViewModel。
  */
 @Composable
 private fun DownloadCenterScreen(
@@ -152,16 +258,9 @@ private fun DownloadCenterScreen(
     viewModel: DownloadManageViewModel,
 ) {
     val step by viewModel.step.collectAsState()
-
-    BackHandler(enabled = step is DownloadCenterStep.PickBook) {
-        if (activity.pickParams != null) {
-            // 阅读器直达态：返回直接退出本页回阅读器，不再回落一级
-            activity.finish()
-        } else {
-            // 从一级点书进入的二级：返回回一级（既有栈语义）
-            viewModel.backToBooks()
-        }
-    }
+    val groups by viewModel.groups.collectAsState()
+    // 二级当前书的装载结果（null = 还没有结论，根组件按「加载中」渲染）
+    val bookSheet by viewModel.bookSheet.collectAsState()
 
     // 状态驱动刷新：进度每推进一章，一级分组与（若在二级）该书状态标签同步刷新；
     // 打开页面时若队列有任务则自动续跑（对齐原弹窗 initWait，见 resumeIfPending）
@@ -185,62 +284,34 @@ private fun DownloadCenterScreen(
         }
     }
 
-    when (val current = step) {
-        is DownloadCenterStep.Books -> DownloadManageScreen(
-            viewModel = viewModel,
-            onOpenBook = { group -> viewModel.openBook(group.noteUrl, group.tag) }
-        )
-
-        is DownloadCenterStep.PickBook -> {
-            val bookSheet by viewModel.bookSheet.collectAsState()
-            // 取消本书二次确认：书维度操作归书上下文（二级操作面板触发），确认后回一级
-            var pendingCancelBook by remember { mutableStateOf<BookChapterSelection?>(null) }
-            BookChapterSelectPage(
-                state = bookSheet ?: BookSelectionState.Loading,
-                onConfirm = { selected ->
-                    activity.requestDownloadPermission { viewModel.confirmDownload(selected) }
-                },
-                // 暂停/继续都只作用于「本书」这一维度，不需要二次确认：
-                // 暂停不丢任务、继续只是恢复取篇，两者都可逆（ADR-0036 决策 1/3）
-                onPauseBook = { selection -> viewModel.pauseBook(selection.noteUrl) },
-                onResumeBook = { selection -> viewModel.resumeBook(selection.noteUrl) },
-                onCancelBook = { selection -> pendingCancelBook = selection },
-                onRetry = { viewModel.refreshSelection() },
-            )
-            pendingCancelBook?.let { ready ->
-                AlertDialog(
-                    onDismissRequest = { pendingCancelBook = null },
-                    text = {
-                        Text(stringResource(R.string.download_manage_cancel_book_confirm, ready.bookName))
-                    },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            pendingCancelBook = null
-                            // 取消后回一级是显式导航（非返回）：退出直达态，
-                            // 此后二级返回恢复「回一级」的常规栈语义
-                            activity.pickParams = null
-                            viewModel.cancelBook(ready.noteUrl)
-                            viewModel.backToBooks()
-                        }) {
-                            Text(
-                                stringResource(R.string.download_manage_cancel_book),
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { pendingCancelBook = null }) {
-                            Text(stringResource(com.ebook.common.R.string.cancel))
-                        }
-                    }
-                )
-            }
-        }
-    }
+    DownloadCenterContent(
+        step = step,
+        groups = groups,
+        bookSheet = bookSheet,
+        isDirectFromReader = activity.pickParams != null,
+        onBackToBooks = viewModel::backToBooks,
+        onFinish = activity::finish,
+        onOpenBook = { group -> viewModel.openBook(group.noteUrl, group.tag) },
+        // 先问通知权限再落任务：无论授予与否都继续（见 requestDownloadPermission）。
+        // 服务侧的「先入库再拉服务」顺序在 confirmDownload 里面，这层不碰（见 ADR-0018）
+        onConfirmDownload = { selected ->
+            activity.requestDownloadPermission { viewModel.confirmDownload(selected) }
+        },
+        onPauseBook = { noteUrl -> viewModel.pauseBook(noteUrl) },
+        onResumeBook = { noteUrl -> viewModel.resumeBook(noteUrl) },
+        onCancelBook = { selection ->
+            // 取消后回一级是显式导航（非返回）：退出直达态，
+            // 此后二级返回恢复「回一级」的常规栈语义
+            activity.pickParams = null
+            viewModel.cancelBook(selection.noteUrl)
+            viewModel.backToBooks()
+        },
+        onRetry = { viewModel.refreshSelection() },
+    )
 }
 
 /**
- * 一级：按书下载列表。
+ * 一级：按书下载列表（**无状态根**，只吃分组数据与回调）。
  *
  * - 书行 = [CommonItemCard]（12dp 圆角、listSpacing 行距）：封面 + 书名 + 覆盖率进度条 +
  *   进行态副行（「正在下载 第 M 章」，仅 Progress 期间展示）+ 合并元信息行
@@ -252,13 +323,19 @@ private fun DownloadCenterScreen(
  */
 @Composable
 fun DownloadManageScreen(
-    viewModel: DownloadManageViewModel,
+    groups: List<DownloadBookGroup>,
     onOpenBook: (DownloadBookGroup) -> Unit
 ) {
-    val groups by viewModel.groups.collectAsState()
-
     if (groups.isEmpty()) {
-        EmptyState(modifier = Modifier.fillMaxSize())
+        // 空态是唯一的「怎么用」教学位：告诉用户下载任务从哪里发起（阅读页顶部下载入口），
+        // 而不是只丢一句「暂无任务」让新用户对着白页猜；形态走共享 EmptyState
+        // （图标/字号/间距由组件统一，全仓空态同一套词汇，见 CommonUiComponents.kt）
+        EmptyState(
+            icon = Icons.Outlined.CloudDownload,
+            title = stringResource(R.string.download_manage_no_task),
+            hint = stringResource(R.string.download_manage_empty_hint),
+            modifier = Modifier.fillMaxSize()
+        )
     } else {
         LazyColumn(
             modifier = Modifier
@@ -324,7 +401,7 @@ private fun DownloadBookRow(
                         Spacer(modifier = Modifier.width(6.dp))
                         InfoChip(
                             text = stringResource(R.string.download_manage_paused_tag),
-                            shape = RoundedCornerShape(50),
+                            shape = CommonUiTokens.pillShape,
                             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                             contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                             textStyle = MaterialTheme.typography.labelSmall,
@@ -376,34 +453,94 @@ private fun DownloadBookRow(
 }
 
 /**
- * 无任务时的空态占位：图标 + 主文案 + 引导副文案。
+ * 预览：一级书行四种长相——常规 / **正在下载** / **已暂停** / 超长书名。
  *
- * 空态是唯一的「怎么用」教学位：告诉用户下载任务从哪里发起（阅读页顶部下载入口），
- * 而不是只丢一句「暂无任务」让新用户对着白页猜。
+ * 一行一个判据，全部是「写坏了不报错、只是少画或多画一块」的形态：
+ * - `activeChapter != null` 才插那行主色「正在下载 第 M 章 · 章名」——它插在进度条与元信息之间，
+ *   漏判就会在暂停/完成后仍显示「正在下载」（进度数据确实还在推进时最容易误显）；
+ * - `paused` 才挂「已暂停」胶囊，且它挂的是 `tertiaryContainer`（与下载中的主色分开，
+ *   两种状态同色就分不出「在跑」与「被我叫停」）；
+ * - 超长书名要省略在书名那一列里，不能把尾箭头挤出可视区。
+ * 覆盖率进度条按 `cachedChapters / totalChapters` 现算：四行给了四个不同比例（含 0 与满），
+ * 全给同一个比例就看不出防除零那条分支。
  */
+@PreviewLightDark
 @Composable
-private fun EmptyState(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.CloudDownload,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.size(48.dp)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.download_manage_no_task),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = stringResource(R.string.download_manage_empty_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+private fun DownloadManageScreenPreview() {
+    AppPreview {
+        DownloadManageScreen(groups = previewDownloadGroups(), onOpenBook = {})
     }
+}
+
+/**
+ * 预览：一级空态。
+ *
+ * 这一屏是唯一教「下载从哪里发起」的位置（阅读页顶部那个入口），只写「暂无下载任务」
+ * 新用户就找不到动作来源；引导语在不在、图标是不是共享 [EmptyState] 那一套，只有这张图看得出。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun DownloadManageEmptyPreview() {
+    AppPreview {
+        DownloadManageScreen(groups = emptyList(), onOpenBook = {})
+    }
+}
+
+/**
+ * 一级书行的样例分组。
+ *
+ * 直接写展示串而不从 [com.ebook.common.ui.preview.PreviewSamples] 的实体推：
+ * [DownloadBookGroup] 是本页自己的聚合类型（VM 现算的展示形状，不是库里的一行），
+ * 门面只收 ebook 域的共享实体。只有「正在下载」那一行需要队列表的一行任务，那里取
+ * [sampleDownloadChapter]（它是 `download_chapter` 的真实体）。
+ *
+ * `internal` 而非 `private`：预览与 `BookScreensRenderTest` 吃**同一份**样例——两处各写一份
+ * 就一定会漂移（测试绿着、预览却是另一种长相）。
+ */
+internal fun previewDownloadGroups(): List<DownloadBookGroup> {
+    val active = sampleDownloadChapter(
+        index = 93,
+        noteUrl = "$SAMPLE_SOURCE_URL/book/2",
+        bookName = "长安小吏",
+    )
+    return listOf(
+        DownloadBookGroup(
+            noteUrl = "$SAMPLE_SOURCE_URL/book/1",
+            bookName = "山海拾遗",
+            coverUrl = SAMPLE_COVER_URL,
+            tag = SAMPLE_SOURCE_URL,
+            remaining = 36,
+            totalChapters = 128,
+            cachedChapters = 92,
+        ),
+        DownloadBookGroup(
+            noteUrl = "$SAMPLE_SOURCE_URL/book/2",
+            bookName = "长安小吏",
+            coverUrl = SAMPLE_COVER_URL,
+            tag = SAMPLE_SOURCE_URL,
+            remaining = 12,
+            totalChapters = 96,
+            cachedChapters = 84,
+            activeChapter = active,
+        ),
+        DownloadBookGroup(
+            noteUrl = "$SAMPLE_SOURCE_URL/book/3",
+            bookName = "星轨编年史",
+            coverUrl = SAMPLE_COVER_URL,
+            tag = SAMPLE_SOURCE_URL,
+            remaining = 61,
+            totalChapters = 210,
+            cachedChapters = 0,
+            paused = true,
+        ),
+        DownloadBookGroup(
+            noteUrl = "$SAMPLE_SOURCE_URL/book/4",
+            bookName = "一部书名长得该被省略掉后半段的示例作品",
+            coverUrl = SAMPLE_COVER_URL,
+            tag = SAMPLE_SOURCE_URL,
+            remaining = 0,
+            totalChapters = 64,
+            cachedChapters = 64,
+        ),
+    )
 }

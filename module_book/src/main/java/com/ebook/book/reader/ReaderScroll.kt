@@ -1,30 +1,21 @@
 package com.ebook.book.reader
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,7 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -294,9 +284,11 @@ private fun ScrollBlock(
  * 但它没有块高可给（块高正是排版要算的东西）。配色全部由正文色按透明度派生——
  * 这三态同样画在纸上，属「阅读背景主题」层，正文层豁免深浅色切换。
  *
- * 接收者是 [BoxScope]：三态里的加载/错误需要 `align(Center)` 居中，而居中语义
- * 依赖父级是 Box。写成 BoxScope 扩展比传 Modifier 进来更准——后者会让居中语义
- * 散到调用点，两个调用点各写一次就会漂移。
+ * 三态分两处画：正文态在这里（块内独有的 `readerBodyTextStyle` 排版），加载/失败两态
+ * 转交 [ReaderPaperState]——那份画法与翻页模式逐字共用，此处不再各留一份副本。
+ *
+ * 接收者是 [BoxScope]：加载/失败两态要 `align(Center)` 居中，而居中语义依赖父级是 Box
+ * （该约束随 [ReaderPaperState] 的接收者一并延续）。
  */
 @Composable
 private fun BoxScope.ScrollBlockState(
@@ -316,58 +308,13 @@ private fun BoxScope.ScrollBlockState(
             style = readerBodyTextStyle(textSizeSp, lineHeight),
         )
 
-        is ReaderPageUi.Loading -> Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(26.dp),
-                color = textColor.copy(alpha = 0.35f),
-                strokeWidth = 2.5.dp,
-            )
-            Spacer(modifier = Modifier.height(14.dp))
-            Text(
-                text = stringResource(R.string.loading),
-                color = textColor.copy(alpha = 0.55f),
-                fontSize = 14.sp,
-            )
-        }
-
-        is ReaderPageUi.Error -> Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.CloudOff,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = textColor.copy(alpha = 0.4f),
-            )
-            Spacer(modifier = Modifier.height(14.dp))
-            Text(
-                text = stringResource(R.string.reader_load_failed),
-                color = textColor.copy(alpha = 0.8f),
-                fontSize = 16.sp,
-            )
-            Spacer(modifier = Modifier.height(22.dp))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(textColor.copy(alpha = 0.07f))
-                    .border(
-                        width = 1.dp,
-                        color = textColor.copy(alpha = 0.3f),
-                        shape = RoundedCornerShape(50),
-                    )
-                    .clickable(onClick = onRetry)
-                    .padding(horizontal = 22.dp, vertical = 10.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.retry),
-                    color = textColor.copy(alpha = 0.85f),
-                    fontSize = 14.sp,
-                )
-            }
-        }
+        // 加载/失败两态与翻页模式共用同一份画法（reader/ReaderPaperState.kt）：
+        // 差一像素就会变成「两种翻页方式长得不一样」
+        is ReaderPageUi.Loading,
+        is ReaderPageUi.Error -> ReaderPaperState(
+            ui = ui,
+            textColor = textColor,
+            onRetry = onRetry,
+        )
     }
 }

@@ -24,6 +24,12 @@ android {
         buildConfig = true
         compose = true
     }
+    testOptions {
+        unitTests {
+            // Robolectric 要读到合并后的资源（共享 UI 组件的渲染/语义回归测试取 R.string.*）
+            isIncludeAndroidResources = true
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -79,6 +85,10 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Compose UI 测试：本模块是全仓共享 UI 组件的唯一产地（CommonCard/CommonListItem/InfoChip/
+    // EmptyState…），组件的契约（可省字段不渲染、动作槽可点）只能在组件自己的模块里锁住；
+    // 此前本模块零 Compose 测试，改共享件只能靠消费方回归，故补齐这套基建（口径同 module_book）
+    testImplementation(libs.bundles.androidx.compose.ui.test)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 

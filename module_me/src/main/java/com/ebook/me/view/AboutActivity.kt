@@ -31,12 +31,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
 import com.ebook.common.ui.CommonListItem
+import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.SectionLabel
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
 import com.therouter.TheRouter
 import com.therouter.router.Route
@@ -135,7 +139,8 @@ private fun AboutScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
+                // 页面左右留白取统一令牌（唯一事实源），不在页内写同语义的 16dp 字面值
+                .padding(horizontal = CommonUiTokens.pagePadding)
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -181,7 +186,8 @@ private fun AboutScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            // App 信息卡与内容入口卡之间的区块间距取统一令牌：与设置页/书城共用同一密度
+            Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
 
             SectionLabel(text = stringResource(R.string.about_section_content))
             CommonCard(modifier = Modifier.fillMaxWidth()) {
@@ -228,5 +234,50 @@ private fun AboutScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * 预览：关于页常规形态（App 图标 + 名称 + 版本 + 三个内容入口）。
+ *
+ * 图标给一张 88px 的**空位图**而不是真 launcher 图：launcher 图标是 AdaptiveIconDrawable（XML），
+ * 栅格化发生在 Activity 侧的 `rasterizeIcon`，预览环境既没有 PackageManager 也没有可解那份 XML 的主题。
+ * 这里要核对的是「图标槽位存在时」整张卡是否稳定——名称/版本/slogan 三行的间距与卡片高度都随
+ * 图标在不在而变，那一档只在装机态看得到，编译更看不出。深浅两档一起出（[PreviewLightDark] 翻
+ * `uiMode`，与运行时「跟随系统」同一个判定）。
+ */
+@PreviewLightDark
+@Composable
+private fun AboutScreenPreview() {
+    AppPreview {
+        AboutScreen(
+            appName = "小说",
+            appIcon = createBitmap(88, 88).asImageBitmap(),
+            versionName = "1.4.0",
+            onOpenDoc = {},
+            onOpenLicenses = {},
+        )
+    }
+}
+
+/**
+ * 预览：App 信息读不出来时的退化形态（无图标 + 名称与版本都是空串）。
+ *
+ * 这一档不是假想：`PageContent` 里那句 `getOrDefault(Triple("", 0, ""))` 就是它的生产入口
+ * （`getPackageInfo` 抛异常时名称、版本一起为空、图标 resId 为 0 → `rasterizeIcon` 直接返回 null）。
+ * 空串不会崩、也不会报错，只会画出一张「上面一片空白 + 版本行只剩前缀 v」的卡——
+ * 不拍下来就没人知道它长什么样，改布局时也容易把兜底当成不会走到的分支。
+ */
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+private fun AboutScreenWithoutIconPreview() {
+    AppPreview {
+        AboutScreen(
+            appName = "",
+            appIcon = null,
+            versionName = "",
+            onOpenDoc = {},
+            onOpenLicenses = {},
+        )
     }
 }

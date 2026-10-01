@@ -23,8 +23,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import com.ebook.common.event.KeyCode
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
 import com.ebook.me.mvvm.viewmodel.ModifyViewModel
 import com.therouter.router.Route
@@ -132,4 +136,35 @@ fun ModifyNicknameScreen(
             }
         }
     }
+}
+
+/**
+ * 预览：修改昵称页的两种「当前昵称」。
+ *
+ * 参照行是 `currentNickname.ifEmpty { common_not_set }`——首启/资料没填过的用户进来看到的是
+ * 「当前昵称：未设置」。这一档不拍下来，只预览有昵称的那张图会一直以为那行有值，
+ * 而 `profileState.nickname` 为空是登录链路里很常见的一态（服务端只存了邮箱、昵称留空）。
+ *
+ * 两档都是**输入框为空**的初始态：`nickname` 是 `rememberSaveable` 的本地状态，外部传不进来，
+ * 于是这两张图同时把「按钮此时必须禁用」这一条一起看着（`isValid` 要求非空白）。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun ModifyNicknameScreenPreview(
+    @PreviewParameter(CurrentNicknameProvider::class) currentNickname: String,
+) {
+    AppPreview {
+        ModifyNicknameScreen(
+            currentNickname = currentNickname,
+            onSubmit = {},
+        )
+    }
+}
+
+/** 两档参照值：有昵称 / 空串（走「未设置」占位） */
+private class CurrentNicknameProvider : PreviewParameterProvider<String> {
+    override val values: Sequence<String>
+        get() = sequenceOf("临渊客", "")
+
+    override fun getDisplayName(index: Int): String = if (index == 0) "已有昵称" else "未设置"
 }

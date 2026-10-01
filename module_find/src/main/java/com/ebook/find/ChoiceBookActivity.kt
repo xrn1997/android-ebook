@@ -67,6 +67,9 @@ class ChoiceBookActivity : BaseMvvmRefreshActivity<ChoiceBookViewModel>() {
             items(books, key = { it.noteUrl }) { searchBook ->
                 SearchBookItem(
                     searchBook = searchBook,
+                    // 本页整段会话锁定导航参数带进来的那一个源（见 ChoiceBookViewModel.sourceUrl），
+                    // 每条 origin 都是同一个名字，摆在条目里只是重复噪声
+                    showOrigin = false,
                     onItemClick = {
                         TheRouter.build(KeyCode.Book.DETAIL_PATH)
                             .withInt("from", FROM_SEARCH)

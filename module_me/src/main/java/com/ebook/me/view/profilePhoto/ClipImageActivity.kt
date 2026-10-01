@@ -39,10 +39,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.BlendMode
 import androidx.lifecycle.lifecycleScope
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
 import com.xrn1997.common.mvvm.compose.BaseActivity
 import com.xrn1997.common.util.BitmapUtil
@@ -393,3 +396,40 @@ private fun rememberCropState(bitmap: Bitmap, size: IntSize): CropState {
         CropState(bitmap = bitmap, size = size, radius = radius)
     }
 }
+
+/**
+ * 预览：裁剪页「图片已就绪」这一档（唯一的整屏形态）。
+ *
+ * 这一张图锁住两件只在渲染时才显形、编译一句都不说的事：
+ * - **遮罩挖孔**：scrim 遮罩层靠 `CompositingStrategy.Offscreen` + `BlendMode.Clear` 才透出下层图片，
+ *   少了离屏合成就变成「整屏一坨遮罩、圆孔里也是遮罩」——配色还全在语义色上，
+ *   所以深浅两档都得看（[PreviewLightDark]）：深色下遮罩/边框若写死黑白，一档刺眼一档看不清。
+ * - **「确定」按钮的可点态**：它绑在 `cropState != null` 上，而 `CropState` 要等 `onSizeChanged`
+ *   把容器尺寸报回来才建得出。预览里那一步是跑得到的，于是这张图就是「按钮该是亮的」的基准；
+ *   哪天尺寸采集接不上，图上会直接给出一个禁用按钮 + 一片空白裁剪区。
+ */
+@PreviewLightDark
+@Composable
+private fun ClipImageScreenPreview() {
+    AppPreview {
+        ClipImageScreen(
+            bitmap = previewSampleBitmap(),
+            onCancel = {},
+            onConfirm = {},
+        )
+    }
+}
+
+/**
+ * 预览用样例图片。
+ *
+ * 门面（`PreviewSamples`）给的是 ebook 域实体，没有位图这一档，而本页要的恰好只是
+ * 「一张有内容、能看出被裁到哪」的位图：给一张铺满的浅灰图（`LTGRAY` 是框架常量，
+ * 不是本页配色，也不参与任何主题取色），比透明位图更能看出裁剪圆内是否**不露白**——
+ * 全透明的话「图片没盖住圆」和「正常裁切」在图上长得一模一样。
+ *
+ * 尺寸 720×1280 与生产的采样解码上限一致（`BitmapUtil.loadSampledBitmap`），
+ * 于是初始缩放 `minScale` 落在真实会出现的那一档。
+ */
+private fun previewSampleBitmap(): Bitmap = createBitmap(720, 1280)
+    .apply { eraseColor(android.graphics.Color.LTGRAY) }

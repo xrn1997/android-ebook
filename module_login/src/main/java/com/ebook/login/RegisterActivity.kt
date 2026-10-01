@@ -1,6 +1,7 @@
 package com.ebook.login
 
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,9 +27,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ebook.common.event.KeyCode
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.login.mvvm.viewmodel.RegisterViewModel
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
@@ -54,6 +60,9 @@ internal val AuthPagePadding = 24.dp
 class RegisterActivity : BaseMvvmActivity<RegisterViewModel>() {
     override val viewModel: RegisterViewModel by viewModels()
 
+    /**
+     * 外壳：只 collect 倒计时并把值与回调下传 [RegisterScreen]（无状态根本身不接 ViewModel）。
+     */
     @Composable
     override fun PageContent() {
         // 发码倒计时驻留 ViewModel：横竖屏切换不丢进度（与服务端 60 秒频控对齐）
@@ -71,9 +80,16 @@ class RegisterActivity : BaseMvvmActivity<RegisterViewModel>() {
 }
 
 /**
- * 注册表单：引导文案 + 邮箱 / 验证码（内嵌倒计时发码按钮）/ 密码 / 确认密码。
+ * 注册表单（**无状态根**）：引导文案 + 邮箱 / 验证码（内嵌倒计时发码按钮）/ 密码 / 确认密码。
  *
  * 用户名不在注册时收集——服务端自动生成占位用户名，用户可后期自改（对齐服务端注册契约）。
+ *
+ * 形参只有值与回调（不接 ViewModel），故可预览；四个输入框的值是本页自己的
+ * `remember` 编辑态，**刻意不下传**：VM 只在点击那一刻收整份表单，把编辑态搬到
+ * [RegisterActivity.PageContent] 只会让参数表变长而换不到任何东西（登录页必须搬是因为
+ * 那里有 intent 预填这个外部写入点，这里没有）。校验与结果提示同样不在这一层——
+ * 非空/6 位/两次一致由 [RegisterViewModel] 判定后经 `sendToast` 给出，页面上没有
+ * 「错误文本」入参可传。
  *
  * @param countdownSeconds 发码倒计时剩余秒数，0 = 可发码（由 ViewModel 在发码成功后驱动）
  */
@@ -206,4 +222,62 @@ internal fun AuthCodeField(
         },
         modifier = modifier.fillMaxWidth()
     )
+}
+
+/**
+ * 预览：注册页的**两档发码态**（深浅各两张）。
+ *
+ * 挑这两档而不是别的，是因为「按钮此刻能不能点」完全由 [RegisterScreen] 的入参决定，
+ * 而写反了不报错、不闪退：倒计时期间仍显示「获取验证码」就等于放任用户连点，
+ * 一路撞服务端的 60 秒频控（A0241）。倒计时文案 `%1$d 秒后重发` 是格式化串，
+ * 只在渲染时看得出宽度够不够（trailing 槽位放不下时按钮会被挤到框外）。
+ *
+ * 四个输入框恒为空——那是本页自己持有的 `remember` 编辑态（见 [RegisterScreen] 的说明），
+ * 于是这几张图同时也是「引导语 + 五个控件的垂直节奏」这一版式本身。
+ */
+@PreviewLightDark
+@Composable
+private fun RegisterScreenPreview(
+    @PreviewParameter(CodeCountdownProvider::class) countdownSeconds: Int,
+) {
+    AppPreview {
+        RegisterScreen(
+            countdownSeconds = countdownSeconds,
+            onSendCode = {},
+            onRegister = { _, _, _, _ -> },
+        )
+    }
+}
+
+/**
+ * 预览：共用的验证码输入框本体（可发码 / 倒计时禁用两档并排）。
+ *
+ * 这一格是注册页与验证身份页共用的组件，而它唯一的排版风险就是 trailing 槽位：
+ * 「60 秒后重发」比「获取验证码」宽，按钮挤不进槽位时输入框与按钮会互相压缩——
+ * 两档并排放在同一张图上才比得出高度是否一致（同一行控件在两种文案下跳高是最难发现的）。
+ */
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+private fun AuthCodeFieldPreview() {
+    AppPreview {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AuthPagePadding),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            AuthCodeField(value = "", onValueChange = {}, countdownSeconds = 0, onSendCode = {})
+            AuthCodeField(value = "123456", onValueChange = {}, countdownSeconds = 60, onSendCode = {})
+        }
+    }
+}
+
+/** 发码倒计时的两档样例：0 = 可点，37 = 已发码且在 60 秒频控窗口内 */
+private class CodeCountdownProvider : PreviewParameterProvider<Int> {
+    private val countdownCases = listOf(0, 37)
+
+    override val values: Sequence<Int>
+        get() = countdownCases.asSequence()
+
+    override fun getDisplayName(index: Int): String = if (index == 0) "可发码" else "倒计时中"
 }

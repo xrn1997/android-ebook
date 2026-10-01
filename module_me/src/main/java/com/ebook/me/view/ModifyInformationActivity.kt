@@ -33,12 +33,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.Avatar
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
 import com.ebook.common.ui.CommonListItem
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
 import com.ebook.me.mvvm.viewmodel.ModifyViewModel
 import com.ebook.me.mvvm.viewmodel.ProfileDisplayState
@@ -233,5 +236,56 @@ fun ModifyInformationScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * 预览：编辑资料页三行齐全（头像 + 昵称 + 密码行）。
+ *
+ * 头像是**取不到的 URL**：预览环境不联网，[Avatar] 必然落默认头像——这一档正是最常遇到的
+ * （上传的文件被清理、设备离线），也是「行内缩略图 36dp 会不会把行高顶乱」唯一能核对的时机。
+ *
+ * 关于「组合期做 FileProvider 那件事」：`FileUtil.privateFile` / `contentUri` 只出现在
+ * Activity 的 `PageContent()` 里（拍照临时文件与其输出 Uri），本页的根 [ModifyInformationScreen]
+ * 只吃状态与回调，所以根可以预览、只有宿主壳不行。
+ */
+@PreviewLightDark
+@Composable
+private fun ModifyInformationScreenPreview() {
+    AppPreview {
+        ModifyInformationScreen(
+            profileState = ProfileDisplayState(
+                nickname = "临渊客",
+                avatarUrl = "https://avatar.sample.example.com/1.png",
+            ),
+            onModifyPhotoClick = {},
+            onModifyPasswordClick = {},
+            onModifyNicknameClick = {},
+            showPassword = true,
+        )
+    }
+}
+
+/**
+ * 预览：昵称未设置 + 没有头像 + 密码行整块隐藏。
+ *
+ * 三个降级点一次拍齐，各自都是一行代码写错就静默的形态：
+ * - `trailingText` 走 `common_not_set` 占位（空串的话那一行右侧会一片空白，看不出是漏了还是设计）；
+ * - `avatarUrl` 为空串 → 默认头像；
+ * - `showPassword = false` 是模块独立运行（module_login 未集成、`matchRouteMap` 探不到路由）那一档：
+ *   **分隔线必须跟着行一起省**，否则卡片末尾会挂一条孤线——`if (showPassword)` 只包 CommonListItem
+ *   而把 `CommonListDivider()` 留在外面，就是这个预览要看的错。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun ModifyInformationScreenWithoutPasswordPreview() {
+    AppPreview {
+        ModifyInformationScreen(
+            profileState = ProfileDisplayState(),
+            onModifyPhotoClick = {},
+            onModifyPasswordClick = {},
+            onModifyNicknameClick = {},
+            showPassword = false,
+        )
     }
 }

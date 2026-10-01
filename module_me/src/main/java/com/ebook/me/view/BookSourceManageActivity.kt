@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Error
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Save
+import androidx.compose.material.icons.outlined.Source
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -55,7 +57,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import com.ebook.api.entity.BookSourceRule
+import com.ebook.api.entity.ScriptSourceRule
 import com.ebook.api.entity.SourceFormat
 import com.ebook.common.analyze.source.BookSourceItem
 import com.ebook.common.event.KeyCode
@@ -63,7 +70,12 @@ import com.ebook.common.ui.CommonListDivider
 import com.ebook.common.ui.CommonListItem
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.ui.EmptyState
 import com.ebook.common.ui.InfoChip
+import com.ebook.common.ui.preview.AppPreview
+import com.ebook.common.ui.preview.SAMPLE_SOURCE_URL
+import com.ebook.common.ui.preview.sampleNativeSource
+import com.ebook.common.ui.preview.sampleScriptSource
 import com.ebook.me.R
 import com.ebook.me.domain.ScriptWarning
 import com.ebook.me.domain.ValidationReason
@@ -71,7 +83,6 @@ import com.ebook.me.domain.ValidationResult
 import com.ebook.me.mvvm.viewmodel.BookSourceViewModel
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
-import com.xrn1997.common.ui.NoDataView
 import com.xrn1997.common.util.ToastUtil
 import dagger.hilt.android.AndroidEntryPoint
 import java.text.SimpleDateFormat
@@ -303,15 +314,20 @@ fun BookSourceManageScreen(
             }
 
             if (state.sources.isEmpty()) {
-                // 空态叠放层自带背景，只给尺寸即可（叠放层契约见 NoDataView 的 KDoc）
-                NoDataView(
-                    visible = true,
+                // 空态沿用它原来的槽位（占满列表区、内容居中）：共享 EmptyState 只是内容块、
+                // 不自带背景，页面底色由外层 Surface 给（旧占位组件自带的覆盖层背景正是同一个色）
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
-                    title = stringResource(R.string.book_source_empty_title),
-                    hint = stringResource(R.string.book_source_empty_hint),
-                )
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(
+                        icon = Icons.Outlined.Source,
+                        title = stringResource(R.string.book_source_empty_title),
+                        hint = stringResource(R.string.book_source_empty_hint),
+                    )
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
@@ -558,7 +574,9 @@ private fun ImportPreviewSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                // 弹层内容区的整体左右内边距＝页面级留白语义，取统一令牌：本仓其余弹层
+                // （缓存明细、换源面板）都是 pagePadding，此处原为 24dp，同款弹层两种留白
+                .padding(horizontal = CommonUiTokens.pagePadding)
                 .navigationBarsPadding()
         ) {
             Text(
@@ -763,3 +781,159 @@ private fun noticeMessage(notice: BookSourceViewModel.Notice): String = when (no
         notice.failed,
     )
 }
+
+/**
+ * 预览：书源管理页的四档页面形态，用官方 `@PreviewParameter` 一次出四张图。
+ *
+ * 这四档就是本页的判据（`state.sources.isEmpty()` 与 `state.preview` 两条分岔），
+ * 而最容易写错的都在「不崩、只少画一块」那一侧：
+ * - **NoSource**：空态走共享 [EmptyState]，汇总行此时是「共 0 个书源，已启用 0 个」——
+ *   两个数都得跟着清单走，不能省成一句写死的文案。
+ * - **MixedList**：三种行长相一次排齐（原生+默认、「脚本」与「默认」**并排**、禁用且无标记）。
+ *     「脚本」+「默认」同时命中是本页唯一一处两个标记并排的形态，`when` 二选一的写法
+ *     不报错、只是把「这条源是脚本出身」这件事藏起来，用户会去反复试那条看着「坏了」的源。
+ * - **ImportPreview**：预览弹层里三种条目同框（通过的、带两条警示且**跨出身将覆盖**的、
+ *   失败并列出四个原因的）。「将覆盖」在 `overwriteFormat != format` 时要说清是**哪种出身被换掉**，
+ *   这句文案只有在混排包里才露脸。
+ * - **ImportAllRejected**：按钮置灰但清单仍完整展示——「确认导入 0 条」这种自相矛盾的数字
+ *   必须由 `validCount` 而非 `items.size` 算出。
+ *
+ * 弹层两档会盖住整页，静态图看的是弹层本身的行样式，与页面版式分开拍才对得上。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun BookSourceManageScreenPreview(
+    @PreviewParameter(BookSourceFormProvider::class)
+    state: BookSourceViewModel.BookSourcePageState,
+) {
+    AppPreview {
+        BookSourceManageScreen(
+            state = state,
+            onImportClick = {},
+            onExportAllClick = {},
+            onSetDefault = {},
+            onToggleEnabled = { _, _ -> },
+            onExportSource = {},
+            onDelete = {},
+            onConfirmImport = {},
+            onDismissPreview = {},
+        )
+    }
+}
+
+/** 预览要看的四档形态（顺序即 [BookSourceFormProvider] 出图的顺序） */
+private enum class BookSourcePreviewForm { NoSource, MixedList, ImportPreview, ImportAllRejected }
+
+/** 四档形态 → 页面状态；`getDisplayName` 用枚举名，图上直接标形态、不必对着缩略图猜 */
+private class BookSourceFormProvider : PreviewParameterProvider<BookSourceViewModel.BookSourcePageState> {
+    override val values: Sequence<BookSourceViewModel.BookSourcePageState>
+        get() = BookSourcePreviewForm.entries.asSequence().map { previewStateFor(it) }
+
+    override fun getDisplayName(index: Int): String = BookSourcePreviewForm.entries[index].name
+}
+
+private fun previewStateFor(form: BookSourcePreviewForm): BookSourceViewModel.BookSourcePageState =
+    when (form) {
+        BookSourcePreviewForm.NoSource -> BookSourceViewModel.BookSourcePageState()
+        BookSourcePreviewForm.MixedList -> BookSourceViewModel.BookSourcePageState(
+            sources = listOf(
+                previewNativeItem(name = sampleNativeSource().rule.name, url = SAMPLE_SOURCE_URL),
+                // 脚本行同时是默认源：这一行才是「两个标记并排」的那一档
+                previewScriptItem(
+                    name = sampleScriptSource().name,
+                    url = sampleScriptSource().url,
+                    enabled = true,
+                ),
+                previewNativeItem(name = "已禁用的样例源", url = "$SAMPLE_SOURCE_URL/disabled", enabled = false),
+            ),
+            // 默认源落在第二条（脚本行）上：证明默认源资格不看格式
+            defaultSourceUrl = sampleScriptSource().url,
+        )
+
+        BookSourcePreviewForm.ImportPreview -> BookSourceViewModel.BookSourcePageState(
+            sources = listOf(previewNativeItem(name = sampleNativeSource().rule.name, url = SAMPLE_SOURCE_URL)),
+            defaultSourceUrl = SAMPLE_SOURCE_URL,
+            preview = previewImportItems(),
+        )
+
+        BookSourcePreviewForm.ImportAllRejected -> BookSourceViewModel.BookSourcePageState(
+            preview = previewImportItems().map {
+                it.copy(
+                    validation = ValidationResult.Invalid(
+                        listOf(ValidationReason.NO_ENTRY, ValidationReason.NO_PARSE_RULE)
+                    ),
+                    scriptWarnings = emptyList(),
+                    willOverwrite = false,
+                    overwriteFormat = null,
+                )
+            },
+        )
+    }
+
+/**
+ * 清单行：原生出身。
+ *
+ * 门面给的是书城那侧的载体（`SourceDefinition`），管理页要的是 [BookSourceItem]
+ * =展示用规则 + `format` 出身位；`format` 只在管理面存在，本就不该塞进共享门面，
+ * 故行样式就地给，展示名与地址仍取门面的 `sampleNativeSource()`（同一份标识，全仓不重复造名字）。
+ */
+private fun previewNativeItem(name: String, url: String, enabled: Boolean = true): BookSourceItem =
+    BookSourceItem(rule = BookSourceRule(name = name, url = url, enabled = enabled))
+
+/**
+ * 清单行：脚本出身。
+ *
+ * `rule` 只填名字/地址/启用态，与生产里 `toItem` 给脚本行合成的**展示用空壳**一致
+ * （选择器一类字段一条都没有）——把规则填满了反而看不出「脚本行长得几乎和原生源一样、
+ * 全靠那个出身标记区分」这件事。
+ */
+private fun previewScriptItem(name: String, url: String, enabled: Boolean = true): BookSourceItem =
+    BookSourceItem(
+        rule = BookSourceRule(name = name, url = url, enabled = enabled),
+        format = SourceFormat.SCRIPT,
+    )
+
+/**
+ * 导入预览的三项：通过 / 通过但带警示且跨出身覆盖 / 失败并列出四个原因。
+ *
+ * 第二项刻意做成「脚本条目覆盖一条已有的原生行」（`overwriteFormat = NATIVE`）——
+ * 只有这一档会走 [overwriteText] 的第二个分支；警示两项（含可执行代码、依赖登录）与
+ * 「条目仍然通过」同时出现，正是「警示是知情、不是错误」那条口径的画法。
+ * 第三项一次列全四个原因，验的是原因行不把条目顶出弹层的高度上限（360dp 内可滚）。
+ */
+private fun previewImportItems(): List<BookSourceViewModel.ImportPreviewItem> = listOf(
+    BookSourceViewModel.ImportPreviewItem(
+        format = SourceFormat.NATIVE,
+        nativeRule = sampleNativeSource().rule,
+        validation = ValidationResult.Valid,
+        willOverwrite = false,
+    ),
+    BookSourceViewModel.ImportPreviewItem(
+        format = SourceFormat.SCRIPT,
+        scriptRule = ScriptSourceRule(
+            bookSourceName = "含脚本的社区源",
+            bookSourceUrl = "$SAMPLE_SOURCE_URL/script",
+        ),
+        scriptRawJson = sampleScriptSource().rawJson,
+        scriptWarnings = listOf(
+            ScriptWarning.HAS_EXECUTABLE_CODE,
+            ScriptWarning.NEEDS_LOGIN,
+        ),
+        validation = ValidationResult.Valid,
+        willOverwrite = true,
+        overwriteFormat = SourceFormat.NATIVE,
+    ),
+    BookSourceViewModel.ImportPreviewItem(
+        format = SourceFormat.NATIVE,
+        nativeRule = BookSourceRule(name = "", url = "biquge.example.com/search/{{key}}"),
+        validation = ValidationResult.Invalid(
+            listOf(
+                ValidationReason.NAME_BLANK,
+                ValidationReason.URL_NOT_HTTP,
+                ValidationReason.NO_ENTRY,
+                ValidationReason.NO_PARSE_RULE,
+            )
+        ),
+        willOverwrite = false,
+    ),
+)

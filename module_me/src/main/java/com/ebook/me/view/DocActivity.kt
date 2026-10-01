@@ -19,8 +19,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import com.ebook.common.event.KeyCode
+import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseActivity
@@ -118,6 +123,9 @@ internal fun parseDocSections(raw: String): List<DocSection> {
 
 /**
  * 协议内容：标题 + 段落列表的滚动文本页。
+ *
+ * 页面左右留白取 [CommonUiTokens.pagePadding]：此前本页单独写 20dp，与本模块其余内容页
+ * （设置/关于/许可等 16dp）无理由地差 4dp，现统一到同一令牌。
  */
 @Composable
 private fun DocScreen(sections: List<DocSection>) {
@@ -129,7 +137,7 @@ private fun DocScreen(sections: List<DocSection>) {
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = CommonUiTokens.pagePadding)
         ) {
             sections.forEachIndexed { index, section ->
                 if (index > 0) Spacer(modifier = Modifier.height(20.dp))
@@ -151,3 +159,80 @@ private fun DocScreen(sections: List<DocSection>) {
         }
     }
 }
+
+/**
+ * 预览：协议正文的三种「章节结构」。
+ *
+ * 三档是同一个 `forEachIndexed` 的三种输入，各自会静默画错的地方不同：
+ * - **多章节**：首项不留顶部间距（`if (index > 0)` 那个条件写反就是整页往下挪一档），
+ *   标题与正文的 8dp 只出现在标题下方；
+ * - **章节只有标题**（正文为空）：`body` 为空串的 `Text` 仍占一行行高——这一档看不出「漏渲染」，
+ *   但能看出空正文造成的空档是否可接受，那是 `res/raw` 里少写一行就会走到的形态；
+ * - **空文档**：整页一片空白、连顶部留白都没有。这一档是 `parseDocSections` 认不出任何 `# ` 行时的
+ *   结果（协议文本被改成别的记法、或 raw 资源被清空），不崩不报错，只有空白页。
+ *
+ * 正文一律经生产同一个 [parseDocSections] 切出来，而不是手搭 `DocSection` 列表：
+ * 「`# ` 之外的空行被丢弃、多行正文以换行拼接」这两条格式约定只有真解析一遍才看得到，
+ * 手搭列表等于把解析器和渲染分成两处各测一次。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun DocScreenPreview(
+    @PreviewParameter(DocSectionsProvider::class) sections: List<DocSection>,
+) {
+    AppPreview {
+        DocScreen(sections = sections)
+    }
+}
+
+/**
+ * 三档章节结构（顺序即 [previewDocRaw] / [previewDocTitleOnlyRaw] / [previewDocEmptyRaw]）。
+ *
+ * `getDisplayName` 给中文形态名，预览面板上的图就按形态标注，不必对着缩略图猜是哪一档。
+ */
+private class DocSectionsProvider : PreviewParameterProvider<List<DocSection>> {
+    override val values: Sequence<List<DocSection>>
+        get() = sequenceOf(
+            parseDocSections(previewDocRaw),
+            parseDocSections(previewDocTitleOnlyRaw),
+            parseDocSections(previewDocEmptyRaw),
+        )
+
+    override fun getDisplayName(index: Int): String = when (index) {
+        0 -> "多章节"
+        1 -> "只有标题"
+        else -> "空文档"
+    }
+}
+
+/**
+ * 协议样例正文。
+ *
+ * 门面（`lib_book_common` 的 `PreviewSamples`）只放 ebook 域实体（书架条目、书源定义…），
+ * 这段文本属于本页的展示样式，与 `res/raw/user_agreement` 同构，就地给（同 `module_find`
+ * 书城预览自己给 `BookType` 样例的口径）。刻意保留「标题行 + 两行正文」与「标题 + 空行 + 正文」
+ * 两种写法，用来核对解析器对空行的处理。
+ */
+private const val previewDocRaw = """
+# 一、服务说明
+本应用仅提供阅读工具，不存储、不分发任何书籍内容。
+所有章节由用户自行导入的书源在设备上实时解析。
+
+# 二、书源与第三方站点
+书源由用户导入，访问第三方站点时不携带任何账号凭证。
+
+# 三、账号与本地数据
+阅读进度、书架与书源清单只保存在本机；注销账号不删除本地数据。
+"""
+
+/** 只有一行标题、没有正文的协议（`body` 解出来是空串） */
+private const val previewDocTitleOnlyRaw = """
+# 一、服务说明
+
+# 二、书源与第三方站点
+"""
+
+/** 认不出任何章节的文本（没有 `# ` 开头的行）：解析结果为空列表 */
+private const val previewDocEmptyRaw = """
+这段文本没有按「# 标题」的约定书写，因此切不出任何章节。
+"""

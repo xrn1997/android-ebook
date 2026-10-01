@@ -39,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ebook.common.domain.AndroidUserSessionManager
 import com.ebook.common.domain.ThemeMode
@@ -46,8 +48,10 @@ import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
 import com.ebook.common.ui.CommonListItem
+import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
 import com.ebook.common.ui.SectionLabel
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
 import com.ebook.me.mvvm.viewmodel.SettingViewModel
 import com.ebook.me.mvvm.viewmodel.UpdateState
@@ -180,7 +184,8 @@ fun SettingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
+                // 页面左右留白取统一令牌（唯一事实源），不在页内写同语义的 16dp 字面值
+                .padding(horizontal = CommonUiTokens.pagePadding)
         ) {
             SectionLabel(text = stringResource(R.string.setting_section_general))
             CommonCard(modifier = Modifier.fillMaxWidth()) {
@@ -270,7 +275,8 @@ fun SettingScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            // 通用卡与关于卡之间的区块间距取统一令牌：跨 Tab 的卡片密度一致
+            Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
 
             SectionLabel(text = stringResource(R.string.setting_section_about))
             CommonCard(modifier = Modifier.fillMaxWidth()) {
@@ -318,7 +324,8 @@ fun SettingScreen(
 
             // 未登录时隐藏账号区块（设置页无登录拦截，此处为唯一守卫）
             if (isLoggedIn) {
-                Spacer(modifier = Modifier.height(20.dp))
+                // 关于卡与账号卡之间的区块间距，同上取统一令牌
+                Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
 
                 SectionLabel(text = stringResource(R.string.setting_section_account))
                 CommonCard(modifier = Modifier.fillMaxWidth()) {
@@ -453,6 +460,63 @@ fun SettingScreen(
                     Text(stringResource(R.string.common_cancel))
                 }
             }
+        )
+    }
+}
+
+/**
+ * 预览：设置页。
+ *
+ * `updateState` 传 [UpdateState.Idle]——其余分支（Checking/UpToDate/HasUpdate/CheckError）都会
+ * 落一枚 `AlertDialog`，那是"点过检查更新之后"的形态，静态预览里默认不该弹出；
+ * 而 `hasUpdateAvailable` 是「有新版」在列表项上的红点/文案表达，与弹窗无关，所以这里让它为 true，
+ * 恰好把「派生态可见、但弹窗不抢屏」这一档单独拍下来。
+ *
+ * `cacheSize` 给空串：这一档走 `common_pending` 占位（计算中），是进页面第一眼看到的形态。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun SettingScreenPreview() {
+    AppPreview {
+        SettingScreen(
+            cacheSize = "",
+            sourcesCount = 2,
+            appVersion = "1.4.0",
+            isLoggedIn = true,
+            hasUpdateAvailable = true,
+            updateState = UpdateState.Idle,
+            themeMode = ThemeMode.SYSTEM,
+            onCheckUpdate = {},
+            onDismissUpdateDialog = {},
+            onOpenCacheManage = {},
+            onOpenBookSource = {},
+            onOpenAbout = {},
+            onThemeSelected = {},
+            onLogout = {},
+        )
+    }
+}
+
+/** 预览：未登录 + 缓存已算出。未登录时退出入口不该出现，算好的缓存大小走真实文案而非占位。 */
+@PreviewLightDark
+@Composable
+private fun SettingScreenLoggedOutPreview() {
+    AppPreview {
+        SettingScreen(
+            cacheSize = "18.4 MB",
+            sourcesCount = 0,
+            appVersion = "1.4.0",
+            isLoggedIn = false,
+            hasUpdateAvailable = false,
+            updateState = UpdateState.Idle,
+            themeMode = ThemeMode.LIGHT,
+            onCheckUpdate = {},
+            onDismissUpdateDialog = {},
+            onOpenCacheManage = {},
+            onOpenBookSource = {},
+            onOpenAbout = {},
+            onThemeSelected = {},
+            onLogout = {},
         )
     }
 }

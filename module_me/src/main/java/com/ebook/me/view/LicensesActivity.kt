@@ -19,11 +19,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
+import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.SectionLabel
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseActivity
@@ -88,7 +92,8 @@ private fun LicensesScreen(licenses: List<LicenseItem>) {
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
+                // 页面左右留白取统一令牌（唯一事实源），不在页内写同语义的 16dp 字面值
+                .padding(horizontal = CommonUiTokens.pagePadding)
         ) {
             SectionLabel(text = stringResource(R.string.licenses_section_label))
             CommonCard(modifier = Modifier.fillMaxWidth()) {
@@ -119,5 +124,56 @@ private fun LicensesScreen(licenses: List<LicenseItem>) {
             }
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+/**
+ * 预览：许可清单的常规观感（多行 + 行间分隔线）。
+ *
+ * 这一档只看两件编译看不出的事：① 每行「库名（左，weight）+ 许可证（右，无权重）」的两列排法，
+ * ② `if (index > 0) CommonListDivider()` 那条条件——首行不该有分隔线，写反了整页往下挪一档、
+ * 卡片顶上多一道白线。条目取自与生产同一批库名（本页的静态清单是 private 伴生成员，
+ * 文件级预览函数读不到，故就地给同形状样例）。
+ */
+@PreviewLightDark
+@Composable
+private fun LicensesScreenPreview() {
+    AppPreview {
+        LicensesScreen(
+            licenses = listOf(
+                LicenseItem("Kotlin / Kotlin Coroutines", "Apache License 2.0"),
+                LicenseItem("Jetpack Compose", "Apache License 2.0"),
+                LicenseItem("Hilt / Dagger", "Apache License 2.0"),
+                LicenseItem("Room", "Apache License 2.0"),
+                LicenseItem("TheRouter", "Apache License 2.0"),
+            )
+        )
+    }
+}
+
+/**
+ * 预览：超长库名那一档（本页唯一一处「两列谁挤谁」的真实风险）。
+ *
+ * 左列有 `weight(1f)`、右列没有，两个 `Text` 都没设 `maxLines`：这是最容易写错的组合——
+ * 右列一旦把可用宽度吃干净，左列就被压成 0 宽、整行只剩许可证名，不报错也不闪退。
+ * 许可证名一律沿用生产里真实的那两个值（Apache 2.0 / MIT），**只把库名加长**：
+ * 本页清单就是法律意义上的许可列表，预览里编一个不存在的许可证串会让人照着图去改清单。
+ */
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+private fun LicensesScreenLongTextPreview() {
+    AppPreview {
+        LicensesScreen(
+            licenses = listOf(
+                LicenseItem(
+                    "androidx.compose.material3 / material-icons-extended / androidx.graphics.shapes",
+                    "Apache License 2.0",
+                ),
+                LicenseItem(
+                    "QuickJS（vendored in third_party/quickjs）",
+                    "MIT",
+                ),
+            )
+        )
     }
 }

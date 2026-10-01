@@ -86,4 +86,6 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.kotlinx.coroutines.test)
+    // 屏幕渲染冒烟（预览组合的同一组状态在 JVM 上跑一遍）：需要 compose ui-test 规则
+    testImplementation(libs.bundles.androidx.compose.ui.test)
 }

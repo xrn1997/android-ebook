@@ -72,7 +72,7 @@ interface BookShelfDao {
      *
      * 两点约束：
      * - 只作用于 book_shelf 一张表——实体的 `@Ignore` bookInfo/chapterList 不落库，
-     *   加入书架时三张表要分别写（见 BookRepository.addToShelf）；
+     *   加入书架时三张表要分别写，且必须收在同一笔写事务里（见 BookRepository.addToShelf）；
      * - 整行替换意味着未赋值字段会按实体默认值一起写回，调用方必须传完整对象。
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

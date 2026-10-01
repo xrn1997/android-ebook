@@ -35,6 +35,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ebook.book.mvvm.viewmodel.BookCommentsViewModel
 import com.ebook.book.mvvm.viewmodel.isOwnComment
@@ -45,11 +47,16 @@ import com.ebook.common.event.RouteArgs
 import com.ebook.common.ui.Avatar
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.CommonItemCard
+import com.ebook.common.ui.preview.AppPreview
+import com.ebook.common.ui.preview.SAMPLE_CURRENT_USER_ID
+import com.ebook.common.ui.preview.sampleComments
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.IBaseRefreshView
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import com.xrn1997.common.mvvm.util.MvvmBinder
+import com.xrn1997.common.ui.LoadMoreFooter
 import com.xrn1997.common.ui.RefreshableList
+import com.xrn1997.common.ui.loadMoreStateOf
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -111,11 +118,70 @@ class BookCommentsActivity : BaseMvvmActivity<BookCommentsViewModel>() {
 }
 
 /**
- * 评论区内容：刷新列表 + 底部输入栏。
+ * 评论区内容：刷新列表 + 底部输入栏（**无状态根**，AGENTS.md「屏幕的无状态根」）。
+ *
+ * 只吃不可变状态与回调，于是本页第一次可以直接预览、也可以被 Robolectric 渲染用例组合出来
+ * （`BookScreensRenderTest`）。刷新中的四个布尔量在这里是入参而不是本地状态：它们的**写入点**
+ * 在 [MvvmBinder] 的回调里（见 [BookCommentsScreen]），把状态收在壳层才能既保住那条链路、
+ * 又让这一层与 ViewModel 无关。
+ *
+ * 参数顺序按「数据 → 刷新状态机 → 输入栏」分三组，与 [BookCommentsScreen] 里的实参一一对应。
+ *
+ * @param comments 当前已取到的评论（VM 已按时间倒序排好）
+ * @param currentUserId 会话用户 id；null 或 <=0 表示未登录，此时任何条目都不给删除入口
+ * @param loadMoreFailed 上一轮加载更多失败：为真时抑制触底自动重试，直到下一次刷新成功解除
+ * @param onDelete 确认删除某条评论（确认框由 [CommentList] 持有，删除动作本身不在这里发生）
+ */
+@Composable
+fun BookCommentsContent(
+    comments: List<BookComment>,
+    currentUserId: Long?,
+    isRefreshing: Boolean,
+    isLoadingMore: Boolean,
+    hasMore: Boolean,
+    loadMoreFailed: Boolean,
+    inputText: String,
+    onRefresh: () -> Unit,
+    onLoadMore: () -> Unit,
+    onTextChange: (String) -> Unit,
+    onSend: () -> Unit,
+    onDelete: (BookComment) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        RefreshableList(
+            isRefreshing = isRefreshing,
+            isLoadingMore = isLoadingMore,
+            onRefresh = onRefresh,
+            onLoadMore = onLoadMore,
+            enableLoadMore = hasMore,
+            loadMoreFailed = loadMoreFailed,
+            modifier = Modifier.weight(1f)
+        ) { listState ->
+            CommentList(
+                listState = listState,
+                comments = comments,
+                currentUserId = currentUserId,
+                onDelete = onDelete
+            )
+        }
+        CommentInputBar(
+            text = inputText,
+            onTextChange = onTextChange,
+            onSend = onSend
+        )
+    }
+}
+
+/**
+ * 评论区页面壳：收集状态流、持有刷新标记与输入文本，把 [BookCommentsContent] 接起来。
  *
  * 参数化 ViewModel 而非在 Composable 内部 hiltViewModel()：ViewModel 由
  * Activity 持有（路由参数在 [BookCommentsActivity.initData] 写入），
  * 页面与 Activity 必须共用同一实例。
+ *
+ * **所有副作用都留在这一层**（一次性信号绑定、首帧自动刷新、发送成功后清输入并收键盘）：
+ * 它们要的是 ViewModel 与生命周期，而根组件只要值与回调。搬动这些效果会改变触发时机，
+ * 预览里也复现不出来——所以一侧不动、另一侧才可预览。
  */
 @Composable
 fun BookCommentsScreen(viewModel: BookCommentsViewModel) {
@@ -172,35 +238,28 @@ fun BookCommentsScreen(viewModel: BookCommentsViewModel) {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        RefreshableList(
-            isRefreshing = isRefreshing,
-            isLoadingMore = isLoadingMore,
-            onRefresh = {
-                isRefreshing = true
-                viewModel.refreshData()
-            },
-            onLoadMore = {
-                isLoadingMore = true
-                viewModel.loadMore()
-            },
-            enableLoadMore = hasMore,
-            loadMoreFailed = loadMoreFailed,
-            modifier = Modifier.weight(1f)
-        ) { listState ->
-            CommentList(
-                listState = listState,
-                comments = comments,
-                currentUserId = currentUserId,
-                onDelete = { comment -> viewModel.deleteComment(comment.id) }
-            )
-        }
-        CommentInputBar(
-            text = inputText,
-            onTextChange = { inputText = it },
-            onSend = { viewModel.addComment(inputText) }
-        )
-    }
+    BookCommentsContent(
+        comments = comments,
+        currentUserId = currentUserId,
+        isRefreshing = isRefreshing,
+        isLoadingMore = isLoadingMore,
+        hasMore = hasMore,
+        loadMoreFailed = loadMoreFailed,
+        inputText = inputText,
+        onRefresh = {
+            isRefreshing = true
+            viewModel.refreshData()
+        },
+        onLoadMore = {
+            isLoadingMore = true
+            viewModel.loadMore()
+        },
+        onTextChange = { inputText = it },
+        // 发送读的是壳层的 inputText（与根组件收到的同一个值）：清空由上面的
+        // mVoidSingleLiveEvent 收集负责，这里不在发送成功前抢先置空
+        onSend = { viewModel.addComment(inputText) },
+        onDelete = { comment -> viewModel.deleteComment(comment.id) },
+    )
 }
 
 /**
@@ -241,6 +300,7 @@ private fun CommentList(
     pendingDelete?.let { comment ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
+            title = { Text(stringResource(R.string.delete_comment_title)) },
             text = { Text(stringResource(R.string.tv_pop_delete_comment)) },
             confirmButton = {
                 TextButton(onClick = {
@@ -355,6 +415,159 @@ fun CommentItem(comment: BookComment, onLongClick: () -> Unit) {
                     .align(Alignment.End)
                     .padding(top = 5.dp)
             )
+        }
+    }
+}
+
+/**
+ * 预览：评论区**一条评论都没有**那一档。
+ *
+ * 这是进页面的第一帧（刷新还没回）与「没人说过的章节」共用的长相。要看的不是空态文案——
+ * 本页没有空态组件，列表区就是一片空白——而是**底部输入栏还在不在**：它是这页唯一的动作出口，
+ * 被 `weight(1f)` 的列表挤掉就等于整页哑掉，而这件事只在这张图上看得出（列表空时
+ * `RefreshableList` 不撑高度，两种写法都不报错）。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun BookCommentsEmptyPreview() {
+    AppPreview {
+        BookCommentsContent(
+            comments = emptyList(),
+            currentUserId = SAMPLE_CURRENT_USER_ID,
+            isRefreshing = false,
+            isLoadingMore = false,
+            hasMore = true,
+            loadMoreFailed = false,
+            inputText = "",
+            onRefresh = {},
+            onLoadMore = {},
+            onTextChange = {},
+            onSend = {},
+            onDelete = {},
+        )
+    }
+}
+
+/**
+ * 预览：评论列表三条——**本人 / 他人 / 超长正文 + 解不出的时间**一次排完。
+ *
+ * 前两条是同一处 `isOwnComment` 的两个结果：它决定长按时弹不弹删除框，图上看不出差别，
+ * 所以这一档真正的用途是配着 `BookScreensRenderTest` 的长按用例看（那张图只证明「两种
+ * userId 都进了同一张列表」）。后两档是纯观感：正文不限行数（卡片会自己长高，看它与头像
+ * 基线是否仍对齐），`addTime` 给不合契约的串时 [CommentTime.displayText] 按口径返回空串——
+ * 于是那一格该**留白**，而不是把「2026-09-30」原样画出来，也不是整行塌掉。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun BookCommentsListPreview() {
+    AppPreview {
+        BookCommentsContent(
+            comments = sampleComments(3),
+            currentUserId = SAMPLE_CURRENT_USER_ID,
+            isRefreshing = false,
+            isLoadingMore = false,
+            hasMore = true,
+            loadMoreFailed = false,
+            inputText = "",
+            onRefresh = {},
+            onLoadMore = {},
+            onTextChange = {},
+            onSend = {},
+            onDelete = {},
+        )
+    }
+}
+
+/**
+ * 预览：**上一轮加载更多失败**那一档（`loadMoreFailed = true`）。
+ *
+ * 这两张拍的是页面级的两个互斥结论：失败（还会被下一次刷新解除）与到底（不会再有下一页），
+ * 它们由 [BookCommentsContent] 换成容器上的 `enableLoadMore` / `loadMoreFailed` 两个开关。
+ * 拼一张就得出一个生产里不存在的状态（失败与到底同时成立）。
+ *
+ * **footer 那一行本身在这里多半看不见**：静态预览不滚动，而它挂在列表尾部。那句「加载失败 /
+ * 没有更多」到底怎么说、给不给重试，看 [CommentLoadMoreFooterPreview]。
+ */
+@Preview(showBackground = true, widthDp = 360, heightDp = 300)
+@Composable
+private fun BookCommentsLoadMoreFailedPreview() {
+    AppPreview {
+        BookCommentsContent(
+            comments = sampleComments(2),
+            currentUserId = SAMPLE_CURRENT_USER_ID,
+            isRefreshing = false,
+            // 失败后 isLoadingMore 已被复位、抑制标志置真：这一档看的是「不再自动重试」的长相
+            isLoadingMore = false,
+            hasMore = true,
+            loadMoreFailed = true,
+            inputText = "",
+            onRefresh = {},
+            onLoadMore = {},
+            onTextChange = {},
+            onSend = {},
+            onDelete = {},
+        )
+    }
+}
+
+/** 预览：已到末尾那一档（`hasMore = false`，触底不再发请求）。见 [BookCommentsLoadMoreFailedPreview] */
+@Preview(showBackground = true, widthDp = 360, heightDp = 300)
+@Composable
+private fun BookCommentsNoMorePreview() {
+    AppPreview {
+        BookCommentsContent(
+            comments = sampleComments(2),
+            currentUserId = SAMPLE_CURRENT_USER_ID,
+            isRefreshing = false,
+            isLoadingMore = false,
+            hasMore = false,
+            loadMoreFailed = false,
+            inputText = "",
+            onRefresh = {},
+            onLoadMore = {},
+            onTextChange = {},
+            onSend = {},
+            onDelete = {},
+        )
+    }
+}
+
+/**
+ * 预览：加载更多 footer 的四档（空闲 / 加载中 / 失败 / 到底）。
+ *
+ * 为什么不只靠上面两张全屏图：footer 只在列表滚到底时才挂进 LazyColumn，静态预览里没有滚动，
+ * 于是「失败那一档到底长什么样、有没有给重试」在页面级预览里根本拍不到。这里直接按
+ * `loadMoreStateOf` 的四个结果各拍一行，四档同屏才看得出「失败」与「到底」确实是两句话。
+ */
+@PreviewLightDark
+@Composable
+private fun CommentLoadMoreFooterPreview() {
+    AppPreview {
+        Column {
+            // 空闲：列表比视口短、还没触发过加载更多
+            LoadMoreFooter(state = loadMoreStateOf(false, false, true))
+            LoadMoreFooter(state = loadMoreStateOf(true, false, true))
+            LoadMoreFooter(state = loadMoreStateOf(false, true, true), onRetry = {})
+            LoadMoreFooter(state = loadMoreStateOf(false, false, false))
+        }
+    }
+}
+
+/**
+ * 预览：底部输入栏两档——**空**与**已有内容**。
+ *
+ * 空的那张看 placeholder（「说点什么吧！」）在不在：`OutlinedTextField` 有值时 label 浮起、
+ * placeholder 消失，只拍有内容那张就看不见「用户还没打字时这页能不能发东西」。
+ * 有内容那张看 `minLines = 1 / maxLines = 3` 的长相与两颗 2:1 权重（写反了按钮会把输入框挤没）。
+ * 发送后清空由 VM 的 `mVoidSingleLiveEvent` 驱动（壳层），预览拍不到那个动作，只能拍到结果档。
+ */
+@PreviewLightDark
+@Composable
+private fun CommentInputBarPreview() {
+    AppPreview {
+        Column {
+            CommentInputBar(text = "", onTextChange = {}, onSend = {})
+            CommentInputBar(text = "这一章的伏笔埋在最后一句。", onTextChange = {}, onSend = {})
         }
     }
 }

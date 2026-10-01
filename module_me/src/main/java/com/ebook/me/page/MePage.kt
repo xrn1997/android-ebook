@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Comment
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
@@ -42,6 +41,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ebook.common.domain.ThemeMode
@@ -50,6 +51,8 @@ import com.ebook.common.ui.Avatar
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
 import com.ebook.common.ui.CommonListItem
+import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
 import com.ebook.me.mvvm.viewmodel.MePageViewModel
 import com.ebook.me.mvvm.viewmodel.MeUiState
@@ -123,11 +126,14 @@ fun MainMeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    // 页面左右留白取统一令牌（唯一事实源）：改令牌即全模块页面跟随，
+                    // 不再在页内写同语义的 16dp 字面值
+                    .padding(horizontal = CommonUiTokens.pagePadding)
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
                 ReadingStatsCard(readingStats = readingStats)
-                Spacer(modifier = Modifier.height(12.dp))
+                // 概览卡与菜单卡之间的区块间距，与书城等页共用同一密度令牌
+                Spacer(modifier = Modifier.height(CommonUiTokens.sectionSpacing))
                 MeMenuCard(
                     onMyCommentClick = onMyCommentClick,
                     onSettingClick = onSettingClick
@@ -195,7 +201,9 @@ private fun MeHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                // 头部内容左右留白对齐页面令牌：此前写 20dp，与本模块其余内容页的 16dp
+                // 无理由地差 4dp，现统一（纵向 24dp 是头部自身高度语汇，保持不变）
+                .padding(horizontal = CommonUiTokens.pagePadding, vertical = 24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             MeAvatar(
@@ -257,9 +265,9 @@ private fun MeHeader(
             } else {
                 Surface(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(50))
+                        .clip(CommonUiTokens.pillShape)
                         .clickable(onClick = onLoginClick),
-                    shape = RoundedCornerShape(50),
+                    shape = CommonUiTokens.pillShape,
                     color = onGradient
                 ) {
                     Text(
@@ -438,5 +446,58 @@ private fun MeMenuCard(
                 onClick = onSettingClick
             )
         }
+    }
+}
+
+/**
+ * 预览：我的页已登录态。
+ *
+ * 头部是 primary→tertiary 渐变，配色随外观主题模式（[ThemeMode]）与深浅色一起变，
+ * 所以这里用 [PreviewLightDark]：官方那个注解翻的是系统 `uiMode`，与运行时「跟随系统」
+ * 走的同一条判定（渐变取色经 `isSystemInDarkTheme()`）。
+ *
+ * 头像给了一个取不到的 URL——预览环境不联网，这一档必然落默认头像，
+ * 正好是最常遇到的形态（上传文件被删、设备离线）。
+ */
+@PreviewLightDark
+@Composable
+private fun MainMeScreenLoggedInPreview() {
+    AppPreview {
+        MainMeScreen(
+            uiState = MeUiState(
+                isLoggedIn = true,
+                nickname = "临渊客",
+                username = "reader@example.com",
+                avatarUrl = "https://avatar.sample.example.com/1.png",
+            ),
+            readingStats = ReadingStats(shelfCount = 12, recentBookName = "山海拾遗"),
+            themeMode = ThemeMode.SYSTEM,
+            onLoginClick = {},
+            onMyCommentClick = {},
+            onMyInfoClick = {},
+            onSettingClick = {},
+        )
+    }
+}
+
+/**
+ * 预览：未登录 + 空书架。
+ *
+ * 这一档是首启用户的实际所见：头部右侧从「编辑资料」换成「立即登录」，概览卡是
+ * 0 藏书且没有最近在读（`recentBookName = null`）。已登录预览看不出这两处回退形态。
+ */
+@Preview(showBackground = true)
+@Composable
+private fun MainMeScreenLoggedOutPreview() {
+    AppPreview {
+        MainMeScreen(
+            uiState = MeUiState(),
+            readingStats = ReadingStats(),
+            themeMode = ThemeMode.LIGHT,
+            onLoginClick = {},
+            onMyCommentClick = {},
+            onMyInfoClick = {},
+            onSettingClick = {},
+        )
     }
 }

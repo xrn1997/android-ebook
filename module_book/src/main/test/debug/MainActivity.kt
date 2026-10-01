@@ -38,7 +38,9 @@ class MainActivity : ComponentActivity() {
                 BackHandler {
                     exit()
                 }
-                TheRouter.get(IBookProvider::class.java)?.mainBookPage?.invoke()
+                // 独立运行宿主没有书城 Tab，传 null：书架空态据此不渲染「去书城找书」，
+                // 不留一个点不动的按钮（跨模块能力在独立模式下缺失的既有处置口径）
+                TheRouter.get(IBookProvider::class.java)?.mainBookPage?.invoke(null)
             }
         }
     }

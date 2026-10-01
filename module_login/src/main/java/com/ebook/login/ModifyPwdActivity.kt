@@ -23,8 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import com.ebook.common.event.KeyCode
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.login.mvvm.viewmodel.ModifyPwdViewModel
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
@@ -60,6 +64,11 @@ class ModifyPwdActivity : BaseMvvmActivity<ModifyPwdViewModel>() {
         }
     }
 
+    /**
+     * 外壳：模式与重置所需的 email/验证码都取自路由参数（Activity 才读得到 intent），
+     * 只把 `isResetMode` 下传 [ModifyPwdScreen]，email/code 留在 `onReset` 闭包里——
+     * 无状态根因此不需要知道它们存在。
+     */
     @Composable
     override fun PageContent() {
         // RESET 模式所需的 email/验证码由上一步经路由参数携带
@@ -96,7 +105,12 @@ class ModifyPwdActivity : BaseMvvmActivity<ModifyPwdViewModel>() {
 }
 
 /**
- * 密码设置表单：引导文案 + 重置模式隐藏旧密码框，提交语义随模式切换。
+ * 密码设置表单（**无状态根**）：引导文案 + 重置模式隐藏旧密码框，提交语义随模式切换。
+ *
+ * 形参只有值与回调，故可预览（约定见 AGENTS.md「屏幕的无状态根」）。三个密码框是本页自己的
+ * `remember` 编辑态，不下传：模式（[isResetMode]）才是这一页唯一由外部驱动的状态——
+ * 它由路由参数决定并在整个会话里不变，而密码输入没有任何外部写入点。
+ * 「未填完整 / 两次不一致」由 [ModifyPwdViewModel] 判定后经 `sendToast` 提示，页面上没有错误文本入参。
  */
 @Composable
 fun ModifyPwdScreen(
@@ -186,4 +200,37 @@ fun ModifyPwdScreen(
             }
         }
     }
+}
+
+/**
+ * 预览：同一个表单在两种模式下的样子（深浅各两张）。
+ *
+ * [isResetMode] 是本页唯一会整块增删控件的入参：已登录改密是「旧密码 + 新密码×2」三栏，
+ * 忘记密码重置只有「新密码×2」两栏，两档引导文案也不同。这个分支写反了既不报错也不闪退，
+ * 只会让重置模式的用户被要求填一个他根本不知道的旧密码（或反过来：改密页少了旧密码栏，
+ * 提交永远提示「密码未填写完整」），而两条路径打的端点都不一样。
+ */
+@PreviewLightDark
+@Composable
+private fun ModifyPwdScreenPreview(
+    @PreviewParameter(ModifyPwdModeProvider::class) isResetMode: Boolean,
+) {
+    AppPreview {
+        ModifyPwdScreen(
+            isResetMode = isResetMode,
+            onModifyLogged = { _, _, _ -> },
+            onReset = { _, _ -> },
+        )
+    }
+}
+
+/** 两档模式：false = 已登录改密（三栏），true = 忘记密码重置（两栏） */
+private class ModifyPwdModeProvider : PreviewParameterProvider<Boolean> {
+    private val modeCases = listOf(false, true)
+
+    override val values: Sequence<Boolean>
+        get() = modeCases.asSequence()
+
+    override fun getDisplayName(index: Int): String =
+        if (modeCases[index]) "重置模式" else "已登录改密"
 }

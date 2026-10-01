@@ -25,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.ebook.api.entity.User
@@ -35,6 +37,7 @@ import com.ebook.common.repository.ProfileRepository
 import com.ebook.common.ui.Avatar
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListItem
+import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseActivity
@@ -221,5 +224,29 @@ private fun TestLoginScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * 预览：独立运行态（isModule=true）的模拟登录页。
+ *
+ * 这页只在模块独立运行时参与编译，装机前基本没人看过它长什么样，而它恰恰是「调试时天天点」的入口。
+ * 一张图能核对三件编译看不出的事：
+ * - 三块卡的**次序**（说明卡必须在最前——先建立「这是调试页、不是真登录」的预期，
+ *   再看模拟用户卡，最后才是那枚 `errorContainer` 底色的一键退出）；
+ * - `errorContainer` 只落在退出那一行：三行都用它就把「可逆的一键登录」和「清会话」混成一种观感；
+ * - 头像给的是空 URL（模拟用户没有真头像），必须落 [Avatar] 的默认图而不是空白圆。
+ *
+ * 深浅两档一起出：独立宿主没有 `AppTheme` 装配点（本页不继承业务主题装配），
+ * 配色全靠 [AppPreview] 那份静态调板，深色档是唯一能看语义色够不够对比的机会。
+ */
+@PreviewLightDark
+@Composable
+private fun TestLoginScreenPreview() {
+    AppPreview {
+        TestLoginScreen(
+            onLoginClick = {},
+            onLogoutClick = {},
+        )
     }
 }

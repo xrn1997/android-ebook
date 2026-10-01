@@ -17,7 +17,11 @@
     <string name="remove_from_bookshelf">移出书架</string>
     <string name="read">开始阅读</string>
     <string name="continue_read">继续阅读</string>
-    <string name="load_failed_retry">加载失败，点击重试</string>
+    <!-- 失败态的主/副文案（共享 EmptyState 词汇）：原 `load_failed_retry`（「加载失败，点击重试」）把
+         「重试」写进可点行文案，重试改走 EmptyState 的动作槽后该串已无引用，故直接删掉，
+         主文案只说「什么失败了」，重试由按钮承担 -->
+    <string name="load_failed">加载失败</string>
+    <string name="load_failed_hint">网络好像不太稳定</string>
     <string name="loading">加载数据中…</string>
     <string name="source_label">来源: %s</string>
     <string name="book_intro">简介</string>
@@ -30,6 +34,8 @@
     <string name="chapter_number">%d</string>
     <string name="tv_pop_checkaddshelf">是否将《%s》放入书架？</string>
     <string name="tv_pop_delete_comment">是否删除这条评论？</string>
+    <!-- 删除评论确认框的标题（M3 对话框建议有标题，正文只留「问什么」，动作名由标题给出） -->
+    <string name="delete_comment_title">删除评论</string>
     <string name="comment">评论</string>
     <string name="refresh">刷新</string>
     <string name="retry">重试</string>
@@ -56,7 +62,10 @@
     <string name="download_skip_queued_format">将跳过 %1$d 章（已在下载队列）</string>
     <string name="download_center_loading">正在加载…</string>
     <string name="download_center_not_on_shelf">该书不在书架</string>
+    <!-- 只给日志用（DownloadManageViewModel.reportFailure 的 message），**不作为界面主文案**：
+         界面上的失败态一律走 load_failed + 动作槽，这句里的「请重试」与按钮说的是同一件事 -->
     <string name="download_center_load_failed">加载失败，请重试</string>
+    <string name="download_bulk_confirm_title">批量下载</string>
     <string name="download_bulk_confirm_message">本次将一次性下发 %1$d 个下载任务。任务较多，下载耗时较长，期间会持续占用离线下载服务。</string>
     <string name="download_bulk_confirm_continue">继续下载</string>
     <string name="cached_count_format">共 %1$d 章 · 已缓存 %2$d 章</string>
@@ -69,7 +78,9 @@
     <string name="permission_understood">我已明白</string>
     <string name="import_adding">放入书架中...</string>
     <string name="importing_progress">正在导入 %1$d/%2$d…</string>
+    <string name="import_add_failed_title">无法导入</string>
     <string name="import_add_failed">放入书架失败!</string>
+    <string name="import_android11_files_permission_title">文件访问权限</string>
     <string name="import_android11_files_permission">在Android11及以上的版本中，本程序还需要您同意允许访问所有文件权限，不然无法扫描本地文件</string>
     <string name="confirm">确定</string>
     <string name="storage_space">存储空间</string>
@@ -112,6 +123,7 @@
     <string name="download_manage_active_tag">下载中</string>
     <string name="download_manage_queued_tag">排队中</string>
     <string name="download_manage_cancel_book">取消本书</string>
+    <string name="download_manage_cancel_book_title">取消下载</string>
     <string name="download_manage_cancel_book_confirm">取消《%1$s》的下载任务？已下载的内容不会被删除。</string>
     <!-- 书头右侧动作列（上下两枚：取消本书 + 一枚三态主操作）与状态胶囊 -->
     <string name="download_manage_paused_tag">已暂停</string>
@@ -229,4 +241,8 @@
     <!-- 目录重抓（阶段 1）：追加成功的章数，与分叉后把处置权交回用户的那句指引 -->
     <string name="chapters_appended">已更新 %1$d 章</string>
     <string name="toc_diverged_hint">目录结构已变化，请换源或重新导入</string>
+    <!-- 书架空态：首启或删完最后一本书时这一屏原本是一片空白 -->
+    <string name="shelf_empty_title">书架还是空的</string>
+    <string name="shelf_empty_hint">去书城挑一本，或用右上角导入本地书</string>
+    <string name="shelf_empty_action">去书城找书</string>
 </resources>

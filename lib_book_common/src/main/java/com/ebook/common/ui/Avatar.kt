@@ -1,16 +1,24 @@
 package com.ebook.common.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ebook.common.R
+import com.ebook.common.ui.preview.AppPreview
 
 /**
  * 用户头像：Coil 网络图 + 圆形裁剪 + 三态兜底。
@@ -58,5 +66,30 @@ fun Avatar(
             error = defaultAvatar,
             contentScale = ContentScale.Crop,
         )
+    }
+}
+
+/**
+ * 预览：两种出身（空 URL 直接走默认头像、有 URL 走 Coil）与三档尺寸。
+ *
+ * **有 URL 这一档在预览里必然落到 `error` 的默认头像**——预览环境没有可联网的图像加载，
+ * 所以这里能核对的是圆形裁剪、尺寸与默认图资源本身，"真人照片显示得对不对"只能在设备上看。
+ */
+@Preview(showBackground = true, widthDp = 240)
+@Composable
+private fun AvatarPreview() {
+    AppPreview {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Avatar(url = "", modifier = Modifier.size(72.dp), contentDescription = "未登录的默认头像")
+            Avatar(url = "", modifier = Modifier.size(40.dp))
+            Avatar(
+                url = "https://avatar.sample.example.com/1.png",
+                modifier = Modifier.size(24.dp),
+            )
+        }
     }
 }

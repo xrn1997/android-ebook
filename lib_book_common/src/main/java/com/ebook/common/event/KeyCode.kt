@@ -53,6 +53,13 @@ interface KeyCode {
             /** 修键面板（长按书架书籍 → 编辑匹配信息，spec §9.3） */
             const val EDIT_BOOK_META_PATH = BASE_PATH + "edit_meta"
 
+            /**
+             * 阅读页。日常进阅读器是同模块直接 `Intent`（书架 / 详情页），**只有启动页的异常恢复**
+             * 需要这条路由：module_main 不能 import module_book 的 Activity（功能模块互不依赖），
+             * 只能经 TheRouter 跳转。参数见 [RouteArgs.RESUME_NOTE_URL]。
+             */
+            const val READ_PATH = BASE_PATH + "read"
+
             const val TEST_LOGIN_PATH = BASE_PATH + "test_login"
         }
     }

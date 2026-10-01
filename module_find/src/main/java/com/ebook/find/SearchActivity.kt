@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -65,6 +64,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
@@ -73,6 +73,8 @@ import com.ebook.common.event.FROM_SEARCH
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
+import com.ebook.common.ui.preview.AppPreview
+import com.ebook.common.ui.preview.sampleSearchHistories
 import com.ebook.db.entity.SearchHistoryEntity
 import com.ebook.find.mvvm.viewmodel.SearchProgress
 import com.ebook.find.mvvm.viewmodel.SearchViewModel
@@ -466,7 +468,7 @@ private fun SearchBarRow(
                 .height(48.dp)
                 .padding(start = 10.dp)
                 .offset { IntOffset(shakeOffset.value.roundToInt(), 0) }
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.surfaceVariant, CommonUiTokens.pillShape)
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
@@ -532,8 +534,9 @@ private fun SearchBarRow(
  *   不再用 surfaceVariant 整面板铺灰）
  * - 可交互胶囊（历史词条）：primaryContainer + onPrimaryContainer（与书城页书籍类型胶囊一致；
  *   原实底 primary 弱化为主色容器，避免面板内大面积强主色）
- * - 中性信息标签（状态/分类/字数）：InfoChip 默认 surfaceVariant + onSurfaceVariant
- * - 主操作（清除/搜索/更多/加入书架按钮）：primary
+ * - 主操作（清除/搜索/更多）与列表条目里的加书架图标：primary
+ *   （本模块已不渲染「中性信息标签」那一档：状态/字数解析器从不写，分类在新条目结构里没有位置，
+ *   书源改成第三行的普通文本——[com.ebook.common.ui.InfoChip] 的默认 surfaceVariant 档在别的模块用）
  *
  * 标签从旧 shape_search_history_roundrect（3dp 圆角 + primary 底 + onPrimary 文字）
  * 重设计为 InfoChip 胶囊形态（50 圆角 + labelLarge）。清除时先取各标签中心坐标触发
@@ -608,7 +611,7 @@ private fun HistoryPanel(
                             .onGloballyPositioned { coords ->
                                 tagCenters[index] = coords.boundsInRoot().center - panelRootPosition
                             },
-                        shape = RoundedCornerShape(50),
+                        shape = CommonUiTokens.pillShape,
                         containerColor = chipContainerColor,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         textStyle = MaterialTheme.typography.labelLarge,
@@ -651,6 +654,125 @@ private fun HistoryPanelPreview() {
         HistoryPanel(
             modifier = Modifier.fillMaxSize(),
             histories = List(3) { i -> SearchHistoryEntity(2, "示例历史 ${i + 1}", 0L) },
+            explodeState = rememberExplodeState(),
+            onTagClick = {},
+            onClean = {},
+        )
+    }
+}
+
+/**
+ * 预览：聚合搜索的书源进度行，按「本轮还剩几家在跑」拍四档。
+ *
+ * 这一行的两个数字是全页唯一告诉用户「还要等多久」的信息，而三处都能写反且不报错：
+ * - `fraction` 由 `finished/total` 现算，[SearchProgress] 里 total 为 0 时按 0 收（除零那一档在
+ *   最后一张——真机上进不到，但把这一档拍出来才看得出它没有被写成 `0/0` 的 NaN，NaN 会让进度条
+ *   整根不画）；
+ * - 文案取 `search_source_progress` 的两个格式化实参，写反顺序就是「已收到 2/5」变成「已收到 5/2」，
+ *   数字仍合法、不会崩，只是永远读着别扭；
+ * - 0/5（刚起轮）与 4/5（只剩一家）两张是为了看**条子长度**：分数为 0 时那一根不该看着像画坏了。
+ *
+ * 页面只在本轮还有源没结束时才组合它（`progress.isRunning`），所以 `5/5` 那一档不在这里出现——
+ * 那一刻整行消失，画出来只会是上一行的残影。
+ */
+@PreviewLightDark
+@Composable
+private fun SourceProgressRowPreview() {
+    AppPreview {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            SourceProgressRow(SearchProgress(finished = 0, total = 5))
+            SourceProgressRow(SearchProgress(finished = 2, total = 5))
+            SourceProgressRow(SearchProgress(finished = 4, total = 5))
+            // 除零那一档：total 为 0 时按 0 收，而不是让 fraction 变成 NaN
+            SourceProgressRow(SearchProgress())
+        }
+    }
+}
+
+/**
+ * 预览：搜索栏的**搜索态**（输入框有文本、右侧是「搜索」）。
+ *
+ * 仓里最早那张 [SearchBarRowPreview] 拍的是空输入 + 「返回」，于是这一张补齐另外两条处方：
+ * - 有文本时占位文案必须让位（`decorationBox` 里那个 `if (query.isEmpty())`）——写坏了不会崩，
+ *   只是提示语压在用户输入上糊成一片；
+ * - 右侧按钮的配色按「主操作 primary / 中性操作 onSurface」分档，这一档必须走 primary，
+ *   与本页「清除」「更多」同一套可点击语言；两张图（浅/深）各看一眼才知道取的是语义色而不是硬编码。
+ *
+ * 长关键词那一张是省略档：`singleLine = true` 且不换行，溢出由输入框自己滚动，
+ * 所以右侧按钮的位置不能因为文字变长而被推走。
+ */
+@PreviewLightDark
+@Composable
+private fun SearchBarRowSearchingPreview() {
+    AppPreview {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            SearchBarRow(
+                query = "山海拾遗",
+                onQueryChange = {},
+                trailingLabel = "搜索",
+                trailingColor = MaterialTheme.colorScheme.primary,
+                onTrailingClick = {},
+                onImeSearch = {},
+                shakeTrigger = 0,
+                focusRequester = remember { FocusRequester() },
+            )
+            SearchBarRow(
+                query = "一条长得会把按钮顶出去的搜索关键词用来验证排版不会被挤掉",
+                onQueryChange = {},
+                trailingLabel = "搜索",
+                trailingColor = MaterialTheme.colorScheme.primary,
+                onTrailingClick = {},
+                onImeSearch = {},
+                shakeTrigger = 0,
+                focusRequester = remember { FocusRequester() },
+            )
+        }
+    }
+}
+
+/**
+ * 预览：历史面板的**空态**——一条历史都没有。
+ *
+ * 只有一处判据值得拍：标题行右侧的「清除」由 `histories.isNotEmpty()` 决定画不画。写坏了不会崩，
+ * 只会留下一颗「清什么」都没有的清空气钮，而点下去把粒子爆炸层跑一遍空列表（`explode()` 内部
+ * 空列表守卫跳过），用户看到的是按了没反应。
+ *
+ * 有历史的形态（含长词条折行那一档）由 [HistoryPanelWithSamplesPreview] 拍。
+ */
+@Preview(showBackground = true, widthDp = 360, heightDp = 200)
+@Composable
+private fun HistoryPanelEmptyPreview() {
+    AppPreview {
+        HistoryPanel(
+            modifier = Modifier.fillMaxSize(),
+            histories = emptyList(),
+            explodeState = rememberExplodeState(),
+            onTagClick = {},
+            onClean = {},
+        )
+    }
+}
+
+/**
+ * 预览：历史面板吃门面样例（[com.ebook.common.ui.preview.sampleSearchHistories]）。
+ *
+ * 与仓里最早那张 [HistoryPanelPreview] 的差别只在数据：这里第三条是**足够长的词条**，
+ * 用于看胶囊的折行档——`maxLines = Int.MAX_VALUE` 是刻意的（历史词条可能很长，折行而不是省略），
+ * 改成省略号既不报错也不闪退，只是用户再也看不出那条历史原本写的是什么。
+ * 深浅两档一起看，才确认胶囊底色走的是 primaryContainer 而不是硬编码。
+ */
+@PreviewLightDark
+@Composable
+private fun HistoryPanelWithSamplesPreview() {
+    AppPreview {
+        HistoryPanel(
+            modifier = Modifier.fillMaxWidth(),
+            histories = sampleSearchHistories(),
             explodeState = rememberExplodeState(),
             onTagClick = {},
             onClean = {},

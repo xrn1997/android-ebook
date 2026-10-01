@@ -24,6 +24,7 @@ import com.ebook.db.event.DBCode
 import com.ebook.source.analyze.BookParser
 import com.ebook.source.analyze.BookSourceNotFoundException
 import com.xrn1997.common.mvvm.model.BaseModel
+import com.xrn1997.common.util.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -132,27 +133,96 @@ class BookRepository @Inject constructor(
         bookShelfDao.getBookByUrl(noteUrl)
     }
 
-    /** 保存阅读进度 */
+    /**
+     * 按 URL 取「可直接交给阅读器/UI 的完整条目」：书架行 + 书籍元数据 + 章节列表。
+     *
+     * 与 [getBookByUrl] 的差别是补齐 `bookInfo` / `chapterList` 两个关联字段——它们标了 `@Ignore`、
+     * 不落库，Room 的按行查询不会带出来。拿到裸行直接开阅读器会因章节列表为空而渲染成空白页
+     * （`ReadBookActivity.loadPage` 在 `chapterSize == 0` 时直接返回 null），这条坑只有装机才看得见。
+     *
+     * 与 [getAllBooksWithDetails] 的差别是只查一本、且**不清理孤立记录**：清理是有写副作用的对账，
+     * 属书架页的一次性职责，不该由「启动恢复」这条纯读路径顺带触发。
+     *
+     * @return null = 该书不在架上（调用方按「不可恢复」处理）
+     */
+    suspend fun getBookWithDetails(noteUrl: String): BookShelfEntity? = withContext(Dispatchers.IO) {
+        bookShelfDao.getBookFullInfoByUrl(noteUrl)?.let { fullInfo ->
+            fullInfo.bookShelf.apply {
+                bookInfo = fullInfo.info
+                // 与 getAllBooksWithDetails 同一口径显式排序：@Relation 不保证 ORDER BY，
+                // 按物理 rowid 返回，历史上被 REPLACE（先删后插）过的行会跳表尾导致章节错序
+                chapterList = fullInfo.chapters.sortedBy { it.durChapterIndex }
+            }
+        }
+    }
+
+    /**
+     * 保存阅读进度（`dur_chapter` 是**列表位置**，不是章序号）。
+     *
+     * **落点必须钳到库内行数以内**：调用方（阅读器）持有的 `chapterList` 是别人交进来的
+     * 那份内存目录，而 `book_shelf` 的落点将由书架按 `chapterList.getOrNull(durChapter)`
+     * 读回（`BookShelfPage` 的「读至」与阅读器入口都用这一个式子）。两边行数不等时写回的
+     * 位置就越界，症状是「读至」变空白、点进去提示章节加载失败。
+     *
+     * 行数不等确实可达：详情页的搜索入口把 `parser.getChapterList(...)` 的**远端目录**整个放进
+     * 状态并交给阅读器（`BookDetailViewModel.getBookShelfInfo` → `BookDetailActivity.onReadClick`），
+     * 而那条路径不写 `chapter_list`——本地比远端少一章，内存目录就比库里长一章。
+     * 本方法是那条分叉的**持久化防线**：钳住它造成的损坏，不修分叉本身。
+     *
+     * 就地改而非改副本：调用方（`BookReadViewModel.bookShelf`）与 [BookShelfEvent.ProgressUpdated]
+     * 的消费方从此看到同一个值，书架事件驱动的刷新因此直接显示钳后的落点，而不是等下次读库。
+     *
+     * **库里一行都没有时不钳**：0 行没有「最后一行」可钳，钳与不钳书架都解析不出那一章，
+     * 而钳了会误伤一条正常路径 —— 从搜索直接开读（还没加书架）时 `chapter_list` 是空的，
+     * 用户读到第 100 章点「加入书架」，`addToShelf` 会连带把那份目录整本写进库，
+     * 那个位置当场变成有效的；提前钳成 0 就等于把他的进度抹回第一章。
+     */
     suspend fun saveProgress(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
+        val storedChapters = chapterListDao.countForBook(bookShelf.noteUrl)
+        if (storedChapters > 0) {
+            val clamped = bookShelf.durChapter.coerceIn(0, storedChapters - 1)
+            if (clamped != bookShelf.durChapter) {
+                // 分叉没修，这条日志是下一个诊断者唯一的现场线索（正常路径不出声：
+                // 进阅读界面与每次 onPause 都会走到本方法）
+                Logger.w(
+                    TAG,
+                    "阅读进度越界，已钳回库内：noteUrl=${bookShelf.noteUrl} " +
+                        "原 durChapter=${bookShelf.durChapter} 钳后=$clamped 库内行数=$storedChapters",
+                )
+                bookShelf.durChapter = clamped
+            }
+        }
         bookShelf.finalDate = System.currentTimeMillis()
         bookShelfDao.insert(bookShelf)
         _bookShelfEvents.emit(BookShelfEvent.ProgressUpdated(bookShelf))
     }
 
-    /** 添加到书架 */
+    /**
+     * 添加到书架：一个条目的四张表收进**一次**写事务，`Added` 事件等提交返回之后再发。
+     *
+     * 事务不是整洁性问题而是这条路径的正确性前提：条目由 `book_info` → `book_shelf` →
+     * `chapter_list` → `book_group` 组成，逐张提交会留出一个窗口，让并发读方（书架页与阅读器
+     * 入口都走 [getAllBooksWithDetails]）看到「书架行已在、章节行还没写完」的半截条目——刚加的
+     * 那本究竟有几章，取决于那一瞬间有没有人路过。更糟的是这条读路径会把「取不到 book_info」
+     * 的行当孤立记录**删掉**，于是半截状态不只被读到，还会被写实。
+     * 由 [com.ebook.db.entity.BookShelfFullInfo] 的 `@Relation` 读侧看，半截与孤儿无法区分。
+     *
+     * 事件放在事务之外：**未提交的写不是事实**（与 [switchSource] 的 `publishSwitched` 同一口径）。
+     */
     suspend fun addToShelf(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
-        writeEntry(bookShelf)
+        transactions.run { writeEntry(bookShelf) }
         _bookShelfEvents.emit(BookShelfEvent.Added(bookShelf))
     }
 
     /**
      * 写「一个书架条目」的全部库内行：book_info → book_shelf → chapter_list → book_group 主键行。
      *
-     * 从 [addToShelf] 抽出而不复制：[switchSource] 要在**同一个写事务**里落下完整的新条目，
-     * 而 `addToShelf` 自带的 `withContext` 与事件发射都不能嵌进事务（前者会跳出 Room 的事务线程、
-     * 后者会把「未提交的写」当成事实广播出去）。两处共用同一份「一个条目由哪些行组成」的事实，
-     * 将来加一张表 / 一列时不会只改到一边、留下半个条目。
+     * 从 [addToShelf] 抽出而不复制：[switchSource] 要在**同一个写事务**里落下完整的新条目
+     * （见 [commitSwitch]，它在这份行之外还多删旧条目）。两处共用同一份「一个条目由哪些行组成」
+     * 的事实，将来加一张表 / 一列时不会只改到一边、留下半个条目。
      *
+     * **本方法自己不开事务、也不带 `withContext`**：事务由调用方开（`commitSwitch` 还要在同一笔
+     * 里删旧行，事务边界只能有一处），而 `withContext` 写在方法内会跳出 Room 的事务线程。
      * 本方法**不发事件**，且假设调用方负责线程与事务边界。
      */
     private suspend fun writeEntry(bookShelf: BookShelfEntity) {
@@ -496,6 +566,9 @@ class BookRepository @Inject constructor(
      * 只在「本地每一章都还在远端、相对顺序一致」时把尾部新章追加进去。
      * 不做的事：**不下载任何正文**、**不删任何既有章**、**不改任何既有章的序号**。
      *
+     * 判定与落库那半截在 [appendRemoteChapters]：调用方手上已经有远端目录时（详情页的搜索入口
+     * 为展示目录已经抓过一次）直接调它，不必为落库再翻一遍目录页。
+     *
      * 为什么只接受纯追加：章文件按序号命名（`filesDir/books/<bookId>/cNNNNN.txt`），
      * 序号一旦漂移就会静默读错章 —— 用户点第 50 章读到旧的第 50 章，不报错、不闪退、
      * 页面上一切正常。已下载的章与目录的对应关系没有第二份事实源可以校正它，
@@ -519,10 +592,8 @@ class BookRepository @Inject constructor(
         if (bookShelf.tag == BookShelfEntity.LOCAL_TAG) return ChapterSyncResult.NotNetworkBook
 
         val noteUrl = bookShelf.noteUrl
-        val localChapters: List<ChapterListEntity>
         val lastCheckMillis: Long
         withContext(Dispatchers.IO) {
-            localChapters = chapterListDao.getChaptersForBook(noteUrl)
             lastCheckMillis = bookInfoDao.getBookInfoByUrl(noteUrl)?.finalRefreshData ?: 0L
         }
         if (!force && !isTocCheckDue(lastCheckMillis, System.currentTimeMillis())) {
@@ -545,71 +616,110 @@ class BookRepository @Inject constructor(
             return ChapterSyncResult.Failed(e)
         }
 
-        // 「一本书零章」不是合法状态：更可能是解析规则失配而非站点删光了章。
-        // 判 Diverged 会连带写时间戳，于是规则修好后整个窗口内都不会再试，故按失败处置（不写时间戳）。
-        if (remoteChapters.isEmpty() && localChapters.isNotEmpty()) {
-            return ChapterSyncResult.Failed(
-                IllegalStateException("远端目录为空，不按分叉处置：noteUrl=$noteUrl, tag=${bookShelf.tag}")
-            )
-        }
-
-        return when (val diff = ChapterTocDiff.diff(localChapters, remoteChapters)) {
-            is TocDiff.UpToDate -> {
-                stampTocChecked(noteUrl)
-                ChapterSyncResult.UpToDate
-            }
-
-            is TocDiff.Diverged -> {
-                // 写时间戳：分叉不是暂时性故障，重试无意义，不写就等于每次进详情页重爬一遍目录
-                stampTocChecked(noteUrl)
-                ChapterSyncResult.Diverged
-            }
-
-            is TocDiff.Appendable -> {
-                // 新序号从 max+1 起而不是 size：历史删章会留洞，两者不等时用 size 会撞上既有行。
-                // 也不能沿用远端行自带的序号 —— parser 按位置写 chapters.size，
-                // 有洞时两套口径不同，直接沿用会让两行撞同一个 index 而不报错（只是读错章）。
-                val nextIndex = (localChapters.maxOfOrNull { it.durChapterIndex } ?: -1) + 1
-                val rows = diff.tail.mapIndexed { offset, chapter ->
-                    chapter.copy(
-                        durChapterIndex = nextIndex + offset,
-                        // 归属以入参条目为准：两个 parser 其实都填对了，重写一遍是廉价防线 ——
-                        // 「这一行属于哪本书、归哪个源」的事实源是调用方，不该依赖 parser 记得填
-                        noteUrl = noteUrl,
-                        tag = bookShelf.tag,
-                    )
-                }
-                val updated = bookShelf.copy(chapterList = localChapters + rows)
-                try {
-                    withContext(Dispatchers.IO) {
-                        transactions.run {
-                            chapterListDao.insertAll(rows)
-                            bookInfoDao.setFinalRefreshData(noteUrl, System.currentTimeMillis())
-                        }
-                    }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    return ChapterSyncResult.Failed(e)
-                }
-                // 事件只在事务提交之后发（未提交的写不是事实，口径同 switchSource）
-                _bookShelfEvents.emit(BookShelfEvent.ChaptersUpdated(updated))
-                ChapterSyncResult.Appended(rows)
-            }
-        }
+        return appendRemoteChapters(bookShelf, remoteChapters)
     }
 
     /**
-     * 记下「这次检查得出了结论」的时间戳。
+     * 把**已经抓在手上的**远端目录按纯追加规则落库；判定与落库口径同
+     * [syncChaptersFromSource]（那里是「抓 + 落」，本方法是它的后半截，不发网络）。
      *
-     * 走定向 UPDATE 而不是读回整行再 [BookInfoDao.insert]：后者是整行 REPLACE，
-     * 漏填任一字段就会把书名/封面静默抹成默认值（取舍见该 DAO 方法的 KDoc）。
+     * 拆出来的理由不只是省一次翻页：详情页的搜索入口为了展示目录本来就抓过一次远端，
+     * 只有把那份现成的目录交进来落库，「页面与阅读器用的目录」和「书架回读的库里那份」
+     * 才能是同一份 —— 否则阅读器按前者写回的列表位置在后者那边越界或指错章
+     * （症状见 [saveProgress] 的钳制说明），落点从此不可信。
+     *
+     * **前置条件：这本书已在书架上**（由调用方确认，如详情页状态里的 `inShelf`）。
+     * 不在架时写进去的是永远没人清理的 `chapter_list` 孤行：`book_shelf` 里没有对应行，
+     * 书架读不到它，而「移出书架」清理章节又是从书架行发起的。
+     *
+     * @param remoteChapters 该书上一步抓到的远端目录（parser 原样产出即可，序号由本方法重排）
      */
-    private suspend fun stampTocChecked(noteUrl: String) {
-        withContext(Dispatchers.IO) {
-            bookInfoDao.setFinalRefreshData(noteUrl, System.currentTimeMillis())
+    suspend fun appendRemoteChapters(
+        bookShelf: BookShelfEntity,
+        remoteChapters: List<ChapterListEntity>,
+    ): ChapterSyncResult {
+        // 本地书不需要这道门也进不来（上面已挡），但本方法是公开入口，
+        // 直接对 loc_book 的书调用它会把「导入时定死的目录」改写成远端目录
+        if (bookShelf.tag == BookShelfEntity.LOCAL_TAG) return ChapterSyncResult.NotNetworkBook
+
+        val noteUrl = bookShelf.noteUrl
+        // 读-判-写收在**同一个写事务**里：事务外读快照再回事务里写的话，读与写之间
+        // 若并发落进一批追更（详情页落库 vs 阅读器末章追更是两个独立调用方），diff 用的
+        // 还是旧快照 —— `content_ref` 是整表主键、insertAll 是整行 REPLACE，
+        // 撞键不报错，只会把既有那一行静默搬到表尾（序号错位）。事务把窗口关死。
+        var updatedShelf: BookShelfEntity? = null
+        val result = try {
+            withContext(Dispatchers.IO) {
+                transactions.run {
+                    val localChapters = chapterListDao.getChaptersForBook(noteUrl)
+
+                    // 「一本书零章」不是合法状态：更可能是解析规则失配而非站点删光了章。
+                    // 判 Diverged 会连带写时间戳，于是规则修好后整个窗口内都不会再试，
+                    // 故按失败处置（不写时间戳）。
+                    if (remoteChapters.isEmpty() && localChapters.isNotEmpty()) {
+                        return@run ChapterSyncResult.Failed(
+                            IllegalStateException("远端目录为空，不按分叉处置：noteUrl=$noteUrl, tag=${bookShelf.tag}")
+                        )
+                    }
+
+                    when (val diff = ChapterTocDiff.diff(localChapters, remoteChapters)) {
+                        is TocDiff.UpToDate -> {
+                            // 写时间戳走定向 UPDATE（不是读回整行再 insert）：后者是整行 REPLACE，
+                            // 漏填字段会把书名/封面静默抹掉（取舍见 BookInfoDao.setFinalRefreshData）
+                            bookInfoDao.setFinalRefreshData(noteUrl, System.currentTimeMillis())
+                            ChapterSyncResult.UpToDate
+                        }
+
+                        is TocDiff.Diverged -> {
+                            // 写时间戳：分叉不是暂时性故障，重试无意义，不写就等于每次进详情页重爬一遍目录
+                            bookInfoDao.setFinalRefreshData(noteUrl, System.currentTimeMillis())
+                            ChapterSyncResult.Diverged
+                        }
+
+                        is TocDiff.Appendable -> {
+                            // 新序号从 max+1 起而不是 size：历史删章会留洞，两者不等时用 size 会撞上既有行。
+                            // 也不能沿用远端行自带的序号 —— parser 按位置写 chapters.size，
+                            // 有洞时两套口径不同，直接沿用会让两行撞同一个 index 而不报错（只是读错章）。
+                            val nextIndex = (localChapters.maxOfOrNull { it.durChapterIndex } ?: -1) + 1
+                            val rows = diff.tail.mapIndexed { offset, chapter ->
+                                chapter.copy(
+                                    durChapterIndex = nextIndex + offset,
+                                    // 归属以入参条目为准：两个 parser 其实都填对了，重写一遍是廉价防线 ——
+                                    // 「这一行属于哪本书、归哪个源」的事实源是调用方，不该依赖 parser 记得填
+                                    noteUrl = noteUrl,
+                                    tag = bookShelf.tag,
+                                )
+                            }
+                            chapterListDao.insertAll(rows)
+                            bookInfoDao.setFinalRefreshData(noteUrl, System.currentTimeMillis())
+                            // 事件在事务提交之后才发（未提交的写不是事实），updatedShelf 带出去
+                            updatedShelf = bookShelf.copy(chapterList = localChapters + rows)
+                            ChapterSyncResult.Appended(rows)
+                        }
+                    }
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return ChapterSyncResult.Failed(e)
         }
+        // 事件只在事务提交之后发（未提交的写不是事实，口径同 switchSource）
+        updatedShelf?.let { _bookShelfEvents.emit(BookShelfEvent.ChaptersUpdated(it)) }
+        return result
     }
+
+    /**
+     * 取「库里那份」章节目录，按章序号升序。
+     *
+     * **要拿目录去渲染或写进度，一律回读这里，不要拿 `旧目录 + 新章` 自己拼**：
+     * `book_shelf.dur_chapter` 存的是列表位置，写它的人（阅读器）与读它的人
+     * （书架「读至」、详情页、阅读器的正文加载）必须是同一份目录。调用方手上那份
+     * （parser 刚抓的、或上一个页面拼出来的）不保证等于库里那份，差一章就是
+     * 要么读至空白、要么两章并排显示两遍。
+     */
+    suspend fun getStoredChapters(noteUrl: String): List<ChapterListEntity> =
+        withContext(Dispatchers.IO) { chapterListDao.getChaptersForBook(noteUrl) }
 
     /**
      * 批量判定哪些章节已有缓存（章文件存在）。
@@ -865,6 +975,9 @@ class BookRepository @Inject constructor(
         _bookShelfEvents.emit(BookShelfEvent.Added(bookShelf))
     }
 
+    private companion object {
+        const val TAG = "BookRepository"
+    }
 }
 
 /**
@@ -919,10 +1032,12 @@ sealed class ImportMergeResult {
  */
 sealed class ChapterSyncResult {
     /**
-     * 追加成功。[appended] 是已定好序号的新行。
+     * 追加成功。[appended] 只是**新增的那几行**（已定好序号），拿来报条数即可。
      *
-     * 因为既有章的序号与 contentRef 逐字不变（纯追加），调用方可以直接
-     * `旧目录 + appended` 拼出新的完整目录，不必回头重查数据库。
+     * **别用它拼完整目录**（`手上那份 + appended`）：基数是调用方自己那份目录，不保证等于库里那份
+     * —— 详情页的搜索入口手上就是源上的远端目录，一比一拼会拼出重复项，写回的列表位置从此越界。
+     * 要完整目录就回读 [BookRepository.getStoredChapters]。曾经按本方法的旧建议拼出来的两种后果
+     * 见 `ChapterAppendProgressTest`。
      */
     data class Appended(val appended: List<ChapterListEntity>) : ChapterSyncResult()
 

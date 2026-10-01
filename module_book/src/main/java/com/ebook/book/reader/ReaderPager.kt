@@ -2,8 +2,6 @@ package com.ebook.book.reader
 
 import android.content.Context
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
@@ -15,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Text
@@ -27,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -41,11 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.animation.core.Animatable
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.ebook.book.R
@@ -494,6 +485,7 @@ internal object ReaderPageTokens {
  * 页面内容卡片（替代原 BookContentView + adapter_content_switch_item.xml）。
  *
  * 三态互斥：加载中 / 错误（含重试）/ 正文（章节标题 + 整页文本 + 页码）。
+ * 加载与失败两态由 [ReaderPaperState] 绘制（与滚屏模式共用），本卡片只负责正文骨架与页码行。
  * 配色来自「阅读背景主题」（ReadBookControl），正文层不随深浅色切换（chrome 层另计）。
  *
  * 两条契约（都直接影响"内容会不会丢"）：
@@ -584,71 +576,9 @@ fun ReaderPageCard(
                     )
                 }
             }
-            when (ui) {
-                is ReaderPageUi.Loading -> {
-                    // 配色全部由正文色按透明度派生：这一态同样画在纸上，属「阅读背景主题」层
-                    // （正文层豁免深浅色切换，见 ADR-0012），改用 MaterialTheme 语义色会与四色正文主题打架
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(26.dp),
-                            color = textColor.copy(alpha = 0.35f),
-                            strokeWidth = 2.5.dp
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Text(
-                            text = stringResource(R.string.loading),
-                            color = textColor.copy(alpha = 0.55f),
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-                is ReaderPageUi.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.CloudOff,
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp),
-                            tint = textColor.copy(alpha = 0.4f)
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Text(
-                            text = stringResource(R.string.reader_load_failed),
-                            color = textColor.copy(alpha = 0.8f),
-                            fontSize = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(22.dp))
-                        // 重试改为胶囊按钮：底色 + 描边双重表达可点性（原 4dp 直角细边框在
-                        // 护眼绿/米黄背景上几乎看不出是个按钮）
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(textColor.copy(alpha = 0.07f))
-                                .border(
-                                    width = 1.dp,
-                                    color = textColor.copy(alpha = 0.3f),
-                                    shape = RoundedCornerShape(50)
-                                )
-                                .clickable(onClick = onRetry)
-                                .padding(horizontal = 22.dp, vertical = 10.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.retry),
-                                color = textColor.copy(alpha = 0.85f),
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-                }
-                is ReaderPageUi.Loaded -> {
-                    // 正文已绘制在骨架层，此处无额外内容（保留分支完整性）
-                }
-            }
+            // 加载/失败覆盖层与滚屏模式共用同一份画法（reader/ReaderPaperState.kt）；
+            // 正文态已绘制在骨架层，该组件对 Loaded 是 no-op
+            ReaderPaperState(ui = ui, textColor = textColor, onRetry = onRetry)
         }
     }
 }

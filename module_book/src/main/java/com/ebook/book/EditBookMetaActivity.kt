@@ -30,12 +30,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import com.ebook.book.mvvm.viewmodel.EditBookMetaState
 import com.ebook.book.mvvm.viewmodel.EditBookMetaViewModel
+import com.ebook.common.domain.CommentKey
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
 import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.ui.preview.AppPreview
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import dagger.hilt.android.AndroidEntryPoint
@@ -200,5 +203,76 @@ private fun EditBookMetaScreen(
         ) {
             Text(stringResource(R.string.edit_book_meta_save))
         }
+    }
+}
+
+/**
+ * 修键面板样例状态。
+ *
+ * [EditBookMetaState] 是 module_book 自己的 UI 状态类型，样例就地给、不塞进共享门面
+ * （与 module_find 书城页里 `sampleBookTypes()` 同一口径：门面只收 ebook 域的共享实体）。
+ *
+ * 键串取 [CommentKey.compute] 的**真值**而不是编一串看着像的假哈希：这一页要展示的就是这一串，
+ * 假样例看不出「版本前缀 + 64 位十六进制」的长度会怎么折行，据此判断排版就是错的。
+ */
+private fun previewEditBookMetaState(): EditBookMetaState = EditBookMetaState(
+    matchName = "山海拾遗",
+    matchAuthor = "临渊客",
+    primaryKey = CommentKey.compute("山海拾遗", "临渊客"),
+    // 两条 secondary：合并历史可能不止一条，只给一条看不出列表的排布
+    associatedKeys = listOf(
+        CommentKey.compute("山海拾遗", ""),
+        CommentKey.compute("长安小吏", "临渊客"),
+    ),
+)
+
+/**
+ * 预览：修键面板的**已加载**形态（输入框有初值、主键 + 两条已关联键）。
+ *
+ * 这一页改的是「算 `comment_key` 的输入项」，不是书架显示名，所以要看的是三块信息各就各位：
+ * - 两个输入框都带 label **且**有初值：空值时 label 不浮起，看着就像 placeholder 写错了；
+ * - 主键卡片是 monospace 长串，必然折行——字号与行高只有在这一张上才量得准；
+ * - 关联键每行右侧那颗「移除」取 error 色（拆分是破坏性动作），且长键串必须省略在自己那一列里，
+ *   不能把按钮挤出行外：写坏了不报错，只是那一行点不到移除。
+ *
+ * 深浅两档各一张，是因为卡片底走 `surfaceVariant`、次要文字走 `onSurfaceVariant`，
+ * 硬编码的浅色底在深色档会糊成一片——这张图就是用来发现它的。
+ */
+@PreviewLightDark
+@Composable
+private fun EditBookMetaScreenLoadedPreview() {
+    AppPreview {
+        EditBookMetaScreen(
+            state = previewEditBookMetaState(),
+            matchName = "山海拾遗",
+            matchAuthor = "临渊客",
+            onMatchNameChange = {},
+            onMatchAuthorChange = {},
+            onSave = {},
+            onRemoveKey = {},
+        )
+    }
+}
+
+/**
+ * 预览：修键面板的**空态**——`loadState` 还没回答（或这本书从没算过键）。
+ *
+ * `associatedKeys` 为空时「已关联的其他键」整段不该渲染：把标题写成恒显示，页面上就会留下一句
+ * 小标题下面空无一物，看起来像加载失败（而这一页的加载失败只发一条轻提示，没有覆盖层可看）。
+ * 主键那一格此时是空串——卡片仍在、内容空，这正是「还没算出键」与「卡片没画」的区分点。
+ */
+@PreviewLightDark
+@Composable
+private fun EditBookMetaScreenEmptyPreview() {
+    AppPreview {
+        EditBookMetaScreen(
+            state = EditBookMetaState(),
+            matchName = "",
+            matchAuthor = "",
+            onMatchNameChange = {},
+            onMatchAuthorChange = {},
+            onSave = {},
+            onRemoveKey = {},
+        )
     }
 }

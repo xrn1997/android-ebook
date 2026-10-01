@@ -110,6 +110,10 @@ internal class FakeChapterListDao : ChapterListDao {
     override suspend fun getChaptersForBook(bookNoteUrl: String): List<ChapterListEntity> =
         chapterByUrl.values.filter { it.noteUrl == bookNoteUrl }.sortedBy { it.durChapterIndex }
 
+    // 与真 DAO 的 COUNT(*) WHERE note_url 同口径：数的是主键去重后的行数
+    override suspend fun countForBook(bookNoteUrl: String): Int =
+        chapterByUrl.values.count { it.noteUrl == bookNoteUrl }
+
     override suspend fun getChapterByUrl(chapterUrl: String): ChapterListEntity? = chapterByUrl[chapterUrl]
 
     override suspend fun insertAll(chapters: List<ChapterListEntity>) {

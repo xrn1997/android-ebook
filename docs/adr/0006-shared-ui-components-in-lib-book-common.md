@@ -22,6 +22,7 @@ module_me 重设计沉淀了一套「轻卡片 + 语义色 + Material typography
 ## 下游影响
 
 - 新增跨模块 UI 件先按上面的判据定归属，再落 `com.ebook.common.ui`；条目卡一律走 `CommonItemCard`、头像一律走 `Avatar`、封面一律走 `BookCover`，不在业务模块内手写重复容器。反过来，通用工具（与书籍领域无关、换个项目能原样复用的件）不进本包——它属于更外层的通用脚手架。
+- **「三行书条目」这一族的版式**（`BookItemLayout` 常量 + `BookItemFrame` 外壳 + `BookItemMetaRow` 底行）按同一条判据上浮：它被 `module_book`（书架列表）与 `module_find`（搜索结果 / 分类选书）两个模块用到，此前两边各有一份同构实现，尺寸取同一档却各自维护，改一处另一处不跟着动、卡片高度就会参差（2026-10-01 收敛）。
 - `module_me`：页面与独立运行宿主改用共享组件（视觉零漂移），评论页内联章节 chip 改 `InfoChip`。协议类页面的文本不写进代码字符串，走 `res/raw/privacy_policy.txt`、`res/raw/user_agreement.txt` + 纯函数解析（`parseDocSections`），解析逻辑可单测。两份 Manifest（`src/main/AndroidManifest.xml` 与 `src/main/module/AndroidManifest.xml`）的 Activity 声明同步增删是模块级通则，不在此处复述。
 - `module_find`：书城页、搜索页、分类选书页按共享语言重设计（卡片/胶囊/typography/语义色），特有动效（圆形揭示、抖动、粒子爆炸）不变。
 - `module_book`：书架页、书籍详情、评论区、导入页按共享语言重设计（`TopAppBar` 文字标题顶栏 + 12dp 圆角条目卡 + `BookCover`/`InfoChip`/`CommonCard`/`SectionLabel` + typography）。顶栏两种形态并存且均为共享语言成员：**无操作项的页面用基类顶栏（居中标题，默认插槽即可）**；**带 actions 的页面（如书架页的导入/下载入口）自绘左对齐 `TopAppBar`**——基类顶栏无 actions 插槽，带操作项的页面必须自绘，两者视觉同源、不构成分裂。
