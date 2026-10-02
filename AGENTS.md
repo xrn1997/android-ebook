@@ -324,16 +324,30 @@ Scope 直接使用模块目录名：
 
 ### 语义版本映射
 
-提交类型与版本号 bump 的对应关系（Conventional Commits 核心价值，用于自动化版本发布）：
+**版本号只在发版时定，不在提交时定**；单个提交不携带版本号。定档判据是**用户视角的三问**（规范依据、
+六条边界与 `versionCode` 进制见 `docs/versioning-practice.md`）：
 
-| type / footer                                                                | 版本 bump       | 示例        |
-| ---------------------------------------------------------------------------- | ------------- | --------- |
-| `fix`                                                                        | PATCH (0.0.x) | 修复崩溃      |
-| `feat`                                                                       | MINOR (0.x.0) | 新增功能      |
-| `BREAKING CHANGE` / `!`                                                      | MAJOR (x.0.0) | API 不兼容变更 |
-| `build` / `chore` / `docs` / `test` / `refactor` / `perf`（无 BREAKING CHANGE） | **不 bump**    | 版本号不变     |
+1. 老用户升级后**不做任何额外动作**会出问题吗——丢书架/丢阅读进度、必须重新登录、已有功能被删或行为反转、设备不再被支持？→ **MAJOR** `X.y.z`
+2. 这一版有老用户能拿到的**新东西**吗——新功能，或用户看得出变化的改版？→ **MINOR** `x.Y.z`
+3. 都不是——只把已有的东西修对，或只做了用户完全无感的内部整理？→ **PATCH** `x.y.Z`
 
-任何 type 都可以携带 `BREAKING CHANGE`（不限于 `feat`/`fix`），如 `refactor!: 删除废弃 API` 触发 MAJOR。
+自上而下问、**命中即停**；一批里混着多种改动时取**最高档**。**「改动多大」不参与判档**——版本号回答的是
+「升级要不要做准备」，不是「作者花了多少力气」。
+
+提交类型是**近似**而非判据（它只在「用户是否有感」一眼可判时才等价）：
+
+| type / footer                                                                | 通常对应          | 何时例外                                          |
+| ---------------------------------------------------------------------------- | ------------- | --------------------------------------------- |
+| `fix`                                                                        | PATCH `x.y.Z` | 顺带改了交互/观感 → MINOR                             |
+| `feat`                                                                       | MINOR `x.Y.z` | 纯加内部能力、用户完全拿不到 → PATCH                        |
+| `BREAKING CHANGE` / `!`                                                      | **不自动定档**     | 先答第 1 问：破坏的是**用户**的东西 → MAJOR；只是**代码内部**契约（跨模块接口、类名、导入路径）→ 用户无感，落回第 2/3 问。本仓无对外 API，内部破坏**不构成 MAJOR** |
+| `build` / `chore` / `docs` / `test` / `refactor` / `perf`                    | 不改档位（即第 3 问） | 一次发版里全是这些 → 该次发版为 **PATCH**（App 每次发版都必须有新号，否则装不上、更新检查也认不出来）；顺带改了观感 → MINOR |
+
+**没有自动化**：本仓无 CI、无 release 工具，bump 与打 tag 都由发布者本地手工执行（一个 `build:` 提交 +
+annotated tag）。上表是**手工判据**，不是脚本行为。
+
+`versionCode` 跟着版本号走：**`MAJOR*1_000_000 + MINOR*1_000 + PATCH`**（各段上限 999，避免与高位撞车；
+`1.4.0 → 1004000`），且必须严格递增。
 
 ### Revert 格式
 
@@ -351,7 +365,7 @@ This reverts commit abc1234.
 常规提交：
 
 ```
-feat(module_me): 新增个人中心编辑资料入口     → MINOR bump (0.x.0)
+feat(module_me): 新增个人中心编辑资料入口     → MINOR bump (x.Y.z)
 
 引入头像上传与昵称修改能力，
 支持登录用户维护个人标识信息。
@@ -360,33 +374,33 @@ Closes #42
 ```
 
 ```
-fix(lib_ebook_api): 修复书源请求误携带认证 token   → PATCH bump (0.0.x)
+fix(lib_ebook_api): 修复书源请求误携带认证 token   → PATCH bump (x.y.Z)
 
 书源请求改用 @Named("source") 纯净客户端，
 避免第三方网站读取到用户 token。
 ```
 
 ```
-build: 升级 Gradle 到 9.4.1                       → 不 bump
+build: 升级 Gradle 到 9.4.1                       → 不 bump（这类提交本身不发版）
 ```
 
-Breaking change 提交（两种写法等价）：
+Breaking change 提交（`!` 本身不定档，先看它破坏的是**用户**的东西还是**代码内部契约**）：
 
 ```
-refactor!: 重构认证 token 流向                   → MAJOR bump (x.0.0)
+refactor!: 阅读进度改为章节页号并重排 dur_chapter_page   → MAJOR bump (X.y.z)
+
+老用户升级后书架上的「读至」会整体错位，必须重新定位。
+
+BREAKING CHANGE: dur_chapter_page 语义变更，历史进度不迁移
+```
+
+```
+refactor!: 重构认证 token 流向                     → PATCH bump (x.y.Z)
 
 将 token 持久化从 lib_ebook_api 收敛到 lib_common 的 TokenHolder，
-调用方需更新导入路径。
+调用方需更新导入路径——**纯代码内部契约**，用户无感，故只是第 3 问。
 
 BREAKING CHANGE: TokenHolder 移至 lib_common，旧 import 路径失效
-```
-
-```
-feat(module_login)!: 移除旧版 RxBus 事件分发       → MAJOR bump (x.0.0)
-
-全面迁移到 ViewModel + Flow，旧 onLoginEvent() 回调不再可用。
-
-BREAKING CHANGE: AuthenticationManager.onLoginEvent() 已删除
 ```
 
 ### 提交前验证
