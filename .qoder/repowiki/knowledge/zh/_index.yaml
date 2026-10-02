@@ -1,9 +1,9 @@
 # 知识卡导出索引文件
 schema_version: 1
 locale: zh-CN
-commit: 91423aac114f01aaa79e0ab26ffec6d951d4a705
+commit: 2ffeb224525aa2cb086fb684a913975a33b7fc7d
 branch: master
-exported_at: "2026-09-13T23:10:57Z"
+exported_at: "2026-10-02T04:22:42Z"
 modules:
     root:
         dir_name: Android 小说阅读器项目根配置
