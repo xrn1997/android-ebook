@@ -10,8 +10,10 @@ android {
     namespace = "com.ebook"
     defaultConfig {
         applicationId = "com.ebook"
-        versionCode = 13
-        versionName = "1.3.0"
+        // versionCode 由 versionName 按 MAJOR*1_000_000 + MINOR*1_000 + PATCH 算出（各段上限 999，
+        // 避免低位进位撞上高位）；必须严格递增，只在发版时改（判档规则见 AGENTS.md「语义版本映射」）
+        versionCode = 1_004_000
+        versionName = "1.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     flavorDimensions += "network"
