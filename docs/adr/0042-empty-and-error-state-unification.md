@@ -1,5 +1,7 @@
 # 空态与失败态统一到本仓的 EmptyState，不用 lib_common 的位图插画
 
+Status: accepted
+
 全仓的「空态」与「取不到内容的失败态」统一成一个共享组件 `EmptyState`（`lib_book_common` 的
 `com.ebook.common.ui`）：线性图标 + 主文案 + 副文案 + 可选动作。**本仓不再使用** `lib_common` 现成的
 `NoDataView`——它是唯一的事实源，还是本仓刻意不用的那个，两件事都得写清楚。
@@ -50,3 +52,5 @@
 - **阅读器豁免**：阅读器的加载/失败块画在"纸面"上，配色必须由 `ReadBookControl` 的正文色按透明度派生，
   套 Material 语义色会与四色纸张主题打架，故不接入 `EmptyState`。
 - 加载态（无图标、只有转圈）不属于空态语义，不并入 `EmptyState`，留在各自调用点。
+
+锚点：`EmptyState`；`NoDataView`；`TextButton`

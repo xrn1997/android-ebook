@@ -1,5 +1,7 @@
 # compose 约定插件跨仓统一 ID `xrn1997.android.compose`：删别名留一个 ID，但同 ID 不等于同实现
 
+Status: accepted
+
 2026-09-04 与 android-practice 对齐后定下：compose 约定插件在两个仓库里共用同一个 ID `xrn1997.android.compose`，本仓的 `xrn1997.android.library.compose` 及其版本目录条目、以及指向同一实现类的「兼容别名」注册一并删除——理由是别名把「两仓共用一套 build-logic」藏进一次隐式映射，同一能力两个名字让读者无法判断该用哪个。同时明确记录：统一的只是 ID，不是实现——本仓版会按 `isModule` 自行套用基础插件，android-practice 版不会，还额外注入 compose ui-test 依赖。
 
 ## 背景
@@ -32,3 +34,5 @@
 - 任何新模块需要 Compose 时一律 `alias(libs.plugins.xrn1997.android.compose)`，不要再引入按 UI 类型拆分的插件 ID。
 - 恢复 `lib-common-build` 联动（取消 `includeBuild` 注释）时，`lib_common` 会用到本仓实现，需先确认上述两条兜底事实仍成立。
 - 对侧现状的核对锚点是 2026-09-04 当时 android-practice 工作副本里的 `gradle/libs.versions.toml` 与 `build-logic/convention/build.gradle.kts`。
+
+锚点：`docs/test-coverage-todo.md`；`gradle/libs.versions.toml`；`build-logic/convention/build.gradle.kts`

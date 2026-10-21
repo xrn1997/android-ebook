@@ -1,5 +1,7 @@
 # API 契约以客户端生态为准：RespDTO 信封 + 五位业务码 + HTTP 恒 200
 
+Status: accepted
+
 ebook-server 原设计了自己的 `{code: Int(200/400/401), message, data}` 信封，与客户端既有管道不一致。决定弃用服务端原生信封，改说客户端 lib_common 的既有契约：`{code: String, error, data}`（字段名逐字对齐 `RespDTO`），成败由五位业务码承载（`ErrorCode` 体系，如 "00000" 成功、"A0210" 密码错误）；HTTP 状态码恒为 200，仅当业务层无法响应（进程崩溃/网关故障）时才出现非 200。
 
 ## 动机
@@ -18,3 +20,5 @@ ebook-server 原设计了自己的 `{code: Int(200/400/401), message, data}` 信
 
 - `ebook-server`：`model.Response` 改 `{code: string, error: string, data}`；`BadRequest/Unauthorized/InternalError` 等 helper 全部改为 HTTP 200 + 业务码；新增认证端点一律引用 `pkg/errcode`。
 - `android-ebook`：`lib_ebook_api`/`CoroutineAdapter`/`ErrorCode` 零改动；仅需对齐路径与 `data` 载荷字段（登录响应补 userId/nickname/avatar）。
+
+锚点：`RespDTO`；`ErrorCode`；`CoroutineAdapter.safeApiCall`

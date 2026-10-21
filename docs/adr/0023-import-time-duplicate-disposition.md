@@ -1,5 +1,7 @@
 # 重复书目的处置收拢到导入时点，判重口径为 comment_key 主键相等
 
+Status: accepted
+
 决定三件互相牵连的事：**重复检测从书架加载后的被动扫描改为导入时点拦截**——待导入文件的标题+作者算出 `comment_key`，与书架每本书的当前主键比对，命中即弹处置框，书架侧的被动扫描整条链删除；**判重只认 `comment_key` 主键相等，不做模糊打分**；`ImportBookActivity` 顶栏回到基类 Toolbar，`CAppTransparentTheme` 下线。
 
 ## 背景
@@ -29,3 +31,5 @@
 - `BookRepositoryTest` 锁处置原语：`absorbGroupKeys` 吸收含 secondary 且不重复加同名键、`mergeTailChapters` 前缀对齐只补尾 / 序列分叉整笔放弃且不删新条目 / 索引有洞时接末位之后 / 目标是网络书时拒绝。
 - `LocalBookImporterTest` 锁 `parseMetadata`：能拿到文件名里的书名作者、不写任何表、作者解不出时填显示用占位词。
 - 变异自检：把 `findMatchesFor` 口径退回"只比归一化 `book_info.name`"→ 恰有同名不同作者、比对主键两条变红；把补章下一索引退回 `oldChapters.size` → 恰有索引有洞一条变红。两次变异均已还原，还原后测试全绿。
+
+锚点：`ImportBookActivity`；`BookListViewModel`；`DuplicateBookDetector.findMatchesFor`

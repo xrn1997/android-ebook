@@ -1,5 +1,7 @@
 # 认证网络客户端归口共享客户端，移除自建 OkHttpClient
 
+Status: accepted
+
 `lib_ebook_api` 曾自建认证 OkHttpClient，与 `lib_common` 的共享 `Call.Factory` 双栈并存。决定认证/业务请求统一注入共享客户端、删除自建认证客户端，第三方链路各留一条不带 token 的纯净客户端。这样日志脱敏、超时与拦截器配置回到单一事实源，不同信任域的凭证边界也因此显式化（来源：架构诊断 grill 会话）。
 
 ## 动机
@@ -27,3 +29,5 @@
 - `RetrofitBuilder`：注入 `Call.Factory`（`dagger.Lazy`）与共享 `Json`，无 `log` 参数；构造 Retrofit 的只有走认证链路的 `UserNetwork` 与 `CommentNetwork`。
 - 纯净客户端的消费方分布在 `lib_book_common`（书源抓取、JS 沙箱的守门客户端）与 `lib_ebook_api`（`ReleaseNetwork`），均按 `@Named` 取值而非自建。
 - mock flavor 不受影响（不经过网络栈）。
+
+锚点：`Call.Factory`；`EncodingInterceptor`；`RetrofitBuilder`

@@ -1,5 +1,7 @@
 # 共享层分界：通用性与构建形态两条判据决定归属
 
+Status: accepted
+
 lib_common（android-practice 仓库的通用脚手架）与 lib_book_common（本项目专属 common）长期存在归属模糊——同一件能力可能被误放进任一模块，或在 Compose 迁移后作为死代码滞留；本仓又长出了带原生代码与隔离进程的专项库，归属问题从「两边分」变成「三处放」。评审定下两条可操作判据：以「换一个与书籍领域完全无关的 Android 项目能否原样开箱复用」分开通用件与项目专属件，以「构建形态是否与共享层同源」决定项目专属件该并入 lib_book_common 还是自立模块。
 
 ## 决策
@@ -49,3 +51,5 @@ lib_common（android-practice 仓库的通用脚手架）与 lib_book_common（�
 - `com.ebook.common.util.SPUtil`（SharedPreferences 封装，会话持久化、登录拦截与阅读设置多处依赖）
 
 上移时同步：改 import 到 lib_common 坐标、清理失效注解、更新 `docs/architecture.md` 与相关文档。
+
+锚点：`ReadBookControl`；`BitIntentDataManager`；`BookDetailActivity`

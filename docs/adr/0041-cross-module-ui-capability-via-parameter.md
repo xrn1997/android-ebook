@@ -1,5 +1,7 @@
 # 跨模块 UI 能力用参数注入：书架空态要一句「去书城找书」
 
+Status: accepted
+
 书架空态需要一个去处，而「书城」是宿主 `module_main` 的 NavHost 目的地（`Screen.Bookstore.route`），
 书架模块内既没有 `NavController`、也没有那条路由，更没有任何一条 TheRouter 路由能表达「切到某个 Tab」。
 做法是把这份能力作为**参数**由知道它的宿主递进页面：`IBookProvider.mainBookPage` 从
@@ -44,3 +46,5 @@
 - `lib_book_common` 的 `IBookProvider`；`module_book` 的 `BookProvider`、`BookShelfPage`；`module_main` 的
   `MainScreen`；`module_book` 独立运行的调试宿主（`src/main/test/debug/MainActivity.kt`）——四处签名同步。
 - 新增文案资源在 `module_book`（`shelf_empty_title` / `shelf_empty_hint` / `shelf_empty_action`）。
+
+锚点：`Screen.Bookstore.route`；`NavController`；`IBookProvider.mainBookPage`

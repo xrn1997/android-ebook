@@ -1,5 +1,7 @@
 # token 与身份解耦：刷新仅凭证、access 只驻内存、过期单响
 
+Status: accepted
+
 将「认证凭证（credentials）」与「用户身份（identity）」在会话管理里彻底解耦：刷新端点契约改为只换双 token、不回填 user；access token 只驻内存；会话过期改为事件唯一出口（Toast 只响一声）。这样做是为了消除 `saveSession` 语义过载的隐患（轮换凭证不应触碰身份字段），对齐刷新端点的规格契约，并缩小 access token 的攻击面。
 
 ## 动机
@@ -37,3 +39,5 @@
 - refresh token 加密落盘（Keystore + 迁移）：独立决策跟进。
 - access token 只驻内存后，冷启动首帧多一次静默轮换（已接受）。
 - 跨设备改昵称/头像不再随刷新自愈（登录时带回最新身份）——预期代价。
+
+锚点：`SessionTokenRefresher`；`SessionExpired`；`UserSessionManager`

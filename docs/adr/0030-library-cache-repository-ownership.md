@@ -1,5 +1,7 @@
 # 书库缓存：策略上收仓库层，cacheDir 文件缓存 + TTL + SWR + 下拉强刷
 
+Status: accepted
+
 书城数据缓存曾有三个互为表里的缺陷：下拉刷新被解析器内的缓存命中吞掉（转一圈拿回同一份，刷新是假的）、SharedPreferences 缓存永不过期（写入即永久定格）、SP 文件落在缓存管理页的 cacheDir 口径之外（用户永远清不掉）。决定把缓存策略整体从解析器上收到仓库层（`BookSourceRepository`），载体换成 cacheDir 下的文件缓存（`lib_book_common` 的 `LibraryDiskCache`），语义分两档：进页/换源走 stale-while-revalidate（缓存秒开、过期再补一次网络重抓），下拉刷新强制走网络并覆盖回写。
 
 ## 动机
@@ -35,3 +37,5 @@
 - `lib_ebook_api`：删除 `ACache.kt`（编译器兜底确认无其他引用方）。
 - `module_me`：无改动。缓存管理页的 `cacheBreakdown` 按目录分档，`library_cache/` 自然落入「其他」档——计入占用、可单独清理、可随「清理全部」删除。
 - `module_book`：仅两个测试替身跟随签名，主代码无改动。
+
+锚点：`BookSourceRepository`；`LibraryDiskCache`；`LibraryViewModelTest`

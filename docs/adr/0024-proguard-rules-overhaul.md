@@ -1,5 +1,7 @@
 # 混淆规则体系重构：双态文件拆分 + EncodingInterceptor 去反射
 
+Status: accepted
+
 全仓 9 份 `proguard-rules.pro` 从未生效（所有模块 release `isMinifyEnabled = false`），内容存在机制错误（功能模块用 `proguardFiles` 在集成态不生效）、死规则（EventBus/`sqlcipher`/`rx.**` 等无对应依赖的 dontwarn）、重复规则（6 份手写 androidx `@Keep` 块与 AAR 自带规则重复）三类问题。决定遵循 Android 标准约定做双态文件拆分，同时将 `EncodingInterceptor` 从反射 OkHttp 私有字段改为公开 API，消除混淆下必崩的反射依赖。
 
 ## 决策
@@ -36,3 +38,5 @@
   收口方向：把这份规则归到 `lib_book_common`（或一处 app 级文件）由其余模块 `-include`，模块侧只留自己独有的面。
   本轮未动：收口改的是 release 混淆配置，任何改动都得单跑一次 release 构建并比对 `mapping.txt` 才算验证，
   与本轮的其余改动不同轴，不混在一起提交。
+
+锚点：`EncodingInterceptor`；`FindClass`；`QuickJsNative`

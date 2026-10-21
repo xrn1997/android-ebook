@@ -1,5 +1,7 @@
 # 外观主题三态：选择持久化在 SharedPreferences，装配点经伴生单例取用
 
+Status: accepted
+
 深色外观此前只有「跟随系统」一个来源（装配 `MyApplicationTheme` 时直接读 `isSystemInDarkTheme()`）。现新增用户可选的**浅色 / 深色 / 跟随系统**三态：选择持久化在 SharedPreferences（`theme_mode` 文件、单键 `mode`），以 `StateFlow` 暴露，由主题装配 lambda 在 Compose 重组时读取——为此把管理器实例在 Hilt 注入完成后挂到**伴生对象**上，让这个位于 Hilt 图之外的调用点也能取到与设置页同一份状态。
 
 ## 决策
@@ -25,3 +27,5 @@
 - `module_me`：`SettingViewModel` 转发 `themeMode` 并提供 `setThemeMode`；设置页「通用」区改为「夜间模式跟随系统」开关 + 关闭后展开的日间/夜间子菜单（选中项带勾选标记）；`MePage` 头部渐变改为按同一映射取值。
 - 三态映射（`when` 三段）目前在 `BookApplication` 与 `MePage` 各写一份，是刻意的两处小重复（两个调用点分属不同模块，共享读取点应落在 `lib_book_common`）；出现第三处前先抽到一处。
 - 本机制无自动化测试覆盖：选择读写落在 SharedPreferences 与 Compose 重组上，`SettingViewModelTest` 只构造了管理器实例、未断言主题转发。可观测行为以 `ThemeModeManager` 的 KDoc 与设置页三条文案（跟随系统 / 日间模式 / 夜间模式）为准。
+
+锚点：`MyApplicationTheme`；`StateFlow`；`SYSTEM`

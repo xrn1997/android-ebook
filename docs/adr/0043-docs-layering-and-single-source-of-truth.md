@@ -1,6 +1,10 @@
 # 文档分层：常驻规则、当前事实源与过程工件
 
+Status: superseded by 0044
+
 2026-10-21
+
+> 历史注记：本篇中的 `docs/superpowers/` 路径已随 ADR-0044 删除；现状见 ADR-0044 与 `docs/AGENTS.md`。
 
 根 `AGENTS.md` 从首版到 2026-10-02 行数只增 7.5%，字符数从 17,298 涨到 33,547（+94%），同时承担项目介绍、架构、开发手册、提交规范、领域索引与 ADR 规则六种角色。过程工件没有生命周期，同一事实在多处复述。本决策把文档按职责分层，并用最小机械检查防止回涨。
 
@@ -35,3 +39,5 @@
 - 稳定规格迁入 `docs/specs/`；历史 plans/specs 与两份 docs 根目录文档经价值筛选后，保留 3 份（多源路线图、登录旧规格、JS 沙箱计划）迁入 `docs/superpowers/archive/`，其余 24 份删除。
 - 代码 KDoc 与文档内链同步更新；`scripts/check-docs.sh` 成为文档改动的检查入口。
 - 新增文档不改变任何运行时代码；验证止于文档检查与链接检查，不涉及装机。
+
+锚点：`docs/AGENTS.md`；`docs/adr/ADR-FORMAT.md`；`ADR-0044`；`scripts/check-docs.sh`

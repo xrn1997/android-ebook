@@ -1,5 +1,7 @@
 # 登出能力拆分归属：服务端作废经 ILoginProvider 跨模块取用，本地清理仍由 clearSession 单点负责
 
+Status: accepted
+
 登出的两半分属两处——服务端 refresh token 作废经 `ILoginProvider.logout()` 跨模块取用（接口在 `lib_book_common`，实现在 `module_login`），本地会话清理仍由 `UserSessionManager.clearSession()` 单点负责，provider 不重复它。理由：功能模块互不依赖，登出按钮在 `module_me` 而持有 logout 端点的仓库在 `module_login`，必须经 Provider 接口桥接；同时 provider 缺席（独立运行调试宿主）时本地清理不能跟着失效。调用方固定两行写法：先尽力作废服务端（失败只记日志），再无条件清本地。同时删除 `ILoginProvider` 里零调用方的 `login()`。
 
 2026-09-06 评审就地修订：两行写法与「先服务端后本地」的顺序不变，但执行它的作用域由页面改到 ViewModel——原处方在旋转屏幕时会因 Activity 重建取消页面作用域而让登出静默失败。归属结论（provider 承载服务端那一半、`clearSession()` 单点清本地）不受影响。
@@ -45,3 +47,5 @@
 - `lib_book_common` / `module_login`：`ILoginProvider` 只剩 `logout()`，`login()` 与 `UserSession` 返回类型不再对外暴露。
 - `module_login` 改密页（`ModifyPwdViewModel.modify`）不接 `logout()`：服务端改密本身已使该用户全部 token 失效，故成功后只做 `clearSession()`。
 - 会话失效共有两条路径，本地清理一律只经 `clearSession()` 单点：除登出外，另一条是 refresh token 换不到新凭证（access token 过期且静默刷新失败）由网络层收口，全局处置为「清会话 + 提示 + 跳登录」；登出是用户主动的那条。
+
+锚点：`ILoginProvider`；`UserRepository`；`lib_book_common/src/main/java/com/ebook/common/provider/ILoginProvider.kt`

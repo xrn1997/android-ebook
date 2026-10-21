@@ -1,5 +1,7 @@
 # Compose 迁移终态：全部页面迁移（含阅读器）
 
+Status: accepted
+
 项目曾长期处于 View / Compose 混合状态。决定将所有 Activity/Fragment（含最复杂的阅读器 ReadBookActivity）全部迁移到 Jetpack Compose，最终移除 ViewBinding 与 XML 布局，统一 UI 技术栈。阅读器采用分阶段路径：先 AndroidView 嵌入 Compose 外壳，再逐个迁移自定义 View，最后移除 ViewBinding——核心功能回归风险通过分阶段过渡控制，每个中间状态可发布、可回退。
 
 ## 被拒方案
@@ -12,3 +14,5 @@
 - ViewBinding 与 XML 布局已随迁移收口一并移除（全仓不再有 `viewBinding` 配置与 `res/layout`），不再引入。
 - 阅读界面分两层配色：**正文层**豁免深浅色模式（四档「阅读背景主题」由读者主动选择，不随系统深色切换）；**控制器层**（顶/底栏、章节目录、亮度/字体/设置面板、弹窗）继承全局主题，随外观主题模式走浅色或深色，不逐组件硬编码颜色。阅读背景主题的规则见 CONTEXT.md「阅读背景主题」。
 - 实现未采用计划中的 AndroidView 过渡阶段——阅读器直接全量重写、行为一比一移植（翻页状态机与面板在 `module_book/reader/`）。分阶段路径的收益（中间态可发布）在一次性重写完成后不再存在，但也不要求后续改动重新引入过渡壳。
+
+锚点：`docs/architecture.md`

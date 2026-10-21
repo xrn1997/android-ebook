@@ -1,5 +1,7 @@
 # 版本更新检查：策略归 module_me、网络归 lib_ebook_api、角标结论不落地
 
+Status: accepted
+
 提交 `f54d8a9` 首次接入真实版本更新检查，review 发现策略归属、客户端命名、角标持久化三处结构性缺陷。决定将策略从 `lib_ebook_api` 移至 `module_me`，建专属 `@Named("release")` 客户端，角标结论改为每次现场派生——因为"是否有新版"是派生态，落地成布尔量无人通知装机版本变更。
 
 ## 背景
@@ -34,3 +36,5 @@
 - 字符串资源变更：删除恒等包装 `setting_check_update_found_message`；新增 `setting_check_update_no_apk`（无安装包时的提示）与 `setting_check_update_open_failed`（下载入口打不开——与 `setting_check_update_error`「检查失败」是两回事，不可复用）。
 - `SettingViewModel` 不再暴露 `currentVersion`，改为 `appVersionName`；`checkUpdateInternal(force: Boolean)` 拆为 `checkUpdate()` 与 `startSilentRefresh()`，`UpdateState.Checking`/`CheckError` 由主动检查驱动；后续单飞改造补上了升级路径——静默在途检查被用户点击时**升级**为可见检查（单飞不并发，结论改道进弹窗），同样驱动弹窗状态（见 `SettingViewModel.launchCheck`）。
 - `AppVersion` 由 `data class AppVersion(major, minor, patch, suffix)` 变为 `(numbers: List<Int>, suffix)`，构造点与断言需同步（本仓仅 `ReleaseStateStore` 与 `module_me` 单测使用）。
+
+锚点：`ReleaseRepository`；`EncodingInterceptor`；`ReleaseService`

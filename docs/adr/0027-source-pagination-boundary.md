@@ -1,5 +1,7 @@
 # 书源分页：兑现章节索引分页，删除未兑现的规则声明
 
+Status: accepted
+
 书源规则 schema 是书源作者能看到的唯一界面——schema 声明了而解析器不认的字段，作者配了就是静默无效（无报错、无日志、无行为）。2026-09-08 的评审会话（由「导入书源只出 100 章」的截断问题触发）逐项裁决：每一条声明要么兑现、要么删除。
 
 ## 背景
@@ -33,3 +35,5 @@
 - `lib_book_common`：`getChapterList` 改走新增的 `TocPager`/`TocPageUrl`（文件级 internal 对象，与 `ListPageUrl`/`ChapterPageMatcher` 同文件）；`LibraryCacheData` 删置空语句；当时随包的内置清单也删掉了 `ruleRank` 段（该清单已随「应用不随包携带任何书源」整体删除）。无分页配置的书源行为不变。
 - `module_find`：两处书库相关测试断言同步。
 - 调用方（`BookDetailViewModel`/`BookShelfManager`/`BookRepository`）零改动——接口签名未变。
+
+锚点：`TocRule.pageUrl`；`TocRule.nextPage`；`TocPager`

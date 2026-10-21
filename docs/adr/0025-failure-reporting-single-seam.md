@@ -1,5 +1,7 @@
 # 失败处置收口 lib_book_common：文案纯函数 + 会话过期静默由 reportFailure 统一承担
 
+Status: accepted
+
 三个模块八处会话过期静默分支逐字抄写且口径已经分叉（`module_me` 对本地异常取 `message.orEmpty()`，另两个模块写的是 `"${exception.message}"`——null 消息会把字面量 "null" 弹给用户），决定收口到 `lib_book_common` 的 `FailureReport.kt`：`Throwable.userMessage()` 纯函数选文案 + `BaseViewModel<*>.reportFailure()` 扩展函数弹提示（或按会话过期静默）。同时删除 `module_me` 的 `ViewModelErrors.kt` 与 `module_book`/`module_login` 三份同体的 `private fun toastFailure(...)`，13 个调用点一律写 `reportFailure(...)`。
 
 ## 背景
@@ -25,3 +27,5 @@
 - 13 个调用点改为一行 `reportFailure(...)`：`module_me` 评论 2 + 资料修改 2、`module_book` 评论区 3、`module_login` 登录 1 + 注册 2 + 改密 3；三份 `toastFailure` 私有实现与 `ViewModelErrors.kt` 全部删除。新增 ViewModel 的失败分支一律写 `reportFailure(...)`，不再自己判 `isSessionExpiredHandled`；确需按两类失败分流收尾时用它的返回值。
 - 用户可见的变化只有一条：无消息的本地异常不再弹字面量 "null"。**残留（已知未修）**：这类异常现在弹的是一条**空文案 Toast**——比 "null" 好，但仍不是通用兜底文案。做兜底要把字符串资源（即 `Context`）引进 `userMessage()` 这个纯函数层，与「口径是纯函数、可 JVM 直测」的取舍相冲，本轮不做；有消息的本地异常显示的是英文系统文案（如 OkHttp 的 `Unable to resolve host`），那是收口之前就有的问题，同样不在本轮范围内。
 - 测试：`UserMessageTest`（3 例）锁三条文案口径；`FailureReportTest`（2 例）锁分支判定——过期失败判为「已静默」、业务与本地异常都不属于该分支。变异检验做过：改分支后测试失败、还原后通过。仍观测不到的只有提示内容与关页（命令通道在基类库侧是 internal）。
+
+锚点：`FailureReport.kt`；`UserMessageTest`；`BaseViewModel`

@@ -1,5 +1,7 @@
 # 阅读器顶栏菜单按书籍类型分流，并新增单章刷新
 
+Status: accepted
+
 阅读器顶栏「更多」菜单此前由**入口路径**开关（仅「从应用内打开且非本地书」时出现，菜单里只有下载与评论两项）。现改为按书籍**类型**直接决定菜单集合——本地书只留评论，网络书为下载 + 刷新 + 换源 + 评论——并新增「刷新当前章节」这一动作：已抓取的正文可能是坏的（站点回改正文、书源规则变更、旧规则解析出的内容有误），此前只能绕进下载面板做批量强制重下。
 
 ## 决策
@@ -23,3 +25,5 @@
 - `module_book`：`ReaderTopBar` 形参 `showMore: Boolean` 改为 `isLocalBook: Boolean` 并新增 `onRefresh`；`ReadBookActivity` 删掉 `showMore` 状态与 `openBookFromApp` 的 `onShowMore` 回调，`onRefresh` 先收菜单再原地重载；`BookReadViewModel` 新增 `refreshCurrentChapter`；新增字符串 `R.string.refresh`。
 - 显示条件由「打开路径」改成「书籍类型」后，从外部应用打开的网络书首次获得下载/刷新/换源入口（此前只有评论）。
 - 刷新链路无自动化测试（`refreshChapter` 与 `refreshCurrentChapter` 均无测试引用）：删章文件、清内存缓存、原地重载三步落在真实 IO 与分页引擎上。可观测行为是网络书刷新后当前章重载且停留原位置，本地书菜单只剩评论。
+
+锚点：`BookRepository.refreshChapter`；`BookReadViewModel.refreshCurrentChapter`；`BookRepository`

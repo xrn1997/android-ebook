@@ -1,5 +1,7 @@
 # 离线下载保持 dataSync 前台服务：配额超时与启动被拒在服务侧收口，不迁 WorkManager
 
+Status: accepted
+
 离线下载继续使用 `foregroundServiceType="dataSync"` 的前台服务（`module_book` 的 `DownloadService`），不迁移到 WorkManager——因为 6 小时配额上限对绝大多数单批次够用、重置条件（用户回到前台）与本产品交互天然吻合，而 WorkManager 的约束模型与本下载链路（逐章抓取 + 实时进度回传 + 通知按钮暂停/取消）差异大、改动面不成比例。同时把 Android 15+（targetSdk 35+，本项目 targetSdk 37）的两条硬约束收口在服务侧：24 小时累计 6 小时配额超时由 `onTimeout` 回调处理，启动被拒由 `DownloadService.start()` 统一 try/catch。
 
 ## 动机
@@ -56,3 +58,5 @@
 已实现，`:module_app:assembleRealDebug` 与 `:module_book:testDebugUnitTest` 通过。
 
 后续若出现「单批次下载常超 6 小时」的真实反馈，再评估 WorkManager 迁移。
+
+锚点：`DownloadService`；`FOREGROUND_SERVICE_DATA_SYNC`；`RemoteServiceException`

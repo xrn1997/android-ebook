@@ -1,5 +1,7 @@
 # 清单权限最小化：全仓声明从 20 条降到 8 条，每模块只留自己用的
 
+Status: accepted
+
 应用只声明代码真正需要的权限。合并后的 APK 清单里由本仓声明的权限从 20 条降到 8 条（另有 1 条 AndroidX 自带的签名级 `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`，非本仓声明），同时修掉两处"默认要求相机硬件"的 `uses-feature`，并消除 `module_me` 独立清单携带集成清单没有的四项存储权限的不一致。
 
 ## 背景
@@ -51,3 +53,5 @@
 ## 遗留
 
 `lib_common` 的 `FileUtil` 里仍留有 `imageFileUri`/`videoFileUri`/`audioFileUri`/`sdCardPath` 这几个会查询 MediaStore 或拼外部存储路径的辅助函数，**本仓当前一个都没调用**（只用了 `generateFileName`/`privateFile`/`contentUri`）。将来若有代码改走那几个函数，需连同 `READ_MEDIA_*`/`ACCESS_WIFI_STATE` 一起重新评估——这是一处已知的"库内潜伏调用点"。
+
+锚点：`DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`；`GET_ACCOUNTS`；`READ_PROFILE`

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# 文档检查：AGENTS 字符预算、当前文档的相对链接、过程工件状态头、旧 AGENTS 章节引用。
+# 文档检查：AGENTS 字符预算、当前文档的相对链接、规格状态头、ADR 索引/状态/锚点、核心文档、过程归档目录、旧 AGENTS 章节引用。
 # 不检查：reference-style links、#fragment 锚点、HTML src/href、根绝对路径、含空格的路径。
-# 归档/评审/调研与生成快照不参与链接检查（它们是历史记录，允许指向旧路径）。
+# 本机过程目录（.superpowers/ 等）与生成快照不参与链接检查（它们允许指向旧路径）。
 
 set -u
 
@@ -44,9 +44,9 @@ done < <(find . -name '*.md' \
   -not -path '*/build/*' \
   -not -path './.gradle/*' \
   -not -path './.idea/*' \
-  -not -path './docs/superpowers/archive/*' \
-  -not -path './docs/superpowers/reviews/*' \
-  -not -path './docs/superpowers/research/*' \
+  -not -path './.superpowers/*' \
+  -not -path './.task-scratch/*' \
+  -not -path './.worktrees/*' \
   -print0)
 
 checked=0
@@ -91,13 +91,16 @@ check_status() {
 }
 
 check_status "docs/specs" "状态：生效"
-check_status "docs/superpowers/plans" "状态：进行中" "现行事实源："
-check_status "docs/superpowers/specs" "状态：进行中" "现行事实源："
-check_status "docs/superpowers/archive/plans" "状态：已归档"
-check_status "docs/superpowers/archive/specs" "状态：已归档"
 
 if [ "$status_fail" -eq 0 ]; then
-  printf 'OK   process artifact status headers\n'
+  printf 'OK   spec status headers\n'
+fi
+
+if [ -d docs/superpowers ]; then
+  printf 'FAIL process archive: docs/superpowers/ exists; 过程文档不入库\n'
+  fail=1
+else
+  printf 'OK   no in-repo process archive\n'
 fi
 
 # 4. 旧 AGENTS 章节引用（已被拆到 architecture/development/CONTRIBUTING 的章节）
@@ -106,11 +109,11 @@ retired_reverse='(语义版本映射|屏幕的无状态根|MVVM 约定|测试约
 stale="$(grep -rnE --include='*.md' --include='*.kt' --include='*.kts' \
   --exclude-dir=.git \
   --exclude-dir=.qoder \
+  --exclude-dir=.superpowers \
+  --exclude-dir=.task-scratch \
+  --exclude-dir=.worktrees \
   --exclude-dir=build \
   --exclude-dir=third_party \
-  --exclude-dir=archive \
-  --exclude-dir=reviews \
-  --exclude-dir=research \
   -e "$retired_forward" -e "$retired_reverse" . 2>/dev/null || true)"
 
 if [ -n "$stale" ]; then
@@ -118,6 +121,54 @@ if [ -n "$stale" ]; then
   fail=1
 else
   printf 'OK   no retired AGENTS section references\n'
+fi
+
+# 5. ADR 索引、Status、锚点与核心文档
+adr_dir="docs/adr"
+core_fail=0
+if [ ! -f "$adr_dir/README.md" ]; then
+  printf 'FAIL ADR index: %s/README.md missing\n' "$adr_dir"
+  core_fail=1
+else
+  indexed="$(grep -oE '^\| `[0-9]{4}`' "$adr_dir/README.md" | grep -oE '[0-9]{4}' | sort)"
+  adr_files=""
+  for f in "$adr_dir"/[0-9][0-9][0-9][0-9]-*.md; do
+    [ -e "$f" ] || continue
+    adr_files="$adr_files$(basename "$f" | cut -c1-4)
+"
+  done
+  adr_files="$(printf '%s' "$adr_files" | sort)"
+  if [ "$indexed" != "$adr_files" ]; then
+    printf 'FAIL ADR index: docs/adr/README.md 与文件不是一一对应\n'
+    printf '  索引：%s\n' "$(printf '%s' "$indexed" | tr '\n' ' ')"
+    printf '  文件：%s\n' "$(printf '%s' "$adr_files" | tr '\n' ' ')"
+    core_fail=1
+  fi
+fi
+
+for f in "$adr_dir"/[0-9][0-9][0-9][0-9]-*.md; do
+  [ -e "$f" ] || continue
+  if ! sed -n '1,6p' "$f" | grep -qE '^Status: (accepted|superseded by [0-9]{4})$'; then
+    printf 'FAIL ADR status %s: missing/invalid Status\n' "$f"
+    core_fail=1
+  fi
+  if ! grep -q '^锚点：' "$f"; then
+    printf 'FAIL ADR anchor %s: missing 锚点：\n' "$f"
+    core_fail=1
+  fi
+done
+
+for f in AGENTS.md README.md CONTEXT.md CONTRIBUTING.md CHANGELOG.md docs/AGENTS.md docs/architecture.md docs/development.md docs/adr/README.md docs/adr/ADR-FORMAT.md; do
+  if [ ! -f "$f" ]; then
+    printf 'FAIL core doc: %s missing\n' "$f"
+    core_fail=1
+  fi
+done
+
+if [ "$core_fail" -eq 0 ]; then
+  printf 'OK   ADR index/status/anchor and core docs\n'
+else
+  fail=1
 fi
 
 if [ "$fail" -ne 0 ]; then

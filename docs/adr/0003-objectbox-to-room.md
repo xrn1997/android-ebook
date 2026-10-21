@@ -1,5 +1,7 @@
 # ObjectBox → Room：数据库切换与 ID 策略
 
+Status: accepted
+
 本地数据库原使用 ObjectBox 5.0.1，其响应式 API 是 RxJava 风格，与项目向 Coroutines + Flow 的统一方向冲突。决定整体切换到 Room（初迁 2.7.1，后随依赖升级至 3.0.0、群组迁移为 `androidx.room3`，移除已并入 runtime 的 `room-ktx`，改用 `BundledSQLiteDriver()`）。lib_ebook_db 重写为 `@Entity`/`@Database` + DAO（`AppDatabase`，`version = 6`，`exportSchema = true`），移除 ObjectBoxManager。
 
 ## 动机
@@ -64,3 +66,5 @@
 
 - **保留 ObjectBox**：维持 RxJava 风格响应式 API，与 Coroutines 迁移方向冲突，且 ID 复用问题持续存在。
 - **数据迁移后切换**：开发阶段（0.2.x）用户基数小，跨引擎数据迁移代码成本高、收益低，推迟到正式版前再评估——该判断仅适用于 ObjectBox → Room 这一次，后续 Room 版本间变更一律走 Migration。
+
+锚点：`AppDatabase`；`Flow`；`DownloadRepository.addTasks`

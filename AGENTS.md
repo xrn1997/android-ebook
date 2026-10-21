@@ -49,8 +49,8 @@ Windows PowerShell 用 `.\gradlew`；完整命令见 [`docs/development.md`](doc
 
 **文档、测试与提交**
 
-- 代码、注释、文档同一改动内同步；架构级决定沉淀为 `docs/adr/` 的 ADR。一个事实只有一个家，文档改动后跑 `bash scripts/check-docs.sh`。
-- 单元测试用 JUnit 4，类名 `<Subject>Test`，方法用反引号句子式描述；行为变更同步更新测试。
+- 代码、注释、文档同一改动内同步；架构级决定沉淀为 `docs/adr/` 的 ADR（索引 `docs/adr/README.md`，状态/锚点/取代规则见 `docs/adr/ADR-FORMAT.md`）。一个事实只有一个家，文档改动后跑 `bash scripts/check-docs.sh`；根 `AGENTS.md` 预算 ≤ 8,000 字符。
+- 单元测试用 JUnit 4，类名 `<Subject>Test`，方法用反引号句子式描述；行为变更同步更新测试。断言异常类型的用例必须确认失败发生在哪一步——只断言类型可能锁住另一件事（假绿）。
 - 提交遵循 Conventional Commits，提交前先装 `commit-msg` 钩子；类型、scope、版本判据见 [`CONTRIBUTING.md`](CONTRIBUTING.md) 与 [`docs/versioning-practice.md`](docs/versioning-practice.md)。
 - Agent 止于编译与静态检查；安装运行、打开页面确认由人工在提交前完成。未做装机验证时必须点名留给人工的页面、路径与现象，不能以「构建通过」暗示已验证。
 
@@ -70,7 +70,7 @@ Windows PowerShell 用 `.\gradlew`；完整命令见 [`docs/development.md`](doc
 | 混淆规则 | [`docs/development.md`](docs/development.md)「混淆」；ADR-0024 |
 | 共享 Compose 组件 | [`docs/architecture.md`](docs/architecture.md)「共享 UI」；ADR-0006/0042 |
 | 启动页、冷启动路由 | [`docs/architecture.md`](docs/architecture.md)「启动与路由」；ADR-0040 |
-| 文档、提交、发版 | [`docs/AGENTS.md`](docs/AGENTS.md)；[`CONTRIBUTING.md`](CONTRIBUTING.md)；[`docs/adr/ADR-FORMAT.md`](docs/adr/ADR-FORMAT.md) |
+| 文档、提交、发版 | [`docs/AGENTS.md`](docs/AGENTS.md)；[`docs/adr/README.md`](docs/adr/README.md)；[`docs/adr/ADR-FORMAT.md`](docs/adr/ADR-FORMAT.md)；[`CONTRIBUTING.md`](CONTRIBUTING.md) |
 
 ## 5. 文档地图
 
@@ -81,12 +81,12 @@ Windows PowerShell 用 `.\gradlew`；完整命令见 [`docs/development.md`](doc
 | [`docs/architecture.md`](docs/architecture.md) | 当前架构与不变量 |
 | [`docs/development.md`](docs/development.md) | 构建、测试、工具链 |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | 提交与发版流程 |
-| [`docs/adr/`](docs/adr/) | 决策记录（why） |
+| [`docs/AGENTS.md`](docs/AGENTS.md) | 文档分层、放置与生命周期 |
+| [`docs/adr/`](docs/adr/) | 决策记录（why，索引见 [`docs/adr/README.md`](docs/adr/README.md)） |
 | [`docs/specs/`](docs/specs/) | 稳定契约与语法规格 |
-| [`docs/superpowers/`](docs/superpowers/) | 进行中的计划/设计、历史评审/调研、归档 |
 | [`CHANGELOG.md`](CHANGELOG.md) | 发布历史 |
 
-`docs/superpowers/` 不是事实源；计划里的 `- [ ]` 只在「进行中」目录里有待办语义，归档后只作历史证据。`.qoder/repowiki/` 是生成快照，不手改、不作为架构判断依据。
+过程工件只住本机 `.superpowers/`，不入库；仓库不设过程归档目录。`.qoder/repowiki/` 是生成快照，不手改、不作为架构判断依据。
 
 ## 6. 当前状态
 

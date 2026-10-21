@@ -1,5 +1,7 @@
 # AGP 9 内置 Kotlin：移除 KGP Android 插件路径
 
+Status: accepted
+
 AGP 9.0 起 Kotlin 支持内置，传统 KGP Android 插件路径被标记弃用并在 AGP 10.0 移除——此前为兼容 KGP 2.3.0 与旧 DSL 显式设置的两个 opt-out 开关属未迁移的过渡状态，上游 android-practice（lib_common）已先行完成迁移。决定对齐上游迁移到内置 Kotlin：Android 模块不再应用 `org.jetbrains.kotlin.android`（KGP）插件，删除 `gradle.properties` 中的 `android.builtInKotlin=false` 与 `android.newDsl=false`，Kotlin 编译支持由 AGP 9 直接提供；各模块顶层 `kotlin { compilerOptions {} }` 块保留（内置 Kotlin 仍注册 `KotlinAndroidProjectExtension`，行为不变），lib-common-build 迷你构建的开关一并保持一致。
 
 ## 被拒方案
@@ -14,3 +16,5 @@ AGP 9.0 起 Kotlin 支持内置，传统 KGP Android 插件路径被标记弃用
 - kapt 与内置 Kotlin 不兼容，须用 KSP（本项目已全部 KSP，无迁移负担）。
 - `gradle.properties` 中 7 个 AGP 8 时代属性（`android.enableJetifier`、`android.nonFinalResIds` 等）**已删除**：AGP 9 的默认值即推荐值，且 AGP 10 将移除这些属性，无需再显式设置（取法记在 `gradle.properties` 的说明注释里）。同规则下移除的还有 `android.useConstraints`（AGP 9 默认 `false`）与 `android.optimizedResourceShrinking`（默认已为 `true`，显式 `false` 在 9.2 弃用）；仅保留 AGP 9 仍支持且无默认等价的条目。
 - 根构建与 lib-common-build 不再预声明 `kotlin.android` 插件（KGP 类由 `kotlin.jvm` 预声明加载，约定插件对 `KotlinAndroidProjectExtension` 的引用不受影响）。
+
+锚点：`KotlinAndroidProjectExtension`；`LibraryExtension`；`CommonExtension`

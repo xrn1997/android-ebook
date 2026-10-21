@@ -1,5 +1,7 @@
 # 跨模块共享 Compose 组件收敛到 lib_book_common
 
+Status: accepted
+
 module_me 重设计沉淀了一套「轻卡片 + 语义色 + Material typography」视觉语言，但组件留在模块内无法复用，导致 module_find 等模块仍沿用旧观感，App 内视觉割裂。决定把跨模块复用的 Compose 组件与设计常量统一归口 `lib_book_common` 的 `com.ebook.common.ui`（`CommonUiTokens` 设计常量 + 卡片/列表项/分组标题/标签/封面/头像等组件），原模块级组件库 `MeUiComponents.kt` 整体迁移并删除、不留兼容壳；module_find（书城/搜索/分类选书）按该设计语言重设计。
 
 **收录判据**：组件语义属于本应用（书籍类 App 的卡片/标签/封面），不属于通用库 lib_common（领域无关、独立发版），故停在 `lib_book_common` 这一档；被 ≥2 个业务模块用到才上浮，只在单模块用的留在该模块。
@@ -26,3 +28,5 @@ module_me 重设计沉淀了一套「轻卡片 + 语义色 + Material typography
 - `module_me`：页面与独立运行宿主改用共享组件（视觉零漂移），评论页内联章节 chip 改 `InfoChip`。协议类页面的文本不写进代码字符串，走 `res/raw/privacy_policy.txt`、`res/raw/user_agreement.txt` + 纯函数解析（`parseDocSections`），解析逻辑可单测。两份 Manifest（`src/main/AndroidManifest.xml` 与 `src/main/module/AndroidManifest.xml`）的 Activity 声明同步增删是模块级通则，不在此处复述。
 - `module_find`：书城页、搜索页、分类选书页按共享语言重设计（卡片/胶囊/typography/语义色），特有动效（圆形揭示、抖动、粒子爆炸）不变。
 - `module_book`：书架页、书籍详情、评论区、导入页按共享语言重设计（`TopAppBar` 文字标题顶栏 + 12dp 圆角条目卡 + `BookCover`/`InfoChip`/`CommonCard`/`SectionLabel` + typography）。顶栏两种形态并存且均为共享语言成员：**无操作项的页面用基类顶栏（居中标题，默认插槽即可）**；**带 actions 的页面（如书架页的导入/下载入口）自绘左对齐 `TopAppBar`**——基类顶栏无 actions 插槽，带操作项的页面必须自绘，两者视觉同源、不构成分裂。
+
+锚点：`CommonUiTokens`；`CommonUiComponents.kt`；`BookCover`

@@ -47,3 +47,7 @@ test_book.epub
 lib_book_source/src/test/resources/book_source
 lib_book_source/src/test/resources/scripted_corpus
 lib_book_source/src/test/resources/scripted_real
+
+# 迭代过程文档（任务简报 / 报告 / 审查草稿 / 采样脚本）不入库——留在本机
+.superpowers/
+.task-scratch/

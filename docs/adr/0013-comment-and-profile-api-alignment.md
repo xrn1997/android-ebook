@@ -1,5 +1,7 @@
 # 客户端评论与用户资料接口对齐服务端 RESTful 契约
 
+Status: accepted
+
 客户端评论/用户资料接口整体对齐服务端 RESTful 契约：评论收口到 `/api/comments` 系端点，聚合键从书源章节 URL 换成客户端派生的不透明 `comment_key`，查询与「我的评论」都走分页包裹；头像从 multipart 直传改为「上传拿 URL → 更新资料」两步；昵称/头像独立端点合并进 `PUT /api/users/me` 的部分更新。
 
 ## 动机
@@ -30,3 +32,5 @@
 - `lib_book_common`：`CommentRepository` 承担分页短路、`hasMore` 判定、迁移条数返回与删除判业务码；`Mappers.kt` 做键与字段的边界翻译。
 - `module_book`：章评论区按页推进——触底信号可能在滚动中连续到来，加载更多有在途闸门；刷新与加载更多存在并发窗口，合并按 `id` 去重。
 - `module_me`：`ModifyRepository` 昵称走 `updateMe`、头像两步上传；ViewModel/UI 层零改动。
+
+锚点：`Comment`；`User`；`ModifyRepository`

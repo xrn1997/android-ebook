@@ -264,8 +264,8 @@ class DownloadService : Service() {
      * 失败章按「跳过」而非「永久失败」处理：只出队、不写正文，用户重新发起下载或直接阅读该章
      * 仍会重抓；本批结束时把跳过章数带进提示（见 [finishDownload]），避免静默丢章。
      * 「书源已失效」（[com.ebook.source.analyze.BookSourceNotFoundException]）同样按普通失败
-     * 处理，**不是**永久失败态的特例：`docs/superpowers/archive/plans/2026-09-07-multi-source-plan.md` 早期设想过的「parser 取不到就
-     * 不删任务、等用户重导书源后续跑」已被否决——那样队头会一直被一个当下注定失败的任务占住，
+     * 处理，**不是**永久失败态的特例：早期设想过的「parser 取不到就不删任务、等用户重导书源后续跑」
+     * 已被否决——那样队头会一直被一个当下注定失败的任务占住，
      * 常驻通知不消失且阻塞该书其余章节；出队后用户重导书源再发起下载即可续跑。
      *
      * 暂停（[isStartDownload] 置 false）会中断重试循环，此时**不出队**：任务保留，

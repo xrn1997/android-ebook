@@ -1,5 +1,7 @@
 # 缓存管理页：cacheDir 三档可清、书籍内容不计入不删只单列呈现
 
+Status: accepted
+
 缓存管理页原先只统计 `cacheDir`，而真正的大头是藏书（一本 2000 章约 6 MB，几本就压过整个缓存），用户看到的「缓存总占用 12 MB」与系统报告的「应用占用几百 MB」差一个量级。决定在本页把书籍内容**单列一行呈现**：不计入可清理总量、本页也不提供删除入口，测量归内容仓库 `BookStore.storageUsage()` 一次遍历给出，递归求和收成共用的 `File.treeSize()`。页面标题「缓存总占用」与清理确认的逐项列表本就把书籍排除在外——这不是页面说了假话，而是少给了一个用户真正想知道的数字，修法是补信息不是改措辞。
 
 ## 决策
@@ -18,3 +20,5 @@
 
 - `lib_book_common`：新增 `File.treeSize()` 与 `BookStore.storageUsage()`（返回 `StorageUsage(bytes, bookCount)`）；`CacheModel` 删掉私有的递归求和改用 `treeSize`，且 `cacheBreakdown` 改为一次分档遍历——「占用」从此一份算法、一遍树。由 `TreeSizeTest`（3 例，纯 JVM 临时目录）与 `BookStoreTest` 新增 3 例（一次遍历给出字节与册数、空仓库归零、目录不存在不抛）锁住。`File.treeSize()` 是域无关件，真正的家是外部库 `lib_common`，等联动窗口上移。
 - `module_me`：`CacheManageViewModel` 多注入 `BookStore`，`CacheUiState` 多 `booksSizeText` 与 `bookCount`；页面多一张「书籍内容」卡，值显示为「占用 · N 本」，文案四条（标题 / 值格式 / 可点版说明 / 无路由版说明）。由 `CacheManageViewModelTest`（3 例，Robolectric + 双临时目录）锁住：书籍数字单独呈现、不进可清理总量、`clearAll()` 后书籍文件字节数不变、空仓库显示 `0 B` 而不是空占位。测试等真实 IO 线程用 `awaitUntil` 轮询，不靠固定 sleep——`CacheModel`/`BookStore` 的遍历跑在 `Dispatchers.IO` 上，不受虚拟时钟控制。跳转在 Activity 侧（探测 + `CLEAR_TOP`），属视图层无 JVM 覆盖。
+
+锚点：`CommonListItem`；`CacheUiState`；`CacheManageViewModel`

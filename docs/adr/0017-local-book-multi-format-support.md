@@ -1,43 +1,41 @@
-# 本地书籍导入第一阶段新增 EPUB：复用现有纯文本架构，零新依赖
+# 本地书籍导入第一阶段新增 EPUB：统一来源抽象，零新依赖
 
-当前本地书籍导入仅支持 TXT（扫描只认 `.txt` 扩展名，按"第x章"正则切纯文本章节）。本 ADR 决定第一阶段新增 EPUB 支持——复用现有「章节纯文本入库 → 阅读器流式渲染」架构，用项目既有的 `java.util.zip` 与 jsoup 解析，不引入新依赖；PDF 因渲染路径独立、MOBI/AZW3 因私有格式与 DRM、FB2/CHM 因中文受众小，均暂不纳入。
+Status: accepted
+
+本地书导入支持 TXT 与 EPUB 两种格式，正文按章落文件、不进 SQLite；两种格式共用 `SourceReader` 抽象。本 ADR 记下新增 EPUB 的范围与路径：解析只用项目既有的 `java.util.zip` 与 jsoup，不引入新依赖；PDF、MOBI/AZW3、FB2/CHM 暂不纳入。
 
 ## 动机
 
-- 本地导入是用户侧「离线书库」能力，主流格式（尤其 EPUB）是阅读 App 的基本盘；行业主流阅读 App 均以 TXT+EPUB 为底线。
-- EPUB 是开放容器格式，解析不引入任何新依赖：ZIP 拆包用 `java.util.zip`，XHTML 正文提取复用项目已在书源解析中使用的 jsoup，元数据映射到现有 `BookInfoEntity`，天然分章映射到 `ChapterListEntity`/`BookContentEntity`。
-- EPUB 自带封面/作者/标题，能补足 TXT 导入的「佚名/无封面」缺陷，顺带提升书架展示质量。
+- 本地导入是用户侧「离线书库」能力，TXT + EPUB 是阅读 App 的基本盘。
+- EPUB 是开放容器格式，解析不引入新依赖：ZIP 拆包用 `java.util.zip`，XHTML 正文提取复用书源解析已在用的 jsoup。
+- EPUB 自带封面、作者与标题，能补足 TXT 导入的「佚名/无封面」缺陷。
+- 正文出 SQLite 进章文件后，TXT 与 EPUB 的差异只剩「怎么把内容读出来」，因此共用一层来源抽象。
 
 ## 决策
 
-1. **新增 EPUB 导入链路，与 TXT 并行**：`BookImportManager` 内按扩展名分派到 `TxtBookParser` / `EpubBookParser` 两个解析策略（同文件内私有策略方法即可，不引入抽象框架）；`BookImportViewModel.searchBook` 扫描扩展名白名单扩为 `txt` / `epub`。MD5 去重、入库、回填关联逻辑完全复用现链路。理由：两种格式解析差异大但入库逻辑相同，按扩展名分派最简且不影响既有 TXT 路径。
+1. **EPUB 与 TXT 并行，统一经 `SourceReader` 读取**：`LocalBookImporter` 按扩展名从 `Map<BookFormat, SourceReader>` 取 reader——TXT 用 `TxtSourceReader`，EPUB 用 `EpubSourceReader`；发现类能力（搜索、分类、书城）不属于这层，仍留在 `BookParser`。MD5 去重、写库与关联键复用同一条导入流水线。不引入第三方统一解析库：两种格式的解析差异远大于共性，抽象只服务本地书的「读元数据 / 切章 / 读正文」三件事。
 
-2. **EPUB 解析流程**（`java.util.zip` + jsoup，均为既有运行时能力）：
-   - `ZipInputStream` 读包：取 `META-INF/container.xml` 定位 OPF（`rootfile/@full-path`）；
-   - 解析 OPF：`metadata`（`dc:title`→书名、`dc:creator`→作者、`dc:language`）映射 `BookInfoEntity`；`manifest` 中 `properties="cover-image"`（或 EPUB2 的 `<meta name="cover">`）定位封面图，解码导出为本地文件并回填 `coverUrl`；
-   - 按 `spine` 的 `itemref` 线性顺序逐个读取 XHTML 章节，jsoup 提取正文与标题（优先 `<h1>/<h2>`，缺省用 OPF 章节 title 或文件名），跳过 `nav.xhtml`/`toc.ncx` 等导航文档（`properties="nav"` / `application/x-dtbncx+xml`）；
-   - 章节标题缺省时以正文首行为标题，对齐 TXT 现有回退行为。理由：jsoup 已在书源解析中验证过 HTML/XHTML 提取能力，复用不增加运行时依赖面。
+2. **EPUB 解析流程**（`java.util.zip.ZipFile` + jsoup，均为既有运行时能力）：
+   - `META-INF/container.xml` 的 `rootfile/@full-path` 定位 OPF；
+   - OPF 的 `metadata`（`dc:title`、`dc:creator`）产出 `LocalBookMeta`；`manifest` 中 `properties="cover-image"`（或 EPUB2 的 `<meta name="cover">`）定位封面，由 `extractCover` 写入暂存目录；
+   - 按 `spine` 的 `itemref` 顺序读取 XHTML，jsoup 提取章节标题与正文段落，跳过 `properties="nav"` / `application/x-dtbncx+xml` 导航文档；没有正文的章跳过。
 
-3. **正文统一转纯文本，阅读器零改动**：EPUB 章节正文按块级标签（`<p>` 等）分段，沿用 TXT 导入的排版约定——每段首行补两个全角空格缩进、段落间以 `\n` 分隔（该约定是现有 `durChapterContent` 渲染分页的既有假设）。正文内嵌图片第一阶段忽略。理由：阅读器分页渲染完全基于纯文本假设，改造为富文本的代价远超插图阅读的第一阶段收益。
+3. **正文按段落落章文件，读取时规范化**：`buildChapters` 把每章段落写入 `BookStore` 的章文件，`ChapterEntry.contentRef` 指向该文件；`book_content` 表与 `BookContentEntity` 已不存在。存储保留原文，`BookRepository` 在读取时经 `TextNormalizer.cleanParagraphs` 统一换行、去 BOM、把行内连续空白折叠为一个空格；段首缩进由渲染层补，不进存储。正文内嵌图片第一阶段忽略，不转富文本。
 
-4. **编码与校验**：EPUB 的 XHTML 自带字符集声明，jsoup 按文档声明解析，不做启发式检测（区别于 TXT 的 `UniversalDetector`）；非 zip / 缺 `container.xml` / 无 OPF 的伪装文件走现有导入失败路径（`addErrorEvent`），不给书架留半成品。理由：EPUB 标准已规定编码声明方式，无需额外检测；校验失败必须拦截以避免半成品污染书架。
+4. **编码与校验**：EPUB 的 XHTML 按文档声明解析，不做启发式检测（区别于 TXT 的 `UniversalDetector`）；非 zip、缺 `container.xml`、无 OPF 或切不出任何章节的文件走导入失败，暂存目录作废，不给书架留半成品。
 
 ## 被拒方案
 
-- **PDF 一并纳入**：PDF 是固定排版文档，无法可靠转纯文本流式阅读（文本层提取会丢排版/图片/公式），必须新增独立渲染路径（逐页位图渲染 + 翻页），且书架/章节模型需区分「文本章节书」与「文档书」两种形态——改动面横跨书架、阅读器、章节模型，与现有纯文本架构是两条线。需单独决策。
+- **PDF 一并纳入**：PDF 是固定排版文档，无法可靠转纯文本流式阅读，必须新增独立渲染路径；书架与章节模型也要区分「文本章节书」与「文档书」，与现有段落模型是两条线。需单独决策。
 - **MOBI/AZW3 一并纳入**：Amazon 私有格式，Android 开源解析库少且维护差，含 DRM 的书无法解析；中文书流通少。
 - **FB2/CHM**：FB2 为 XML、解析成本虽低但中文受众小；CHM 为编译 HTML 帮助格式、Android 无成熟库。
-- **引入统一多格式解析库（单一依赖解决全部格式）**：Android 上不存在维护良好、覆盖 TXT/EPUB/PDF/MOBI 的统一库；强行抽象出「通用解析器」接口属于过度设计，各格式的解析与渲染差异远超共性。
-- **EPUB 正文富文本化（保留段落/图片/样式进正文模型）**：需改造 `BookContentEntity` 纯文本字段与阅读器分页渲染，破坏现有 TXT 排版约定，收益（插图阅读）与成本不匹配。插图支持留待正文模型演进时再评估。
+- **引入统一多格式解析库**：Android 上不存在维护良好、覆盖 TXT/EPUB/PDF/MOBI 的统一库；为本地书强行抽象出通用解析器属于过度设计。
+- **EPUB 正文富文本化**：需改造 `ChapterContent` 的段落模型与阅读器分页渲染，收益（插图阅读）与成本不匹配。插图支持留待正文模型演进时再评估。
 
 ## 下游影响
 
-- `module_book`：`BookImportManager` 新增 EPUB 分派与解析逻辑；`BookImportViewModel.searchBook` 扩展名白名单扩 `epub`；`BookInfoEntity` 封面导出文件的管理（目录、清理）由导入链路负责。
-- `lib_ebook_api`：无新依赖；jsoup 为书源解析既有依赖，EPUB 复用同一运行时能力。
-- 阅读器：EPUB 转纯文本后复用现有 `durChapterContent` 分页渲染，无改动。
+- `lib_book_common`：`LocalBookImporter` 负责导入流水线；`SourceReader` 的两个实现（`TxtSourceReader`、`EpubSourceReader`）由 `ContentStoreModule` 装配；`BookStore` 管理章文件与封面；`TextNormalizer` 在读取侧规范化。
+- `module_book`：扩展名白名单与外部打开 Intent 过滤器包含 `epub`；阅读器经 `Map<BookFormat, ChapterReader>` 取正文，不直接依赖 EPUB 解析类。
+- `lib_ebook_api`：无新依赖；jsoup 是书源解析的既有依赖。
 
-## 落地状态
-
-**已实现**（2026-09-05）。`EpubSourceReader`（`java.util.zip` + jsoup）走 `SourceReader` 接口，封面提取（EPUB3 `properties="cover-image"` / EPUB2 `<meta name="cover">`）经 `extractCover` 独立方法由 `LocalBookImporter` 在暂存目录调用；扫描白名单扩 `epub`（大小写不敏感）；`ContentStoreModule` 双 map 均注册 EPUB；`ReadBookActivity` 两份清单同步挂 `application/epub+zip` Intent 过滤器；9 个单元测试锁死元数据提取、spine 顺序、封面导出、空章跳过等关键行为。
-
-**决策正文中的载体类已不存在**（补记 2026-09-06）：上文以 `BookImportManager` 为格式分派落点、以 `BookContentEntity` 为正文存储，两者都已在本地书内容基座重构中删除——分派改由 `ContentStoreModule` 的 `Map<BookFormat, SourceReader>` 承担，导入流水线是 `LocalBookImporter`，正文出 SQLite 改落 `BookStore` 章文件（`book_content` 表已随本地库 v2→v4 迁移链删除）。读决策正文时按此对照，不要去找那两个类。
+锚点：`LocalBookImporter`；`TxtSourceReader`；`EpubSourceReader`；`SourceReader`；`BookStore`；`TextNormalizer`；`BookRepository`；`ChapterEntry`

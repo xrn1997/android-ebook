@@ -46,7 +46,7 @@ import dagger.hilt.android.AndroidEntryPoint
  *
  * 历史上本页使用固定品牌背景图 + inverse 语义色对；认证域 UI 统一改造时改为
  * 与应用主体一致的标准风格——background 底色 + OutlinedTextField + 语义色，
- * 深浅色模式随主题自动适配（背景与决策见 docs/superpowers/archive/specs/2026-08-29-login-modernization-spec.md 状态注记）。
+ * 深浅色模式随主题自动适配。
  *
  * 本页 [enableToolbar] 关闭、[enableFitsSystemWindows] 关闭（内容延伸至状态栏，
  * 由内容自行 [statusBarsPadding] 避让），品牌标题区取代顶栏。

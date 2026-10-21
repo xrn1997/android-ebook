@@ -1,5 +1,7 @@
 # 不可信 JS 执行：零权限隔离进程 + 自集成 QuickJS
 
+Status: accepted
+
 书源规则要能内嵌陌生 JavaScript（脚本书源的前提能力），而这些代码来自社区、完全不可信。2026-09-08 的 grill 设计会话裁决：执行器采用「独立 Android 进程（`isolatedProcess` 零权限）+ 引擎源码自集成（QuickJS C，自有 C++ 桥接层）+ 最小白名单 Host API + Binder 双向协议」，deny-by-default，多层防御不依赖单一边界。
 
 执行器已于 2026-09-09 按本文落地。
@@ -63,3 +65,5 @@
 - **会话罐是一源一份、只在内存里**（2026-09-12 随 `cookie` 面落地）：`SourceCookieJar` 同时挂在守门客户端与脚本的 `cookie.getCookie/setCookie/removeCookie` 上（必须是同一个实例，否则脚本读不到外呼攒下的会话），随源 parser 实例进 LRU、被逐出即丢，**不落盘**——应用重启后第三方站点的会话全丢。它与上一条同形：只覆盖脚本这一路，声明式取文不带罐。真要落盘，动手前得先定三件事（存的是第三方凭证：明文还是加密、清理入口归谁、唯一键用什么——`bookSourceUrl` 用户可改），逐条判据与症状预告写在规格 §11-37。
 - **并发度未调校**：单帧串行是当前的锁形选择，实测卡在它（聚合搜索多源并行时执行器成串行点）再改成「每线程一个 runtime」，改的是客户端与桥接层的持有方式，协议与 JS 侧不变。
 - WebView 内执行脚本（目标格式的 webJs 机制）不支持，属脚本书源解释器的延后项。
+
+锚点：`SandboxService.onBind`；`SDK_INT`；`UNAVAILABLE`

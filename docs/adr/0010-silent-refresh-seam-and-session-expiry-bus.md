@@ -1,5 +1,7 @@
 # 静默刷新接缝与会话过期事件收口
 
+Status: accepted
+
 access token 过期（业务码 A0230）的处置落地为：网络层收口检测 → 单飞静默刷新 → 成功重放原请求一次；刷新失败发「会话过期」事件 → 订阅方清会话 + 提示 + 跳登录页。触发点选在业务码层而非 OkHttp 层；刷新能力经 `TokenRefresher` 接缝由上层注入；事件经 SharedFlow 统一收口，调用点零分支。这样做是因为服务端 JWT 过期返回 HTTP 200 + 信封内业务码，OkHttp 层看不到业务码，且刷新同时需要下游端点与上游会话持久化，依赖方向相悖，需接缝反转。
 
 ## 动机
@@ -31,3 +33,5 @@ access token 过期（业务码 A0230）的处置落地为：网络层收口检�
 - `lib_book_common`：新增 `SessionTokenRefresher`、`rotateCredentials`；`SessionModule` 增 @Binds（token 与身份解耦：`rotateCredentials` 只更凭证、不触碰身份字段）。
 - `module_main`：`MainActivity` 订阅会话过期事件；新增 `session_expired` 文案。
 - 已知边界：未登录/无 refresh token 时请求收到 A0230 会再发一次过期事件，处置幂等（再清一次会话 + 再跳登录页），可接受，不做防抖。
+
+锚点：`TokenRefresher`；`SessionTokenRefresher`；`Mutex`

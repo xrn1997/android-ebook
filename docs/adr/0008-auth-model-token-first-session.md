@@ -1,5 +1,7 @@
 # 认证模型：邮箱为登录主标识，会话恢复走 token 优先、密码不落盘
 
+Status: accepted
+
 项目无短信通道，旧实现依赖密码落盘重放恢复会话，存在明文泄露面且无真实续期能力。决定采用「邮箱为登录主标识 + 用户名仅作展示标识（可重复、可后改）」的账号体系并弃用手机号语义，密码不落盘，启动会话恢复由密码重放改为 token 优先，配套 access（JWT 2h）+ refresh（30 天，服务端存哈希、刷新时轮换）双 token 机制；密码变更分两路——已登录走旧密码校验，未登录走邮件验证码重置。
 
 ## 动机
@@ -21,3 +23,5 @@
 - `ebook-server`：响应信封改 `{code, error, data}` + 五位业务码，HTTP 恒 200；用户表加 email/nickname/avatar；新增改密、发码/验码（含 SMTP）、刷新、登出端点；refresh_tokens 表。
 - `android-ebook`：`UserSessionManager.saveSession` 去掉 password 参数（改收 refresh token），`getPassword()` 删除；`SplashActivity.autoLogin` 从密码重放改为会话直恢复；`lib_ebook_api` 增加静默刷新（单飞互斥 + 一次重放）与会话过期事件；`module_login` 校验与文案去手机号化、验证/改密页改造为邮箱语义；基址改由 `local.properties` 注入 BuildConfig。
 - `module_me`：设置页新增"修改密码"入口（已登录改密路径）。
+
+锚点：`UserSessionManager.saveSession`；`SplashActivity.autoLogin`
