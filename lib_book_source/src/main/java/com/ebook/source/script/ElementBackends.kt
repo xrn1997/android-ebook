@@ -122,6 +122,8 @@ internal object ElementBackends {
             }
             ChainKind.ID -> {
                 requireSelectorName(link, body)
+                // 用 getElementById 而不是 selectFirst("#id")：id 可能含 CSS 特殊字符，
+                // 该调用限定在子树内，且 Jsoup 1.22.2 未标 deprecated；换选择器反而要自己做转义。
                 from.mapNotNull { it.getElementById(link.name) }
             }
             ChainKind.TAG -> {

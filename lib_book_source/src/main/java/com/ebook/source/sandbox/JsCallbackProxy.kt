@@ -285,7 +285,7 @@ internal class JsCallbackProxy(
     /**
      * 一次外呼的等待。`withTimeout` 兜的是**没配 timeoutMs 的请求**：`ScriptTransport` 至今不响应
      * 协程取消（阻塞的 `Call.execute()` 没接 `call.cancel()`，取消后仍会跑满整轮重试；该缺口登记在
-     * 2c 计划的收尾备注，测试台账里查不到），阻塞中的 OkHttp 调用不会被这里打断，真正的上限是
+     * `docs/test-coverage-todo.md`），阻塞中的 OkHttp 调用不会被这里打断，真正的上限是
      * 客户端自己的 connect/read 超时。这条 await 保证的是**受理回调的 binder 线程不被无限期占住**
      * ——否则同一帧后续回调会一直排在这条线程上，后面排队的源跟着一起等。
      */

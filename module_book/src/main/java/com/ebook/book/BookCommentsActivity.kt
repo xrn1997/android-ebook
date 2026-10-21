@@ -118,7 +118,7 @@ class BookCommentsActivity : BaseMvvmActivity<BookCommentsViewModel>() {
 }
 
 /**
- * 评论区内容：刷新列表 + 底部输入栏（**无状态根**，AGENTS.md「屏幕的无状态根」）。
+ * 评论区内容：刷新列表 + 底部输入栏（**无状态根**，docs/architecture.md「无状态根与预览」）。
  *
  * 只吃不可变状态与回调，于是本页第一次可以直接预览、也可以被 Robolectric 渲染用例组合出来
  * （`BookScreensRenderTest`）。刷新中的四个布尔量在这里是入参而不是本地状态：它们的**写入点**

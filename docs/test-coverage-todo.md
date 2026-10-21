@@ -750,7 +750,7 @@ lib_ebook_api 37 / lib_ebook_db 35 / module_login 8 / module_main 4），手写�
 本轮由一次提交前评审驱动，三件事：把「三行书条目」的外壳与底行从两个模块各自一份收敛成
 `lib_book_common` 的共享件（`BookItemFrame` / `BookItemMetaRow`）、书城的书源引导态改用共享
 `EmptyState`（原为自绘的 `SectionTitle` + 正文 + `TextButton`）、我的评论页的预览样例改从门面
-`PreviewSamples` 取（纯预览、无运行时影响，不列设备项）。口径见 AGENTS.md 的共享件一段与 ADR-0042。
+`PreviewSamples` 取（纯预览、无运行时影响，不列设备项）。口径见 `docs/architecture.md` 的共享 UI 一节与 ADR-0042。
 
 自动化侧已锁：`BookItemFrameTest`（3 例，见上一节）。`lib_book_common` / `module_find` / `module_book` /
 `module_me` 全量单测与全仓 `testDebugUnitTest`（1327 例）通过，手写代码零新增警告。
@@ -767,4 +767,11 @@ lib_ebook_api 37 / lib_ebook_db 35 / module_login 8 / module_main 4），手写�
    重点看**字号换代**（标题 `titleSmall` → `titleMedium`、正文 `bodyMedium` → `bodySmall`、整体居中）
    是否让这一屏更"空态"、与书架空态是否同族；以及 `NoSource` 档按钮是否仍能到书源管理页
    （`isModule = true` 独立运行时到占位桩页）。深浅色各看一遍。
+
+## 归档前提取的补测项（2026-10-21）
+
+- [ ] 覆盖安装 v7→v8 迁移（按书暂停）：`paused_book` 新表 + `MIGRATION_7_8`，在真库上跑完并确认书架/队列旧数据完好、按书暂停状态跨重启保留。
+- [ ] `OkHttpScriptTransport` 响应协程取消：阻塞的 `Call.execute()` 未接 `call.cancel()`，取消后仍会跑满整轮重试；`JsCallbackProxy.await` 的 KDoc 已登记该缺口。
+- [ ] 下载中心 3000 章整本下发回归：启动 Intent 不携带任务列表，不触发 `TransactionTooLargeException`；运行中追加的章节由下一轮取篇。
+- [ ] 书源导入预览的 `ImportPreviewSheet` 仍嵌在 `BookSourceManageActivity` 中；`formatOf` 已在 `BookSourceViewModel`，但每条仍单独查一次 Room。剩余债务是把逐条查询合并成批量查询，并把 sheet 从 Activity 收进页面状态。
 

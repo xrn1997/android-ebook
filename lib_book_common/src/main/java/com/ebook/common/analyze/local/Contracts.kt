@@ -46,7 +46,7 @@ enum class BookFormat(val extension: String, val isFileBased: Boolean) {
  *
  * **这个字段刻意没有默认值**：给了默认值就等于允许「新构造点忘记传归属」，而漏传的后果是
  * 静默的——正文会退回默认书源去抓（本地书则永远抓不到），错的还是数据而非编译。让编译器逐个
- * 点名 10 处构造点才是想要的迁移方式（AGENTS.md「不要为向后兼容留半套机制」）。
+ * 点名 10 处构造点才是想要的迁移方式（本仓迁移约定「不要为向后兼容留半套机制」）。
  */
 data class BookLocation(
     val bookId: String,

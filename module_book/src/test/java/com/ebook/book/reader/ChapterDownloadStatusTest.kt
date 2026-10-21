@@ -7,7 +7,7 @@ import org.junit.Test
  * [chapterDownloadStatus] 的纯逻辑用例：把缓存存在性、队列任务、当前下载章三方合并成逐章状态。
  *
  * 合并顺序算错只会让二级视图的「已缓存/待下载/下载中」标签错位，不编译失败也不闪退，
- * 故集中在纯 JVM 上锁住（本仓 Compose 页面不做装机级单测，见 AGENTS.md）。
+ * 故集中在纯 JVM 上锁住（本仓 Compose 页面不做装机级单测，见 docs/development.md「测试」）。
  */
 class ChapterDownloadStatusTest {
 

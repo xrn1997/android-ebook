@@ -43,7 +43,7 @@ import javax.inject.Inject
  * （到底、失败、或去重后没带来新条目）。下一轮把后者经 `skipSourceUrls` 交给 `searchAcross`，
  * 于是第 N 轮只对还活着的源发请求。为什么判「到底」不能只看空页：越界页会以 HTTP 200
  * **重复返回首页书目**（软 404），那种页有结果却不新，所以 [SourceResult] 去重后
- * 「零新条目」同样把该源判结束（AGENTS.md「列表分页」那条铁律）。
+ * 「零新条目」同样把该源判结束（docs/architecture.md「分页与正文跟进」那条铁律）。
  *
  * ## 全局按 noteUrl 去重，但**不按** name+author 去重
  *

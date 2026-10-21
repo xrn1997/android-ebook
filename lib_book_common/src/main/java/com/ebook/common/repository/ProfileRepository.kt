@@ -44,7 +44,7 @@ class ProfileRepository @Inject constructor(
      * [com.ebook.common.domain.AndroidUserSessionManager.clearSession] 统一清除，
      * 此处重复清 SP 不会出错，但会让「谁负责哪一处镜像」重新变模糊。
      *
-     * 不作对外入口：清会话一律只调 `clearSession()`（见 ADR-0008 与 AGENTS.md
+     * 不作对外入口：清会话一律只调 `clearSession()`（见 ADR-0008 与 docs/architecture.md「认证与会话」
      * §认证体系约定），本方法仅作为其内部实现细节被调用。
      */
     internal fun resetProfileState() {

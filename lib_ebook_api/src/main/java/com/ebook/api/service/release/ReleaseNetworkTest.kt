@@ -20,7 +20,7 @@ import javax.inject.Singleton
  * 与 UserNetworkTest/CommentNetworkTest 的**关键差异**：那两个经 `getDataFromJsonFile<T>`
  * 解的是 ebook-server 的 `RespDTO<T>` 信封，而本数据源的返回形态是平台**原始 JSON**（无信封），
  * 所以资产 `release_latest.json` 整体就是 [ReleaseResponse] 的形状、解码类型也必须是它。
- * 形态与解码类型错配会抛 SerializationException——按 AGENTS.md「资产形态与解码类型同步」，
+ * 形态与解码类型错配会抛 SerializationException——按 docs/development.md「模块独立运行与 mock」的资产形态规则，
  * 这类错配不会闪退，只会让功能永远「检查失败」，故资产与实体的对应关系要一起改。
  *
  * 资产刻意保留了源码归档（zip/tar.gz）与 APK 两种附件：这样 `.apk` 过滤逻辑在 mock 下

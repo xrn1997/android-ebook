@@ -52,7 +52,7 @@ data class ReadingStats(
  * 页面经 TheRouter 的 ServiceProvider 暴露（非 Hilt 创建），无法直接 @Inject，
  * 因此把页面依赖（个人资料 + 登录态 + 书架数据 + 外观主题模式）收进 ViewModel 注入，页面经 hiltViewModel() 获取。
  *
- * 继承 [BaseViewModel] 对齐全仓 ViewModel 约定（AGENTS.md）；Model 用 [NoOpModel] 占位——
+ * 继承 [BaseViewModel] 对齐全仓 ViewModel 约定（见 docs/architecture.md「Hilt 与 Application」）；Model 用 [NoOpModel] 占位——
  * 本页依赖直接注入三个仓库（UseCase 式），没有也不需要一个 Model 门面类。
  *
  * 状态分三条流：

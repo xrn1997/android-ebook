@@ -11,6 +11,13 @@
 3. **EncodingInterceptor 去反射**：原实现反射 `okhttp3.internal.http.RealResponseBody.contentTypeString`（OkHttp 私有字段），改为 OkHttp 公开 API：`val mediaType = "application/rss+xml;charset=$encoding".toMediaTypeOrNull()` + `response.newBuilder().body(body.source().asResponseBody(mediaType)).build()`。实现落地为单参 `asResponseBody(mediaType)`，contentLength 固定为 -1（未知），不透传原始 Content-Length——避免下游因已知长度触发全量缓冲，书源响应经本拦截器后一律按流式读取。收益：删除对库私有内部类名的反射依赖（跨 OkHttp 版本脆弱 + 混淆下必炸），不需要任何 keep 规则。该行为已由 `EncodingInterceptorTest` 锁定（含以已知长度响应为入参、断言输出 `contentLength == -1` 的用例）。
 4. **行号属性与崩溃栈**：`module_app` 保留 `-keepattributes SourceFile,LineNumberTable` 与 `-renamesourcefileattribute SourceFile`，配合 `mapping.txt` 还原 release 崩溃栈。
 
+## 审计证据
+
+- 全仓 9 份 `proguard-rules.pro` 均未生效：改动前所有模块 release `isMinifyEnabled = false`。
+- 8 个库/功能模块用 `proguardFiles` 声明规则，集成态只有 `module_app` 执行 R8，规则文件不参与；唯一正确示范是 `lib_ebook_db` 的 `consumerProguardFiles`。
+- 7 份文件是 EventBus keep 模板复制，全仓依赖零命中；6 份手写 androidx `@Keep` 与 AAR 自带规则重复。
+- TheRouter AAR 的 `proguard.txt` 为 0 字节、lib_common 0.3.1 AAR 无 `proguard.txt`，两者规则必须由本仓手写；Retrofit/Room3/Hilt/Coil/Compose/AndroidX 均已验证自带 consumer 规则。
+
 ## 下游影响
 
 - release 混淆正式生效：`module_app/build.gradle.kts` 的 release 恒为 `isMinifyEnabled = true`（集成态 R8 执行者），5 个功能模块取 `isMinifyEnabled = isModule`。仓内现存 9 份 `consumer-rules.pro`（8 个库/功能模块 + `lib_book_source`）与 6 份 `proguard-rules.pro`（`module_app` + 5 个功能模块），纯 library 模块没有后者。

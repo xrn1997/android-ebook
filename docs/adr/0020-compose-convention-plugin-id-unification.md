@@ -20,7 +20,7 @@
 
 - **统一 ID 优于保留别名**：别名把「两仓共用一套 build-logic」这件事藏进一次隐式映射，改名后至少名字是一致的；代价是「同名」会诱使读者以为换到哪个构建语义都一样，这是新引入的风险。
 - **新风险的兜底**：今天它不产生故障，靠的是两条事实——`lib_common` 自身已应用 `xrn1997.android.library`，所以本仓版再套一次是幂等而非冲突；`lib_common` 无 `src/androidTest`，所以本仓版没注入 compose ui-test 依赖也无人受害。任一条变化（例如 android-practice 给 `lib_common` 加 Compose UI 测试），本仓版就会缺依赖，届时按 `docs/test-coverage-todo.md` 登记的根治方向把 compose 插件收敛成「只加 compose 能力」，而不是再造一个别名。
-- **`-PisModule=true` 的坑当前处于休眠**：根 `settings.gradle.kts` 的 `includeBuild("lib-common-build")` 现为注释态（lib_common 走中央坐标），所以 `-P` 覆盖眼下不复现。AGENTS.md、`gradle.properties`、本 ADR 三处都按「恢复联动后即复现」的前提表述，避免读者拿当前配置去试之后反过来怀疑文档写错。
+- **`-PisModule=true` 的坑当前处于休眠**：根 `settings.gradle.kts` 的 `includeBuild("lib-common-build")` 现为注释态（lib_common 走中央坐标），所以 `-P` 覆盖眼下不复现。`docs/architecture.md`、`gradle.properties`、本 ADR 三处都按「恢复联动后即复现」的前提表述，避免读者拿当前配置去试之后反过来怀疑文档写错。
 
 ## 同批构建清理
 

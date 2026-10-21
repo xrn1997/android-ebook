@@ -56,7 +56,7 @@ sealed class AggregateSearchEvent {
      * [hasMore] 只是**本源视角**的「该页有结果，下一页可能还有」：空页为 false。
      * 它不足以判「到底」——笔趣阁式站点对越界页返回 **HTTP 200 + 首页书目**（软 404），
      * 这类页有结果、`hasMore` 会是 true，真到底要由调用方按 [SearchBookEntity.noteUrl] 去重后
-     * 看「这一页有没有带来新条目」来定（AGENTS.md「列表分页」那条铁律），据此把该源从翻页集合里摘掉。
+     * 看「这一页有没有带来新条目」来定（docs/architecture.md「分页与正文跟进」那条铁律），据此把该源从翻页集合里摘掉。
      */
     data class SourceFinished(val sourceUrl: String, val hasMore: Boolean) : AggregateSearchEvent()
 

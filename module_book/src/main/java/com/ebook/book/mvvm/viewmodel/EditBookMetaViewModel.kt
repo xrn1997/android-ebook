@@ -29,7 +29,7 @@ import javax.inject.Inject
  * 静默失败时用户看到的是「点了没反应、数据其实没动」，比任何一次提示都难排查。
  * 同时保留一条带栈的日志——Toast 只是给用户的，排查要靠日志。
  *
- * Model 位用 [NoOpModel] 占位（无一次性命令门面需求，见 AGENTS.md MVVM 约定）。
+ * Model 位用 [NoOpModel] 占位（无一次性命令门面需求，见 docs/architecture.md「Hilt 与 Application」）。
  */
 @HiltViewModel
 class EditBookMetaViewModel @Inject constructor(
@@ -38,7 +38,7 @@ class EditBookMetaViewModel @Inject constructor(
     private val commentRepository: CommentRepository,
 ) : BaseViewModel<NoOpModel>(NoOpModel()) {
 
-    /** 页面状态流。不叫 `uiState`——那是基类覆盖层专用（见 AGENTS.md MVVM 约定） */
+    /** 页面状态流。不叫 `uiState`——那是基类覆盖层专用（见 docs/architecture.md「Hilt 与 Application」） */
     private val _editMetaState = MutableStateFlow(EditBookMetaState())
     val editMetaState: StateFlow<EditBookMetaState> = _editMetaState.asStateFlow()
 

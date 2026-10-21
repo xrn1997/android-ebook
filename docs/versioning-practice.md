@@ -96,7 +96,7 @@ version.”——**`v` 是「tag 名」层面的装饰，不属于版本号本�
 
 ### 2.3 对本仓的直接后果
 
-本仓现存 tag 全部是**大写 `V`**（见第 8 节）。因为 `V1.2.3` 不是合法 SemVer：
+本仓历史 tag 多为**大写 `V`**；2026-10 起现行 tag 用**小写 `v`**（如 `v1.4.0`），历史 tag 不重打（见第 8 节）。`V1.2.3` 不是合法 SemVer：
 
 - 所有**按 SemVer 解析 tag 的工具/库**（semver 库、Go module、npm、release-please 的默认 tag 匹配、
   各类 changelog 生成器）都**读不出** `V1.2.3` 的版本号；它们要么报错、要么把它当普通字符串跳过。
@@ -220,8 +220,7 @@ SemVer 全文以 **public API** 为锚点。规范开篇即要求声明它：
 > “Types other than `feat` and `fix` MAY be used in your commit messages … Additional types …
 > **have no implicit effect in Semantic Versioning** (unless they include a BREAKING CHANGE)。”
 
-这与本仓 `AGENTS.md` 的「语义版本映射」表完全一致（`feat→MINOR`、`fix→PATCH`、
-`BREAKING CHANGE`/`!`→MAJOR、其余不 bump）。**该表是规范级正确的。**
+这与本仓 `CONTRIBUTING.md` 的「版本号」段大体一致（`feat→MINOR`、`fix→PATCH`、其余不 bump）；唯一差异是 `BREAKING CHANGE`/`!` 不自动定档——本仓要求先判断破坏的是用户的东西还是代码内部契约。规范只对 public API 说话，这一区别在本仓是刻意的。
 
 ### 5.2 两大一手工具
 
@@ -333,11 +332,11 @@ SemVer 的 BNF 把预发布定义为**由连字符引出的**一段（`https://s
 
 ### 8.1 版号声明
 
-`module_app/build.gradle.kts`：`versionCode = 13`、`versionName = "1.3.0"`。
+`module_app/build.gradle.kts`：`versionName = "1.4.0"`，`versionCode` 由版本名反解为 `1_004_000`。
 
 ### 8.2 现存 tag
 
-`git tag -l`：`V1.1`、`V1.1.1` … `V1.1.7alpha`、`V1.2.0`、`V1.3.0`，**全部大写 `V`**，均存在于 origin。
+`git tag -l`：历史 tag `V1.1`、`V1.1.1` … `V1.1.7alpha`、`V1.2.0`、`V1.3.0`，以及现行的 `v1.4.0`；历史 tag 用大写 `V`，现行用小写 `v`。
 
 - **非法 SemVer 的 tag**：`V1.1`（两段）、`V1.1.7alpha`（无连字符粘连；另 `V1.1.1` 等三段式虽合法，
   但有大写 `V` 前缀，按 §1.5 也不是「语义版本本身」）。
@@ -385,7 +384,7 @@ SemVer 的 BNF 把预发布定义为**由连字符引出的**一段（`https://s
 `ReleaseRepository` 读 GitHub `repos/xrn1997/android-ebook/releases/latest` + Gitcode 兜底；
 「无 `.apk` 资产」不算源失败（`docs/adr/0021-…`）。全仓**无 `.github/workflows`**（`.github/` 不存在），
 **无自动化**；版本 bump 是手写的 `build:` 提交，只改 `module_app/build.gradle.kts`。
-**无 CHANGELOG 文件。**
+**`CHANGELOG.md` 已建立**（Keep a Changelog；见 §10.5）。
 
 ### 8.6 历史 batch 的实际 bump（commit 计数）
 
@@ -397,7 +396,7 @@ SemVer 的 BNF 把预发布定义为**由连字符引出的**一段（`https://s
 | `V1.2.0..V1.3.0` | 10 | MINOR（脚本书源链路 + `:js` 沙箱新子系统） |
 
 **关键观察**：前两个 PATCH batch 的提交用的是**旧格式**（`修复[…]:`、`更新[…]:`），**根本不是
-Conventional Commits**——那时的 bump 与 `AGENTS.md` 的映射表无关。Conventional Commits 是到
+Conventional Commits**——那时的 bump 与当时的 `AGENTS.md` 映射表无关。Conventional Commits 是到
 `V1.2.0..V1.3.0` 一带才成为主流的。所以「历史给了 PATCH」不能拿来当映射表的反例，二者属于不同时期。
 
 ---
@@ -451,13 +450,13 @@ Conventional Commits**——那时的 bump 与 `AGENTS.md` 的映射表无关。
   代价：**「根本性重建」与「一个小功能」拿到同一个 MINOR 位**——版本号不再传达「改动分量」。
 - 选 **B（本仓历史）** → `1.3.1`。理由：本批没有根本性重建。代价：判据**不可判定**（没人能从提交
   算出「根本性」），因此永远无法自动化、每次发版都要人拍板；PATCH 成为默认桶，功能更新会混在
-  `1.3.1`/`1.3.2` 里，用户从版本号看不出「这版有没有新东西」；且**与 `AGENTS.md` 现存的映射表
+  `1.3.1`/`1.3.2` 里，用户从版本号看不出「这版有没有新东西」；且**与 `CONTRIBUTING.md` 现存的版本判据
   （`feat`→MINOR）直接冲突**，选 B 必须同步改表，否则文档与实操长期对不上。
 
 无论选哪个，**都不动 MAJOR**（本批无对外契约破坏）。要让用户感知「这一版分量重」，靠的是
 CHANGELOG / GitHub Release notes，而不是版本号里那一位。
 
-**已采纳 A**（2026-10-02）：判据落成 §11 的三问并写进 `AGENTS.md`，本批按它取 **1.4.0**；B 栏
+**已采纳 A**（2026-10-02）：判据落成 §11 的三问并写进当时的 `AGENTS.md`（2026-10-21 迁入 `CONTRIBUTING.md`），本批按它取 **1.4.0**；B 栏
 （「根本性才升 MINOR」）被否，理由见 §11.1——它没有 1.x 的落脚点。
 
 ### 9.4 与「历史实践」的对账
@@ -475,14 +474,14 @@ CHANGELOG / GitHub Release notes，而不是版本号里那一位。
 - 可以确认的一点：本仓的 MINOR（`1.2.0` 全量 Compose 迁移、`1.3.0` 新子系统）历来对应的是**大重建**，
   而不是「有没有新功能」——这是**惯例差异**，不是规范依据。采纳严格 SemVer 即等于改变既有做法。
 
-唯一真正与规范有出入的成文条款是 `AGENTS.md` 映射表把 `BREAKING CHANGE` 一律写成 MAJOR，
+唯一真正与规范有出入的成文条款是 `CONTRIBUTING.md` 的版本号段把 `BREAKING CHANGE` 一律写成 MAJOR，
 而本仓 `1.2.0` 的 `refactor(all)!` 只给了 MINOR。见 §10.1 的处理建议。
 
 ---
 
 ## 10. 前向提案
 
-### 10.1 `AGENTS.md` 的映射表：**已改为「用户视角三问」+ 手工判据**（2026-10-02 落地）
+### 10.1 版本判据：**已改为「用户视角三问」+ 手工判据**（2026-10-02 落地；2026-10-21 迁入 `CONTRIBUTING.md`）
 
 原表（`feat→MINOR / fix→PATCH / BREAKING→MAJOR`，其余不 bump）有三处与实际不符，已重写：
 
@@ -535,10 +534,9 @@ CHANGELOG / GitHub Release notes，而不是版本号里那一位。
   `V1.2.0alpha > V1.2.0`（与 SemVer 相反，§8.4）。要么禁用带 `-` 的预发布 tag，要么让解析器识别
   `-` 并实现 SemVer 的预发布序。
 
-### 10.5 CHANGELOG
+### 10.5 CHANGELOG（已落地）
 
-- **建议新增 `CHANGELOG.md`**，采用 Keep a Changelog 格式并声明 “this project adheres to Semantic
-  Versioning”（`https://keepachangelog.com/en/1.1.0/`）。
+- **已新增 `CHANGELOG.md`**，采用 Keep a Changelog 格式；版本号遵循 SemVer，定档判据见本文件 §11 与 `CONTRIBUTING.md`。
 - **若长期接入 release-please**：由其自动维护（它按 conventional commit footer 生成条目，§5.2），人工
   不再手写。
 - **短期**：每个 `build:` 发版提交里手写一个小节（Added/Fixed/Changed），来源是本次区间的提交标题——

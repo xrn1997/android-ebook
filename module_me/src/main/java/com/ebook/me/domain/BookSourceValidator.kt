@@ -84,7 +84,7 @@ object BookSourceValidator {
             if (rawJson.contains("<js>") || rawJson.contains("@js:")) add(ScriptWarning.HAS_EXECUTABLE_CODE)
             // 登录一族（含验证码/浏览器自动化）不在 v1 的宿主 API 白名单里（语料实测 642 条里有 110 条）
             if (source.loginUrl.isNotBlank()) add(ScriptWarning.NEEDS_LOGIN)
-            // 0 = 文本；1 = 图片（漫画）、2 = 音频：本项目是文字阅读器，这两类读不出文字
+            // 0 = 文本；1 = 音频；2 = 图片（漫画）：本项目是文字阅读器，这两类读不出文字
             if (source.bookSourceType != 0) add(ScriptWarning.NOT_TEXT_SOURCE)
         }
         return ScriptValidation(

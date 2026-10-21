@@ -157,7 +157,7 @@
 
 10. **文档与术语同步**
     - CONTEXT.md 收录术语：默认书源、用户导入书源、多书源共存、聚合搜索、阅读中换源、书源归属标记（`tag` 字段的显式语义）。
-    - AGENTS.md「Agent 实战建议」记两条长期约束：涉及书源解析的代码先按 `entity.tag` 找 parser、不默认走全局 `currentSource`；`requireParser()` 已删除且新代码不得重新引入。
+    - `docs/architecture.md`「书源与内容获取」记两条长期约束：涉及书源解析的代码先按 `entity.tag` 找 parser、不默认走全局 `currentSource`；`requireParser()` 已删除且新代码不得重新引入。
 
 ## 权衡
 

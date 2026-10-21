@@ -191,13 +191,17 @@ docs/adr/         → 架构决策记录（ADR）
 
 欢迎 Issue 与 PR：
 
-- 协作与贡献指南（构建命令、架构约定、提交规范）见 [AGENTS.md](AGENTS.md)
+- Agent 常驻规则见 [AGENTS.md](AGENTS.md)；当前架构见 [docs/architecture.md](docs/architecture.md)；构建、测试与工具链见 [docs/development.md](docs/development.md)
+
+- 提交规范、钩子安装与发版流程见 [CONTRIBUTING.md](CONTRIBUTING.md)
+
+- 文档该放哪见 [docs/AGENTS.md](docs/AGENTS.md)
 
 - 书源规则说明（格式、导入、创建）见 [docs/book-source-rules.md](docs/book-source-rules.md)
 
 - 重大架构决策以 [docs/adr/](docs/adr/) 的 ADR 为准，术语定义见 [CONTEXT.md](CONTEXT.md)
 
-- 提交遵循 [Conventional Commits](https://www.conventionalcommits.org/)（中文描述，详见 AGENTS.md 提交规范）
+- 提交遵循 [Conventional Commits](https://www.conventionalcommits.org/)（中文描述，详见 [CONTRIBUTING.md](CONTRIBUTING.md)）
 
 - 无后端环境时使用 mock 构建（见 [快速开始](#构建运行)），涉及新接口请同步 mock 实现与 JSON 资产
 

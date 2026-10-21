@@ -5,7 +5,7 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；版本号遵循
 [语义化版本](https://semver.org/lang/zh-CN/)，但**定档判据是本仓自己的「用户视角三问」**
 （要不要做准备 / 有没有新东西 / 只修对），见 [`docs/versioning-practice.md`](docs/versioning-practice.md)
-与 `AGENTS.md` 的「语义版本映射」。
+与 `CONTRIBUTING.md` 的「版本号」段。
 
 **tag 前缀**：`v*`（小写，如 `v1.4.0`）为**现行规约**；`V*`（大写，如 `V1.3.0`、`V1.1`、`V1.1.7alpha`）
 是 2026-10 之前的历史遗留——其中 `V1.1` 与 `V1.1.7alpha` 不是合法 SemVer。**历史 tag 不重打、不删除**，

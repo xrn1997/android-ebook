@@ -1347,7 +1347,7 @@ fun LightPanel(activity: Activity, onDismiss: () -> Unit) {
 }
 
 /**
- * 亮度面板的**无状态根**（AGENTS.md「屏幕的无状态根」）：只吃当前值与三个出口，
+ * 亮度面板的**无状态根**（docs/architecture.md「无状态根与预览」）：只吃当前值与三个出口，
  * 于是这块 chrome 第一次可以预览、也能被 JVM 渲染用例组合出来。
  *
  * 长相与判据（逐条对齐原 WindowLightPop）：

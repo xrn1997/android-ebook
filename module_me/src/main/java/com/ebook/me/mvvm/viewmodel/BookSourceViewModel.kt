@@ -51,7 +51,7 @@ import javax.inject.Inject
  * - [BookSourceManager.setDefaultSource] **会顺带启用目标源**，所以「设为默认」不需要
  *   先拨开关，两步走反而会把「点了没换」的现象暴露给用户。
  *
- * 继承 [BaseViewModel] 而非裸 `ViewModel`（AGENTS.md 的 VM 基类约定）：本页没有 Model 门面
+ * 继承 [BaseViewModel] 而非裸 `ViewModel`（docs/architecture.md「Hilt 与 Application」的 VM 基类约定）：本页没有 Model 门面
  * （依赖直接注入 Manager），故用 [NoOpModel] 占位。状态流命名避开基类的 `uiState`
  * （那个只驱加载/错误覆盖层）。
  *

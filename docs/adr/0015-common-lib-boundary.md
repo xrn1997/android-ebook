@@ -39,7 +39,7 @@ lib_common（android-practice 仓库的通用脚手架）与 lib_book_common（�
 
 - 删除/迁移 lib_book_common 组件前，先按此判据判定归属；仅 lib_common 持有通用能力，lib_book_common 不再收录通用件。
 - 专项库的依赖面：`lib_book_source` 的唯一 Gradle 消费方是 `lib_book_common`，且以 `api(project(...))` 暴露——业务模块经 lib_book_common 的门面拿到解析器，不直接依赖该模块，专项库因此不会顺着业务模块的编译类路径扩散。
-- 迁移前后同步维护 AGENTS.md 的模块职责描述与本文档，保持一致。
+- 迁移前后同步维护 `docs/architecture.md` 的模块职责描述与本文档，保持一致。
 
 ## 遗留
 
@@ -48,4 +48,4 @@ lib_common（android-practice 仓库的通用脚手架）与 lib_book_common（�
 - `com.ebook.common.util.DateUtil`（日期格式化，调用方只有 lib_book_common 内部的 `CommentTime`——用它算评论的相对时间，页面侧是「书评」与「我的评论」；阅读器链路不引用它。`FileTree` 的 KDoc 把它列为同一批待迁移项，但不调用它。类上的 `@Suppress("unused")` 早已失效，随上移一并清）
 - `com.ebook.common.util.SPUtil`（SharedPreferences 封装，会话持久化、登录拦截与阅读设置多处依赖）
 
-上移时同步：改 import 到 lib_common 坐标、清理失效注解、更新 AGENTS.md。
+上移时同步：改 import 到 lib_common 坐标、清理失效注解、更新 `docs/architecture.md` 与相关文档。

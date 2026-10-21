@@ -6,7 +6,7 @@ package com.ebook.book.reader
  * 拆出来的理由与同目录 [switchFeedbackOf] 一族相同：这些决定要么影响"屏幕上显示第几章"，
  * 要么影响"哪些章会被下发下载"，算错既不会编译失败也不会闪退——只会静默给出错的内容。
  * 全是纯函数，直接 JVM 单测即可锁住；Compose 层只负责把它们接到列表上
- * （本仓 Compose 页面不做装机级单测，见 AGENTS.md 测试约定）。
+ * （本仓 Compose 页面不做装机级单测，见 docs/development.md「测试」）。
  *
  * 历史：下载选章曾按百章分组（chapterGroups/groupState/toggleGroup/rowIndexOfGroup 一族，
  * 含 DEFAULT_GROUP_SIZE），2026-09-12 二级页改平铺列表后该族已随折叠组头一同移除

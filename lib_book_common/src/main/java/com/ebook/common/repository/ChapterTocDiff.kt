@@ -51,7 +51,7 @@ internal object ChapterTocDiff {
      * 5. `tail` 与本地既有定位符重合、或 `tail` 内部自撞 → `Diverged`：`content_ref` 是整表主键
      *    而落库是整行 REPLACE，撞键不报错，只会搬走既有行或让两行互吃。
      *
-     * 为什么不按「逐位比对」：本地 `durChapterIndex` 可能有洞（历史删章，AGENTS.md 明载
+     * 为什么不按「逐位比对」：本地 `durChapterIndex` 可能有洞（历史删章，docs/architecture.md「目录事实源与追更」明载
      * 「新索引取 `max + 1` 不用 `size`」正是为此），而远端序号是 parser 按位置连写的。
      * 拿位置硬比会让一本用户删过章的书**永远**判成分叉、再也追不了更，
      * 而它其实完全符合「只追加、不动既有章」的安全条件。

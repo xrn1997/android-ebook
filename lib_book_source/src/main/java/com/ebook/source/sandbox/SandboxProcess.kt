@@ -8,7 +8,7 @@ import android.os.Process
  *
  * 单独一个文件是因为判据有四个调用点、分属三个模块（这里的执行器自检、Step 8 的 `BookApplication`
  * 与 `MyApplication` 进程门、Step 9 的设备用例）。`API 28` 门槛写四遍，漏一遍就是 minSdk 26 的设备上
- * 一句 `NoSuchMethodError`；写成 public 对象是因为 `internal` 跨不到别的模块（AGENTS.md 的可见性口径：
+ * 一句 `NoSuchMethodError`；写成 public 对象是因为 `internal` 跨不到别的模块（docs/architecture.md「脚本书源与解析层」的可见性口径：
  * 依赖方的 source set 不是 friend module）。
  *
  * 短路的次序是刻意的：`SDK_INT` 在前、`Process.isIsolated()` 在后。后者在 API 28 以下不存在，

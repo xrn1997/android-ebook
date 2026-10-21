@@ -75,7 +75,7 @@ class VerifyUserActivity : BaseMvvmActivity<ModifyPwdViewModel>() {
 /**
  * 验证身份表单（**无状态根**）：引导文案 + 邮箱 / 验证码（内嵌倒计时发码按钮）/ 下一步。
  *
- * 形参只有值与回调，故可预览（约定见 AGENTS.md「屏幕的无状态根」）。邮箱与验证码两个输入框
+ * 形参只有值与回调，故可预览（约定见 docs/architecture.md「无状态根与预览」）。邮箱与验证码两个输入框
  * 是本页自己的 `remember` 编辑态，不下传——本页没有外部写入点（下一步的 email+验证码
  * 是**出参**，经 [onNext] 交给 ViewModel 再走路由），把编辑态搬到外壳换不到任何东西。
  * 验证码位数/非空校验由 [ModifyPwdViewModel] 判定后经 `sendToast` 提示，页面上没有错误文本入参。

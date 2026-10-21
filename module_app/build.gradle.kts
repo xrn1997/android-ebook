@@ -8,7 +8,7 @@ plugins {
 }
 
 /**
- * 应用版本名——**发版时唯一要改的一处**。定档判据（用户视角三问）见 AGENTS.md「语义版本映射」，
+ * 应用版本名——**发版时唯一要改的一处**。定档判据（用户视角三问）见 docs/versioning-practice.md 与 CONTRIBUTING.md，
  * 规范依据与各段边界见 `docs/versioning-practice.md`。
  */
 val APP_VERSION_NAME = "1.4.0"

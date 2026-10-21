@@ -1,6 +1,8 @@
 # 多书源共存实施路线图
 
-配合 [ADR-0016](adr/0016-multi-book-source-architecture.md) 使用。本文档给出**分阶段、可发布、可回滚**的具体实施路线，
+> **状态：已归档（原状态：已完成；实施路线图已落地，2026-10-21 冻结）**。现行事实源：ADR-0016、`docs/architecture.md`「书源与内容获取」。
+
+配合 [ADR-0016](../../../adr/0016-multi-book-source-architecture.md) 使用。本文档给出**分阶段、可发布、可回滚**的具体实施路线，
 每阶段独立提交、独立验证；中间任何一步发现问题可及时调整方向，不必推倒重来。
 
 ## 校准记录（2026-09-07）
@@ -82,7 +84,7 @@ P0 完成。
 
 **`lib_ebook_db`**：
 
-1. 新增 [`lib_ebook_db/src/main/java/com/ebook/db/entity/BookSourceEntity.kt`](../lib_ebook_db/src/main/java/com/ebook/db/entity/BookSourceEntity.kt)：
+1. 新增 [`lib_ebook_db/src/main/java/com/ebook/db/entity/BookSourceEntity.kt`](../../../../lib_ebook_db/src/main/java/com/ebook/db/entity/BookSourceEntity.kt)：
    ```kotlin
    @Entity(tableName = "book_source")
    data class BookSourceEntity(
@@ -97,7 +99,7 @@ P0 完成。
    )
    ```
 
-2. 新增 [`lib_ebook_db/src/main/java/com/ebook/db/dao/BookSourceDao.kt`](../lib_ebook_db/src/main/java/com/ebook/db/dao/BookSourceDao.kt)：
+2. 新增 [`lib_ebook_db/src/main/java/com/ebook/db/dao/BookSourceDao.kt`](../../../../lib_ebook_db/src/main/java/com/ebook/db/dao/BookSourceDao.kt)：
    ```kotlin
    @Dao
    interface BookSourceDao {
@@ -130,12 +132,12 @@ P0 完成。
    }
    ```
 
-3. 修改 [`AppDatabase.kt`](../lib_ebook_db/src/main/java/com/ebook/db/AppDatabase.kt)：
+3. 修改 [`AppDatabase.kt`](../../../../lib_ebook_db/src/main/java/com/ebook/db/AppDatabase.kt)：
    - `entities` 数组加 `BookSourceEntity::class`
    - `version = 4` → `version = 5`
    - 新增 `abstract fun bookSourceDao(): BookSourceDao`
 
-4. 修改 [`DatabaseModule.kt`](../lib_ebook_db/src/main/java/com/ebook/db/di/DatabaseModule.kt)：
+4. 修改 [`DatabaseModule.kt`](../../../../lib_ebook_db/src/main/java/com/ebook/db/di/DatabaseModule.kt)：
    - 新增 `MIGRATION_4_5`（见附录 B）
    - `addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)` → 末尾追加 `MIGRATION_4_5`
    - 新增 `provideBookSourceDao(db)` 方法
@@ -144,7 +146,7 @@ P0 完成。
 
 **`lib_book_common`**：
 
-6. 扩展 [`BookSourceManager.kt`](../lib_book_common/src/main/java/com/ebook/common/analyze/source/BookSourceManager.kt) 接口（完整签名见附录 A）：
+6. 扩展 [`BookSourceManager.kt`](../../../../lib_book_common/src/main/java/com/ebook/common/analyze/source/BookSourceManager.kt) 接口（完整签名见附录 A）：
    - 保留：`currentSource`、`getAllSources()`、`getEnabledSources()`、`switchSource(rule)`、
      `importFromJson(str)`、`exportToJson(rule)`、`saveCurrentSource(context)`
    - **标 `@Deprecated`**：`requireParser()`（兜底为默认源 parser，业务代码逐步迁移）
@@ -162,7 +164,7 @@ P0 完成。
    > ③ `observeSources()` 发的是 `BookSourceItem`（规则 + `isUserImported`），不是裸 `BookSourceRule`；
    > ④ `requireParser()` 没标废弃而是删除（见本节开头的实况）。
 
-7. 重写 [`BookSourceManagerImpl.kt`](../lib_book_common/src/main/java/com/ebook/common/analyze/source/BookSourceManagerImpl.kt)：
+7. 重写 [`BookSourceManagerImpl.kt`](../../../../lib_book_common/src/main/java/com/ebook/common/analyze/source/BookSourceManagerImpl.kt)：
    - 注入 `BookSourceDao`（构造参数）
    - init 逻辑：
      1. 检查 Room `getCount()`，若为 0 → 从 assets 读 `default_sources.json` → `upsertAll(isUserImported=false)`
@@ -187,10 +189,10 @@ P0 完成。
    > ③ 「有没有可用默认源」在同步面与订阅面**必须同为 null**（用户把源全禁用时），否则书城首帧还在解析
    > 一个已被全部禁掉的源；`setEnabled` 因此反向承担提升职责——无可用默认源时启用任意一条源就让它顶上。
 
-8. 修改 [`AnalyzeModule.kt`](../lib_book_common/src/main/java/com/ebook/common/di/AnalyzeModule.kt)：无需改动，
+8. 修改 [`AnalyzeModule.kt`](../../../../lib_book_common/src/main/java/com/ebook/common/di/AnalyzeModule.kt)：无需改动，
    `@Binds` 已覆盖新构造参数（Hilt 自动注入 `BookSourceDao`）。
 
-9. 新增 [`BookSourceNotFoundException.kt`](../lib_book_source/src/main/java/com/ebook/source/analyze/BookSourceNotFoundException.kt)：
+9. 新增 [`BookSourceNotFoundException.kt`](../../../../lib_book_source/src/main/java/com/ebook/source/analyze/BookSourceNotFoundException.kt)：
    ```kotlin
    /** 书源已被用户删除或禁用，无法为 entity.tag 找到对应 parser 时抛出 */
    class BookSourceNotFoundException(val sourceUrl: String) :
@@ -205,7 +207,7 @@ P0 完成。
    > 位置也与处方不同：本类最终不住 `lib_book_common`，而随原生解析器一族迁进 `lib_book_source` 的
    > `com.ebook.source.analyze`（书源解析专用层独立成模块时搬的），上方链接已按实况指向那里。
 
-10. 新增 [`AggregateSearchEvent.kt`](../lib_book_source/src/main/java/com/ebook/source/analyze/AggregateSearchEvent.kt)（P3-b 使用，本阶段仅定义 sealed class 骨架）。
+10. 新增 [`AggregateSearchEvent.kt`](../../../../lib_book_source/src/main/java/com/ebook/source/analyze/AggregateSearchEvent.kt)（P3-b 使用，本阶段仅定义 sealed class 骨架）。
     落地位置同上条：随解析器一族在 `lib_book_source` 的 `com.ebook.source.analyze`。
 
 **测试**：
@@ -268,7 +270,7 @@ P1 完成。
 
 **`lib_book_common`**：
 
-1. 修改 [`KeyCode.kt`](../lib_book_common/src/main/java/com/ebook/common/event/KeyCode.kt) `Me` 伴生对象新增：
+1. 修改 [`KeyCode.kt`](../../../../lib_book_common/src/main/java/com/ebook/common/event/KeyCode.kt) `Me` 伴生对象新增：
    ```kotlin
    /** 书源管理页（列表/导入/导出/启用/删除） */
    const val BOOK_SOURCE_PATH = BASE_PATH + "book_source"
@@ -276,7 +278,7 @@ P1 完成。
 
 **`module_me`**：
 
-2. 新增 [`BookSourceViewModel.kt`](../module_me/src/main/java/com/ebook/me/mvvm/viewmodel/BookSourceViewModel.kt)：
+2. 新增 [`BookSourceViewModel.kt`](../../../../module_me/src/main/java/com/ebook/me/mvvm/viewmodel/BookSourceViewModel.kt)：
    ```kotlin
    data class BookSourceUiState(
        val sources: List<BookSourceRule> = emptyList(),
@@ -314,7 +316,7 @@ P1 完成。
    > 是基类覆盖层专用；导入预览（`_preview`）与提示（`_notice`）各占一份独立状态，不塞进一个大 UiState；
    > ③ `ImportPreviewItem` 是 VM 的嵌套类型（它不出现在 VM 之外，没有独立成顶层类的必要）。
 
-3. 新增 [`BookSourceManageActivity.kt`](../module_me/src/main/java/com/ebook/me/view/BookSourceManageActivity.kt)：
+3. 新增 [`BookSourceManageActivity.kt`](../../../../module_me/src/main/java/com/ebook/me/view/BookSourceManageActivity.kt)：
    - 继承 `BaseMvvmActivity<BookSourceViewModel>`
    - `@Route(path = KeyCode.Me.BOOK_SOURCE_PATH)`
    - Toolbar 标题「书源管理」+ 右上角两个 IconButton（导入/导出）
@@ -360,13 +362,13 @@ P1 完成。
    - `ruleSearch.list` 与 `ruleContent.content` 均非空（否则书源无法解析搜索结果与正文）
    - 校验失败返回具体原因（供预览层展示）
 
-8. 修改 [`SettingActivity.kt`](../module_me/src/main/java/com/ebook/me/view/SettingActivity.kt) 通用组：
+8. 修改 [`SettingActivity.kt`](../../../../module_me/src/main/java/com/ebook/me/view/SettingActivity.kt) 通用组：
    - 在「清除缓存」下方新增「书源管理」入口行
    - `trailingText` 显示当前书源数（`viewModel.sourcesCount.collectAsState()`）
    - 点击跳 `KeyCode.Me.BOOK_SOURCE_PATH`
    - `SettingViewModel` 加 `sourcesCount: StateFlow<Int>`（订阅 `observeSources().map { it.size }`）
 
-9. 新增字符串资源 [`module_me/src/main/res/values/strings.xml`](../module_me/src/main/res/values/strings.xml)：
+9. 新增字符串资源 [`module_me/src/main/res/values/strings.xml`](../../../../module_me/src/main/res/values/strings.xml)：
    - `book_source_title`、`book_source_import`、`book_source_export`、`book_source_empty`
    - `book_source_import_preview_title`、`book_source_import_confirm`
    - `book_source_import_success`（含占位符 `%1$d/%2$d/%3$d`）
@@ -433,7 +435,7 @@ P1 完成（P2 可选，用户没有导入其他书源时 P3-a 无感知）。
 
 **`lib_book_common`**：
 
-1. 修改 [`BookShelfManager.kt`](../lib_book_common/src/main/java/com/ebook/common/manager/BookShelfManager.kt)：
+1. 修改 [`BookShelfManager.kt`](../../../../lib_book_common/src/main/java/com/ebook/common/manager/BookShelfManager.kt)：
    - `addFromSearch(searchBook)`：
      ```kotlin
      val parser = bookSourceManager.getParserFor(searchBook.tag)
@@ -460,7 +462,7 @@ P1 完成（P2 可选，用户没有导入其他书源时 P3-a 无感知）。
 
 **`module_book`**：
 
-3. 修改 [`BookDetailViewModel.kt`](../module_book/src/main/java/com/ebook/book/mvvm/viewmodel/BookDetailViewModel.kt)
+3. 修改 [`BookDetailViewModel.kt`](../../../../module_book/src/main/java/com/ebook/book/mvvm/viewmodel/BookDetailViewModel.kt)
    （2026-09-08 按实名更正：两个私有方法叫 `fetchBookInfo` / `fetchChapterList`，不叫 `refreshBook`/`refreshChapterList`）：
    - `fetchBookInfo(searchBook)`：`getParserFor(searchBook.tag)` 取不到即抛 `BookSourceNotFoundException`
    - `fetchChapterList(bookShelf)`：同上按 `bookShelf.tag`
@@ -471,7 +473,7 @@ P1 完成（P2 可选，用户没有导入其他书源时 P3-a 无感知）。
    阅读器现经 `BookRepository.loadChapter(bookShelf, ...)` 取正文——整条 `bookShelf` 就在手上，
    归属由 `BookLocation.sourceUrl` 承载，**该 VM 无需改动**）
 
-5. 修改 [`DownloadService.kt`](../module_book/src/main/java/com/ebook/book/service/DownloadService.kt)：
+5. 修改 [`DownloadService.kt`](../../../../module_book/src/main/java/com/ebook/book/service/DownloadService.kt)：
    - 服务不直调 parser：`downloading` 构造 `BookLocation(noteUrl, NETWORK, data.tag)` 交给
      `JsoupSourceReader`，由它按 `location.sourceUrl` 取源（`data.tag` 即 `DownloadChapterEntity.tag`）
    - `BookSourceNotFoundException` 走**既有的普通失败通道**：重试计数递增 → 耗尽后出队 →
@@ -485,7 +487,7 @@ P1 完成（P2 可选，用户没有导入其他书源时 P3-a 无感知）。
 
 **`module_find`**：
 
-6. 修改 [`BookSourceRepository.kt`](../module_find/src/main/java/com/ebook/find/repository/BookSourceRepository.kt)：
+6. 修改 [`BookSourceRepository.kt`](../../../../module_find/src/main/java/com/ebook/find/repository/BookSourceRepository.kt)：
    - `getKindBook(url, page)`：`getParserFor(currentSource.url)` （书城仍用默认书源）
    - `getLibraryData()`：同上
    - `currentSource` 为空时返回空数据，UI 展示「请先在设置中导入书源」
@@ -499,7 +501,7 @@ P1 完成（P2 可选，用户没有导入其他书源时 P3-a 无感知）。
    > `module_me` 的书源管理页而非「设置中导入书源」；且该引导态**刻意不给「去书源管理」按钮**——
    > 那条路由属于另一个模块，独立运行时 TheRouter 找不到路由只记一行日志，按钮会变成第二处「点了没反应」。
 
-7. **暂不改** [`SearchViewModel.kt`](../module_find/src/main/java/com/ebook/find/mvvm/viewmodel/SearchViewModel.kt)（P3-b 处理）。
+7. **暂不改** [`SearchViewModel.kt`](../../../../module_find/src/main/java/com/ebook/find/mvvm/viewmodel/SearchViewModel.kt)（P3-b 处理）。
    过渡期：`searchBook` 保持 `requireParser()`，兜底走默认源，避免 P3-a 影响搜索。
    （2026-09-08 实况：这个过渡期从未真实存在——P3-b 与 P3-a 落在同一条未提交分支里，
    `SearchViewModel` 直接改成消费 `searchAcross`，`requireParser()` 也在那一步被删除。）
@@ -617,7 +619,7 @@ P3-a 完成。
 
 **`module_find`**：
 
-2. 重写 [`SearchViewModel.kt`](../module_find/src/main/java/com/ebook/find/mvvm/viewmodel/SearchViewModel.kt)：
+2. 重写 [`SearchViewModel.kt`](../../../../module_find/src/main/java/com/ebook/find/mvvm/viewmodel/SearchViewModel.kt)：
    - 新增 `pageBySource: MutableMap<String, Int>`（每源独立分页游标）
    - 新增 `finishedSources: MutableSet<String>`（本轮已完成的书源）
    - `toSearchBooks(content)`：清空 `pageBySource`/`finishedSources`，触发聚合搜索
@@ -634,7 +636,7 @@ P3-a 完成。
 
 3. 修改搜索结果 UI（`SearchActivity` / `SearchScreen`）：
    - 列表项 `SearchBookEntity.origin` 已存书源名（`JsoupBookParser.parseSearchBookWithRule` 已写入），直接在 UI 显示
-   - 用 [`InfoChip`](../lib_book_common/src/main/java/com/ebook/common/ui) 展示 `origin`
+   - 用 [`InfoChip`](../../../../lib_book_common/src/main/java/com/ebook/common/ui) 展示 `origin`
    - 顶部搜索进度条（`LinearProgressIndicator` + 文案「已收到 X/Y 书源结果」）
 
 **测试**：
@@ -700,7 +702,7 @@ P1 完成（可与 P3-a/P3-b 并行）。
 
 **`module_find`**：
 
-2. 修改 [`LibraryViewModel.kt`](../module_find/src/main/java/com/ebook/find/mvvm/viewmodel/LibraryViewModel.kt)：
+2. 修改 [`LibraryViewModel.kt`](../../../../module_find/src/main/java/com/ebook/find/mvvm/viewmodel/LibraryViewModel.kt)：
    ```kotlin
    val sources: StateFlow<List<BookSourceRule>> = bookSourceManager.observeSources()
        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -728,7 +730,7 @@ P1 完成（可与 P3-a/P3-b 并行）。
      不发任何请求；「有源但该源坏了」是另一件事（仓库抛 `BookSourceNotFoundException`），
      判据只看这条流、不看加载结果。
 
-3. 修改 [`BookSourceRepository.kt`](../module_find/src/main/java/com/ebook/find/repository/BookSourceRepository.kt)：
+3. 修改 [`BookSourceRepository.kt`](../../../../module_find/src/main/java/com/ebook/find/repository/BookSourceRepository.kt)：
    - `getBookTypeList(sourceUrl)`、`getKindBook(sourceUrl, url, page)`、`getLibraryData(sourceUrl)` 都加 sourceUrl 参数
    - 内部 `getParserFor(sourceUrl)` 拿 parser
 
@@ -856,7 +858,7 @@ P3-a、P3-b 完成。
    > 且**只对非本地书出现**——本地书没有源可换，给用户留一个点了必定失败的按钮不如不留。
    > 点击只是把面板状态置为 `ReaderPanel.SOURCE_SWITCH`，与其余五个面板同一套进出场机制。
 
-3. 新增 [`SourceSwitchSheet.kt`](../module_book/src/main/java/com/ebook/book/reader/SourceSwitchSheet.kt)：
+3. 新增 [`SourceSwitchSheet.kt`](../../../../module_book/src/main/java/com/ebook/book/reader/SourceSwitchSheet.kt)：
    ```kotlin
    @Composable
    fun SourceSwitchSheet(
@@ -872,7 +874,7 @@ P3-a、P3-b 完成。
    }
    ```
 
-   > **落地实况**：文件真实位置是 [`module_book/src/main/java/com/ebook/book/reader/SourceSwitchSheet.kt`](../module_book/src/main/java/com/ebook/book/reader/SourceSwitchSheet.kt)
+   > **落地实况**：文件真实位置是 [`module_book/src/main/java/com/ebook/book/reader/SourceSwitchSheet.kt`](../../../../module_book/src/main/java/com/ebook/book/reader/SourceSwitchSheet.kt)
    > （与其余阅读器面板同目录，不放 `view/widget`）；签名是 `(viewModel, oldShelf, onDismiss, onSwitched)`——
    > ① **VM 由宿主用 `hiltViewModel()` 取到后传入**，组件自己不拿（与 `ChapterDownloadSheet` 一样保持
    > 「纯展示 + 回调」，也方便宿主决定用哪个作用域的 VM）；② 搜索词与「排除哪个源」都从传入的
@@ -880,7 +882,7 @@ P3-a、P3-b 完成。
    > ③ 成功回调给的是 `SourceSwitchOutcome`（新条目 + 旧进度 + 是否被截断），不是裸的 `SearchBookEntity`——
    > 「已跳到第 X 章」与「新源章节较少」这两句话只有仓库现场才说得清。
 
-4. 新增 [`SourceSwitchViewModel.kt`](../module_book/src/main/java/com/ebook/book/mvvm/viewmodel/SourceSwitchViewModel.kt)：
+4. 新增 [`SourceSwitchViewModel.kt`](../../../../module_book/src/main/java/com/ebook/book/mvvm/viewmodel/SourceSwitchViewModel.kt)：
    ```kotlin
    @HiltViewModel
    class SourceSwitchViewModel @Inject constructor(
@@ -1029,7 +1031,7 @@ P1-P3 全部完成。
 
 ## 附录 A · BookSourceManager v2 接口要点
 
-**签名以 [`BookSourceManager.kt`](../lib_book_common/src/main/java/com/ebook/common/analyze/source/BookSourceManager.kt) 为事实源**——本附录原是落地前的处方，逐字抄签名会随实现腐化（事实上就腐化过：`requireParser`/`currentParser` 已随 P3-b 删除、`searchAcross` 落地时多了 `skipSourceUrls`、`switchSource`/`saveCurrentSource` 未保留），故这里只留仍成立的语义要点，具体形参与返回类型看源码。
+**签名以 [`BookSourceManager.kt`](../../../../lib_book_common/src/main/java/com/ebook/common/analyze/source/BookSourceManager.kt) 为事实源**——本附录原是落地前的处方，逐字抄签名会随实现腐化（事实上就腐化过：`requireParser`/`currentParser` 已随 P3-b 删除、`searchAcross` 落地时多了 `skipSourceUrls`、`switchSource`/`saveCurrentSource` 未保留），故这里只留仍成立的语义要点，具体形参与返回类型看源码。
 
 下面这份签名保留**已实现且语义未变**的部分，供读路线图的人对照概念；它与源码有出入时以源码为准。
 
@@ -1120,7 +1122,7 @@ sealed class AggregateSearchEvent {
 > `@ColumnInfo(defaultValue = ...)` 声明默认值，Room 生成的建表语句也就没有 DEFAULT；迁移里多写
 > 会让「覆盖安装得到的库」与「全新安装的库」结构不一致，而 Room 的 schema 校验只比实体声明过的
 > 东西，这种漂移查不出来。DAO 一律全列绑定，不依赖 DB 侧默认值。最终形态以
-> [`DatabaseModule.kt`](../lib_ebook_db/src/main/java/com/ebook/db/di/DatabaseModule.kt) 的
+> [`DatabaseModule.kt`](../../../../lib_ebook_db/src/main/java/com/ebook/db/di/DatabaseModule.kt) 的
 > `MIGRATION_4_5` 为事实源。
 
 ```kotlin

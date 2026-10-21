@@ -107,7 +107,7 @@ class ModifyPwdActivity : BaseMvvmActivity<ModifyPwdViewModel>() {
 /**
  * 密码设置表单（**无状态根**）：引导文案 + 重置模式隐藏旧密码框，提交语义随模式切换。
  *
- * 形参只有值与回调，故可预览（约定见 AGENTS.md「屏幕的无状态根」）。三个密码框是本页自己的
+ * 形参只有值与回调，故可预览（约定见 docs/architecture.md「无状态根与预览」）。三个密码框是本页自己的
  * `remember` 编辑态，不下传：模式（[isResetMode]）才是这一页唯一由外部驱动的状态——
  * 它由路由参数决定并在整个会话里不变，而密码输入没有任何外部写入点。
  * 「未填完整 / 两次不一致」由 [ModifyPwdViewModel] 判定后经 `sendToast` 提示，页面上没有错误文本入参。

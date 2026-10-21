@@ -17,7 +17,7 @@ import javax.inject.Singleton
  * `ReleaseNetwork` 在 lib_ebook_api，mock 实现 `ReleaseNetworkTest` 供 mock flavor
  * 与独立 module_me 使用）。放 module_me 而非 lib_ebook_api，是因为「先打哪个源、
  * 什么算有效结果、要不要接受无 APK 的发布」是本项目的应用策略，不是网络契约；
- * lib_ebook_api 按 AGENTS.md 只承担 Retrofit 服务 / 实体 / 拦截器。
+ * lib_ebook_api 按本仓分层（见 docs/architecture.md「版本更新检查」）只承担 Retrofit 服务 / 实体 / 拦截器。
  * 与同目录 [ReleaseStateStore] 是一个域的两半：这里管「远端有什么」，那里管「上次检查到什么」。
  *
  * 关键取舍：

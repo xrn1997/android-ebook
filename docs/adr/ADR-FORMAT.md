@@ -1,6 +1,6 @@
 # ADR 规范
 
-> 以 domain-modeling 技能的 ADR-FORMAT.md 为底、按本仓既有 ADR 的实际复杂度校准；与 AGENTS.md 约定冲突时，以 AGENTS.md 为准。
+> 以 domain-modeling 技能的 ADR-FORMAT.md 为底、按本仓既有 ADR 的实际复杂度校准；与 `AGENTS.md` 及 `docs/AGENTS.md` 的约定冲突时，以它们为准。
 
 ## 文件与编号
 
@@ -59,4 +59,7 @@
 
 - 编号条目（决策/权衡）每条自带理由，禁止只有结论没有 why
 - 章节名允许近义（动机/背景、权衡/后果），同一篇内保持一致
-- 硬规则在 AGENTS.md，此处不重复：正文不交叉引用其他 ADR、跨仓编号禁引、代码与文档同步、就地更新或整篇重写（不层层打补丁）
+- **正文不交叉引用其他 ADR**：需要别篇决策的背景时写成自足描述（不怕重复），不写「见 ADR-xxxx」。
+- **跨仓 ADR 编号禁引**：android-ebook、android-practice（lib_common）与 ebook-server 各有连续递增、互不对齐的编号序列。代码注释与文档中禁止引用其他仓库的 ADR 编号（`lib_common ADR-xxxx` / `ebook-server ADR-xxxx` 一律不写）；需要表达外部决策时写成自足描述。跨仓溯源用提交 hash 等本仓可验证的锚点。
+- **独立完整与更新**：每篇 ADR 单篇打开即可读懂，不依赖别篇作前情；允许就地更新（补事实、纠处方、标日期）；原决策局限性大、结合新需求已不止是扩展时整篇重写，不层层打补丁。
+- **代码与文档同步**：ADR 与相关代码/注释在同一改动内更新，禁止留下「代码已改、ADR 仍是旧描述」的状态；文档分层见 [`docs/AGENTS.md`](../AGENTS.md)。

@@ -34,7 +34,7 @@ import java.io.File
  * bundled 引擎上直接驱动它。至于本模块唯一的装配入口 `provideAppDatabase` 里的 Room 建库链，两侧都
  * 跑不到（Room 3 的 `RoomDatabase` 不公开任何裸 SQL 通道，`openHelper` / `execSQL` 皆 `@RestrictTo`），
  * 连「建表语句上的 DEFAULT 真在库侧兜底」也无从驱动。所以「覆盖安装后存量行的 format 真是 native」
- * 按 AGENTS.md 的分工留给人工装机验证；本测试能做的是把它的前提交代清楚：迁移里的 ALTER 必须与这里
+ * 按 CONTRIBUTING.md 的提交前验证分工留给人工装机验证；本测试能做的是把它的前提交代清楚：迁移里的 ALTER 必须与这里
  * 断言的 `createSql` 片段同字。
  */
 @RunWith(RobolectricTestRunner::class)

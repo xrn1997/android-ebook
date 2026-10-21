@@ -408,4 +408,4 @@ A: 书源由用户自行准备，常见来源：
 - [ADR-0028：不可信 JS 沙箱](adr/0028-untrusted-js-sandbox.md)
 - [ADR-0029：脚本书源导入](adr/0029-script-book-source-import.md)
 - [ADR-0033：应用零内置书源](adr/0033-app-ships-no-book-source.md)
-- [脚本书源语法规格](superpowers/specs/2026-09-08-script-source-rule-grammar.md)（高级参考）
+- [脚本书源语法规格](specs/book-source-rule-grammar.md)（高级参考）

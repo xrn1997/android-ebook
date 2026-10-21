@@ -1,7 +1,10 @@
 # 脚本书源格式：规则语言的行为与语法规格（清洁室）
 
 日期：2026-09-08
-状态：草案（供 Plan 2「脚本书源解释器」作为事实源使用）
+状态：生效（2026-10-21）
+
+> 本规格是稳定事实源，不属于一次性工件；实现与规格冲突时以本规格为准。
+
 上游决策：`docs/adr/0029-script-book-source-import.md`（双格式共存、原始入库、自研解释器）、`docs/adr/0028-untrusted-js-sandbox.md`（不可信 JS 沙箱）
 相关实现：`lib_ebook_api/src/main/java/com/ebook/api/entity/ScriptSourceRule.kt`（导入用最小模型）、`lib_book_source/src/main/java/com/ebook/source/analyze/JsoupBookParser.kt`（原生格式的既有裁决）、`lib_book_source/src/main/java/com/ebook/source/analyze/ScriptBookParser.kt`（本规格的页面装配：规则装载 + 求值 + 取文 + 翻页链 → `BookParser` 五面）
 

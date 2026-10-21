@@ -25,7 +25,7 @@ import javax.inject.Inject
  * 只做两件事：**找候选**（拿当前书的书名+作者跨源聚合搜索，按匹配度排序）与**执行换源**
  * （把决定交给 [BookRepository.switchSource] 那条事务）。界面怎么摆、点完关不关弹层都不归它管。
  *
- * Model 位用 [NoOpModel] 占位（无一次性命令门面需求，见 AGENTS.md MVVM 约定）；
+ * Model 位用 [NoOpModel] 占位（无一次性命令门面需求，见 docs/architecture.md「Hilt 与 Application」）；
  * 状态流命名避开基类的 `uiState`（那是覆盖层专用），沿用「页面名 + State」的口径。
  *
  * ## 为什么候选不是一次拿全的数组
@@ -41,7 +41,7 @@ import javax.inject.Inject
  * **本 VM 的命令通道没有任何 binder 在收集**：宿主 `ReadBookActivity` 是
  * `BaseMvvmActivity<BookReadViewModel>`，`MvvmBinder.bind` 只绑页面自己那一个 ViewModel；
  * 本类是换源弹层用 `hiltViewModel()` 起的**第二个** VM，它的 `sendToast` 只会堆在
- * `Channel` 里随 VM 销毁一起丢弃——不报错、不闪退，只是永远不响（AGENTS.md「持有 ViewModel 的页面
+ * `Channel` 里随 VM 销毁一起丢弃——不报错、不闪退，只是永远不响（docs/architecture.md「基类与页面结构」的「持有 ViewModel 的页面
  * 必须继承 `BaseMvvmActivity`」那条讲的正是这个静默失效陷阱，`DownloadManageViewModel` 也踩过）。
  * 所以这里**不得**再调 `reportFailure`/`sendToast`：失败原因经 [searchFailure] 与
  * `switchSource` 的 `Result` 交出去，由 [com.ebook.book.reader.SourceSwitchSheet] 在面板内联渲染。
@@ -272,7 +272,7 @@ class SourceSwitchViewModel @Inject constructor(
 /**
  * 换源候选的聚合进度：[total] 为本轮参与聚合的书源数，[finished] 为其中已结束的数量。
  *
- * 与 `module_find` 的 `SearchProgress` 同形但不复用：功能模块之间不互相依赖（AGENTS.md 模块架构），
+ * 与 `module_find` 的 `SearchProgress` 同形但不复用：功能模块之间不互相依赖（docs/architecture.md「模块与依赖方向」），
  * 跨模块 import 会直接编译不过。真出现第三处需求时应把它上浮到 `lib_book_common`
  * （共享件上浮两步走的口径），而不是让某模块去依赖另一模块。
  */

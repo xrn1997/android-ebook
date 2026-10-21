@@ -81,7 +81,7 @@ class JsoupBookParser(
      * 可见性为 `internal`（不是 private）：这是搜索与书城分类**共用**的那条链
      * （`searchBook` 走 `ruleSearch`，`fetchLibraryData` 走 `ruleFind.ruleSearch` 回落 `ruleSearch`），
      * 对它的直接断言一次锁住两个入口的字段口径，不必为测一行赋值而假造网络层。
-     * 同模块测试源可见 `internal`，跨模块不可见（见 AGENTS.md 的跨模块可见性口径）。
+     * 同模块测试源可见 `internal`，跨模块不可见（见 docs/architecture.md「脚本书源与解析层」的跨模块可见性口径）。
      */
     internal fun parseSearchBookWithRule(html: String, searchRule: SearchRule): List<SearchBookEntity> {
         val doc = Jsoup.parse(html)

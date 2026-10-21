@@ -1,5 +1,7 @@
 # 脚本书源 JS 沙箱执行器（Plan 3）实施计划
 
+> **状态：已归档（原状态：已完成；历史工件，2026-10-21 冻结）**。勾选框不代表待办；现行事实源是代码、KDoc、`docs/adr/` 与 `docs/architecture.md`。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 落地 ADR-0028 裁决的 `:js` 沙箱执行器——零权限隔离进程内跑自集成的 QuickJS，用 Binder + JSON 控制面与双向回调通道替掉五处 `JsEvaluationPendingException` 抛点，让脚本书源里含 `@js:` / `<js></js>` / `{{JS 表达式}}` / `js` / `bodyJs` / `init` JS 分支的规则段能真求值。
@@ -5866,7 +5868,7 @@ putVar/getVar/rmVar 与任务变量表同址，toast/log 落 Logger。
 - Modify: `lib_book_common/src/main/java/com/ebook/common/analyze/source/BookSourceManagerImpl.kt`（注入 `jsHost` 并传给脚本分支）
 - Modify: `lib_book_source/src/test/java/com/ebook/source/script/ScriptUrlOptionTest.kt:85-86`、`InterpolationTest.kt:63-76`、`ScriptUrlResolverTest.kt:52`、`ScriptContentPagerTest.kt:100`、`ScriptRuleEvaluatorCombinatorTest.kt:119`（改口径，见 Step 5）
 - Modify: `lib_book_source/src/test/java/com/ebook/source/script/ScriptHttpTest.kt`（`js`/`bodyJs` 两例）
-- Modify: `docs/superpowers/plans/2026-09-09-js-sandbox-executor.md` 的「文件结构」段（`SandboxModule.kt` 落 `lib_book_common`，理由见 Step 6）
+- Modify: `docs/superpowers/archive/plans/2026-09-09-js-sandbox-executor.md` 的「文件结构」段（`SandboxModule.kt` 落 `lib_book_common`，理由见 Step 6）
 
 > **Hilt 装配为什么落在 `lib_book_common` 而不是计划原先写的 `lib_book_source`**：`lib_book_source` 今天没有 Hilt/KSP 依赖（`build.gradle.kts` 只有 library 约定插件），为一个 `@Provides` 给它加两行插件 + KSP 配置不值；而装配点需要的三样东西（`@ApplicationContext`、`@Named("source")` 纯净客户端、`JsSandboxConnector`）在 `lib_book_common` 全都现成可见（它已应用 `xrn1997.hilt`，`di/` 包下已有五个模块）。代价是 `JsSandboxHost`/`HostCallbackRouter` 两个类从 `internal` 上浮为 public——它们本身就是装配面，上浮是对的；`JsCallbackProxy`、`HeadStatusProbe`、`SandboxScriptJs` 全部留在 internal。
 
@@ -7036,11 +7038,11 @@ EOF
 **Files:**
 - Modify: `docs/adr/0028-untrusted-js-sandbox.md`（决策 4/5/6 + 权衡 + 遗留）
 - Modify: `docs/adr/0029-script-book-source-import.md`（「落地状态」段就地补记）
-- Modify: `docs/superpowers/specs/2026-09-08-script-source-rule-grammar.md`（§9 尾、§10 矩阵 5 行 + 引言、§11 新增 27~33）
+- Modify: `docs/specs/book-source-rule-grammar.md`（§9 尾、§10 矩阵 5 行 + 引言、§11 新增 27~33）
 - Modify: `CONTEXT.md`（「脚本执行器」与「受限代理」两个术语）
 - Modify: `AGENTS.md`（书源段的脚本书源小追加一段 Plan 3 口径）
 - Modify: `docs/test-coverage-todo.md`（新增「人工装机验证清单（:js 沙箱执行器，2026-09-XX）」段）
-- Modify: `docs/superpowers/plans/2026-09-09-js-sandbox-executor.md`（勾选本计划 + 「执行期修正记录」）
+- Modify: `docs/superpowers/archive/plans/2026-09-09-js-sandbox-executor.md`（勾选本计划 + 「执行期修正记录」）
 
 - [x] **Step 1: 全量 JVM 回归**
 
@@ -7322,8 +7324,8 @@ Hilt 接线、真实站点的脚本行为与请求频度。逐条给「做什么
 
 ```bash
 git add docs/adr/0028-untrusted-js-sandbox.md docs/adr/0029-script-book-source-import.md \
-        docs/superpowers/specs/2026-09-08-script-source-rule-grammar.md \
-        docs/superpowers/plans/2026-09-09-js-sandbox-executor.md \
+        docs/specs/book-source-rule-grammar.md \
+        docs/superpowers/archive/plans/2026-09-09-js-sandbox-executor.md \
         CONTEXT.md AGENTS.md docs/test-coverage-todo.md
 git commit -m "$(cat <<'EOF'
 docs: 补记脚本沙箱执行器落地口径与装机清单

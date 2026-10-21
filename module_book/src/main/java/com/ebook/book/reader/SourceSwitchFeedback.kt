@@ -9,7 +9,7 @@ import com.ebook.source.analyze.BookSourceNotFoundException
  *
  * 拆出来只有一个理由：这三条决定**上屏说哪句话**，说错一句就会误导用户（把「新源一章都没解出来」
  * 报成「已跳到第 N 章」等于把坏消息藏起来）。它们全是纯函数，直接 JVM 单测即可锁住，
- * 不必为几条 if 去写 Compose UI 测试（本仓 Compose 页面不做装机级单测，见 AGENTS.md 测试约定）。
+ * 不必为几条 if 去写 Compose UI 测试（本仓 Compose 页面不做装机级单测，见 docs/development.md「测试」）。
  *
  * 返回值刻意用枚举而不是 `@StringRes` 整型 id：id 要在 Robolectric 下才取到（`SourceSwitchViewModelTest`
  * 即为取资源文案而挂 Robolectric），枚举在纯 JVM 就能断言；枚举与文案的配对由 UI 里

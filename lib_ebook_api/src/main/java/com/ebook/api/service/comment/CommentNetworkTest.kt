@@ -81,7 +81,7 @@ class CommentNetworkTest @Inject constructor(
      * 删除评论。
      *
      * **为何无静态资产可对应**：本方法的响应表达的是「按传入的 [id] 过滤掉一行之后的列表状态」，
-     * 即结果随入参变化——静态 JSON 只能表达一份固定结果，无法表达「删了哪条」。按 `AGENTS.md`
+     * 即结果随入参变化——静态 JSON 只能表达一份固定结果，无法表达「删了哪条」。按 `docs/development.md`「模块独立运行与 mock」
      * 的 mock 约定，这类**回显入参的写接口**一律在代码里合成响应（读接口才用资产：
      * 本类的 [getMyComments]/[getComments] 走 `user_comments.json`/`chapter_comments.json`）。
      * 为凑「每个接口都有资产」而造一份固定 JSON 冒充删除响应，会让「删除后列表没变」变成

@@ -70,7 +70,7 @@ internal data class SourceSwitchCandidate(
  * 形态对齐阅读器既有面板的弹层惯例（`ModalBottomSheet` + 半屏限高列表 + `navigationBarsPadding`）：
  * 五个面板已是同一套 chrome，另立一套会让「从菜单里滑出来的东西」有两种脾气。
  * **不额外套 MaterialTheme**——本弹层是阅读页组合的后代，自然解析到基类 `AppTheme` 装配点那份
- * colorScheme，与其余 chrome 同随外观主题深浅色（AGENTS.md：全局主题由基类/页面装配点提供）。
+ * colorScheme，与其余 chrome 同随外观主题深浅色（docs/architecture.md「主题与阅读器两层口径」：全局主题由基类/页面装配点提供）。
  *
  * 留在这一层的三件事都带 ViewModel 或本地状态，搬进根组件就再也预览不了：
  * - 四个状态流的收集
@@ -156,7 +156,7 @@ fun SourceSwitchSheet(
 }
 
 /**
- * 换源面板的**无状态根**：弹层里那一栏内容（AGENTS.md「屏幕的无状态根」）。
+ * 换源面板的**无状态根**：弹层里那一栏内容（docs/architecture.md「无状态根与预览」）。
  *
  * 只吃不可变状态与回调，于是这些形态第一次可以预览、也能被 JVM 渲染用例组合出来。
  * **弹层壳不在这一层**：`ModalBottomSheet` 是独立窗口，设计期拍不出可靠的一张图，

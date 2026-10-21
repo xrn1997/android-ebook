@@ -1,6 +1,9 @@
 # 书架网络书章节更新检查（阶段 1：按需重抓与前缀 diff）
 
-- 状态：**阶段 1 已落地（2026-09-13）**，未提交。阶段 2（书架批量检查 + 红点）见 §10，尚未开工。
+> 状态：进行中（阶段 1 已落地，阶段 2 待开工；2026-10-21 复核）
+> 现行事实源：ADR-0039、`docs/architecture.md`「目录事实源与追更」
+
+- 状态：**阶段 1 已落地（2026-09-13）**；阶段 2（书架批量检查 + 红点）见 §10，尚未开工。
 - 日期：2026-09-13
 - 修订：2026-09-13（落地时把 §4.1 的判定从「按位置逐位比对 `contentRef`」改为
   **「按 `contentRef` 在远端定位 + 校验相对顺序」**。原因由单测暴露：远端行的 `durChapterIndex`
@@ -344,7 +347,7 @@ sealed class ChapterSyncResult {
 
 手动刷新的提示统一经 `lib_book_common` 的 `reportFailure`（`FailureReport.kt:40-52`）——
 它已内置会话过期收口（`isSessionExpiredHandled` 命中时只记日志、不重复提示），
-按 AGENTS.md 约定**不要再手写 `isSessionExpiredHandled` 分支**。
+按 `docs/architecture.md`「认证与会话」的约定**不要再手写 `isSessionExpiredHandled` 分支**。
 
 `Diverged` 不持久化的代价：用户 5 分钟内第二次进详情页看不到提示条（限频挡掉了检查）。
 可接受 —— 他第一次已经看到了，且提示在每次限频到期后会重新出现（这是持续性故障，重复提示是对的）。
@@ -407,7 +410,7 @@ data class ChaptersUpdated(val bookShelf: BookShelfEntity) : BookShelfEvent()
 
 **现有测试跟进**：§8 列出的两处事件序列断言；4 个穷举 `when` 消费方若已有测试则补分支覆盖。
 
-**人工装机验证项（Agent 不做，按 AGENTS.md 分工留给人工，提交时必须显式交代）**：
+**人工装机验证项（Agent 不做，按 `CONTRIBUTING.md` 的提交前验证分工留给人工，提交时必须显式交代）**：
 
 1. 真书进详情页 → 目录变长 + Toast「已更新 N 章」
 2. 断网进详情页 → 不弹任何错误、不显示「加载失败」、本地目录照常可读
@@ -428,17 +431,17 @@ data class ChaptersUpdated(val bookShelf: BookShelfEntity) : BookShelfEvent()
   「有 N 章更新」**不能**从 `chapterList.size - 1 - durChapter` 派生 —— 那是「剩余未读章数」，
   一本读到中途的书会永远亮红点。需要记「上次用户看到目录时的章数」这类事实。
   同理 `Diverged` 若要变成书架上的持久标记也需要落库。
-  按 AGENTS.md 的迁移纪律：version +1、追加紧邻的 `MIGRATION_8_9`、提交 Room 生成的新 schema JSON。
+  按 `docs/architecture.md`「数据与存储」的迁移纪律：version +1、追加紧邻的 `MIGRATION_8_9`、提交 Room 生成的新 schema JSON。
 - **不引入 WorkManager**：版本目录已声明 `androidxWork = 2.11.0`（`libs.versions.toml:32`）但全仓零使用，
   也没有任何周期任务先例。只有在「App 没开也要定期检查」时才需要它，而「打开 App 就知道哪些书更新了」
   用前台检查已足够。引入 WorkManager 要连带处理 Hilt 装配（`androidx-hilt-ext-work`）与进程门
-  （AGENTS.md：`Application` 上不许有 eager `@Inject` 字段，沙箱进程会崩），成本远高于收益。
+  （`docs/architecture.md`「Hilt 与 Application」：`Application` 上不许有 eager `@Inject` 字段，沙箱进程会崩），成本远高于收益。
 
 ## 11. ADR 与文档同步
 
 **新增一篇 ADR**，主题：目录重抓的前缀不变式与「分叉即整笔放弃」。
 
-必须写 ADR 的判据（AGENTS.md）：有真实权衡（自愈能力 vs 静默读错章的风险），
+必须写 ADR 的判据（`docs/adr/ADR-FORMAT.md`）：有真实权衡（自愈能力 vs 静默读错章的风险），
 且无上下文会让人惊讶 —— 后人看到「远端目录明明有数据却整笔不写」很容易以为是漏实现而"修好"它，
 一修就破坏 I2、让已下载章文件与目录错位。
 
@@ -448,7 +451,7 @@ data class ChaptersUpdated(val bookShelf: BookShelfEntity) : BookShelfEvent()
 **其他文档同步**：
 
 - `CONTEXT.md`：若「章节更新检查」「前缀不变式」构成新领域术语，补进术语表（纯术语，不写实现细节）。
-- `AGENTS.md`「Agent 实战建议」：补一条「涉及目录重抓时先读该 ADR」，并把 I2 / I3 两条硬约束点出来
+- `docs/architecture.md`「目录事实源与追更」：补一条「涉及目录重抓时先读该 ADR」，并把 I2 / I3 两条硬约束点出来
   （章文件按序号命名 ⇒ 序号不得漂移；新索引取 `max + 1` 不取 `size`）。
 - `docs/test-coverage-todo.md`：登记 §9 的人工装机验证项。
 
