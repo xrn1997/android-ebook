@@ -29,7 +29,7 @@ import com.ebook.common.ui.preview.AppPreview
  *
  * 三态取法：
  * - 空 URL：没有请求可发，直接展示默认头像（走 [Image]，不经过 Coil）；
- * - 加载中：[MaterialTheme.colorScheme.surfaceVariant] 中性色块。刻意不给默认头像——
+ * - 加载中：`MaterialTheme.colorScheme.surfaceVariant` 中性色块。刻意不给默认头像——
  *   头像的内容必然是「人」，加载途中先闪一张陌生剪影再换成真人照片，比色块突兀；
  * - 失败：默认头像。
  *

@@ -201,7 +201,7 @@ class LocalImportCoordinator @Inject constructor(
             when (resolution) {
                 DuplicateResolution.MERGE -> applyMerge(imported, matches)
                 DuplicateResolution.OVERWRITE -> applyOverwrite(imported, matches)
-                DuplicateResolution.KEEP_BOTH, DuplicateResolution.CANCEL -> Unit
+                DuplicateResolution.KEEP_BOTH -> Unit
             }
         } finally {
             // 成功（书架行已落库、事件已发）与失败（抛给上层计数）都要摘掉占位行；

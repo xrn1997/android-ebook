@@ -20,7 +20,7 @@ import org.junit.Test
 /**
  * [ShelfEntryStore] 的四表不变式：一个条目由哪些行组成、事务边界、提交后事件。
  *
- * 这些断言原先分散在 [BookRepositoryTest] 与 [LocalBookImporter] 的路径里；
+ * 这些断言原先分散在 [BookRepositoryTest] 与 `LocalBookImporter` 的路径里；
  * 提成 store 后这里直接锁「写/删/替换/补章」四种提交。
  */
 class ShelfEntryStoreTest {

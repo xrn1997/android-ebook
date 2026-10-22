@@ -29,7 +29,7 @@ import java.io.File
  * 3. **归属**：这里全是 ebook 域类型（书架条目、书源定义），本就属 `lib_book_common`；
  *    六个 UI 模块都依赖它，于是一份样例全仓复用，不会出现同一个书名在四个模块有四份假数据。
  *
- * **封面地址取不到图是预期行为**：预览与非设备环境里没有可联网的图像加载，[BookCover] 一类
+ * **封面地址取不到图是预期行为**：预览与非设备环境里没有可联网的图像加载，[com.ebook.common.ui.BookCover] 一类
  * 组件会落到内置兜底封面。这恰好是最该看的一档——真实站点里就是有一批书没有封面。
  * 想看"有封面"的观感只能在设备上确认。
  *
@@ -85,7 +85,6 @@ fun sampleShelfBook(
     introduce: String = "山与海之间遗落的旧事，一册写完便再寻不到第二份。",
     chapters: Int = 128,
     durChapter: Int = 127,
-    lastChapterName: String = "第 $chapters 章 ${sampleChapterSuffix(chapters)}",
 ): BookShelfEntity {
     val noteUrl = "$SAMPLE_SOURCE_URL/book/$index"
     return BookShelfEntity(
@@ -181,7 +180,7 @@ fun sampleKindSections(
 /**
  * 章节目录行。
  *
- * [contentRef] 是主键（本地书是章文件相对路径、网络书是章节 URL），这里按网络书给；
+ * [ChapterListEntity.contentRef] 是主键（本地书是章文件相对路径、网络书是章节 URL），这里按网络书给；
  * `durChapterIndex` 连续递增，不模拟"删过章留下的洞"——那种形态要单独传一份不连续的列表。
  */
 fun sampleChapters(noteUrl: String = "$SAMPLE_SOURCE_URL/book/1", count: Int = 128): List<ChapterListEntity> =
@@ -227,7 +226,7 @@ fun sampleNativeSource(
  * 脚本书源（[SourceDefinition.Script]）：默认源载体的另一种出身。
  *
  * 展示信息取自实体列而非 `rule_json`（生产里也只有 `toDefinition` 这一处填它们），
- * 所以这里 [rawJson] 只需要是一段形状正确的社区格式原文，不参与任何渲染取值。
+ * 所以这里 [SourceDefinition.Script.rawJson] 只需要是一段形状正确的社区格式原文，不参与任何渲染取值。
  */
 fun sampleScriptSource(
     name: String = "样例脚本书源",

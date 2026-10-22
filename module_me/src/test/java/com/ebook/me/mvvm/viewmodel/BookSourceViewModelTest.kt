@@ -96,7 +96,7 @@ class BookSourceViewModelTest {
         ruleContent = ContentRule(content = content),
     )
 
-    /** 只填名称与地址的 JSON 片段（其余规则字段由 [fullSourceJson] 补全） */
+    /** 只填名称与地址的 JSON 片段（其余规则字段取默认值） */
     private fun sourceJson(
         name: String,
         url: String,

@@ -13,7 +13,7 @@ import androidx.room3.Relation
  * 访问路径：
  * - result.bookShelf.noteUrl — 书架信息
  * - result.info.name — 书名、作者等
- * - result.chapters[0].durChapterName — 章节名
+ * - `result.chapters[0].durChapterName` — 章节名
  */
 data class BookShelfFullInfo(
     @Embedded val bookShelf: BookShelfEntity,

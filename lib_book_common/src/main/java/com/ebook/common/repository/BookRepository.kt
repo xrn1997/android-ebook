@@ -656,22 +656,6 @@ class BookRepository @Inject constructor(
         withContext(Dispatchers.IO) { chapterListDao.getChaptersForBook(noteUrl) }
 
     /**
-     * 批量判定哪些章节已有缓存（章文件存在）。
-     *
-     * 供下载面板绘制"已缓存"徽章：以 BookStore 章文件为事实源。
-     */
-    suspend fun getCachedChapterIndices(
-        bookShelf: BookShelfEntity,
-        chapters: List<ChapterListEntity>,
-    ): Set<Int> = withContext(Dispatchers.IO) {
-        val format = resolveFormat(bookShelf)
-        val location = BookLocation(bookShelf.noteUrl, format, bookShelf.tag)
-        chapters.filter { bookStore.hasChapter(location, it.durChapterIndex) }
-            .map { it.durChapterIndex }
-            .toSet()
-    }
-
-    /**
      * 解析书架的 BookFormat：本地书按 bookFormat 列（缺省 TXT），网络书固定 NETWORK。
      */
     private fun resolveFormat(bookShelf: BookShelfEntity): BookFormat {
@@ -749,7 +733,7 @@ class BookRepository @Inject constructor(
      * 不会让旧条目的读并集少一个键。这与"覆盖"不同：覆盖活下来的是新条目，得先把旧条目身上
      * 的 secondary 键搬过去。
      *
-     * 提交顺序仍是「先写章文件、后一个事务写库」（对齐 [LocalBookImporter] 的理由：反过来会
+     * 提交顺序仍是「先写章文件、后一个事务写库」（对齐 `LocalBookImporter` 的理由：反过来会
      * 留下指向不存在文件的索引行）。中途失败最坏是旧目录多几个没有索引行的章文件——读取路径
      * 按索引行走，碰不到它们，也不会被对账误删（对账只回收库里已无书的整目录）。
      *
@@ -874,7 +858,7 @@ class BookRepository @Inject constructor(
      * 进程被杀时来不及），而对账是唯一的回收手段——不跑就是"占了空间却看不见书"。
      *
      * **调用时机的不变式：一个进程只在全机启动时跑一次，导入进行中不得调用。**
-     * 两处会误删：①`[com.ebook.common.importer.LocalBookImporter]` 在 `commitImport` 与落库
+     * 两处会误删：①`LocalBookImporter` 在 `commitImport` 与落库
      * 之间存在"目录已改名、DB 还没有行"的窗口；②正在写入的暂存目录带 `.tmp` 后缀，
      * 在对账眼里就是残留。启动点两条都不可能撞上：导入只由界面操作发起。
      */
@@ -913,7 +897,7 @@ sealed class BookShelfEvent {
 }
 
 /**
- * [mergeTailChapters] 的结局。四个分支都得让 UI 说得出人话——判重处置是破坏性操作，
+ * [BookRepository.mergeTailChapters] 的结局。四个分支都得让 UI 说得出人话——判重处置是破坏性操作，
  * 「静默没做成」比「做成 0 章」更让用户困惑。
  */
 sealed class ImportMergeResult {

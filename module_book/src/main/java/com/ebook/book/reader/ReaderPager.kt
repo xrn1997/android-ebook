@@ -231,7 +231,7 @@ class ReaderPagerController internal constructor(
         }
     }
 
-    /** 程序化向前翻页（点击左三分区 / 音量键上）。对齐原 initMoveSuccessAnim(viewContents[0], 0) */
+    /** 程序化向前翻页（点击左三分区 / 音量键上）。对齐原 `initMoveSuccessAnim(viewContents[0], 0)` */
     override fun turnPrev() {
         if (isMoving) return
         if (prevKey == null) {

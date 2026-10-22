@@ -61,7 +61,7 @@ import androidx.core.graphics.createBitmap
 /**
  * 头像裁剪页（Compose，替代原 ViewBinding 版）。
  *
- * 图片经手势单指拖动、双指缩放（范围 [minScale, 4*minScale]），圆形裁剪区固定在容器中央，
+ * 图片经手势单指拖动、双指缩放（范围 `[minScale, 4*minScale]`），圆形裁剪区固定在容器中央，
  * 拖动/缩放被约束为裁剪圆内不露白；确认后按当前显示矩阵裁出圆外接正方形并缩放输出。
  *
  * 与旧版（ClipViewLayout + ClipView 自绘 View）行为一致，但纯 Compose 实现，
@@ -362,7 +362,7 @@ class CropState(
 /**
  * 按当前显示矩阵从源图裁出圆外接正方形区域并缩放。
  *
- * 屏幕坐标 → 输出坐标：圆外接正方形 [center±radius] 映射到 [0, outputSize]，
+ * 屏幕坐标 → 输出坐标：圆外接正方形 `[center±radius]` 映射到 `[0, outputSize]`，
  * 源图经 (显示 = *scale + offset) 变换后取该区域。
  *
  * @param outputSize 输出边长（默认 200px，头像上传的标准尺寸）

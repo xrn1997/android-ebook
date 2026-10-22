@@ -351,7 +351,7 @@ class ScriptBookParser internal constructor(
 
     /**
      * 目录链路（ruleToc，规格 §1.5/§7.1）：从章节索引入口逐页抓取章节，装配
-     * [ChapterListEntity] 列表挂回 `bookShelf.chapterList`。终止判据与上限策略与原生
+     * [com.ebook.db.entity.ChapterListEntity] 列表挂回 `bookShelf.chapterList`。终止判据与上限策略与原生
      * `TocPager` 同一套（§12：contentRef 跨页去重、零新增即到底、回环即停、触顶截断），
      * 驱动方式换成 `nextTocUrl` 的字符串规则/URL 数组（经 `ScriptTocPager`/`ScriptPageChain`）。
      *

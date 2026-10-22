@@ -585,7 +585,7 @@ class BookSourceManagerImpl internal constructor(
      *   （[observeDefaultSource] 随后发出的就是该脚本行的 [SourceDefinition.Script]）；
      *   改写当前默认源那一行时订阅面重推，解析从此走新原文。
      *
-     * `format` 写 [SourceFormat.SCRIPT.raw] 而不是 `.name`：列值是小写（与 `MIGRATION_5_6` 的
+     * `format` 写 `SourceFormat.SCRIPT.raw` 而不是 `.name`：列值是小写（与 `MIGRATION_5_6` 的
      * `DEFAULT 'native'`、实体默认值同字），大写枚举名会被 [SourceFormat.fromRaw] 静默判成 native，
      * 脚本书源从此按原生规则解析——不闪退、内容错乱，比崩溃难查（判据见 [SourceFormat] 的类注释）。
      * 同理 [evictParser] 必须调：缓存只按 URL 存、不认识 `format`，同一条 URL 从原生翻成脚本

@@ -64,7 +64,7 @@ internal fun searchBookInfoRows(
  *
  * 其余口径（共享 [BookItemFrame] 与 [BookItemMetaRow] 上各有一段）：
  * - 基线取封面顶边：封面、书名、加书架图标三者顶边齐平；封面宽由列高按 3:4 推出（57×76），
- *   [BookCover] 的 Crop 因此一边都不裁（不少站点把书名印在封面底边，裁不得）。
+ *   [com.ebook.common.ui.BookCover] 的 Crop 因此一边都不裁（不少站点把书名印在封面底边，裁不得）。
  * - 加书架图标是浮在正文列右上角的覆盖层，不参与任何一行的高度，也不占二、三行的宽度，
  *   书源因此能贴到卡片右内边距。
  * - 中间行显示几行由 [bookItemLineCount] 按列高算：系统字号越大行数越少，卡片高度不变；

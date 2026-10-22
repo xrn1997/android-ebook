@@ -489,7 +489,7 @@ private fun DownloadManageEmptyPreview() {
 /**
  * 一级书行的样例分组。
  *
- * 直接写展示串而不从 [com.ebook.common.ui.preview.PreviewSamples] 的实体推：
+ * 直接写展示串而不从 `PreviewSamples` 的实体推：
  * [DownloadBookGroup] 是本页自己的聚合类型（VM 现算的展示形状，不是库里的一行），
  * 门面只收 ebook 域的共享实体。只有「正在下载」那一行需要队列表的一行任务，那里取
  * [sampleDownloadChapter]（它是 `download_chapter` 的真实体）。

@@ -88,7 +88,7 @@ class HostCallbackRouter : HostHandler {
  *
  * **嵌套求值的 JS 闸门在调用方身上**：[evaluateNested] 必须收到一个**关掉 JS** 的求值器
  * （Task 10 装配时给）。沙箱只有一个 runtime 且此刻正攥在外层 `execute` 手上，嵌套再要一次 JS
- * 就是双向死锁；这条要求编译期传不出来，所以 [limits.maxCallbackDepth] 是它的绊线（正常恒为 1）。
+ * 就是双向死锁；这条要求编译期传不出来，所以 `limits.maxCallbackDepth` 是它的绊线（正常恒为 1）。
  *
  * 可变字段一律 `@Volatile`：初值写在调用 `execute` 的线程上（构造时），之后的读写发生在受理回调的
  * binder 线程，而 binder 线程池**不保证连续两次回调落在同一条线程**。跨过这条边界的是 binder

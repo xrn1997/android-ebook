@@ -9,7 +9,7 @@ import java.util.Locale
  * 数字格式固定 Locale.US（小数点），保证展示与单元测试跨环境一致。
  *
  * 之所以存在：导入页与缓存管理页都要把字节数展示给用户，两处各写一份就会分叉出两种口径。
- * 它是域无关件，真正的家在外部库 `lib_common`——与 [FileTree.treeSize] 同一批待迁移项，
+ * 它是域无关件，真正的家在外部库 `lib_common`——与 `FileTree.treeSize` 同一批待迁移项，
  * 等下次联动窗口上移。
  */
 fun formatSize(bytes: Long): String = when {

@@ -55,5 +55,3 @@ fun BookComment.toApiComment(): Comment = Comment().apply {
     content = this@toApiComment.content
     addTime = this@toApiComment.addTime
 }
-
-fun List<BookComment>.toApiCommentList(): List<Comment> = map { it.toApiComment() }

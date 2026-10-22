@@ -35,8 +35,8 @@ import kotlin.time.Duration.Companion.seconds
  *
  * 两种触发（`corpus.*` 系统属性由 build.gradle.kts 透传）：
  * - 单条：`-Pcorpus.record=<书源JSON文件> -Pcorpus.keyword=<关键词>`
- * - 批量：`-Pcorpus.batch=<A桶JSON> -Pcorpus.batchOffset=0 -Pcorpus.batchLimit=50
- *          [-Pcorpus.keywords=剑来,斗破苍穹,三体] [-Pcorpus.conn=<连通性TSV>]`
+ * - 批量：`-Pcorpus.batch=<A桶JSON> -Pcorpus.batchOffset=0 -Pcorpus.batchLimit=50`
+ *   `[-Pcorpus.keywords=剑来,斗破苍穹,三体] [-Pcorpus.conn=<连通性TSV>]`
  *   批量按 [OFFSET, OFFSET+LIMIT) 切片、**已录夹具自动跳过**（天然可续跑），
  *   逐源记录成败与原因，汇总 TSV 写到 `build/corpus-summary-<offset>.tsv`。
  *

@@ -79,7 +79,7 @@ internal object ElementBackends {
      * 末段取值器：节点集映射成文本集，**映射后为空即「未取到值」**（§3.3）。
      *
      * 空映射与「选择器选不到节点」是同一件事：§3.2 要求属性缺失的元素跳过，语料里 `@_src` 这类
-     * 懒加载属性又只在部分标签上存在，全缺失时 [RuleResult.Nodes.mapToTexts] 产出的是 `Texts(空)`
+     * 懒加载属性又只在部分标签上存在，全缺失时 `RuleResult.Nodes.mapToTexts` 产出的是 `Texts(空)`
      * 而不是 [RuleResult.Miss]。留在 `Texts(空)` 会让 `firstOf` 判成「有值」——`A@_src||A@src`
      * 这种兜底写法的第二支永远不执行，症状是封面取到空串且零报错，正是 §12 要防的静默解错。
      * `textNodes` 取值器下全空白节点被过滤后同理。
@@ -87,7 +87,7 @@ internal object ElementBackends {
      * 同文件的选择器选空（[evaluateChain] 循环内与 [evaluateCss] 起步）早已出口成 [RuleResult.Miss]，
      * 取值器尾段是同一口径的最后一处，必须一起收口。
      *
-     * 收口放在这里而不是 [RuleResult.Nodes.mapToTexts]：那个函数是「节点→文本」的纯映射，
+     * 收口放在这里而不是 `RuleResult.Nodes.mapToTexts`：那个函数是「节点→文本」的纯映射，
      * 而 `RuleResultTest.Miss 是独立事实而不是空列表` 明确钉住「零节点映射出的空 Texts」与
      * 「Miss」不是同一个值——把归一塞进映射函数会同时推翻那条用例。
      */

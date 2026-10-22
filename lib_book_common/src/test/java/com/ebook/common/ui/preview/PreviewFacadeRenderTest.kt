@@ -35,7 +35,7 @@ import org.robolectric.annotation.GraphicsMode
  * 而 Android Studio 里只留一行看不出根因的报错。这一层用 Robolectric 在 JVM 上真组合一次，
  * 把"渲染得出来"变成可断言的事实，而不是等人打开预览面板才发现。
  *
- * 用例组合的是**与预览同一个组件、同一份样例**（样例只能从门面取，见 [PreviewSamples]）：
+ * 用例组合的是**与预览同一个组件、同一份样例**（样例只能从门面取，见 `PreviewSamples`）：
  * 两边各造一份数据就会漂移，测试绿着而预览却是坏的。
  */
 @RunWith(RobolectricTestRunner::class)

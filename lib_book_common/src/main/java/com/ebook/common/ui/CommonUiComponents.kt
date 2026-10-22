@@ -178,7 +178,7 @@ fun CommonItemCard(
  * @param trailingContent 标题右侧的自定义内容（如头像缩略图），优先于 [trailingText]
  * @param showArrow 是否显示右侧箭头（纯展示项如版本号不显示）
  * @param enabled 点击是否可用。false 时**整行照常渲染但不响应点击**，且标题与图标一并走
- *   [androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant]——「看得见」与
+ *   `androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant`——「看得见」与
  *   「点不动」必须在组件内一次表达完，否则各页自己配一套灰掉的颜色，置灰语义就散了。
  *   用于「这项存在但当前不允许操作」的场合（如书源管理页内置源的删除项）
  * @param onClick 点击回调

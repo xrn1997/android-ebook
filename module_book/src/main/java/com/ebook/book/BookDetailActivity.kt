@@ -460,7 +460,7 @@ private fun BookDetailScreenPreview(
 /**
  * 七档渲染态的样例出口。
  *
- * 这里直接写展示字符串而不是从 [PreviewSamples] 的实体推：根组件吃的已经是**派生完**的
+ * 这里直接写展示字符串而不是从 `PreviewSamples` 的实体推：根组件吃的已经是**派生完**的
  * [BookDetailRenderState]，实体到文案的那一步归 [rememberBookDetailRenderState]，
  * 它自己有 `ShelfItemRowsTest` 那类用例守着。预览要拍的是"每种状态画成什么样"。
  */

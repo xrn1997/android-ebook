@@ -23,9 +23,9 @@ internal fun exceedsSelectionCap(size: Int): Boolean = size > MAX_DOWNLOAD_SELEC
 /**
  * 范围选择输入解析：1-based 起止章号 → 0-based 索引闭区间（见 ADR-0034 修订说明）。
  *
- * 任何非法输入（空串 / 非数字 / 越界 [1, total] / 起大于止）都返回 null，由调用方决定
+ * 任何非法输入（空串 / 非数字 / 越界 `[1, total]` / 起大于止）都返回 null，由调用方决定
  * 如何提示——返回空区间会让「确定」看起来成功、勾选却没变化，比置灰更难排查。
- * 章号是用户视角的「第 X 章」（1-based，与列表行号同义），索引是 [BookChapterSelection.chapters]
+ * 章号是用户视角的「第 X 章」（1-based，与列表行号同义），索引是 [com.ebook.book.mvvm.viewmodel.BookChapterSelection.chapters]
  * 的下标，转换即 -1。
  */
 internal fun parseChapterRange(from: String, to: String, total: Int): IntRange? {

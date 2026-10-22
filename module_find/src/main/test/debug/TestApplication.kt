@@ -7,7 +7,7 @@ import com.therouter.router.interceptor.PathReplaceInterceptor
 import dagger.hilt.android.HiltAndroidApp
 
 /**
- * module_find 独立运行时的 Application（[module/AndroidManifest.xml] 引用）。
+ * module_find 独立运行时的 Application（`module/AndroidManifest.xml` 引用）。
  *
  * 继承 [BookApplication] 复用公共初始化，并通过 TheRouter PathReplaceInterceptor
  * 替换两条跨模块路由、使模块独立运行时不依赖别的业务模块：

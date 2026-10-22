@@ -77,7 +77,8 @@ class BookStore(private val booksRoot: File) {
      * 写封面图片到指定目录（spec §4：`books/<bookId>/cover.<ext>`）。
      *
      * 导入期 [targetDir] 是暂存目录（`commitImport` 后随目录改名到正式位置）；
-     * 调用方只需在 `commitImport` 之后按 [coverRef] 定位封面文件。
+     * 扩展名随源文件（EPUB 封面条目的后缀）变化，没有可拼的固定路径，调用方在 `commitImport`
+     * 之后到 [bookDir] 下取文件名以 `cover.` 开头的那一个。
      */
     fun writeCover(targetDir: File, ext: String, bytes: ByteArray) {
         val target = File(targetDir, "cover.$ext")

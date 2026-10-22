@@ -149,7 +149,7 @@ private val HeaderActionGap = 4.dp
  * 内容复用原选章页的章节三态/软上限纯逻辑（ChapterSelection.kt）。
  * 顶部导航由宿主基类 Toolbar（标题 + 返回箭头）承担，本页**不自绘返回按钮**，
  * 避免与基类 Toolbar 出现双返回入口；系统返回/工具栏箭头均经活动层 BackHandler
- * 在 [DownloadCenterStep] 间切换。
+ * 在 [com.ebook.book.mvvm.viewmodel.DownloadCenterStep] 间切换。
  */
 @Composable
 fun BookChapterSelectPage(
