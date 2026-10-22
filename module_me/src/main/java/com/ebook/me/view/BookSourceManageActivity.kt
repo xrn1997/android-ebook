@@ -236,14 +236,14 @@ private fun buildExportFileName(sourceName: String?): String {
 /** 读 SAF 文本；流打不开或读失败返回 null（调用方提示「无法读取该文件」） */
 private fun Uri.readJsonText(resolver: ContentResolver): String? = try {
     resolver.openInputStream(this)?.bufferedReader()?.use { it.readText() }
-} catch (e: Exception) {
+} catch (_: Exception) {
     null
 }
 
 /** 写 SAF 文本；流不可用或写失败返回 false */
 private fun Uri.writeJsonText(resolver: ContentResolver, text: String): Boolean = try {
     resolver.openOutputStream(this)?.use { it.write(text.toByteArray()) } != null
-} catch (e: Exception) {
+} catch (_: Exception) {
     false
 }
 

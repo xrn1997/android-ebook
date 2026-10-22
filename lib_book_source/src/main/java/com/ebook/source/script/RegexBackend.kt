@@ -35,7 +35,7 @@ internal object RegexBackend {
         val regex = try {
             // 多行语义：语料的正文/目录页常按行切条目，`^`/`$` 要按行而非整源锚定
             Regex(filled, RegexOption.MULTILINE)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             // PatternSyntaxException 是 IllegalArgumentException 的子类。换成类型化语法错误（§3.3）：
             // 一条写坏的正则可被 `||` 当未取到值继续下一支，而不是拿运行期异常崩穿整次解析
             throw RuleSyntaxException(":$filled")
@@ -59,7 +59,7 @@ internal object GroupRef {
     /** 整串就是一个组引用时返回组号，否则 null（调用方据此决定走组取值还是继续按规则解） */
     fun parseOrNull(text: String): Int? {
         val t = text.trim()
-        if (!t.startsWith("\$") || t.length < 2) return null
+        if (!t.startsWith('$') || t.length < 2) return null
         return t.substring(1).toIntOrNull()?.takeIf { it >= 0 }
     }
 

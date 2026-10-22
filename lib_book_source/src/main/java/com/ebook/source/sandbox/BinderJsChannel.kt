@@ -94,8 +94,8 @@ private class HostCallbackBinder(private val relay: (String) -> String) : Binder
 
     override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean = when (code) {
         // 与执行器侧同一套分诊：管家事务先给框架，否则 enforceInterface 会把它们一起拒掉
-        IBinder.PING_TRANSACTION -> true
-        IBinder.DUMP_TRANSACTION, IBinder.INTERFACE_TRANSACTION -> super.onTransact(code, data, reply, flags)
+        PING_TRANSACTION -> true
+        DUMP_TRANSACTION, INTERFACE_TRANSACTION -> super.onTransact(code, data, reply, flags)
         SandboxContract.TX_HOST_CALL -> handleCall(data, reply)
         else -> false
     }

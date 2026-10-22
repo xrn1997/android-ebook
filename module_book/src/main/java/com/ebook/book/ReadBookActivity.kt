@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -427,6 +428,16 @@ private fun spToPx(resources: Resources, sp: Float): Float =
     )
 
 /**
+ * 翻页方式索引 → 导航判据：0 = 左右翻页，其余一律按上下滚屏。
+ *
+ * 索引是设置与持久化的口径（[ReadBookControl.turnModeIndex]），越界值到不了这里——
+ * `ReadBookControl` 在读取与写入时都已回落/拒绝。枚举只有 [ReaderTurnMode] 一份，
+ * 页面只在这里做一次换算，不要在调用点再写 `index == 0`。
+ */
+private fun turnModeOf(index: Int): ReaderTurnMode =
+    if (index == 0) ReaderTurnMode.PAGED else ReaderTurnMode.SCROLL
+
+/**
  * 阅读页屏幕：翻页容器 + 菜单覆盖层 + 各类面板/弹窗的编排。
  */
 @Composable
@@ -480,6 +491,11 @@ private fun ReadBookScreen(
 
     val bookShelf = viewModel.bookShelf
     val chapterAll = viewModel.getChapterListSize()
+    // 追更提示在组合期取模板与资源 locale、回调里再 format：syncAtTailChapter 的回调不是
+    // Composable，在那儿调 context.getString 会踩 lint LocalContextGetResourceValueCall（同
+    // noChapter 的理由）；显式带 locale 是为了保持 context.getString(id, args) 的资源格式化口径
+    val chaptersAppendedFormat = stringResource(R.string.chapters_appended)
+    val chaptersAppendedLocale = LocalConfiguration.current.locales[0]
 
     /**
      * 到达末章时静默查一次目录更新。
@@ -507,7 +523,7 @@ private fun ReadBookScreen(
                     sliderValue = (chapterIndex + 1).toFloat()
                     ToastUtil.showShort(
                         context,
-                        context.getString(R.string.chapters_appended, appended.size),
+                        chaptersAppendedFormat.format(chaptersAppendedLocale, appended.size),
                     )
                 }
             }
@@ -524,7 +540,7 @@ private fun ReadBookScreen(
     val currentSyncAtTailChapter by rememberUpdatedState(syncAtTailChapter)
     val navigation = remember {
         ReaderNavigation(
-            initialMode = if (turnModeIndex == 0) ReaderTurnMode.PAGED else ReaderTurnMode.SCROLL,
+            initialMode = turnModeOf(turnModeIndex),
             onProgress = { c, p ->
                 // 两种方式唯一的进度出口：进度落 ViewModel + 菜单标题 + 章节滑条 + 末章追更。
                 // p 为翻页目标的页码（可能为哨兵），与原实现一致直接落库。
@@ -703,7 +719,7 @@ private fun ReadBookScreen(
     val chapters = bookShelf?.chapterList ?: emptyList()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (turnModeIndex == 0) {
+        if (turnModeOf(turnModeIndex) == ReaderTurnMode.PAGED) {
             ReaderPager(
                 controller = controller,
                 textColor = textColor,
@@ -903,7 +919,7 @@ private fun ReadBookScreen(
                     modeSwitchOldLineCount = activity.pagination.pageLineCount
                     // 同步改导航判据：pendingTurnModeSwitch 的效应可能在同帧内就调用 setPosition，
                     // 若等 LaunchedEffect 再改 mode，那一次定位会落到旧模式的控制器上
-                    navigation.setMode(if (index == 0) ReaderTurnMode.PAGED else ReaderTurnMode.SCROLL)
+                    navigation.setMode(turnModeOf(index))
                     turnModeIndex = index
                     pendingTurnModeSwitch = true
                 }

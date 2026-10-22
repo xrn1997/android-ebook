@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -171,7 +170,6 @@ fun BookstorePage(viewModel: LibraryViewModel = hiltViewModel()) {
  * @param sources 可切换的源（VM 已过滤为「启用中」，禁用项不进这份清单，见 LibraryViewModel.sources）
  * @param onSelectSource 选中某条源时回调其 URL
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BookSourceSelector(
     currentSource: SourceDefinition?,
@@ -274,7 +272,6 @@ private fun BookSourceSelector(
  * @param sourceUrl 当前源 URL：本页的分类胶囊/「更多」跳分类页时随导航参数带上，
  *   让那一页明确知道这些分类 url 属于哪个源（空串 = 无源，照常带，由分类页统一处置）
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LibraryContent(
     listState: LazyListState,

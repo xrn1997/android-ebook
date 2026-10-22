@@ -34,7 +34,7 @@ class JsoupBookParser(
     val rule: BookSourceRule,
     okHttpClient: OkHttpClient
 ) : BookParser {
-    private val TAG = "JsoupBookParser[${rule.name}]"
+    private val logTag = "JsoupBookParser[${rule.name}]"
     private val network = BookSourceNetwork(rule, okHttpClient)
 
     // region 搜索书籍
@@ -42,7 +42,7 @@ class JsoupBookParser(
         val keyword = try {
             URLEncoder.encode(content, rule.charset)
         } catch (e: Exception) {
-            Logger.w(TAG, "URLEncoder.encode failed for charset=${rule.charset}, falling back to raw content", e)
+            Logger.w(logTag, "URLEncoder.encode failed for charset=${rule.charset}, falling back to raw content", e)
             content
         }
 
@@ -60,10 +60,10 @@ class JsoupBookParser(
             .replace("{{keyword}}", keyword)
             .replace("{{page}}", ListPageUrl.actualPage(page, pageParam).toString())
 
-        Logger.d(TAG, "searchBook: url=$url, method=$method")
+        Logger.d(logTag, "searchBook: url=$url, method=$method")
         val html = network.getPage(url, method, body)
         val results = parseSearchBook(html)
-        Logger.d(TAG, "searchBook: parsed ${results.size} results")
+        Logger.d(logTag, "searchBook: parsed ${results.size} results")
         results
     }
 
@@ -190,7 +190,7 @@ class JsoupBookParser(
             val searchRule = if (findRule.ruleSearch.list.isNotEmpty()) findRule.ruleSearch else rule.ruleSearch
             parseSearchBookWithRule(html, searchRule)
         } catch (e: Exception) {
-            Logger.e(TAG, "getKindBook: ", e)
+            Logger.e(logTag, "getKindBook: ", e)
             emptyList()
         }
     }
@@ -219,21 +219,21 @@ class JsoupBookParser(
 
         val kindBooksList = mutableListOf<LibraryKindBookListEntity>()
 
-        for (kind in findRule.kinds) {
+        for ((title, url) in findRule.kinds) {
             try {
                 // 首页必须走 ListPageUrl：直接填 1 会生成 /xuanhuan/1，站点 404
                 val kindUrl = ListPageUrl.build(
-                    findRule.url.replace("{{kind}}", kind.url),
+                    findRule.url.replace("{{kind}}", url),
                     1,
                     rule.searchPage,
                 )
                 val html = network.getPage(kindUrl)
                 val searchRule = if (findRule.ruleSearch.list.isNotEmpty()) findRule.ruleSearch else rule.ruleSearch
                 val books = parseSearchBookWithRule(html, searchRule)
-                kindBooksList.add(LibraryKindBookListEntity(kind.title, kind.url, books))
+                kindBooksList.add(LibraryKindBookListEntity(title, url, books))
             } catch (e: Exception) {
-                Logger.e(TAG, "加载分类 ${kind.title} 失败", e)
-                kindBooksList.add(LibraryKindBookListEntity(kind.title, "", emptyList()))
+                Logger.e(logTag, "加载分类 $title 失败", e)
+                kindBooksList.add(LibraryKindBookListEntity(title, "", emptyList()))
             }
         }
 
@@ -295,7 +295,7 @@ internal object ListPageUrl {
  * 提为文件级 `internal` 对象而非 [JsoupBookParser] 的私有方法：与 [ListPageUrl] 同一考量，
  * 纯字符串运算，单测无需构造 parser（书源规则 + OkHttpClient）即可覆盖各种模板形态。
  *
- * [TocRule.pageUrl] 渲染出第 [page] 页地址，三种形态的基准不同：
+ * [TocRule.pageUrl] 渲染出第 `page` 页地址，三种形态的基准不同：
  * - `http(s)://` 开头：书源作者写死的绝对地址，原样；
  * - `/` 开头：源根相对（`https://host` + 路径）；
  * - 其余（如 `index_{{page}}.html`）：**索引页 URL 所在目录**相对——索引页 `/book/1/`
@@ -347,7 +347,7 @@ internal object TocPageUrl {
 /**
  * 章节索引分页抓取循环。
  *
- * 提为文件级 `internal` 对象而非 [JsoupBookParser] 的私有方法：抓取经 [collect] 的 [fetch]
+ * 提为文件级 `internal` 对象而非 [JsoupBookParser] 的私有方法：抓取经 [collect] 的 `fetch`
  * 函数参数注入，单测用假 HTML 表即可覆盖分页/终止/触顶各形态，无需构造 parser。
  *
  * 分页模式二选一（[TocRule.nextPage] 优先，两者都配时链接是站点实况、模板只是推算）：
@@ -474,7 +474,7 @@ object ChapterPageMatcher {
      * 判断「下一页」链接是否属于同一章节。
      *
      * 只对**候选链接**剥一次分页后缀，再与章节基准（= 目录页给出的原始章节 URL，未剥离）比对；
-     * 相等才视为本章分页，否则视为本章最后一页（不再跟进）。
+     * 相等（含去掉双方扩展名后的兜底相等）才视为本章分页，否则视为本章最后一页（不再跟进）。
      *
      * 已覆盖的形态：
      * - 基准 `/5/3943720`，分页 `/5/3943720-2`（或 `-2.html`）→ 跟进；

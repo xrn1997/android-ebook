@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -210,7 +211,7 @@ class ImportBookActivity : BaseMvvmActivity<BookImportViewModel>() {
         // 遮罩显隐由进程级协调器的批次状态驱动：重进页面也能看到仍在跑的批次
         val importing by viewModel.isImporting.collectAsStateWithLifecycle()
         // totalCount 在导入开始时锁定（onAddShelf 时 selected 的大小）
-        var totalCount by remember { mutableStateOf(0) }
+        var totalCount by remember { mutableIntStateOf(0) }
 
         ImportBookScreen(
             books = books,
@@ -664,7 +665,7 @@ private fun ImportBookItem(
  * 将来页面再加开关，也只改这一处而不是逐个预览补十九行。
  */
 @Composable
-private fun previewImportBookScreen(
+private fun PreviewImportBookScreen(
     books: List<File> = emptyList(),
     scanning: Boolean = false,
     canCheck: Boolean = false,
@@ -708,7 +709,7 @@ private fun previewImportBookScreen(
 @Preview(showBackground = true)
 @Composable
 private fun ImportBookScreenEmptyPreview() {
-    AppPreview { previewImportBookScreen() }
+    AppPreview { PreviewImportBookScreen() }
 }
 
 /**
@@ -721,7 +722,7 @@ private fun ImportBookScreenEmptyPreview() {
 @Preview(showBackground = true)
 @Composable
 private fun ImportBookScreenScanningPreview() {
-    AppPreview { previewImportBookScreen(scanning = true) }
+    AppPreview { PreviewImportBookScreen(scanning = true) }
 }
 
 /**
@@ -737,7 +738,7 @@ private fun ImportBookScreenScanningPreview() {
 @Composable
 private fun ImportBookScreenCheckablePreview() {
     AppPreview {
-        previewImportBookScreen(books = sampleLocalBookFiles(3), canCheck = true)
+        PreviewImportBookScreen(books = sampleLocalBookFiles(3), canCheck = true)
     }
 }
 
@@ -753,7 +754,7 @@ private fun ImportBookScreenCheckablePreview() {
 @Composable
 private fun ImportBookScreenImportingPreview() {
     AppPreview {
-        previewImportBookScreen(
+        PreviewImportBookScreen(
             books = sampleLocalBookFiles(3),
             canCheck = true,
             importing = true,
@@ -773,7 +774,7 @@ private fun ImportBookScreenImportingPreview() {
 @Composable
 private fun ImportBookScreenImportingStartPreview() {
     AppPreview {
-        previewImportBookScreen(
+        PreviewImportBookScreen(
             books = sampleLocalBookFiles(3),
             canCheck = true,
             importing = true,
@@ -792,7 +793,7 @@ private fun ImportBookScreenImportingStartPreview() {
 @Preview(showBackground = true)
 @Composable
 private fun ImportBookScreenFilesPermissionDialogPreview() {
-    AppPreview { previewImportBookScreen(showFilesPermissionDialog = true) }
+    AppPreview { PreviewImportBookScreen(showFilesPermissionDialog = true) }
 }
 
 /**

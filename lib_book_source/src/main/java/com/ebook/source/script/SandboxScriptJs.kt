@@ -92,12 +92,12 @@ internal class SandboxScriptJs(
 
     override fun runExpression(expr: String): String {
         val data = requireOk(call(JsMode.EXPRESSION, expr, null, null), "表达式「$expr」").data
-        return when {
+        return when (data) {
             // 「跑成了但没值」按空串展开（§9「未取到值 → 空串」，与 [runSegment] 的 undefined→Miss 同源）。
             // 语料里这类表达式的本职是**副作用**（`java.put('key',key)` 的完成值恒为 undefined），
             // 按失败报会让整条规则因为一个没打算回值的表达式而崩掉。
-            data == null || data is JsonNull -> ""
-            data is JsonPrimitive -> data.content
+            null, is JsonNull -> ""
+            is JsonPrimitive -> data.content
             // 对象/数组拼成文本会得到一段「看着像 URL 片段的 JSON」，比崩掉更难查，仍按失败报
             else -> throw JsExecutionFailedException(
                 JsStatus.RUNTIME,
@@ -222,9 +222,9 @@ internal class SandboxScriptJs(
             if (value == JsonNull) null else key to scalarText(value)
         }.toMap()
 
-    private fun scalarText(value: JsonElement): String = when {
-        value == JsonNull -> ""
-        value is JsonPrimitive -> value.content
+    private fun scalarText(value: JsonElement): String = when (value) {
+        JsonNull -> ""
+        is JsonPrimitive -> value.content
         else -> value.toString()
     }
 

@@ -263,7 +263,7 @@ internal class FakeBookSourceManager(
         val name = obj.optString("name")
         val url = obj.optString("url")
         if (name.isEmpty() || url.isEmpty()) null else fromJson(obj)
-    } catch (e: JSONException) {
+    } catch (_: JSONException) {
         null
     }
 

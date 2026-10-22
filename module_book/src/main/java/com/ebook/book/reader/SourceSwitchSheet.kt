@@ -466,7 +466,7 @@ private fun SheetStateRow(text: String, showSpinner: Boolean) {
 @PreviewLightDark
 @Composable
 private fun SourceSwitchSheetCandidatesPreview() {
-    AppPreview { previewSourceSwitchSheet() }
+    AppPreview { PreviewSourceSwitchSheet() }
 }
 
 /**
@@ -481,7 +481,7 @@ private fun SourceSwitchSheetCandidatesPreview() {
 @Composable
 private fun SourceSwitchSheetApplyingPreview() {
     AppPreview {
-        previewSourceSwitchSheet(pendingUrl = "$SAMPLE_SOURCE_URL/book/2")
+        PreviewSourceSwitchSheet(pendingUrl = "$SAMPLE_SOURCE_URL/book/2")
     }
 }
 
@@ -496,7 +496,7 @@ private fun SourceSwitchSheetApplyingPreview() {
 @Composable
 private fun SourceSwitchSheetProgressPreview() {
     AppPreview {
-        previewSourceSwitchSheet(
+        PreviewSourceSwitchSheet(
             candidates = emptyList(),
             progress = CandidateProgress(finished = 2, total = 5),
             isSearching = true,
@@ -515,7 +515,7 @@ private fun SourceSwitchSheetProgressPreview() {
 @Composable
 private fun SourceSwitchSheetEmptyPreview() {
     AppPreview {
-        previewSourceSwitchSheet(candidates = emptyList(), progress = CandidateProgress(total = 5, finished = 5))
+        PreviewSourceSwitchSheet(candidates = emptyList(), progress = CandidateProgress(total = 5, finished = 5))
     }
 }
 
@@ -534,7 +534,7 @@ private fun SourceSwitchSheetEmptyPreview() {
 private fun SourceSwitchSheetFailurePreview(
     @PreviewParameter(SwitchFailureHintProvider::class) hint: SwitchFailureHint,
 ) {
-    AppPreview { previewSourceSwitchSheet(failureHint = hint) }
+    AppPreview { PreviewSourceSwitchSheet(failureHint = hint) }
 }
 
 /**
@@ -546,17 +546,17 @@ private fun SourceSwitchSheetFailurePreview(
 @Preview(showBackground = true)
 @Composable
 private fun SourceSwitchSheetUnknownBookPreview() {
-    AppPreview { previewSourceSwitchSheet(bookName = "") }
+    AppPreview { PreviewSourceSwitchSheet(bookName = "") }
 }
 
 /**
  * 面板 body 的预览装配点：默认喂「三档匹配度的候选」，各档按需覆盖。
  *
- * 与 [com.ebook.book.ImportBookActivity] 的 `previewImportBookScreen` 同一口径：预览函数只声明
+ * 与 [com.ebook.book.ImportBookActivity] 的 `PreviewImportBookScreen` 同一口径：预览函数只声明
  * 「哪一档被改了」，回调一律 no-op（这些回调背后是换源事务，设计期既没有 VM 也没有库）。
  */
 @Composable
-private fun previewSourceSwitchSheet(
+private fun PreviewSourceSwitchSheet(
     bookName: String = "山海拾遗",
     candidates: List<SourceSwitchCandidate> = previewSwitchCandidates(),
     progress: CandidateProgress = CandidateProgress(),

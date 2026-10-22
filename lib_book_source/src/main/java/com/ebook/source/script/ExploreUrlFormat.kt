@@ -75,8 +75,8 @@ internal object ExploreUrlFormat {
                 val entry = part.trim()
                 if (entry.isEmpty()) continue
                 val sep = topLevelIndexOf(entry, "::")
-                if (sep < 0) out += ExploreEntry("", entry)
-                else out += ExploreEntry(entry.substring(0, sep).trim(), entry.substring(sep + 2).trim())
+                out += if (sep < 0) ExploreEntry("", entry)
+                else ExploreEntry(entry.substring(0, sep).trim(), entry.substring(sep + 2).trim())
             }
         }
         return out

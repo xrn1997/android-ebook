@@ -15,7 +15,6 @@ import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -184,9 +183,5 @@ class BookImportViewModel @Inject constructor(
 
     fun scanCancel() {
         isCancel = true
-    }
-
-    private companion object {
-        const val TAG = "BookImportViewModel"
     }
 }

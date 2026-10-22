@@ -340,7 +340,7 @@ class DownloadService : Service() {
         // 不依赖协程调度，界面立刻收 Finished、通知即刻撤下，不用等 DB 清队耗时
         downloadRepository.tryEmitState(DownloadState.Finished)
         // 只撤常驻通知（不用 cancelAll）：保留同时存在于其它 id 上的结果通知
-        cancelNotify(ONGOING_NOTIFY_ID)
+        cancelOngoingNotify()
         serviceScope.launch {
             try {
                 downloadRepository.clearAllTasks()
@@ -537,10 +537,10 @@ class DownloadService : Service() {
         }
     }
 
-    /** 撤销指定通知（不用 cancelAll：会连带抹掉其他用途的通知） */
-    private fun cancelNotify(id: Int) {
+    /** 撤销常驻通知（不用 cancelAll：会连带抹掉其他用途的通知） */
+    private fun cancelOngoingNotify() {
         try {
-            notifyManager.cancel(id)
+            notifyManager.cancel(ONGOING_NOTIFY_ID)
         } catch (e: Throwable) {
             Logger.e(TAG, "取消通知失败: ", e)
         }

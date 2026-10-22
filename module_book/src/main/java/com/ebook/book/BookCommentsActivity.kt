@@ -545,10 +545,19 @@ private fun CommentLoadMoreFooterPreview() {
     AppPreview {
         Column {
             // 空闲：列表比视口短、还没触发过加载更多
-            LoadMoreFooter(state = loadMoreStateOf(false, false, true))
-            LoadMoreFooter(state = loadMoreStateOf(true, false, true))
-            LoadMoreFooter(state = loadMoreStateOf(false, true, true), onRetry = {})
-            LoadMoreFooter(state = loadMoreStateOf(false, false, false))
+            LoadMoreFooter(
+                state = loadMoreStateOf(isLoadingMore = false, loadMoreFailed = false, hasMoreData = true),
+            )
+            LoadMoreFooter(
+                state = loadMoreStateOf(isLoadingMore = true, loadMoreFailed = false, hasMoreData = true),
+            )
+            LoadMoreFooter(
+                state = loadMoreStateOf(isLoadingMore = false, loadMoreFailed = true, hasMoreData = true),
+                onRetry = {},
+            )
+            LoadMoreFooter(
+                state = loadMoreStateOf(isLoadingMore = false, loadMoreFailed = false, hasMoreData = false),
+            )
         }
     }
 }

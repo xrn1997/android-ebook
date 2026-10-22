@@ -8,6 +8,7 @@ import com.ebook.db.entity.DownloadChapterEntity
 import com.xrn1997.common.util.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 /** 单章一次执行的结局；暂停与失败耗尽必须分开，前者不出队、后者出队。 */
 internal sealed class DownloadOutcome {
@@ -31,7 +32,7 @@ internal class DownloadRunner(
     private val readChapter: suspend (ChapterEntry, BookLocation) -> ChapterContent,
     private val deleteTask: suspend (DownloadChapterEntity) -> Unit,
     private val invalidateBook: suspend (String) -> Unit,
-    private val retryDelay: suspend (Long) -> Unit = { delay(it) },
+    private val retryDelay: suspend (Long) -> Unit = { delay(it.milliseconds) },
     private val maxAttempts: Int = RETRY_TIMES,
 ) {
 

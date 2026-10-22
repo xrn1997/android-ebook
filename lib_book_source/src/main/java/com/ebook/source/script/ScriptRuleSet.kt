@@ -175,16 +175,16 @@ internal data class ScriptRuleSet(
                     (obj[kind.jsonKey] as? JsonObject) ?: emptyMap()
                 }
             val objects = RuleObjectKind.entries.associateWith { kind ->
-                val node = obj[kind.jsonKey] as? JsonObject ?: return@associateWith emptyMap<String, String>()
+                val node = obj[kind.jsonKey] as? JsonObject ?: return@associateWith emptyMap()
                 node.entries.mapNotNull { (field, value) ->
                     val path = "${kind.jsonKey}.$field"
-                    when {
-                        value is JsonPrimitive && value.isString -> {
+                    when (value) {
+                        is JsonPrimitive if value.isString -> {
                             val rule = value.contentOrNull.orEmpty()
                             classify(rule, path, unsupported, irregular)
                             field to rule
                         }
-                        value is JsonArray -> {
+                        is JsonArray -> {
                             // 数组形态仍逐条分类其元素：能力登记（含 JS/XPath）不能因为外层是数组就漏掉，
                             // 但整笔按非常规字段记账、不进规则表（见类 KDoc）
                             value.forEach { el -> el.stringOrNull()?.let { classify(it, path, unsupported, irregular) } }

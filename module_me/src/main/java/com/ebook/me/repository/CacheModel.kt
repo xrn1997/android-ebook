@@ -1,6 +1,5 @@
 package com.ebook.me.repository
 
-import com.ebook.common.util.formatSize
 import com.ebook.common.util.treeSize
 import com.xrn1997.common.mvvm.model.BaseModel
 import kotlinx.coroutines.Dispatchers

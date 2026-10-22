@@ -29,6 +29,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.URLEncoder
 import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val TAG = "JsCallbackProxy"
 
@@ -291,8 +292,8 @@ internal class JsCallbackProxy(
      */
     private suspend fun <T> await(api: String, host: String, block: suspend () -> T): T =
         try {
-            withTimeout(limits.wallClockMs) { block() }
-        } catch (e: TimeoutCancellationException) {
+            withTimeout(limits.wallClockMs.milliseconds) { block() }
+        } catch (_: TimeoutCancellationException) {
             throw JsApiRejectedException(
                 "「$api $host」在 ${limits.wallClockMs}ms 内没回结果（超时按请求失败处置）",
             )
@@ -465,8 +466,8 @@ internal class JsCallbackProxy(
  *
  * 与上游的差别（规格 §11-30，本仓规定）：上游读的是「上一次请求留在那儿的状态码」，那需要一个
  * 跨回调存活的状态槽。这里改成「对目标 URL 探一次」——脚本要状态码，问的就是「这个地址能不能访问」，
- * 而无状态意味着它不受回调顺序影响。准入与限流复用同一条 [admit]（在代理那一侧），所以探测既出不了
- * 白名单，也不比取页多花一次配额。
+ * 而无状态意味着它不受回调顺序影响。准入与限流复用同一条 [JsCallbackProxy.admit]
+ * （在代理那一侧），所以探测既出不了白名单，也不比取页多花一次配额。
  *
  * 非 2xx 不是异常：状态码本身就是脚本要的答案。网络层真失败时 `IOException` 原样往上走，由代理
  * 换成 `ok=false`，与「真实网络失败」同一条路径。
@@ -486,7 +487,7 @@ internal class HeadStatusProbe(private val client: OkHttpClient) {
  * 地址判定挂在 OkHttp 真正解析的那一次上（不留 DNS 重绑窗口），若两条路径各建各的客户端，
  * 就会出现「探测放行、取体被拒」这种半截防线。
  *
- * [cookies] 是同一份理由的 cookie 版本：脚本外呼要能自动攒下会话（否则 `cookie.getCookie` 永远读到空串），
+ * `cookies` 参数是同一份理由的 cookie 版本：脚本外呼要能自动攒下会话（否则 `cookie.getCookie` 永远读到空串），
  * 而攒下的那一份必须就是脚本显式读写的那一份——由调用方（`ScriptBookParser`）持罐、在这里挂进客户端。
  * 不传即维持「不带 cookie」的原状：调用点只有 `sandboxGateway` 与 `HeadStatusProbe` 两处，
  * 两处漏一处就长成「会话在取体那侧有、在探测那侧没有」。

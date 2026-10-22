@@ -94,10 +94,10 @@ object JsoupHelper {
      */
     fun applyReplaceRules(text: String, replaceRules: List<ReplaceRule>): String {
         var result = text
-        for (rule in replaceRules) {
-            if (!rule.enabled) continue
+        for ((pattern, replacement, enabled) in replaceRules) {
+            if (!enabled) continue
             try {
-                result = result.replace(Regex(rule.pattern), rule.replacement)
+                result = result.replace(Regex(pattern), replacement)
             } catch (_: Exception) {
                 // 正则无效时跳过
             }

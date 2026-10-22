@@ -385,7 +385,7 @@ class SearchActivity : BaseMvvmRefreshActivity<SearchViewModel>() {
 /**
  * 聚合搜索的书源进度：确定性的 [LinearProgressIndicator] +「已收到 X/Y 书源结果」。
  *
- * 只在「本轮还有源没结束」时由 [PageContent] 组合出来，全部结束（含失败的源，它们同样会发
+ * 只在「本轮还有源没结束」时由 [SearchActivity.PageContent] 组合出来，全部结束（含失败的源，它们同样会发
  * `SourceFinished`）后整行消失——所以 Y 不会因为某个站点挂了而永远差一格。
  * 加载更多时它会再出现一次，分母是**这一轮还在跑的源数**（已到底的源不再参与）。
  *

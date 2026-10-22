@@ -259,7 +259,7 @@ internal class ScriptRuleEvaluator(private val ctx: EvalContext) {
         // 捕获后回落 Miss，让 `||` 链照常短路到下一支——与旧行为等价
         val out = try {
             bridge.runSegment(jsCode, seed)
-        } catch (e: JsExecutionFailedException) {
+        } catch (_: JsExecutionFailedException) {
             return RuleResult.Miss
         }
         return if (node.reverse) out.reversedResult() else out

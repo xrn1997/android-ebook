@@ -2,6 +2,7 @@ package com.ebook.me.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import com.ebook.me.util.AppVersion
 import com.ebook.me.util.isOlderThan
 import com.xrn1997.common.util.Logger
@@ -94,10 +95,10 @@ class ReleaseStateStore @Inject constructor(
      * @param remoteTag 远端最新 tag，原样存（比较与展示各自归一化）
      */
     fun markCheckSuccess(remoteTag: String) {
-        prefs.edit()
-            .putString(KEY_LAST_CHECKED_TAG, remoteTag)
-            .putLong(KEY_LAST_SUCCESS_CHECK_TIME, System.currentTimeMillis())
-            .apply()
+        prefs.edit {
+            putString(KEY_LAST_CHECKED_TAG, remoteTag)
+            putLong(KEY_LAST_SUCCESS_CHECK_TIME, System.currentTimeMillis())
+        }
     }
 
     internal companion object {

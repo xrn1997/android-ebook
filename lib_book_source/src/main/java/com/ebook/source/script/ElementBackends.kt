@@ -143,7 +143,7 @@ internal object ElementBackends {
                 requireSelectorName(link, body)
                 from.flatMap { selectIn(it, link.name, body) }
             }
-            ChainKind.ATTRIBUTE -> from.flatMap { it.getAllElements() }.filter { it.hasAttr(link.name) }
+            ChainKind.ATTRIBUTE -> from.flatMap { it.allElements }.filter { it.hasAttr(link.name) }
             // 走到这里说明取值器不在链尾，上面的 [requireAccessorOnlyAtTail] 已经把它判成语法错误；
             // 留着这一支只为 when 穷尽，不参与正常求值
             ChainKind.ACCESSOR -> from
@@ -162,8 +162,8 @@ internal object ElementBackends {
      * 承载这段文本的那个元素。不收窄的后果不是报错，是把整页文本当成一条候选喂给下游。
      */
     private fun locateByText(roots: List<Element>, needle: String): List<Element> =
-        roots.flatMap { root -> root.getAllElements().filter { it !== root && it.text().contains(needle) } }
-            .filterNot { hit -> hit.getAllElements().any { it !== hit && it.text().contains(needle) } }
+        roots.flatMap { root -> root.allElements.filter { it !== root && it.text().contains(needle) } }
+            .filterNot { hit -> hit.allElements.any { it !== hit && it.text().contains(needle) } }
             .distinct()
 
     /**
@@ -205,9 +205,9 @@ internal object ElementBackends {
      */
     private fun selectIn(root: Element, selector: String, body: String): List<Element> = try {
         root.select(selector)
-    } catch (e: SelectorParseException) {
+    } catch (_: SelectorParseException) {
         throw RuleSyntaxException(body)
-    } catch (e: IllegalArgumentException) {
+    } catch (_: IllegalArgumentException) {
         throw RuleSyntaxException(body)
     }
 }

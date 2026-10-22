@@ -103,7 +103,7 @@ class ReaderPagerController internal constructor(
     private val context: Context,
     private val chapterSize: () -> Int,
     private val chapterTitle: (Int) -> String,
-    private val loadPage: suspend (chapterIndex: Int, pageIndex: Int) -> ReaderPageUi.Loaded?,
+    loadPage: suspend (chapterIndex: Int, pageIndex: Int) -> ReaderPageUi.Loaded?,
     private val onProgress: (chapterIndex: Int, pageIndex: Int) -> Unit
 ) : ReaderTurnController {
     /** 当前页标识 */
@@ -271,9 +271,9 @@ class ReaderPagerController internal constructor(
      * 而失败页的 job 早已注销、不会再有完成回调来救窗口——用户被困在一张抓不到内容的页上，
      * 连刚读过的那页都回不去。故按类 KDoc 的收敛规则处置：来路页留作上一页，去向收敛为 null。
      *
-     * 后续两条恢复路径都会把窗口补全：本页加载完成（在途）时走 [ensureLoad] 的
-     * `key == durKey` 分支；翻回上一页再翻过来时 [refreshWindow] 会对该页重新 [ensureLoad]
-     * （job 已注销，故必然重发请求），等价于一次自动重试。
+     * 后续两条恢复路径都会把窗口补全：本页加载完成（在途）时走 [ReaderPageStore.ensureLoad]
+     * 的 `key == durKey` 分支；翻回上一页再翻过来时 [refreshWindow] 会对该页重新
+     * [ReaderPageStore.ensureLoad]（job 已注销，故必然重发请求），等价于一次自动重试。
      */
     private fun commitNext() {
         val from = durKey

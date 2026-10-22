@@ -87,7 +87,7 @@ private data class ChapterSection(val chapterIndex: Int, val blockCount: Int) {
  * 块数落定后再把哨兵落点解析成具体块号并补发它的加载。
  */
 class ReaderScrollController internal constructor(
-    private val scope: CoroutineScope,
+    scope: CoroutineScope,
     private val context: Context,
     private val chapterSize: () -> Int,
     private val chapterTitle: (Int) -> String,

@@ -111,14 +111,6 @@ class CoroutineAdapter @Inject constructor(
         }
     }
 
-    /**
-     * 简化调用，直接获取 data，如果失败返回 null
-     */
-    suspend fun <T> callData(apiCall: suspend () -> RespDTO<T>): T? {
-        val result = safeApiCall(apiCall)
-        return result.getOrNull()?.data
-    }
-
     class ApiException(val code: String, override val message: String) : Exception(message) {
         /**
          * 用户可见的服务端错误消息。

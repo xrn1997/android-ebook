@@ -48,8 +48,8 @@ class SandboxService : Service() {
          * default true），而执行器活着，所以自己回 true，不去猜 native 那层怎么兜。
          */
         override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean = when (code) {
-            IBinder.PING_TRANSACTION -> true
-            IBinder.DUMP_TRANSACTION, IBinder.INTERFACE_TRANSACTION -> super.onTransact(code, data, reply, flags)
+            PING_TRANSACTION -> true
+            DUMP_TRANSACTION, INTERFACE_TRANSACTION -> super.onTransact(code, data, reply, flags)
             else -> handleContractCall(code, data, reply)
         }
     }

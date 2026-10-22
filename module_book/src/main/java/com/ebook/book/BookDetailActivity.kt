@@ -162,7 +162,7 @@ data class BookDetailRenderState(
 /**
  * 由 ViewModel 装配 [BookDetailRenderState]。
  *
- * **它属于壳层**（与 [PageContent] 同层）：状态流的收集、`searchBook` 这个非 Flow 字段的读取，
+ * **它属于壳层**（与 [BookDetailActivity.PageContent] 同层）：状态流的收集、`searchBook` 这个非 Flow 字段的读取，
  * 以及需要 `stringResource` 的文案派生都只发生在这里，根组件因此只吃一份不可变状态。
  */
 @Composable

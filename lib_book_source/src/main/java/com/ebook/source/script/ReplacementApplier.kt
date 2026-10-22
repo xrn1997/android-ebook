@@ -58,7 +58,7 @@ internal object ReplacementApplier {
         )
         val regex = try {
             Regex(filled.pattern, RegexOption.MULTILINE)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             // PatternSyntaxException 是 IllegalArgumentException 的子类。换成类型化语法错误（§3.3），
             // 一条写坏的替换正则可被 `||` 当未取到值继续下一支，而不是崩穿整次解析
             throw RuleSyntaxException(rule)

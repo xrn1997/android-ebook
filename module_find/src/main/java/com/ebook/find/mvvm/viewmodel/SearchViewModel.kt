@@ -140,7 +140,7 @@ class SearchViewModel @Inject constructor(
      * 并起第二轮的后果是**共享集合被两轮流交错改写**（[AggregationBookkeeping.round] 里的源集合、
      * 结束集合与计数表都是本轮共享状态，[startRound] 一上来就把整块簿记换新），旧轮随后到达的
      * Finished 于是记在新一轮的账上，「已收到 X/Y」算重、每源游标被两轮互相覆写。由
-     * [SearchViewModelTest] 的 `首轮搜索在途时加载更多不并起第二轮聚合` 锁住。
+     * `SearchViewModelTest` 的 `首轮搜索在途时加载更多不并起第二轮聚合` 锁住。
      *
      * 为什么是「忽略」而不是「取消旧轮再开新轮」：旧轮已经到手的结果不该被丢，而且它的收尾本身就会发
      * [updateStopLoadMore] 把机器从 Loading 放出来——界面仍停在底部时触底会再触发一次，
@@ -485,7 +485,7 @@ class SearchViewModel @Inject constructor(
  * 收尾有两处出口，缺一不可：
  * - [AggregateSearchEvent.SourceFinished] 到达时逐源递增——成功、失败与空页都走这里，
  *   所以进度不会因某个站点挂掉而永远差一格；
- * - [finishRound] 收到 [AggregateSearchEvent.AllFinished] 时把本轮一次收满——兜住「某一路协程
+ * - [SearchViewModel.finishRound] 收到 [AggregateSearchEvent.AllFinished] 时把本轮一次收满——兜住「某一路协程
  *   被取消、连 Finished 都没发出去」这一种（真实现里 flatMapMerge 会丢弃整路，见
  *   `BookSourceManagerImplTest` 的取消用例），否则进度行的 `isRunning` 永不为假、在页面上不消失。
  */

@@ -83,7 +83,7 @@ internal fun RuleResult.Nodes.mapToTexts(accessor: AccessorKind, attribute: Stri
             // `@css:.articleDiv p@textNodes` 依赖这一点：先选中 p，再取 p 内被 <br> 切开的各段。
             // 丢掉纯空白节点是因为 Jsoup 会把源码里的换行与缩进原样留成文本节点，
             // 那些段落间距不是正文的一部分，留着会让「逐段拼接」的下游长出空行。
-            AccessorKind.TEXT_NODES -> elements.flatMap { e -> e.textNodes().map { it.getWholeText().trim() }.filter { it.isNotEmpty() } }
+            AccessorKind.TEXT_NODES -> elements.flatMap { e -> e.textNodes().map { it.wholeText.trim() }.filter { it.isNotEmpty() } }
             AccessorKind.HTML -> elements.map { it.html() }
             // all = 含自身标签的整个元素外形态（§3.2「整个元素（含自身标签）」）
             AccessorKind.ALL -> elements.map { it.outerHtml() }

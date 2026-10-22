@@ -128,12 +128,18 @@ fun BookShelfPage(
     //    与书城页同款形态；宿主 MainActivity 已关掉基类偏移、总 Scaffold 也置零）。
     //    这里若改用默认的 ScaffoldDefaults.contentWindowInsets，innerPadding 会再叠一层
     //    状态栏高度，与顶栏自带的避让重复。
-    // 因此 innerPadding 恒为 0：不再套 .padding(innerPadding) 这层无操作包装，
-    // 只保留 insets 归零这一处显式声明（删掉它才是真的改了视觉行为）。
+    // 因此 innerPadding 恒为 0，但仍必须显式消费它：M3 的
+    // UnusedMaterial3ScaffoldPaddingParameter 按 Error 拦截「给了 content padding 却不消费」的
+    // Scaffold（防内容被顶/底栏遮住），忽略参数会让 lintDebug 直接失败。零值 padding 不产生
+    // 任何布局偏移，且将来本页真加了栏时内容会自动让位，而不是悄悄压在栏下面。
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
             // 顶栏（对齐书城页：TopAppBar 文字标题 + 导入/下载 actions）
             TopAppBar(
                 title = { Text(stringResource(R.string.my_book_shelf)) },

@@ -32,7 +32,7 @@ internal fun parseChapterRange(from: String, to: String, total: Int): IntRange? 
     if (total <= 0) return null
     val fromNo = from.trim().toIntOrNull() ?: return null
     val toNo = to.trim().toIntOrNull() ?: return null
-    if (fromNo < 1 || toNo < fromNo || toNo > total) return null
+    if (fromNo !in 1..toNo || toNo > total) return null
     return (fromNo - 1) until toNo
 }
 

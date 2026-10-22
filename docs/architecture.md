@@ -216,7 +216,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 ## 8. 阅读器
 
-- **翻页方式有两种且共用分块链**（左右翻页 / 上下滚屏，`ReadBookControl.turnMode`）：两者都由同一条排版分块链给出「第 N 屏的正文」，差别只在容器（三页窗口 + 横向拖拽 / **跨章连续**的竖向列表，章界只有一个标题项、没有「上一章/下一章」链接），故进度口径同为「章内第几屏」、`dur_chapter_page` 语义不变。
+- **翻页方式有两种且共用分块链**（左右翻页 / 上下滚屏，导航判据 `ReaderTurnMode`、持久化索引 `turnModeIndex`）：两者都由同一条排版分块链给出「第 N 屏的正文」，差别只在容器（三页窗口 + 横向拖拽 / **跨章连续**的竖向列表，章界只有一个标题项、没有「上一章/下一章」链接），故进度口径同为「章内第几屏」、`dur_chapter_page` 语义不变。
 - **分页状态机收在 `ReaderPagination`**：视口测量、整章排版缓存、页切片与按行换算都在这一处；`ReadBookActivity` 只把 Compose 测到的视口交进来，`loadPage` 用 `ReaderPageWindow` 切片后把 `ReaderPageUi.Loaded` 交给控制器。`ReaderPaginationTest` 锁状态与切片边界。
 - **导航控制面收在 `ReaderNavigation`**：路由判据只有 `ReaderTurnMode`（页面用 `turnModeIndex` 镜像驱动重组，切换时同步写入），两个控制器都实现 `ReaderTurnController` 并退化为它的适配器；`gotoPage`（内部委托 `setPosition`）、音量键、换源后的换算都走 `setPosition`/`turnNext`/`turnPrev`，**只驱动当前模式的控制器**；冷启动与重分页另走 `converge`，把另一侧的落点一并预热上（`reportProgress = false`）——另一侧不预热就带着「章号 0」的初值躺着，换模式后新容器成形的那一帧落点是错的，而让它报进度会用另一种模式的屏号盖掉当前进度。两个控制器共用同一份 `onProgress`。`ReaderNavigationTest` 锁模式路由、两档定位与单进度出口。
 - **预热侧不补报，当前模式先报可解释的落点**：预热侧（`reportProgress = false`）的探测块加载完成也不得补报；滚屏侧在块数未知时先报目标页码（BEGIN 归一为 0、END 暂报哨兵），块数落定后补报真实块号；翻页侧按页键报目标页码/哨兵，不在加载完成时补报。否则未显示侧会回写旧页，慢加载中退出会把解析不出的 0 落库。`ReaderScrollControllerTest` 锁「预热加载完成不报进度」与「块数未知不报 0」。

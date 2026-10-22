@@ -29,7 +29,7 @@ class AndroidNativeConventionPlugin : Plugin<Project> {
             val android = extensions.findByType(CommonExtension::class.java)
                 ?: error(
                     "xrn1997.android.native 必须在 Android 插件（com.android.library / com.android.application）" +
-                        "之后应用：工程 ${path} 上找不到 CommonExtension",
+                        "之后应用：工程 $path 上找不到 CommonExtension",
                 )
             android.apply {
                 ndkVersion = libs.findVersion("androidNdk").orElseThrow().requiredVersion

@@ -63,7 +63,6 @@ import androidx.compose.material.icons.outlined.Settings as SettingsIcon
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -1706,7 +1705,8 @@ private fun ReaderThemeSwatch(
  *
  * @param onClickTurnChanged 点击翻页开关即时回调（面板开启期间正文不可点击，
  *   但 ReadBookScreen 需在切换瞬间同步本地 State 以消除"依赖 panel 变化才重组生效"的隐式耦合）
- * @param onTurnModeChanged 翻页方式即时回调，传的是 `ReadBookControl.getTurnModeList()` 的索引。
+ * @param onTurnModeChanged 翻页方式即时回调，传的是翻页方式索引（0 = 左右翻页、1 = 上下滚屏，
+ *   口径同 `ReadBookControl.turnModeIndex`）。
  *   理由与 [onClickTurnChanged] 同：`ReadBookControl` 的属性不是 Compose State，
  *   写入不触发重组，不能让「换模式是否生效」依赖面板恰好重组
  */

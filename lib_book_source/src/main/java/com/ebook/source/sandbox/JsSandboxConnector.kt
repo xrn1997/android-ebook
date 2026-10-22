@@ -126,7 +126,7 @@ class JsSandboxConnector(
         fun await(timeoutMs: Long): IBinder {
             val signaled = try {
                 arrived.await(timeoutMs, TimeUnit.MILLISECONDS)
-            } catch (interrupted: InterruptedException) {
+            } catch (_: InterruptedException) {
                 Thread.currentThread().interrupt()
                 false
             }

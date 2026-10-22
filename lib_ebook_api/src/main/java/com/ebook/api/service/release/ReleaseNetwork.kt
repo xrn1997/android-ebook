@@ -13,7 +13,7 @@ import javax.inject.Singleton
 /**
  * 发布检查的真实数据源：GitHub / Gitcode 的公开 Releases API。
  *
- * 独立建一套 Retrofit（不复用 ebook-server 的 [com.ebook.api.utils.RetrofitBuilder]）：
+ * 独立建一套 Retrofit（不复用 ebook-server 的 [com.ebook.api.RetrofitBuilder]）：
  * - **两个 host**：端点是绝对地址、路径结构不同，靠 [ReleaseService] 的动态 `@Url` 区分，
  *   `baseUrl` 只满足 Retrofit「必须以 `/` 结尾」的形式要求；
  * - **不进认证链路**：注入 `@Named("release")` 纯净客户端（无 token、无书源的

@@ -17,6 +17,9 @@ object ReadBookControl {
     const val DEFAULT_BG = 1
     const val DEFAULT_TURN_MODE = 0
 
+    /** 翻页方式档数：0 = 左右翻页，1 = 上下滚屏（顺序即设置面板的展示顺序） */
+    private const val TURN_MODE_COUNT = 2
+
     /** 字体样式 */
     data class TextKind(val textSize: Int, val textExtra: Int)
 
@@ -48,24 +51,6 @@ object ReadBookControl {
         TextDrawable("#808080".toColorInt(), "#2D2D33".toColorInt(), R.string.theme_dark)//黑
     )
 
-    /**
-     * 翻页方式。
-     *
-     * 落 SP 的是 [turnModeList] 的**索引**而不是枚举名（与 textKindIndex/textDrawableIndex
-     * 同口径）：索引越界能回落默认，枚举名一旦改名就会让老数据解析失败。
-     * 枚举只活在内存里，不进任何持久化字段。
-     */
-    enum class TurnMode {
-        /** 左右翻页：三页窗口 + 横向拖拽 */
-        PAGE,
-
-        /** 上下滚屏：整章屏块的竖向连续滚动 */
-        SCROLL,
-    }
-
-    /** 翻页方式列表（顺序即设置面板的展示顺序） */
-    private val turnModeList: List<TurnMode> = listOf(TurnMode.PAGE, TurnMode.SCROLL)
-
     // ----------------------------
     // 内存缓存属性
     // ----------------------------
@@ -85,12 +70,16 @@ object ReadBookControl {
         private set
     var canKeyTurn: Boolean
         private set
+
+    /**
+     * 翻页方式索引：0 = 左右翻页，1 = 上下滚屏（顺序即设置面板的展示顺序）。
+     *
+     * 落 SP 的是索引而不是枚举名（与 textKindIndex/textDrawableIndex 同口径）：
+     * 索引越界能回落默认，枚举名一旦改名就会让老数据解析失败。
+     * 枚举只有 reader 包的 `ReaderTurnMode` 一份，由页面换算成导航判据。
+     */
     var turnModeIndex: Int
         private set
-
-    /** 当前翻页方式（= [turnModeList] 的 [turnModeIndex] 项，索引已在 init 里钳过界） */
-    val turnMode: TurnMode
-        get() = turnModeList[turnModeIndex]
 
     init {
         // 从 SP 初始化（只读一次）
@@ -109,7 +98,7 @@ object ReadBookControl {
 
         turnModeIndex = SPUtil.get("turnModeIndex", DEFAULT_TURN_MODE, SP_NAME)
         // 越界回落默认：默认是左右翻页，老用户升级后行为不变，不会一觉醒来变成滚屏
-        if (turnModeIndex !in turnModeList.indices) turnModeIndex = DEFAULT_TURN_MODE
+        if (turnModeIndex !in 0 until TURN_MODE_COUNT) turnModeIndex = DEFAULT_TURN_MODE
     }
 
     // ----------------------------
@@ -143,7 +132,7 @@ object ReadBookControl {
     }
 
     fun updateTurnModeIndex(index: Int) {
-        if (index !in turnModeList.indices) return
+        if (index !in 0 until TURN_MODE_COUNT) return
         turnModeIndex = index
         SPUtil.put("turnModeIndex", index, SP_NAME)
     }
@@ -153,5 +142,4 @@ object ReadBookControl {
     // ----------------------------
     fun getTextKindList(): List<TextKind> = textKindList
     fun getTextDrawableList(): List<TextDrawable> = textDrawableList
-    fun getTurnModeList(): List<TurnMode> = turnModeList
 }

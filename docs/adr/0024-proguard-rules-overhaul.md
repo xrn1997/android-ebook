@@ -31,7 +31,7 @@ Status: accepted
 ## 遗留
 
 - **EventBus 规则按全仓依赖零命中删除**：若实际有传递依赖引入，会在 R8 阶段以 missing class 暴露，属可观测失败——出现时按「新增反射面」流程补规则并注明证据。
-- **kotlinx-serialization 自带规则只覆盖 `JsonUtils.parseJson` 的 `Class<T>` 入参用法**：未来出现反射构造类的用法时需重查规则。
+- **kotlinx-serialization 自带规则覆盖的是 Retrofit converter 的运行期 serializer 查找**（按 Java `Type` 取 DTO serializer，见 `lib_ebook_api/consumer-rules.pro`）：未来出现其他反射构造类的用法时需重查规则。
 - **TheRouter 规则有 6 份逐字相同的副本**：5 个功能模块的 `consumer-rules.pro` md5 完全一致（`0232b380`），
   `module_app/proguard-rules.pro` 另存一份同内容的规则。同一反射面（TheRouter 按类名字符串 `Class.forName`）
   只有一个归属，复制 6 份意味着改一处要改六处、漏改的那份静默按旧规则混淆。

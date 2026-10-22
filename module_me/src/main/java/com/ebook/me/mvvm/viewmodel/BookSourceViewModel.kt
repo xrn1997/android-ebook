@@ -313,7 +313,7 @@ class BookSourceViewModel @Inject constructor(
         }
         // 只捕 JSONException（Android 的 org.json 解析失败一律抛它）而不是 Exception：
         // 后者会把协程取消也一并咽掉，让「页面已销毁」的调用继续往下走
-    } catch (e: JSONException) {
+    } catch (_: JSONException) {
         emptyList()
     }
 
@@ -505,10 +505,5 @@ class BookSourceViewModel @Inject constructor(
             return null
         }
         return bookSourceManager.exportToJson(item.rule)
-    }
-
-    private companion object {
-        /** 日志标签：与类名同字（本模块 `ReleaseRepository` 等处的既有口径） */
-        const val TAG = "BookSourceViewModel"
     }
 }

@@ -108,7 +108,7 @@ class EditBookMetaActivity : BaseMvvmActivity<EditBookMetaViewModel>() {
 /**
  * 修键面板内容。
  *
- * 参数化传入 [viewModel] 的各字段/回调，而非在内部直持 ViewModel：
+ * 参数化传入 [EditBookMetaViewModel] 的各字段/回调，而非在内部直持 ViewModel：
  * 页面与 Activity 共用同一 VM 实例（由 Activity 通过 by viewModels() 持有）。
  */
 @Composable

@@ -152,7 +152,7 @@ class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
  * 回阅读器（用户不是从一级来的，回落一级是绕路）；经显式导航（取消本书后回一级）
  * 清掉直达标记后，返回栈恢复常规语义。
  *
- * 「在直达态」这件事在这里只是一个布尔量：它的**事实源**是 Activity 上的 [pickParams]
+ * 「在直达态」这件事在这里只是一个布尔量：它的**事实源**是 Activity 上的 `pickParams`
  * （旋转重建后仍在，见 [DownloadManageActivity.pickParams] 的说明），由壳层读出来传进来。
  * 直接把 Activity 交给这一层的话，本页就再也无法预览——`@Preview` 不经 Hilt、也没有 Activity。
  *
@@ -193,7 +193,7 @@ internal fun DownloadCenterContent(
         }
     }
 
-    when (val current = step) {
+    when (step) {
         is DownloadCenterStep.Books -> DownloadManageScreen(
             groups = groups,
             onOpenBook = onOpenBook

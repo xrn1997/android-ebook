@@ -1,7 +1,6 @@
 package debug
 
 import android.content.Intent
-import android.os.Bundle
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.lifecycleScope
 import com.ebook.api.entity.User

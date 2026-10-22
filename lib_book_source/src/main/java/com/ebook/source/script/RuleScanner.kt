@@ -23,27 +23,33 @@ internal object RuleScanner {
         while (i < s.length) {
             val c = s[i]
             val n = if (i + 1 < s.length) s[i + 1] else ' '
-            if (c == '{' && n == '{') {
-                d[i] = depth
-                d[i + 1] = depth + 1
-                depth += 2
-                i += 2
-            } else if (c == '}' && n == '}') {
-                depth = (depth - 2).coerceAtLeast(0)
-                d[i] = depth
-                d[i + 1] = depth
-                i += 2
-            } else if (c == '{' || c == '[') {
-                d[i] = depth
-                depth++
-                i++
-            } else if (c == '}' || c == ']') {
-                depth = (depth - 1).coerceAtLeast(0)
-                d[i] = depth
-                i++
-            } else {
-                d[i] = depth
-                i++
+            when (c) {
+                '{' if n == '{' -> {
+                    d[i] = depth
+                    d[i + 1] = depth + 1
+                    depth += 2
+                    i += 2
+                }
+                '}' if n == '}' -> {
+                    depth = (depth - 2).coerceAtLeast(0)
+                    d[i] = depth
+                    d[i + 1] = depth
+                    i += 2
+                }
+                '{', '[' -> {
+                    d[i] = depth
+                    depth++
+                    i++
+                }
+                '}', ']' -> {
+                    depth = (depth - 1).coerceAtLeast(0)
+                    d[i] = depth
+                    i++
+                }
+                else -> {
+                    d[i] = depth
+                    i++
+                }
             }
         }
         return d

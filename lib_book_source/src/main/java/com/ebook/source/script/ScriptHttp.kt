@@ -67,7 +67,7 @@ internal class OkHttpScriptTransport(private val client: OkHttpClient) : ScriptT
                 // 这里不传 MediaType，避免与 headers 里的声明打架
                 .method(request.method.uppercase(), request.body?.toRequestBody())
                 .build()
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             // 非法 URL、GET+body 一类写坏：OkHttp 抛未类型化的 IllegalArgumentException，
             // 换成类型化错误如实报（§12「失败要如实报」）
             throw RuleSyntaxException("${request.method} ${request.url}")

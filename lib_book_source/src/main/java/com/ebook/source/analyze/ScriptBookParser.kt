@@ -164,11 +164,11 @@ class ScriptBookParser internal constructor(
     private fun bookBindings(bookShelf: BookShelfEntity): Map<String, String?> = mapOf(
         "bookJson" to bookShelf.bookInfo?.let { info ->
             buildJsonObject {
-                put("name", info.name.orEmpty())
-                put("author", info.author.orEmpty())
-                put("intro", info.introduce.orEmpty())
-                put("coverUrl", info.coverUrl.orEmpty())
-                put("tocUrl", info.chapterUrl.orEmpty())
+                put("name", info.name)
+                put("author", info.author)
+                put("intro", info.introduce)
+                put("coverUrl", info.coverUrl)
+                put("tocUrl", info.chapterUrl)
             }.toString()
         },
     )
@@ -210,7 +210,7 @@ class ScriptBookParser internal constructor(
      */
     private fun tryEncodeKey(keyword: String): String = try {
         java.net.URLEncoder.encode(keyword, "UTF-8")
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         keyword
     }
 
@@ -419,14 +419,14 @@ class ScriptBookParser internal constructor(
         val entries = ExploreUrlFormat.split(exploreUrl)
         if (entries.isEmpty()) return@withContext LibraryEntity()
         val blocks = mutableListOf<LibraryKindBookListEntity>()
-        for (entry in entries) {
+        for ((title, urlRule) in entries) {
             try {
-                blocks += LibraryKindBookListEntity(entry.title, entry.urlRule, loadExplorePage(entry.urlRule, 1))
+                blocks += LibraryKindBookListEntity(title, urlRule, loadExplorePage(urlRule, 1))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Logger.w(tag, "发现分类抓取失败: ${entry.title}", e)
-                blocks += LibraryKindBookListEntity(entry.title, "", emptyList())
+                Logger.w(tag, "发现分类抓取失败: $title", e)
+                blocks += LibraryKindBookListEntity(title, "", emptyList())
             }
         }
         LibraryEntity().apply { kindBooks = blocks }

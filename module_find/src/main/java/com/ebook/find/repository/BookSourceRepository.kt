@@ -66,7 +66,6 @@ class BookSourceRepository @Inject constructor(
      * 「请求克制」之间取中。调整它不需要迁移（只是改年龄判据），嫌数据旧还可以下拉强刷。
      */
     private companion object {
-        private const val TAG = "BookSourceRepository"
         private const val LIBRARY_CACHE_TTL_MILLIS: Long = 6L * 60 * 60 * 1000
     }
 
