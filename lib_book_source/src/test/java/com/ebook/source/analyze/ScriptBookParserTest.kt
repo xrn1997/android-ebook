@@ -13,7 +13,7 @@ import org.junit.Test
 /**
  * `ScriptBookParser` 的骨架契约（2d Task 1）、搜索链路（Task 2）、发现链路（Task 3）与详情链路（Task 4）。
  *
- * 骨架面只锁一件事——「脚本行永不 null、不在构造期失败」的 getParserFor 契约
+ * 骨架面只锁一件事——「脚本行永不 Missing/Broken、不在构造期失败」的 resolveSource 契约
  * 在坏 JSON 上的落点：失败必须等到首次求值、以类型化异常如实报（§12）。
  * 搜索面锁 searchUrl 渲染（`{{key}}` 编码、POST 选项）、条目提取（四类列表结果）、
  * URL 落位（相对地址 + 选项尾段回附）与条目判据。
@@ -45,7 +45,7 @@ class ScriptBookParserTest {
     @Test
     fun `构造期不解析原始 JSON 坏行在首次求值才类型化失败`() = runTest {
         val parser = ScriptBookParser("{broken json", RecordingTransport())
-        // 构造不抛：getParserFor 的契约是「脚本行永不 null、不在构造期失败」，
+        // 构造不抛：resolveSource 的契约是「脚本行永不 Missing/Broken、不在构造期失败」，
         // 坏行必须等到求值才以类型化异常如实报（§12）。searchBook 第一行就摸 rules（惰性装载），
         // 异常原样穿透（不裹 runCatching）——完整搜索行为由 Task 2 锁，本用例只锁装载失败时点与类型
         val error = runCatching { parser.searchBook("凡人", 1) }.exceptionOrNull()

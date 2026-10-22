@@ -67,14 +67,15 @@ import org.robolectric.annotation.Config
  * - **聚合搜索的编排**（`searchAcross`）：一条源失败不带走整条流、空页即该源到底、并发度压在风控
  *   可容忍的上限内、全部源结束才收 AllFinished。这组用例注入假 parser 工厂（见
  *   [newManagerWithParserFactory]）——真工厂会直接向第三方站点发请求，测试面不该有网络。
- * - **`format` 列的双后端路由**：script 行经 `getParserFor` 拿到真解析器（求值抛类型化异常，
- *   与「书源不存在」的 null 严格区分）、原始 JSON 不经翻译直达 parser 工厂、规则类型化读面看不见它
+ * - **`format` 列的双后端路由**：script 行经 `resolveSource` 返回 `Found`（求值抛类型化异常，
+ *   与 `Missing`/`Broken` 严格区分）、原始 JSON 不经翻译直达 parser 工厂、规则类型化读面看不见它
  *   （默认源则两种格式平等），且同 URL 换回原生格式后不残留脚本解析器（见「脚本书源」那组用例）。
  * - **脚本行不被原生解码失败吞掉**：`toItem` 只对原生行解 `rule_json`，脚本行的条目 rule 由实体列合成。
  *   曾经它对所有行都按 [BookSourceRule] 解一遍，社区 JSON 里同名不同形的键（`weight: null`、
  *   `headers` 写成数组）会抛异常并按「脏行」整行丢弃——库里有行、管理页却什么都没有，
  *   而「可导入、可管理」正是脚本书源阶段一的验收状态（用例见「rule_json 与原生类型冲突」那条）。
  */
+@Suppress("DEPRECATION") // ADR-0045 决策 3：测试布置沿用 getParserFor 适配器
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class BookSourceManagerImplTest {
@@ -114,6 +115,69 @@ class BookSourceManagerImplTest {
     /** 被测对象；[sourceDao] 单独传，便于同一用例里放第二个「库」（模拟二次启动） */
     private fun newManager(sourceDao: BookSourceDao = dao) =
         BookSourceManagerImpl(context, sourceDao, OkHttpClient())
+
+    // region SourceBinding：四档取源结果
+
+    @Test
+    fun `resolveSource 对本地书返回 Local`() = runTest {
+        assertSame(SourceBinding.Local, newManager().resolveSource(BookShelfEntity.LOCAL_TAG))
+    }
+
+    @Test
+    fun `resolveSource 对空白与库中无行返回 Missing`() = runTest {
+        val manager = newManager()
+
+        assertEquals(SourceBinding.Missing(""), manager.resolveSource(""))
+        assertEquals(SourceBinding.Missing(PRIMARY_URL), manager.resolveSource(PRIMARY_URL))
+    }
+
+    @Test
+    fun `resolveSource 对坏原生行返回 Broken`() = runTest {
+        dao.seed(
+            BookSourceEntity(
+                url = PRIMARY_URL,
+                name = "坏行",
+                ruleJson = "{not-json",
+                format = "native",
+            )
+        )
+
+        val binding = newManager().resolveSource(PRIMARY_URL)
+
+        assertTrue("坏行必须与缺失分开：实际 $binding", binding is SourceBinding.Broken)
+    }
+
+    @Test
+    fun `resolveSource 对脚本行返回 Found 且取 parser 时不抛`() = runTest {
+        dao.seed(
+            BookSourceEntity(
+                url = SCRIPT_URL,
+                name = "脚本源",
+                ruleJson = """{"bookSourceUrl":"$SCRIPT_URL","bookSourceName":"脚本源"}""",
+                format = "script",
+            )
+        )
+
+        val binding = newManager().resolveSource(SCRIPT_URL)
+
+        assertTrue("脚本行必须拿到真解析器而不是 Missing/Broken", binding is SourceBinding.Found)
+        assertTrue((binding as SourceBinding.Found).parser is ScriptBookParser)
+    }
+
+    @Test
+    fun `resolveSource 对原生行返回缓存中的同一个 parser`() = runTest {
+        dao.seed(entityOf(rule(PRIMARY_URL), addedAt = 1))
+        val manager = newManager()
+
+        val first = manager.resolveSource(PRIMARY_URL)
+        val second = manager.resolveSource(PRIMARY_URL)
+
+        assertTrue(first is SourceBinding.Found)
+        assertTrue(second is SourceBinding.Found)
+        assertSame((first as SourceBinding.Found).parser, (second as SourceBinding.Found).parser)
+    }
+
+    // endregion
 
     /**
      * 注入 parser 工厂的被测对象。
@@ -666,7 +730,7 @@ class BookSourceManagerImplTest {
      * 与 `weight`（null vs 非空 Int）都会让解码抛异常并 `return null`。
      *
      * 修复后脚本行不再进那条解码路径：条目里的 `rule` 由实体列合成，**只用于展示**
-     * （名字/地址/启用态），求值另有 [BookSourceManager.getParserFor] 的格式路由（本用例一并钉住）。
+     * （名字/地址/启用态），求值另有 [BookSourceManager.resolveSource] 的格式路由（本用例一并钉住）。
      * 同时规则类型化读面必须仍然看不见它——那才是「不会有人拿着空规则去发请求」的防线。
      */
     @Test
@@ -721,12 +785,12 @@ class BookSourceManagerImplTest {
     }
 
     /**
-     * 真解析器的**惰性装载**是 getParserFor 契约的另一半：上一条只证明「拿到的对象类型对」，
+     * 真解析器的**惰性装载**是 resolveSource 契约的另一半：上一条只证明「拿到的对象类型对」，
      * 本条证明「坏规则不会在取 parser 时炸、也不会静默给出空结果」。
      *
-     * 两个失败时点必须分开：构造期抛会让 [BookSourceManagerImpl.getParserFor] 在缓存锁内炸出
-     * 未预期异常（那里只处理「没这行」）；求值期返回空值则等于对用户撒谎「这个源没有这条信息」，
-     * 而真相是「这行的 JSON 读不懂」。null 恒等于「书源不存在」，两种结局都不能借用它。
+     * 两个失败时点必须分开：构造期抛会让 [BookSourceManagerImpl.resolveSource] 在缓存锁内炸出
+     * 未预期异常（那里只处理 Missing）；求值期返回空值则等于对用户撒谎「这个源没有这条信息」，
+     * 而真相是「这行的 JSON 读不懂」。Missing/Broken 恒等于「书源不存在/行坏了」，两种结局都不能借用它。
      *
      * 三个入口各测一次（各自摸 rules 的路径不同）：只要有任何一个成员退化成吞异常返回空值，
      * 页面上就是「这本书没有章节」这种彻底的误导，而不是可解释的一句「规则读不懂」。

@@ -39,7 +39,7 @@ Windows PowerShell 用 `.\gradlew`；完整命令见 [`docs/development.md`](doc
 
 **数据与领域**
 
-- 应用不内置书源，`book_source` 表是清单唯一事实源；每本书按 `tag` 绑定归属源，解析一律跟书走，不按全局默认源。`getParserFor` 对脚本行永不返回 null；null 只表示「书源不存在/坏行」，两种失败不得混用。
+- 应用不内置书源，`book_source` 表是清单唯一事实源；每本书按 `tag` 绑定归属源，解析一律跟书走，不按全局默认源。`resolveSource` 返回 `SourceBinding` 四档；脚本行永不为 Missing/Broken，脚本求值失败与「源不存在/坏行」不得混用。
 - 脚本书源沙箱**永不在主线程调用**；外呼只用 `GuardedNetwork` 派生的守门客户端，不自己 new OkHttpClient；未装配执行器与执行失败是两种类型化异常，不得合并成「该源已失效」。
 - Room 主键两套：自然键整行 REPLACE；自增键 upsert 必须查回旧行、用 `existing?.id ?: 0L` 回填主键。写书架条目（书架行 + 章节 + 书籍信息 + 关联键）必须在同一笔写事务里，事件在提交后才发。改实体必须接迁移链，禁止 `fallbackToDestructiveMigration`。
 - access token 只驻内存、只对白名单 host 附加；书源与版本检查走不带 token 的 `@Named("source")`/`@Named("release")` 客户端。清会话一律只调 `userSessionManager.clearSession()`；会话过期统一经 `reportFailure` 上报，不手写 `isSessionExpiredHandled`。

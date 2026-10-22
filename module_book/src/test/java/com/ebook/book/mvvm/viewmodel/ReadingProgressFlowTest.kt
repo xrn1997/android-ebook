@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.ebook.common.analyze.local.BookFormat
 import com.ebook.common.analyze.local.ChapterReader
 import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
@@ -55,7 +56,7 @@ import org.robolectric.annotation.Config
  *   `getChapter(index)`）都由生产代码本身跑出来，所以任何一环把「列表位置」写歪这里就红。
  *
  * `BookSourceManager` 与 `BookParser` 用 [Proxy] 桩而不是手写实现：两个接口成员多，本流程只用到
- * `getParserFor` / `getBookInfo` / `getChapterList`，其余成员一旦被问就抛，「其实没走到那条路径」
+ * `resolveSource` / `getBookInfo` / `getChapterList`，其余成员一旦被问就抛，「其实没走到那条路径」
  * 不会假绿。lib_book_common 里那两份同名假件是 internal，跨模块看不到，只能各留一份。
  */
 @RunWith(RobolectricTestRunner::class)
@@ -122,11 +123,16 @@ class ReadingProgressFlowTest {
             arrayOf(BookSourceManager::class.java),
         ) { _, method, args ->
             when (method.name) {
-                // 照抄真实现的两条短路：空白与 loc_book 不查库直接 null，否则「本地书不会被报成
+                // 照抄真实现的三条短路：本地书、空白、库中无行，否则「本地书不会被报成
                 // 书源失效」这类断言就成了假命题
-                "getParserFor" -> (args[0] as String)
-                    .takeUnless { it.isBlank() || it == BookShelfEntity.LOCAL_TAG }
-                    ?.let { parsers[it] }
+                "resolveSource" -> (args[0] as String).let { url ->
+                    when {
+                        url == BookShelfEntity.LOCAL_TAG -> SourceBinding.Local
+                        url.isBlank() -> SourceBinding.Missing(url)
+                        parsers[url] != null -> SourceBinding.Found(parsers.getValue(url))
+                        else -> SourceBinding.Missing(url)
+                    }
+                }
 
                 "equals" -> false
                 "hashCode" -> System.identityHashCode(parsers)
@@ -208,12 +214,14 @@ class ReadingProgressFlowTest {
      * 纯 `runBlocking` 里却全部正常，很容易误判成产品代码死锁。
      */
     private suspend fun TestScope.awaitUntil(message: String, cond: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + 5_000
+        // 10s 而非 5s：真 Room 的后台执行器 + Robolectric 主 looper 在整模块并行负载下会
+        // 明显慢于单跑；5s 曾在全量跑时把正常流程判成超时（单跑该用例是秒级）。
+        val deadline = System.currentTimeMillis() + 10_000
         while (!cond()) {
             advanceUntilIdle()
             shadowOf(Looper.getMainLooper()).idle()
             if (cond()) break
-            assertTrue("$message（5s 内未达成）", System.currentTimeMillis() < deadline)
+            assertTrue("$message（10s 内未达成）", System.currentTimeMillis() < deadline)
             withContext(Dispatchers.IO) { Thread.sleep(10) }
         }
         advanceUntilIdle()

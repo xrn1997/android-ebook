@@ -4,6 +4,7 @@ import com.ebook.api.entity.BookSourceRule
 import com.ebook.api.entity.SourceFormat
 import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.analyze.source.LibraryDiskCache
+import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.LibraryEntity
@@ -24,7 +25,7 @@ import org.junit.Test
  *
  * 锁四条：
  * 1. 本仓库**不再自己猜源**：三个方法的源都来自入参 `sourceUrl`，问的是
- *    `getParserFor(sourceUrl)` / `getExploreEntries(sourceUrl)`。「当前默认源是谁」由书城页经
+ *    `resolveSource(sourceUrl)` / `getExploreEntries(sourceUrl)`。「当前默认源是谁」由书城页经
  *    [BookSourceManager.observeDefaultSource] 订阅后自己递进来——仓库再读一次全局就是第二个事实源
  *    （默认源也不再有任何同步读面，见 [BookSourceManager]）；
  * 2. 「无源」（`sourceUrl` 空白）拿到的是**空数据**而不是异常——用户在书源管理页把源全禁用了，
@@ -51,7 +52,7 @@ class BookSourceRepositoryNoSourceTest {
     /**
      * 只关心「按 URL 取源」这一面的最小假件。
      *
-     * `getParserFor` 照抄真实现对空白 URL 的短路（不查库直接 null），
+     * `resolveSource` 照抄真实现对空白 URL 的短路（不查库直接 Missing），
      * 否则「无默认源」这条断言测的就是假件而不是被测代码。
      *
      * @param rules 按 URL 可查到的规则（[BookSourceManager.getSourceByUrl] 的返回来源）
@@ -67,10 +68,12 @@ class BookSourceRepositoryNoSourceTest {
         val parserForCalls = mutableListOf<String>()
         val exploreCalls = mutableListOf<String>()
 
-        override suspend fun getParserFor(sourceUrl: String): BookParser? {
+        override suspend fun resolveSource(sourceUrl: String): SourceBinding {
             parserForCalls += sourceUrl
-            if (sourceUrl.isBlank()) return null
-            return parsers[sourceUrl]
+            if (sourceUrl == BookShelfEntity.LOCAL_TAG) return SourceBinding.Local
+            if (sourceUrl.isBlank()) return SourceBinding.Missing(sourceUrl)
+            return parsers[sourceUrl]?.let { SourceBinding.Found(it) }
+                ?: SourceBinding.Missing(sourceUrl)
         }
 
         override suspend fun getSourceByUrl(url: String): BookSourceRule? {
@@ -124,7 +127,7 @@ class BookSourceRepositoryNoSourceTest {
 
         assertEquals(emptyList<SearchBookEntity>(), books)
         assertEquals(
-            "无源时该拿空串去问 getParserFor（它对空白 URL 短路，不查库也不抛）",
+            "无源时该拿空串去问 resolveSource（它对空白 URL 返回 Missing，不查库也不抛）",
             listOf(""),
             manager.parserForCalls,
         )
@@ -215,7 +218,7 @@ class BookSourceRepositoryNoSourceTest {
         // 假件里没有任何 parser 可取：这模拟「有 URL、但那一行的规则解不出来」
         val manager = FakeSourceManager()
 
-        // 空白与「有 URL 却取不到」在 getParserFor 那里同为 null，仓库必须把两者分开：
+        // 空白与「有 URL 却取不到」在 resolveSource 那里都是 Missing，仓库必须按 sourceUrl 把两者分开：
         // 前者是「没源可用」（页面进引导态），后者是「这条源坏了」（提示重新导入或换源）。
         // 都返回空数据的话，这两种截然不同的处境会长成同一个空页面。
         assertThrows(BookSourceNotFoundException::class.java) {

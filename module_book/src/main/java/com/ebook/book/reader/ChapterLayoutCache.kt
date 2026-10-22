@@ -25,10 +25,10 @@ data class ChapterLayoutKey(
 /**
  * 「整章排版偏移」的内存缓存（spec §7）。
  *
- * `ReaderTypesetter.lineStartOffsets` 是 O(章长) 且**每页都调一次**——同章 N 页即 N 次整章
- * 重排，该方法的 KDoc 自己承认了这点。缓存后同章翻页只重排一次。
+ * `ReaderTypesetter.lineStartOffsets` 是 O(章长)；没有缓存时同章 N 页就要重排 N 次整章。
+ * 缓存后同章翻页只重排一次。
  *
- * 本缓存是 `ReadBookActivity` 的**实例字段**（非单例），生命周期与阅读器页面一致；失效全部
+ * 本缓存是 [ReaderPagination] 的**实例字段**（非单例），生命周期与阅读器页面一致；失效全部
  * 由 [ChapterLayoutKey] 的构成承担（见其 KDoc），故不提供按书剔除的入口——页面级缓存没有
  * 跨页调用方，留一个无人调用的失效方法只会让人误以为重解析已由它兜住。
  *

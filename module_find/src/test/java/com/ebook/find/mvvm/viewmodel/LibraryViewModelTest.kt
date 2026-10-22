@@ -9,6 +9,7 @@ import com.ebook.api.entity.SourceDefinition
 import com.ebook.common.analyze.source.BookSourceItem
 import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.analyze.source.LibraryDiskCache
+import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.LibraryEntity
@@ -47,7 +48,7 @@ import org.junit.Test
  * 2. 切换器清单只收启用中的源（禁用项进了列表用户就会点了才知道切不过去），
  *    且只带规则、不带 `format` 那类管理面元数据（元数据出管理页是 [BookSourceManager] 接口 KDoc 的禁令）；
  *    2e 起**脚本书源也进**候选——脚本行已是合法默认源（`setDefaultSource` 对它生效、
- *    `getParserFor` 给真解析器），旧「点了没反应」的死条目成因消失
+ *    `resolveSource` 返回真解析器），旧「点了没反应」的死条目成因消失
  *    （见 `脚本书源进切换器候选且能成为当前源`）；
  * 3. `switchSource` 只做一件事——把目标源设为默认；重拉是订阅回流的结果，
  *    所以「换了源但数据没跟着换」这类漏刷新不可能靠「记得再调一次 refresh」来避免；
@@ -197,10 +198,12 @@ class LibraryViewModelTest {
             defaultSource.value = items.defaultDefinition(url)
         }
 
-        override suspend fun getParserFor(sourceUrl: String): BookParser? {
+        override suspend fun resolveSource(sourceUrl: String): SourceBinding {
             parserForCalls += sourceUrl
-            if (sourceUrl.isBlank()) return null
-            return parsers[sourceUrl]
+            if (sourceUrl == BookShelfEntity.LOCAL_TAG) return SourceBinding.Local
+            if (sourceUrl.isBlank()) return SourceBinding.Missing(sourceUrl)
+            return parsers[sourceUrl]?.let { SourceBinding.Found(it) }
+                ?: SourceBinding.Missing(sourceUrl)
         }
 
         override suspend fun getSourceByUrl(url: String): BookSourceRule? {
@@ -418,7 +421,7 @@ class LibraryViewModelTest {
 
     /**
      * 2e 反转：脚本行**进**切换器候选，且能被立为当前源。
-     * 旧边界（脚本行点不动）的成因已消失：setDefaultSource 对脚本行生效、getParserFor 给真解析器。
+     * 旧边界（脚本行点不动）的成因已消失：setDefaultSource 对脚本行生效、resolveSource 返回真解析器。
      */
     @Test
     fun `脚本书源进切换器候选且能成为当前源`(): Unit = runVmTest {

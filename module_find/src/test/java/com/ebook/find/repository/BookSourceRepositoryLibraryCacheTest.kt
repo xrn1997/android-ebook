@@ -4,6 +4,7 @@ import com.ebook.api.entity.BookSourceRule
 import com.ebook.api.entity.SourceFormat
 import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.analyze.source.LibraryDiskCache
+import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.LibraryEntity
@@ -100,14 +101,16 @@ class BookSourceRepositoryLibraryCacheTest {
             unsupported("getKindBook")
     }
 
-    /** 只回答「这个源有没有 parser」的最小假件：`getParserFor` 照抄空白短路，缺项即「源坏了」 */
+    /** 只回答「这个源有没有 parser」的最小假件：`resolveSource` 的空白短路返回 Missing，缺项即「源坏了」 */
     private class FakeManager(private val parsers: Map<String, BookParser>) : BookSourceManager {
         val parserForCalls = mutableListOf<String>()
 
-        override suspend fun getParserFor(sourceUrl: String): BookParser? {
+        override suspend fun resolveSource(sourceUrl: String): SourceBinding {
             parserForCalls += sourceUrl
-            if (sourceUrl.isBlank()) return null
-            return parsers[sourceUrl]
+            if (sourceUrl == BookShelfEntity.LOCAL_TAG) return SourceBinding.Local
+            if (sourceUrl.isBlank()) return SourceBinding.Missing(sourceUrl)
+            return parsers[sourceUrl]?.let { SourceBinding.Found(it) }
+                ?: SourceBinding.Missing(sourceUrl)
         }
 
         private fun unsupported(who: String): Nothing =

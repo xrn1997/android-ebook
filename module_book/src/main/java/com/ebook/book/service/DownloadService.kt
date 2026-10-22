@@ -19,9 +19,6 @@ import androidx.core.app.NotificationCompat
 import com.ebook.book.R
 import com.ebook.book.repository.DownloadRepository
 import com.ebook.book.repository.DownloadState
-import com.ebook.common.analyze.local.BookLocation
-import com.ebook.common.analyze.local.BookFormat
-import com.ebook.common.analyze.local.ChapterEntry
 import com.ebook.common.analyze.source.JsoupSourceReader
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
@@ -32,13 +29,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * 离线下载前台服务：逐章抽取正文写入章文件并维护 `download_chapter` 任务队列。
+ * 离线下载前台服务：调度单章下载并维护 `download_chapter` 任务队列（正文抓取与落盘见
+ * [DownloadRunner] / [JsoupSourceReader]）。
  *
  * 对外契约全部是 Intent（无 binder，[onBind] 返回 null）：
  * - 信号启动：[buildStartIntent]（空载；任务经 [DownloadRepository.startDownload] 先入 `download_chapter`
@@ -60,9 +56,23 @@ class DownloadService : Service() {
     @Inject lateinit var bookStore: BookStore
 
     /**
-     * 正文内存缓存（进程级单例）。强制刷新重抓后必须失效它，见 [downloading] 内的调用点。
+     * 正文内存缓存（进程级单例）。强制刷新重抓后必须失效它，见 [DownloadRunner]。
      */
     @Inject lateinit var contentCache: ChapterContentCache
+
+    /**
+     * 单章执行器在首次使用时装配：Hilt 字段注入发生在 onStartCommand 之前，
+     * by lazy 保证读到的是已注入的三个字段。
+     */
+    private val downloadRunner by lazy {
+        DownloadRunner(
+            hasChapter = bookStore::hasChapter,
+            deleteChapter = bookStore::deleteChapter,
+            readChapter = jsoupSourceReader::readChapter,
+            deleteTask = downloadRepository::deleteTask,
+            invalidateBook = contentCache::invalidateBook,
+        )
+    }
     private lateinit var notifyManager: NotificationManager
     private var isStartDownload = false
     private var isInit = false
@@ -254,22 +264,11 @@ class DownloadService : Service() {
     }
 
     /**
-     * 抓取单章正文并写入章文件，失败重试至多 [RETRY_TIMES] 次。
+     * 驱动单章下载：重试、空正文校验、强刷失效与失败出队已收进 [DownloadRunner]。
      *
-     * **重试耗尽必须把任务出队**：[findNextDownloadChapter] 取的是「书架第一本非本地书里
-     * dur_chapter_index 最小」的任务，失败任务留在表里会让下一轮 [toDownload] 拿到同一章再重试——
-     * 外层既无退避也无上限，等于无限循环（常驻通知永不消失、前台服务永不停止、持续耗电），
-     * 且队头被堵住后该书后续章节一章也下不了。
-     *
-     * 失败章按「跳过」而非「永久失败」处理：只出队、不写正文，用户重新发起下载或直接阅读该章
-     * 仍会重抓；本批结束时把跳过章数带进提示（见 [finishDownload]），避免静默丢章。
-     * 「书源已失效」（[com.ebook.source.analyze.BookSourceNotFoundException]）同样按普通失败
-     * 处理，**不是**永久失败态的特例：早期设想过的「parser 取不到就不删任务、等用户重导书源后续跑」
-     * 已被否决——那样队头会一直被一个当下注定失败的任务占住，
-     * 常驻通知不消失且阻塞该书其余章节；出队后用户重导书源再发起下载即可续跑。
-     *
-     * 暂停（[isStartDownload] 置 false）会中断重试循环，此时**不出队**：任务保留，
-     * 点「继续」后从头重试，符合暂停语义。
+     * 本方法只负责进度通知、跳过计数、暂停收尾与下一章调度。暂停时 runner 返回
+     * [DownloadOutcome.Paused] 且不出队；失败重试耗尽返回 [DownloadOutcome.Skipped] 并已出队，
+     * 这里只累计跳过章数。
      */
     private fun downloading(data: DownloadChapterEntity) {
         if (!isStartDownload) {
@@ -278,90 +277,29 @@ class DownloadService : Service() {
         }
         isProgress(data)
         serviceScope.launch {
-            var attempt = 0
-            var success = false
-            while (attempt < RETRY_TIMES && isStartDownload && !success) {
-                attempt++
-                try {
-                    // data.tag = 这本书的书源归属 URL：正文按书绑源抓取，不按「当前默认源」
-                    // （见 ADR-0016）。书源被删时 JsoupSourceReader 抛 BookSourceNotFoundException，
-                    // 这里**刻意不给它特例**：异常同样落在下面的 catch 里走既有失败通道
-                    // （重试计数递增 → 耗尽后出队 → 计入 skippedCount → 收尾文案说明跳过 N 章）。
-                    // 「留在队列里等用户重新导入书源后续跑」看着更省事，实则让队头被一个当下
-                    // 注定失败的任务永久占住——常驻通知不消失、该书后面每一章都被阻塞，
-                    // 正是本仓「失败章必须出队」那条铁律要防的形态（见方法 KDoc）。
-                    val location = BookLocation(data.noteUrl, BookFormat.NETWORK, data.tag)
-
-                    // 已有章文件且非强制刷新：命中即视为完成，直接出队
-                    if (!data.forceRefresh && bookStore.hasChapter(location, data.durChapterIndex)) {
-                        downloadRepository.deleteTask(data)
-                        success = true
-                        continue
-                    }
-
-                    // 强制刷新时只删这一章的章文件：不删的话 JsoupSourceReader.readChapter 命中
-                    // 旧文件，重抓结果永远不生效。注意不能图省事调 deleteBook——那是整本书目录，
-                    // 重下第 N 章会把其余已缓存章节一并清掉
-                    if (data.forceRefresh && bookStore.hasChapter(location, data.durChapterIndex)) {
-                        bookStore.deleteChapter(location, data.durChapterIndex)
-                    }
-
-                    // 从网络抓取正文并写入章文件（JsoupSourceReader 内部完成文件写入）
-                    val entry = ChapterEntry(
-                        index = data.durChapterIndex,
-                        title = data.durChapterName,
-                        contentRef = data.durChapterUrl,
-                    )
-                    val content = jsoupSourceReader.readChapter(entry, location)
-
-                    // 空正文判失败：正文选择器失配（反爬页/改版页）时站点回的是 HTTP 200 空壳页，
-                    // 抓取侧此时**不写章文件**（见 JsoupSourceReader.fetchAndStore），这里抛错走
-                    // 重试；重试耗尽只出队不入库。若照单当成功，任务被删而缓存里空着——离线打开
-                    // 就是空白页，且后续 hasChapter 也救不回来
-                    if (content.paragraphs.none { it.isNotBlank() }) {
-                        throw IllegalStateException("章节内容解析失败: ${data.durChapterUrl}")
-                    }
-
-                    // 强制刷新重抓成功后失效正文内存缓存（spec §7 的「章节重解析」失效条件）：
-                    // ChapterContentCache 是进程级单例，键由 BookRepository.loadChapter 统一取
-                    // `chapterRef(noteUrl, index)`（形如 books/<书目录名>/cNNNNN.txt，网络书的目录名
-                    // 是 noteUrl 的 md5、由 BookStore 派生），重抓前后不变，
-                    // 故按书剔除即可命中；不失效则已打开的阅读器会继续供给旧正文直到 LRU 挤出或进程重启。
-                    // 注意该键与 chapter_list.content_ref 列无关（网络书那一列存的是章节 URL），
-                    // 判据以 BookStore.cacheMarker 的 KDoc 为准。
-                    // 放在空正文校验之后——抓取失败时章文件未被重写，缓存里的旧正文仍是磁盘真相。
-                    // 但必须**先于出队**：deleteTask 抛异常时本段会被 catch 收走（走重试/记账），
-                    // 若失效排在它后面就整段跳过——章文件已是重抓的新正文，缓存却继续供给旧正文，
-                    // 而这正是「强制刷新」要消除的现象。反过来先失效再出队是安全的：
-                    // 失效是幂等的内存操作，重试重抓成功后再失效一次无副作用。
-                    if (data.forceRefresh) {
-                        contentCache.invalidateBook(data.noteUrl)
-                    }
-                    downloadRepository.deleteTask(data)
-                    Logger.d(TAG, "downloading: ${data.durChapterUrl}")
-                    success = true
-                } catch (e: Throwable) {
-                    // 服务销毁/作用域取消时必须放行取消异常：吞掉它会让循环在已取消的作用域里
-                    // 再空转几轮（每个挂起点都立即抛取消），还会把「取消」误记成「抓取失败被跳过」
-                    if (e is CancellationException) throw e
-                    Logger.e(TAG, "章节下载失败（第 $attempt/$RETRY_TIMES 次）: ${data.durChapterUrl}", e)
-                    if (attempt < RETRY_TIMES) {
-                        delay(RETRY_DELAY_MS.milliseconds) // 重试前等待，避开瞬时限流/抖动
-                    }
+            val outcome = try {
+                downloadRunner.run(data) { isStartDownload }
+            } catch (e: CancellationException) {
+                // 服务销毁/作用域取消：原样上抛，不能记成一次失败
+                throw e
+            } catch (e: Throwable) {
+                // runner 内部已收口预期失败；能逃到这里的是编程/系统错误。删任务会把「没抓成」
+                // 静默成「跳过」，停在暂停态保留任务，用户可续跑或取消。
+                Logger.e(TAG, "下载执行异常，停在暂停态: ${data.durChapterUrl}", e)
+                DownloadOutcome.Paused
+            }
+            when (outcome) {
+                DownloadOutcome.Completed -> Unit
+                DownloadOutcome.Skipped -> skippedCount++
+                DownloadOutcome.Paused -> {
+                    // 可能是队列写失败导致的停摆（此时 isStartDownload 仍为 true）；
+                    // pauseDownload() 置 false 并改写通知，才能让 ACTION_RESUME 重新拉起，
+                    // 而不是留下一条「正在下载」却不再有下一章调度的常驻通知
+                    pauseDownload()
+                    isPause()
+                    return@launch
                 }
             }
-
-            // 重试**真的耗尽**（而非被暂停打断）才出队并计数，见方法 KDoc 的暂停语义
-            if (!success && attempt >= RETRY_TIMES) {
-                skippedCount++
-                Logger.w(TAG, "重试 $RETRY_TIMES 次仍失败，跳过本章并出队: ${data.durChapterUrl}")
-                try {
-                    downloadRepository.deleteTask(data)
-                } catch (e: Throwable) {
-                    Logger.e(TAG, "失败任务出队异常: ", e)
-                }
-            }
-
             // 继续下载下一个
             if (isStartDownload) {
                 myHandler.postDelayed({
@@ -383,7 +321,7 @@ class DownloadService : Service() {
         toDownload()
     }
 
-    /** 暂停当前批次（任务保留），供 [ACTION_PAUSE] 分支调用 */
+    /** 暂停当前批次（任务保留）：供 [ACTION_PAUSE] 与 runner 返回 [DownloadOutcome.Paused] 的分支调用 */
     private fun pauseDownload() {
         isStartDownload = false
         // 不能 cancelAll：那会把前台服务常驻通知一并清掉——服务还活着（暂停态）但用户
@@ -667,10 +605,6 @@ class DownloadService : Service() {
 
     companion object {
         private val TAG: String = DownloadService::class.java.simpleName
-        const val RETRY_TIMES: Int = 3
-
-        /** 单章重试前的等待：避开瞬时限流/网络抖动 */
-        private const val RETRY_DELAY_MS = 1_000L
 
         /** 章与章之间的间隔：降低对书源站点的请求压力 */
         private const val CHAPTER_INTERVAL_MS = 800L

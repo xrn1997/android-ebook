@@ -51,7 +51,7 @@ Status: accepted
 
 - `module_book`：`DownloadService`（`onTimeout`、`postAttentionNotification`、`fgUnavailable`、companion `start()`/`isStartNotAllowed()`）、`DownloadRepository`（`tryEmitState`、统一下发入口 `startDownload`：先 `addTasks` 入库再 `DownloadService.start()`）、`ReadBookActivity`（下载入口改为「先确保在架 → 带参打开下载中心」直达选章二级页，原 `startChapterDownload` 已删除）、`DownloadManageActivity`/`DownloadManageViewModel`（两级下载中心：一级任务列表可续跑/暂停/取消，二级选章确认经 `DownloadRepository.startDownload` 下发）、`res/values/strings.xml`（`download_start_restricted`、`notification_fgs_timeout_text`）。
 - 构建/manifest：无变更（`dataSync` 声明与 `FOREGROUND_SERVICE_DATA_SYNC` 权限本已齐备）。
-- 测试：`DownloadService` 依赖系统服务生命周期，超时/启动被拒路径需设备或模拟器验证；纯 JVM 侧只对 `DownloadRepository` 的 `tryEmitState` 有可测面。
+- 测试：`DownloadService` 依赖系统服务生命周期，超时/启动被拒路径需设备或模拟器验证；纯 JVM 侧可测面包括 `DownloadRepository` 的 `tryEmitState`，以及后续抽出的 `DownloadRunner`（单章重试/出队）与 `DownloadBatch`（队列候选域/暂停跳过/孤儿清理）。
 
 ## 落地状态
 

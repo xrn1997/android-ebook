@@ -7,11 +7,9 @@ import com.ebook.db.dao.BookShelfDao
 import com.ebook.db.dao.ChapterListDao
 import com.ebook.db.dao.DownloadChapterDao
 import com.ebook.db.dao.PausedBookDao
-import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.BookShelfFullInfo
 import com.ebook.db.entity.ChapterListEntity
 import com.ebook.db.entity.DownloadChapterEntity
-import com.ebook.db.entity.PausedBookEntity
 import com.ebook.common.analyze.local.BookLocation
 import com.ebook.common.analyze.local.BookFormat
 import com.ebook.common.store.BookStore
@@ -60,25 +58,25 @@ class DownloadRepository @Inject constructor(
     private val _downloadState = MutableSharedFlow<DownloadState>(replay = 1, extraBufferCapacity = 64)
     val downloadState: SharedFlow<DownloadState> = _downloadState.asSharedFlow()
 
+    /** 队列策略的唯一实现：候选域、暂停跳过、孤儿清理与队列计数。 */
+    private val batch = DownloadBatch(
+        downloadChapterDao = downloadChapterDao,
+        bookShelfDao = bookShelfDao,
+        pausedBookDao = pausedBookDao,
+    )
+
     // ===== 数据操作 =====
 
     /**
      * 获取下一章待下载任务（跳过暂停书，见 ADR-0036）。
      *
-     * 暂停是**队列策略**，在本层做：遍历前取一次暂停标记集（[PausedBookDao.getAll]，
-     * 行数 = 暂停书数，量小），命中即跳过该书——`DownloadChapterDao` 的既有查询与
-     * 测试假件（`lib_book_common` 的 FakeDownloadChapterDao）因此零改动。
+     * 暂停与候选域是**队列策略**，收在 [DownloadBatch]：遍历前取一次暂停标记集
+     * （[PausedBookDao.getAll]，行数 = 暂停书数，量小），命中即跳过该书——
+     * `DownloadChapterDao` 的既有查询与测试假件（`lib_book_common` 的 FakeDownloadChapterDao）因此零改动。
      * 暂停书的任务保留在表里，继续（[resumeBook]）后按书架顺序轮到即下。
      */
     suspend fun getNextDownloadTask(): DownloadChapterEntity? = withContext(Dispatchers.IO) {
-        val paused = pausedBookDao.getAll().toSet()
-        for (shelf in bookShelfDao.getAllBooks()) {
-            if (shelf.tag != BookShelfEntity.LOCAL_TAG && shelf.noteUrl !in paused) {
-                val task = downloadChapterDao.getFirstByNoteUrl(shelf.noteUrl)
-                if (task != null) return@withContext task
-            }
-        }
-        null
+        batch.nextTask()
     }
 
     /**
@@ -90,19 +88,12 @@ class DownloadRepository @Inject constructor(
      * 也不该让「全部开始」看起来有活可干。
      */
     suspend fun findLatestDownloadTask(): DownloadChapterEntity? = withContext(Dispatchers.IO) {
-        val paused = pausedBookDao.getAll().toSet()
-        for (shelf in bookShelfDao.getAllBooks()) {
-            if (shelf.tag != BookShelfEntity.LOCAL_TAG && shelf.noteUrl !in paused) {
-                val task = downloadChapterDao.getLastByNoteUrl(shelf.noteUrl)
-                if (task != null) return@withContext task
-            }
-        }
-        null
+        batch.latestTask()
     }
 
     /** 暂停某书：插入标记行即生效（幂等，主键 REPLACE）；服务在下一轮取篇时跳过该书（见 ADR-0036）。 */
     suspend fun pauseBook(noteUrl: String) = withContext(Dispatchers.IO) {
-        pausedBookDao.insert(PausedBookEntity(noteUrl = noteUrl))
+        batch.pauseBook(noteUrl)
     }
 
     /**
@@ -110,7 +101,7 @@ class DownloadRepository @Inject constructor(
      * 会补发 RESUME Intent——服务已死时经 getForegroundService 拉起续跑）。
      */
     suspend fun resumeBook(noteUrl: String) = withContext(Dispatchers.IO) {
-        pausedBookDao.delete(noteUrl)
+        batch.resumeBook(noteUrl)
     }
 
     /** 全部暂停书的 note_url：一级分组与二级选章装载暂停态各取一次即够（行数 = 暂停书数，量小）。 */
@@ -131,7 +122,7 @@ class DownloadRepository @Inject constructor(
                 tag = chapter.tag,
                 bookName = chapter.bookName,
                 coverUrl = chapter.coverUrl,
-                // 透传强制刷新标记：服务端据此先删旧内容再重抓（见 DownloadService.downloading）
+                // 透传强制刷新标记：DownloadRunner 据此先删旧内容再重抓
                 forceRefresh = chapter.forceRefresh
             )
         }
@@ -140,13 +131,12 @@ class DownloadRepository @Inject constructor(
 
     /** 删除指定下载任务 */
     suspend fun deleteTask(chapter: DownloadChapterEntity) = withContext(Dispatchers.IO) {
-        downloadChapterDao.delete(chapter)
+        batch.deleteTask(chapter)
     }
 
     /** 清空所有下载任务（顺带清空暂停标记：队列空了，标记留着只会让下次排队静默保持暂停） */
     suspend fun clearAllTasks() = withContext(Dispatchers.IO) {
-        downloadChapterDao.clearAll()
-        pausedBookDao.clearAll()
+        batch.clearAllTasks()
     }
 
     /**
@@ -155,7 +145,7 @@ class DownloadRepository @Inject constructor(
      * 供下载通知展示剩余量：原先只报"当前章节名"，用户看不出这批任务有多大、还剩多少。
      */
     suspend fun countTasks(): Int = withContext(Dispatchers.IO) {
-        downloadChapterDao.count()
+        batch.count()
     }
 
     /**
@@ -180,8 +170,7 @@ class DownloadRepository @Inject constructor(
      * 请求完成后会重新入库——见 DownloadService 保存分支），仅保证后续队列不再拉该书。
      */
     suspend fun deleteTasksForBook(noteUrl: String) = withContext(Dispatchers.IO) {
-        downloadChapterDao.deleteByNoteUrl(noteUrl)
-        pausedBookDao.delete(noteUrl)
+        batch.deleteTasksForBook(noteUrl)
     }
 
     /**
@@ -193,15 +182,7 @@ class DownloadRepository @Inject constructor(
      * 顺带清暂停标记）而非一条 DELETE SQL：孤儿书的暂停标记同样是脏数据。
      */
     suspend fun deleteTasksOutsideShelf() = withContext(Dispatchers.IO) {
-        // 与取篇同一候选域：非本地书架行。本地书行不参与取篇（见 getNextDownloadTask），
-        // 其任务同样视为孤儿——本地书没有下载链路，正常情况下不存在这种行
-        val shelfUrls = bookShelfDao.getAllBooks()
-            .filter { it.tag != BookShelfEntity.LOCAL_TAG }
-            .mapTo(mutableSetOf()) { it.noteUrl }
-        downloadChapterDao.getAllTasks()
-            .mapTo(mutableSetOf()) { it.noteUrl }
-            .filter { it !in shelfUrls }
-            .forEach { deleteTasksForBook(it) }
+        batch.deleteOrphans()
     }
 
     /**

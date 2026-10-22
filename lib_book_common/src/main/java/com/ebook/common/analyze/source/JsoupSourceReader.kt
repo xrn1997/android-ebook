@@ -15,7 +15,9 @@ import com.ebook.source.analyze.BookParser
 import com.ebook.source.analyze.BookSourceNotFoundException
 import com.ebook.source.analyze.ChapterPageMatcher
 import com.ebook.source.analyze.JsoupBookParser
+import com.ebook.source.analyze.PageWalker
 import com.ebook.source.analyze.ScriptContentParser
+import com.ebook.source.analyze.WalkPage
 import com.xrn1997.common.util.Logger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -23,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Singleton
@@ -99,10 +102,11 @@ class JsoupSourceReader @Inject constructor(
     /**
      * 取**这本书归属书源**的 parser（多书源共存的落点，见 ADR-0016）。
      *
-     * 三种成因分别抛不同的异常，混成一个就会说错根因：
+     * 取不到 parser 的成因分两支处置：本地书是编程错误，网络书的取源失败是业务失败。
+     * 混成一个就会说错根因：
      * 1. **本地书被路由到网络 reader**（`tag` 等于 [BookShelfEntity.LOCAL_TAG]）→ [IllegalStateException]
      *    （编程错误）。reader 按 `book_format` 选，本地书永远是 TXT/EPUB reader，正常路由下走不到这里。
-     *    [BookSourceManager.getParserFor] 对它返回 null，若照此报成「书源已失效」，用户会收到
+     *    [BookSourceManager.resolveSource] 对它返回 [SourceBinding.Local]，若照此报成「书源已失效」，用户会收到
      *    「请重新导入或换源」——本地书压根没有书源可导，等于把数据 bug 转嫁成用户操作。
      *    消息带现场（本地 tag 值 + `bookId`），否则只有一行「拿到本地书」的日志无从定位是哪条路由错了。
      * 2. **网络书的 `tag` 为空白**→ [BookSourceNotFoundException]。这与第 1 种**不是一回事**：
@@ -110,7 +114,7 @@ class JsoupSourceReader @Inject constructor(
      *    用户手上唯一有效的处置仍与「源被删」相同（重新导入或换源），所以它必须落在可展示的业务异常里、
      *    由调用方提示出去；报成编程错误会被上层当成「不该发生的分支」吞掉，于是只剩一行日志、
      *    页面既不闪退也永远加载不出来。
-     * 3. **有 URL 但库里查不到**（源被删）→ [BookSourceNotFoundException]。
+     * 3. **有 URL 但取源结果为 Missing/Broken**（源被删 / 原生坏行）→ [BookSourceNotFoundException]。
      *    2、3 两支共用同一异常类型，也正因如此第 1 支必须与它们分开。
      *    **不再走 `requireParser()`**——那条路会拿默认书源的规则去解另一站点的章节 URL，
      *    现象是「不闪退、正文永远加载不出来」，比抛异常坏得多。
@@ -136,8 +140,7 @@ class JsoupSourceReader @Inject constructor(
         if (location.sourceUrl.isBlank()) {
             throw BookSourceNotFoundException(location.sourceUrl, "bookId=${location.bookId}")
         }
-        return bookSourceManager.getParserFor(location.sourceUrl)
-            ?: throw BookSourceNotFoundException(location.sourceUrl)
+        return bookSourceManager.parserOrThrow(location.sourceUrl)
     }
 
     /**
@@ -178,7 +181,6 @@ class JsoupSourceReader @Inject constructor(
     ): ChapterContent {
         val rule = parser.rule
         val network = BookSourceNetwork(rule, okHttpClient)
-        val content = StringBuilder()
 
         try {
             val contentRule = rule.ruleContent
@@ -186,58 +188,48 @@ class JsoupSourceReader @Inject constructor(
             // 同章分页的判定只此一份，收在 [ChapterPageMatcher.isSameChapterPage] 里，本类不得复刻：
             // 两处各写一遍，改分页形态时就会漂移成正文串章，边界形态由 ChapterPageMatcherTest 钉住。
             val chapterBaseUrl = entry.contentRef
-            // 已访问页集合：既防翻页链接回环死循环，又兼作单章抓页数上限的计数依据
-            val visited = mutableSetOf(entry.contentRef)
-            var currentUrl: String? = entry.contentRef
-
-            while (currentUrl != null && visited.size <= MAX_CONTENT_PAGES) {
-                val relativeUrl = currentUrl.replace(rule.url, "")
-                val html = network.getPage(relativeUrl)
-                val doc = Jsoup.parse(html)
-                val contentElement = doc.selectFirst(contentRule.content)
-
-                if (contentElement != null) {
-                    // 提取正文文本：优先使用 p 标签，否则使用 wholeText。
-                    // 这里**不补缩进**——段首缩进是表现层，由读取层的 TextNormalizer.toDisplayText
-                    // 统一补（spec §8），写进存储就不可逆了
-                    val paragraphs = contentElement.select("p")
-                    val text = if (paragraphs.isNotEmpty()) {
-                        paragraphs.map { it.text().trim() }
-                            .filter { it.isNotEmpty() }
-                            .joinToString("\n")
+            val pages = PageWalker<String, Document>(
+                maxPages = MAX_CONTENT_PAGES,
+            ).walk(
+                entryUrl = entry.contentRef,
+                fetch = { url -> WalkPage(url, Jsoup.parse(network.getPage(url.replace(rule.url, "")))) },
+                items = { page ->
+                    val contentElement = page.payload.selectFirst(contentRule.content)
+                    if (contentElement == null) {
+                        emptySequence()
                     } else {
-                        contentElement.wholeText()
-                            .replace("&nbsp;", "　")
-                            .trim()
+                        // 提取正文文本：优先使用 p 标签，否则使用 wholeText。
+                        // 这里**不补缩进**——段首缩进是表现层，由读取层的 TextNormalizer.toDisplayText
+                        // 统一补（spec §8），写进存储就不可逆了
+                        val paragraphs = contentElement.select("p")
+                        val text = if (paragraphs.isNotEmpty()) {
+                            paragraphs.map { it.text().trim() }
+                                .filter { it.isNotEmpty() }
+                                .joinToString("\n")
+                        } else {
+                            contentElement.wholeText()
+                                .replace("&nbsp;", "　")
+                                .trim()
+                        }
+                        if (text.isEmpty()) emptySequence() else sequenceOf(text)
                     }
-                    if (content.isNotEmpty() && text.isNotEmpty()) {
-                        content.append("\n")
-                    }
-                    content.append(text)
-                }
-
-                // 查找下一页：仅当链接属于本章分页且未访问过时才跟进，否则结束（视为本章最后一页）
-                currentUrl = if (contentRule.nextPage.isNotEmpty()) {
-                    val next = JsoupHelper.parseUrl(
-                        rule.url,
-                        JsoupHelper.selectAttr(doc, contentRule.nextPage)
-                    )
-                    if (next.isNotEmpty() &&
-                        ChapterPageMatcher.isSameChapterPage(next, chapterBaseUrl) &&
-                        visited.add(next)
-                    ) {
-                        next
-                    } else {
+                },
+                next = { page ->
+                    if (contentRule.nextPage.isEmpty()) {
                         null
+                    } else {
+                        JsoupHelper.parseUrl(
+                            rule.url,
+                            JsoupHelper.selectAttr(page.payload, contentRule.nextPage)
+                        ).takeIf { it.isNotEmpty() && ChapterPageMatcher.isSameChapterPage(it, chapterBaseUrl) }
                     }
-                } else {
-                    null
-                }
-            }
+                },
+            )
+            val content = pages.items.joinToString("\n")
 
             // 应用清理规则（跑在整章串上，规则可能跨段）
             val rawText = JsoupHelper.applyReplaceRules(
-                content.toString(),
+                content,
                 contentRule.replaceRules.filter { it.enabled }
             )
             // 统一换行后按行切回段落：存储层只切不洗（spec §4 §8），读取层再规范化

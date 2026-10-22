@@ -7,20 +7,17 @@ import com.ebook.common.analyze.local.ChapterEntry
 import com.ebook.common.analyze.local.ChapterSink
 import com.ebook.common.analyze.local.SourceReader
 import com.ebook.common.di.ImportScratch
-import com.ebook.common.domain.CommentKey
 import com.ebook.common.domain.ParsedBookMeta
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.store.BookStore
-import com.ebook.common.store.WriteTransactionRunner
-import com.ebook.db.dao.BookGroupDao
 import com.ebook.db.dao.BookInfoDao
 import com.ebook.db.dao.BookShelfDao
 import com.ebook.db.dao.ChapterListDao
-import com.ebook.db.entity.BookGroupEntity
 import com.ebook.db.entity.BookInfoEntity
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.ChapterListEntity
 import com.ebook.db.entity.LocBookShelfEntity
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
@@ -49,8 +46,6 @@ class LocalBookImporter @Inject constructor(
     private val bookShelfDao: BookShelfDao,
     private val bookInfoDao: BookInfoDao,
     private val chapterListDao: ChapterListDao,
-    private val bookGroupDao: BookGroupDao,
-    private val transactions: WriteTransactionRunner,
     private val bookRepository: BookRepository,
 ) {
 
@@ -113,27 +108,23 @@ class LocalBookImporter @Inject constructor(
                     origin = String(),
                     status = String(),
                 )
-                val group = BookGroupEntity(
-                    commentKey = CommentKey.compute(info.name, info.author),
-                    noteUrl = md5,
-                    isPrimary = true,
-                )
                 try {
-                    transactions.run {
-                        bookShelfDao.insert(shelf)
-                        bookInfoDao.insert(info)
-                        chapterListDao.insertAll(chapters)
-                        bookGroupDao.insert(group)
-                    }
+                    // 条目写入（四表 + 评论主键行）统一由 ShelfEntryStore 收在一笔事务里；
+                    // 导入器只负责把文件与实体准备好。
+                    shelf.chapterList = chapters
+                    shelf.bookInfo = info
+                    bookRepository.addToShelf(shelf)
+                } catch (e: CancellationException) {
+                    // 取消不是库写失败：addToShelf 在事务提交后才发事件，事件阶段被取消时
+                    // 事务可能已落库；此时删文件会把已入库的书变成空壳。未提交留下的孤儿
+                    // 文件目录由 BookStore 对账回收。
+                    throw e
                 } catch (t: Throwable) {
                     // 库写不进去就把章文件一并撤掉，别在磁盘上留一本"库里不存在"的书
                     bookStore.deleteBook(BookLocation(md5, format, BookShelfEntity.LOCAL_TAG))
                     throw t
                 }
 
-                shelf.chapterList = chapters
-                shelf.bookInfo = info
-                bookRepository.publishAdded(shelf)
                 LocBookShelfEntity(true, shelf)
             } finally {
                 staged.delete()

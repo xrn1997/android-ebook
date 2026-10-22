@@ -106,7 +106,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - **自然键表**（`note_url`/`content_ref`）直接 `OnConflictStrategy.REPLACE` 整行替换。`content_ref` 是内容定位符：本地书存章文件相对路径、网络书存章节 URL。
 - **自增键的流水表**（下载队列）主键是自增 `id` 另挂唯一索引，upsert 必须先查回旧行、用 `existing?.id ?: 0L` 回填主键才算**原地覆盖**——传 0 是让 SQLite 分配新行，同唯一索引会撞成「先删后插」（实例见 `DownloadChapterDao.getChapterByUrl` 与 `DownloadRepository.addTasks`）。
 
-**写「一个书架条目」的四张表一律收在同一笔写事务里**（`BookRepository.addToShelf` 与换源的 `commitSwitch` 都经 `WriteTransactionRunner`，事件在事务返回后才发）：逐张提交会留出窗口，让并发读方 `getAllBooksWithDetails` 看到「书架行已在、章节还没写完」的半截条目，而它把「取不到 `book_info`」的行当孤立记录**删掉**——半截状态不只被读到，还会被写实。该不变量由 `BookRepositoryTest` 的 `addToShelf 把整个条目收进一次写事务并在提交后才发事件` 在纯 JVM 侧锁住。
+**写「一个书架条目」的四张表一律收在同一笔写事务里**（由 `ShelfEntryStore` 的 `add`/`replaceRows`/`appendTailAndRemove` 经 `WriteTransactionRunner` 落地；`BookRepository` 的加书架、换源、导入与智能合并都委托它，事件在事务返回后才发）：逐张提交会留出窗口，让并发读方 `getAllBooksWithDetails` 看到「书架行已在、章节还没写完」的半截条目，而它把「取不到 `book_info`」的行当孤立记录**删掉**——半截状态不只被读到，还会被写实。该不变量由 `ShelfEntryStoreTest` 与 `BookRepositoryTest` 的 `addToShelf 把整个条目收进一次写事务并在提交后才发事件` 在纯 JVM 侧锁住。
 
 ### 4.2 Schema 演进
 
@@ -142,9 +142,9 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 ### 6.1 清单、默认源与搜索
 
 - 应用**不内置任何书源**，也没有首启 seeding；`book_source` 表是书源清单的**唯一**事实源，表里每一行都由用户导入，任何一条源都可删、可禁用、可设默认。适配新网站优先改用户导入的 JSON 规则，而不是硬编码选择器。
-- **多书源共存**：每本书按 `tag` 绑定归属书源，解析一律跟书走——书架/详情/下载取 `entity.tag`、正文取 `BookLocation.sourceUrl`，最终都经 `bookSourceManager.getParserFor(url)` 拿源。`requireParser()` / `currentParser` 已删除且**不得重新引入**：按全局默认源去解另一站点的书不会闪退，只会拉回不相干的内容。
+- **多书源共存**：每本书按 `tag` 绑定归属书源，解析一律跟书走——书架/详情/下载取 `entity.tag`、正文取 `BookLocation.sourceUrl`，最终都经 `bookSourceManager.resolveSource(url)` 拿源；生产调用点统一走 `parserOrThrow`，四档只在那里翻译一次（正文入口的本地/空白前置短路见 [ADR-0045](adr/0045-source-binding-typed-result.md) 的「边界」）。取源结果是密封的 `SourceBinding` 四档（Local / Found / Missing / Broken）；`getParserFor` 只剩 deprecated 适配，生产路径不得新增调用。`requireParser()` / `currentParser` 已删除且**不得重新引入**：按全局默认源去解另一站点的书不会闪退，只会拉回不相干的内容。
 - 书城与「新加的书绑哪个源」都由 `observeDefaultSource()` 给出（默认源每次由 `defaultFromRows(Room 行)` 现算，SP 只记「用户上次主动选了哪个」；载体是格式中立的 `SourceDefinition`，脚本行同样可成为默认源；无启用源时发 null，页面进引导态）。**同步读面已无任何出口**，别为了「首帧不空白」重新修一条。
-- 搜索用 `searchAcross(keyword, page, skipSourceUrls)`——「哪些源已到底」只有调用方知道，故由调用方每轮带进来（Manager 不持有搜索会话状态）。
+- 搜索用 `searchAcross(keyword, page, skipSourceUrls)`——「哪些源已到底」只有调用方知道，故由调用方每轮带进来（Manager 不持有搜索会话状态）。原生搜索的传输失败也**上抛**，由 `searchAcross` 收敛成该源的 `SourceFailed`（为什么不能吞成空列表，见规格 §12「失败要如实报」）。
 - **默认源的 parser 与其它源同构**（一样进 LRU）：覆盖规则只需一次 `evictParser`。书城页面判据是 `LibraryViewModel.sourceState` 四档：首帧是 `Unknown`（默认源由 Room 现算，页面那一刻还没有结论 → **整片留空**，既不画引导语也不画半截切换器），「一条源都没有」与「有源但当前源解析不出来」两句话各走各的——把后者并进前者会把用户支去启用那条本就坏掉的源。零源空态另有「去导入书源」入口（跨模块跳书源管理页，独立模式由占位宿主承接）。
 - 新增/改动 `BookSourceManager` 的成员要同步测试替身——具名替身 `FakeBookSourceManager` 在 `lib_book_common` 与 `module_me` 各一份，其余是 `module_find`/`module_book` 测试文件里的内联实现；改完接口用 `grep ": BookSourceManager {"` 现数一遍。
 
@@ -152,7 +152,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 - `book_source.format` 列值是小写 `native`/`script`，读写一律取 `SourceFormat.raw`——拿枚举 `name` 当列值不报错也不闪退，只会让脚本行静默按原生规则解。
 - 两种格式同表共存由 `BookSourceManagerImpl` 的 `toDefinition` 按该列路由：规则类型化读面（`getAllSources`/`getEnabledSources`/`getSourceByUrl` 与默认源回落）经 `toRule` 一律挡下非原生行，而 `observeSources()` 必须继续带出脚本行（管理页要看得见、能禁用、能删）——两侧口径本就不同，不要「统一」。
-- `getParserFor` 对脚本行**永不返回 null、也不在取 parser 时抛**（`ScriptRuleSet.load` 惰性到首次求值才跑，坏 JSON 在那里抛类型化 `ScriptRuleParseException`），而 null 恒等于「书源不存在/坏行」，两者**不得混用**（混了等于把「这条规则解不动」说成「这条源已失效」）。构造期抛则会在缓存锁内炸出未预期异常。
+- `resolveSource` 对脚本行**永不返回 Missing/Broken、也不在取 parser 时抛**（`ScriptRuleSet.load` 惰性到首次求值才跑，坏 JSON 在那里抛类型化 `ScriptRuleParseException`）；`Missing`（没有这行）与 `Broken`（原生坏行）在 UI 上可给同一句提示，但日志必须分开。脚本失败层级已 public（ADR-0046），`lib_book_common` 可按类型处置（正文路径当前仍原样上抛）；**不得**把「这条规则解不动」折叠成「这条源已失效」。构造期抛则会在缓存锁内炸出未预期异常。
 - 跨模块可见性：Kotlin `internal` 只在同模块（含同模块测试源集）可见，依赖方的 test source set 不是 friend module，故 `JsoupBookParser.rule`、`ChapterPageMatcher` 与 `ScriptBookParser` 的生产构造都是 public——上浮解析器时不要顺手收窄，且解析器测试必须与实现放在同一模块。
 - `JsoupSourceReader` 住在 `lib_book_common`、**不随解析器迁走**：它依赖 `BookStore`/`ChapterReader`/`BookSourceManager`，搬去 `lib_book_source` 就是一个 Gradle 环。
 - 声明式求值链路全线接页面：`ScriptBookParser` 实现 `BookParser` 五面（搜索/详情/目录/发现分类/书库首屏）与 `ScriptContentParser` 正文接缝——聚合搜索候选含脚本行、正文读取按 `ScriptContentParser` 分岔、脚本源可搜索可加书架可全链路阅读。
@@ -192,6 +192,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 ### 6.5 分页与正文跟进
 
+- **逐页走**的机制收在 `PageWalker`（回环守卫、页数/条目上限、可选「零新增即停」）；四条链路只注入「下一页怎么算、何时停」。原生正文仍用 `ChapterPageMatcher`、脚本仍用 `ScriptPageChain`，判定函数**不合并**（规格 §7.3/§12），`PageWalkerTest` 锁机制，各链测试锁语义。
 - 正文分页跟进（多页拼接）的判定基准是**目录页给出的原始章节 URL**（不对入口剥后缀），只对「下一页」候选链接剥一次分页后缀再比。对入口也剥离会让「章节号写在连字符后」的站点剥后同形而**串章**（一路跟进后续章节直到页数上限，正文错乱 + 数十次冗余请求）；「第 1 页也带后缀」的站点与此结构同形、无法靠 URL 区分，取舍是**宁漏页不串章**。边界形态由 `ChapterPageMatcherTest` 锁死。
 - 列表分页（分类页/搜索页 URL 模板）的模板**必须带 `{{page}}`**，否则「加载更多」每页都在请求同一个首页；页码换算与渲染统一走 `JsoupBookParser` 的 `ListPageUrl`（它把以 `/{{page}}` 结尾的模板在首页裁掉页码段——裸路径首页 `/xuanhuan/1` 是 404），取首页也必须经它。判「到底」不能只看空页：**越界页会以 HTTP 200 重复返回首页书目**（软 404），追加页一律按 `noteUrl` 去重、无新条目即置 `hasMore=false`——列表页以 `noteUrl` 作 item key，重复条目直接抛异常。形态由 `ListPageUrlTest` 与 `BookPageMergeTest` 锁死。
 
@@ -208,14 +209,19 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - **拉起服务一律走 `DownloadService.start(context, intent)`**（返回 false 即需提示用户），禁止在页面/ViewModel 里直接调 `ContextCompat.startForegroundService`。
 - **发起下载先入库再拉服务**（统一经 `DownloadRepository.startDownload`），否则启动被拒时只躲在 Intent 里的任务会丢。下载任务以 `download_chapter` 表为唯一队列事实源，启动 Intent 只带控制信号、不携带任务列表。
 - **`onTimeout` 内只做数秒可完成的收尾**，不得查库/发网络请求/起协程。
-- **失败章必须在重试耗尽后出队**（`DownloadService.downloading`）——队头被失败任务占住会让服务在同一章上无限重试（常驻通知不消失、该书后续章节全被阻塞），跳过章数经 `skippedCount` 带进收尾文案，不静默丢章；暂停中断重试时**不出队**（任务保留待续跑）。
+- **队列策略收在 `DownloadBatch`**：候选域（书架顺序、跳过暂停书）、暂停标记、孤儿清理与队列计数只写一处；`DownloadRepository` 的队列策略面（取队头/队尾、暂停/继续、孤儿清理、计数）委托它，页面展示用的 `getPausedBooks`/`observeRemainingCount`/`getAllTasks` 仍直读 DAO，不参与策略判定。服务按「取不到可跑任务 + 表内仍有任务」判暂停而非完成（ADR-0036）。
+- **单章执行收在 `DownloadRunner`**：缓存命中、强刷删章、空正文判失败、重试耗尽出队与暂停中断不出队都在这里；`DownloadService` 只保留前台生命周期、通知、跳过计数、暂停收尾与下一章调度。runner 之外逃出的意外异常也停在暂停态、不删任务（不把「没抓成」静默成跳过）。`DownloadRunnerTest` 锁住「失败耗尽出队、暂停不出队」，`DownloadBatchTest` 锁候选域、暂停跳过与孤儿清理。
 
 下载中心的当前交互（一级按书任务列表、二级选章、按书暂停/继续）与目录定位解耦见 ADR-0034/0035/0036；实现细节以对应页面代码与 KDoc 为准。
 
 ## 8. 阅读器
 
 - **翻页方式有两种且共用分块链**（左右翻页 / 上下滚屏，`ReadBookControl.turnMode`）：两者都由同一条排版分块链给出「第 N 屏的正文」，差别只在容器（三页窗口 + 横向拖拽 / **跨章连续**的竖向列表，章界只有一个标题项、没有「上一章/下一章」链接），故进度口径同为「章内第几屏」、`dur_chapter_page` 语义不变。
-- **块高一律取排版实测值**（`ReaderTypesetter.measureBlock`），不得用「行数 × 行高」心算；两种模式的正文视口高度不同（滚屏块内不含标题行），故 `pageLineCount` 不同，切换时按**行号**换算落点（`ReadBookActivity.convertPageIndex`）。页面上的跳转一律走 `gotoPage`（按当前方式路由到对应控制器）——直接调某一个控制器在另一种方式下不报错、只静默失效。
+- **分页状态机收在 `ReaderPagination`**：视口测量、整章排版缓存、页切片与按行换算都在这一处；`ReadBookActivity` 只把 Compose 测到的视口交进来，`loadPage` 用 `ReaderPageWindow` 切片后把 `ReaderPageUi.Loaded` 交给控制器。`ReaderPaginationTest` 锁状态与切片边界。
+- **导航控制面收在 `ReaderNavigation`**：路由判据只有 `ReaderTurnMode`（页面用 `turnModeIndex` 镜像驱动重组，切换时同步写入），两个控制器都实现 `ReaderTurnController` 并退化为它的适配器；`gotoPage`（内部委托 `setPosition`）、音量键、换源后的换算都走 `setPosition`/`turnNext`/`turnPrev`，**只驱动当前模式的控制器**；冷启动与重分页另走 `converge`，把另一侧的落点一并预热上（`reportProgress = false`）——另一侧不预热就带着「章号 0」的初值躺着，换模式后新容器成形的那一帧落点是错的，而让它报进度会用另一种模式的屏号盖掉当前进度。两个控制器共用同一份 `onProgress`。`ReaderNavigationTest` 锁模式路由、两档定位与单进度出口。
+- **预热侧不补报，当前模式先报可解释的落点**：预热侧（`reportProgress = false`）的探测块加载完成也不得补报；滚屏侧在块数未知时先报目标页码（BEGIN 归一为 0、END 暂报哨兵），块数落定后补报真实块号；翻页侧按页键报目标页码/哨兵，不在加载完成时补报。否则未显示侧会回写旧页，慢加载中退出会把解析不出的 0 落库。`ReaderScrollControllerTest` 锁「预热加载完成不报进度」与「块数未知不报 0」。
+- **换模式的旧行数在点击时快照**：效应要等新容器的视口回报才跑，中间可能已经过一次 `rePaginate`（末章追加/字号变化）；现读 `pageLineCount` 会拿到新模式的值，换算退化成同页号。快照位住页面状态，不放进分页状态机。
+- **块高一律取排版实测值**（`ReaderTypesetter.measureBlock`），不得用「行数 × 行高」心算；两种模式的正文视口高度不同（滚屏块内不含标题行），故 `pageLineCount` 不同，切换时按**行号**换算落点（`ReaderPagination.convertPageIndex`）。页面上的跳转一律走 `gotoPage`（内部按当前方式路由到对应控制器）——直接调某一个控制器在另一种方式下不报错、只静默失效。
 - 滚屏连续列表的三条硬约束：
   - **item 必须带稳定且全局唯一的 key，且 key 只由 `(章, 块)` 构成、不含扁平序号**（LazyColumn 靠 key 在「锚点上方插入 item」时保住画面，而扁平序号会随插入整体平移；重复 key 会锚到另一项、位置静默跳变）。
   - **锚点存 `(章, 块)` 语义值而不是 item 序号**（存序号等于相邻章段一展开就把进度写偏一屏）。
@@ -227,6 +233,8 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - **导入判重**：口径是待导入文件的 `comment_key` 等于书架某条目的**当前主键**，不是比 `book_info.name` 书名——键含作者，只比书名会把同名不同作者的两本书判成一本并给出删除入口。
 - 处置四个动作（继续添加/智能合并/覆盖/取消——最后一个不导入本文件、批次里的其余文件照常走），非破坏的「继续添加」占主按钮位；顺序一律**先导入新条目、后处置旧条目**，覆盖删旧之前先 `absorbGroupKeys` 吸收旧条目的关联键。
 - 补章只对本地目标书，且要求旧书归一化章名序列是新书的**前缀**，分叉即整笔放弃；新索引取现有最大 `durChapterIndex + 1`，不用 `size`（历史删章留下的洞会让二者不等，从而覆写既有章文件）。
+- 导入器只负责文件与实体；四表写入统一走 `BookRepository.addToShelf`（内部 `ShelfEntryStore`），不再自己写一份。
+- 移出书架与智能合并删除条目时，`Removed` 事件在库事务提交后、章文件清理前发出；清目录失败不阻断「条目已移除」的事实，残留目录由启动对账回收。
 - 书籍内容住在 `filesDir/books`；目录名由 `BookStore` 从 `note_url` 派生——本身已是合法单段名就原样用、否则取 md5（网络书的 `note_url` 是 URL，直接当目录名会落成嵌套目录树，启动对账会误删全部网络书章缓存）。本地书派生后逐字不变，`content_ref` 无需迁移。
 
 ## 10. 缓存管理

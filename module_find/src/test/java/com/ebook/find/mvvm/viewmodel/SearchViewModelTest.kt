@@ -3,6 +3,7 @@ package com.ebook.find.mvvm.viewmodel
 import com.ebook.api.entity.BookSourceRule
 import com.ebook.api.entity.SourceFormat
 import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
 import com.ebook.common.manager.BookShelfManager
 import com.ebook.common.repository.BookRepository
@@ -182,10 +183,12 @@ class SearchViewModelTest {
             emit(AggregateSearchEvent.AllFinished)
         }
 
-        override suspend fun getParserFor(sourceUrl: String): BookParser? {
+        override suspend fun resolveSource(sourceUrl: String): SourceBinding {
             parserForCalls += sourceUrl
-            if (sourceUrl.isBlank() || sourceUrl == BookShelfEntity.LOCAL_TAG) return null
-            return parsers[sourceUrl]
+            if (sourceUrl == BookShelfEntity.LOCAL_TAG) return SourceBinding.Local
+            if (sourceUrl.isBlank()) return SourceBinding.Missing(sourceUrl)
+            return parsers[sourceUrl]?.let { SourceBinding.Found(it) }
+                ?: SourceBinding.Missing(sourceUrl)
         }
 
         private fun unsupported(who: String): Nothing =

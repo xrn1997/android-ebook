@@ -21,7 +21,7 @@ object FileNameMetadata {
 
     /** 按优先级排列，命中即止；第一条模式的前缀杂项用非捕获组，书名仍是组 1 */
     private val rules = listOf(
-        Rule(Regex("""^(?:.*?)《(.+?)》.*?作者\s*[：:]\s*(.+)$"""), 1, 2),
+        Rule(Regex("""^.*?《(.+?)》.*?作者\s*[：:]\s*(.+)$"""), 1, 2),
         Rule(Regex("""^(.+?)\s+作者\s*[：:]\s*(.+)$"""), 1, 2),
         Rule(Regex("""^(.+?)\s+by\s+(.+)$""", RegexOption.IGNORE_CASE), 1, 2),
         Rule(Regex("""^《(.+?)》\s*$"""), 1, null),

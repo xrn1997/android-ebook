@@ -1,5 +1,8 @@
 package com.ebook.source.script
 
+import com.ebook.source.analyze.PageWalker
+import com.ebook.source.analyze.WalkPage
+
 /**
  * 脚本书源的正文翻页链（§7.2/§7.3）。
  *
@@ -46,22 +49,31 @@ internal class ScriptContentPager(
             nextArray = rules.nextUrlArray(RuleObjectKind.CONTENT, "nextContentUrl"),
             extractor = extractor,
         )
-        val text = StringBuilder()
-        var current: String? = entryRef
-        while (current != null && chain.visitedCount() <= MAX_CONTENT_PAGES) {
-            val page = fetchPage(current)
-            ctx.baseUrl = page.url
-            val input = RuleValue.Page(page.text)
-            // content 是单值字段（§3.2）：走单值口径，裸词末段按 `@任意属性名` 取值器解，
-            // 不与列表字段的节点选择器口径混用
-            val chunk = contentToText(extractor.evaluateValue(contentRule, input))
-            if (chunk.isNotBlank() && text.isNotEmpty()) text.append('\n')
-            text.append(chunk)
-            current = chain.nextOf(input, page.url)
-        }
+        val result = PageWalker<String, ScriptPage>(
+            maxPages = MAX_CONTENT_PAGES,
+            // 回环与数组跳过由 ScriptPageChain 负责；walker 不再叠第二套 visited
+            guardLoops = false,
+        ).walk(
+            entryUrl = entryRef,
+            fetch = { url -> WalkPage(url, fetchPage(url)) },
+            items = { page ->
+                ctx.baseUrl = page.payload.url
+                // content 是单值字段（§3.2）：走单值口径，裸词末段按 `@任意属性名` 取值器解，
+                // 不与列表字段的节点选择器口径混用
+                val chunk = contentToText(
+                    extractor.evaluateValue(contentRule, RuleValue.Page(page.payload.text))
+                )
+                // 空白页不贡献文本：空壳页的空白不该进入整章串（replaceRegex 在拼接后跑）；
+                // 空页仍会被访问并由 next 继续翻页——本链没有「零新增即止」的判据。
+                if (chunk.isBlank()) emptySequence() else sequenceOf(chunk)
+            },
+            next = { page ->
+                chain.nextOf(RuleValue.Page(page.payload.text), page.payload.url)
+            },
+        )
         // 净化后收边（trim 在 applyReplaceRegex 之后）：被删段落留下的边角换行与整章首尾空白
         // 不构成任何段落；段落之间的空行留给读取层的 TextNormalizer 逐段清理，本层不碰
-        return applyReplaceRegex(text.toString(), replaceRegex).trim()
+        return applyReplaceRegex(result.items.joinToString("\n"), replaceRegex).trim()
     }
 
     /** content 的收敛例外：全部值按 `\n` 连接（类 KDoc 第三条口径） */

@@ -15,6 +15,7 @@ import com.ebook.source.analyze.BookParser
 import com.ebook.source.analyze.BookSourceNotFoundException
 import com.ebook.source.analyze.JsoupBookParser
 import com.ebook.source.analyze.ScriptContentParser
+import com.ebook.source.script.JsEvaluationPendingException
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
@@ -203,7 +204,7 @@ class JsoupSourceReaderTest {
      */
     @Test
     fun `取到的 parser 不支持抓正文时报编程错误而非书源失效`(): Unit = runTest {
-        // 假 parser：getParserFor 命中了，但它既不是 JsoupBookParser 也不是 ScriptContentParser
+        // 假 parser：resolveSource 命中了，但它既不是 JsoupBookParser 也不是 ScriptContentParser
         val manager = FakeBookSourceManager(
             parsersBySourceUrl = mapOf("https://other.example" to RecordingBookParser("https://other.example"))
         )
@@ -244,7 +245,7 @@ class JsoupSourceReaderTest {
     }
 
     /**
-     * 让 `getParserFor` 把 [parser] 交给 [SCRIPT_SOURCE_URL] 这个归属，其余照既有 fixture 搭法。
+     * 让 `resolveSource` 把 [parser] 交给 [SCRIPT_SOURCE_URL] 这个归属，其余照既有 fixture 搭法。
      *
      * 假件与脚本 URL 绑死即可：本组用例锁的是「读取器怎么对待脚本正文」，不是「脚本规则怎么求值」
      * （后者在 lib_book_source 侧，见 ScriptBookParserTest）。
@@ -303,7 +304,9 @@ class JsoupSourceReaderTest {
      */
     @Test
     fun `脚本源类型化异常原样上抛不被裹成解析失败`(): Unit = runTest {
-        val typed = RuntimeException("该规则含可执行脚本段，需脚本沙箱执行器才能求值：text.1@@js:xxx")
+        // 用真实类型而不是自造同形 RuntimeException：层级已 public（ADR-0046），
+        // 这条用例同时锁住「lib_book_common 的测试源集能直接引用该类型」
+        val typed = JsEvaluationPendingException("text.1@@js:xxx")
         val reader = readerWithParser(FakeScriptContentParser("", typed))
 
         val failure = runCatching {

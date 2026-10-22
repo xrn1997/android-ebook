@@ -2,17 +2,21 @@ package com.ebook.source.analyze
 
 import com.ebook.api.entity.BookSourceRule
 import com.ebook.api.entity.SearchRule
+import java.io.IOException
+import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * 原生（JSON 规则）书源解析器的搜索面字段口径。
  *
- * 只测解析、不碰网络：直接打 [JsoupBookParser.parseSearchBookWithRule]，
- * 因为它是 `searchBook` 与书城分类（`fetchLibraryData`）共用的一条链，
- * 一次断言同时锁住两个入口。选择器形态按 `docs/book-source-rules.md` 的原生规则口径
- * （文本用纯 CSS，属性用 `@href` / `@src`），不是脚本源那套链式语法。
+ * 字段口径用例直接打 [JsoupBookParser.parseSearchBookWithRule]，因为它是 `searchBook` 与
+ * 书城分类（`fetchLibraryData`）共用的一条链，一次断言同时锁住两个入口；另有一条传输失败
+ * 用例构造「一调就抛」的 OkHttpClient，只锁失败上抛、不建真连接。选择器形态按
+ * `docs/book-source-rules.md` 的原生规则口径（文本用纯 CSS，属性用 `@href` / `@src`），
+ * 不是脚本源那套链式语法。
  */
 class JsoupBookParserSearchTest {
 
@@ -55,6 +59,34 @@ class JsoupBookParserSearchTest {
         val books = parse(html, baseRule)
 
         assertEquals("", books.single().desc)
+    }
+
+    /**
+     * 搜索失败必须上抛：聚合搜索的 `searchAcross` 靠异常区分「这条源失败」与「这条源没有结果」。
+     * 吞成 `emptyList()` 会把网络故障伪装成 `SourceFinished(hasMore = false)`，用户看到的是
+     * 「搜不到」而不是「这个源坏了」。
+     */
+    @Test
+    fun `searchBook 传输失败时抛异常而不是返回空列表`() = runTest {
+        val failingClient = OkHttpClient.Builder()
+            .addInterceptor { throw IOException("boom") }
+            .build()
+        val parser = JsoupBookParser(
+            BookSourceRule(
+                name = "示例源",
+                url = "https://www.example.com",
+                searchUrl = "https://www.example.com/search?q={{keyword}}",
+                ruleSearch = baseRule,
+            ),
+            failingClient,
+        )
+
+        val error = runCatching { parser.searchBook("斗破", 1) }.exceptionOrNull()
+
+        assertTrue(
+            "传输失败必须上抛，实际：${error?.let { it::class.simpleName }}",
+            error is IOException,
+        )
     }
 
     /**

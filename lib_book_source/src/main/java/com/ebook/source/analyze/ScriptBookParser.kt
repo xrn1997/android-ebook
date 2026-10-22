@@ -38,10 +38,10 @@ import okhttp3.OkHttpClient
 /**
  * 脚本书源的 `BookParser` 实现：把 2a~2c 的词法/求值/取文层装配成 `BookParser` 的五个求值面。
  *
- * ## 装载是惰性的（getParserFor 契约的一部分）
+ * ## 装载是惰性的（resolveSource 契约的一部分）
  *
  * 构造只存原始 JSON，`ScriptRuleSet.load` 在**首次求值**才执行（`rules` 惰性字段）：
- * `getParserFor` 对脚本行**永不返回 null、也不在取 parser 时抛**——「行在但 JSON 坏」必须以
+ * `resolveSource` 对脚本行**永不返回 Missing/Broken、也不在取 parser 时抛**——「行在但 JSON 坏」必须以
  * 求值期的类型化 `ScriptRuleParseException` 如实报（消息含「脚本书源 JSON 无法解析」），
  * 构造期抛会让缓存锁内炸出未预期异常、null 则会被调用方当成「书源已失效」（§12）。
  *
@@ -79,7 +79,7 @@ class ScriptBookParser internal constructor(
 
     /**
      * 日志 TAG。`by lazy` 而不是构造期初始化：`rules.name` 要等首次求值才装载，
-     * 构造期摸它会破坏「构造不失败」的 getParserFor 契约（见类 KDoc「装载是惰性的」）
+     * 构造期摸它会破坏「构造不失败」的 resolveSource 契约（见类 KDoc「装载是惰性的」）
      */
     private val tag by lazy { "ScriptBookParser[${rules.name}]" }
 

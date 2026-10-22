@@ -54,11 +54,12 @@
   判重命中即置门暂停整批、处置后两本都保留、`resolveCancel` 跳过且不留任何写入。
   **仍未覆盖**：`getAndSet(null)` 的连点幂等（第二次取到 null 无操作，不会把上一个文件的决策灌给下一个门）
   与处置框交互（UI 侧）——需要 Robolectric，本轮按人工装机验证处理
-- [ ] 为下载队列的失败重试/出队语义添加测试
-  —— `DownloadService.downloading` 的不变式（重试 `RETRY_TIMES` 次耗尽后必须 `deleteTask` 出队、
-  暂停中断时不出队、解析占位文案与空正文都不得入库）目前**无自动化覆盖**，只能靠人工装机验证。
-  障碍：重试循环与 `Handler.postDelayed`、前台通知、`serviceScope` 绑在 Service 上。补测前需先把
-  「取任务 → 重试 → 出队/入库」抽成可注入假仓库与假时钟的纯挂起函数（或改用 Robolectric + 假 `DownloadRepository`）
+- [x] 为下载队列的失败重试/出队语义添加测试
+  —— 已由 `DownloadRunnerTest` 覆盖：缓存命中、空正文重试耗尽后出队、暂停中断不出队、强刷删旧章
+  并失效缓存、取源失败走同一失败通道、成功抓取后出队失败停在暂停态且不重抓；`DownloadBatchTest`
+  覆盖候选域、按书暂停跳过、孤儿清理与队列计数。`DownloadService` 只剩前台生命周期、通知、
+  跳过计数与下一章调度，其生命周期与通知——含收到 `Paused` 时「`pauseDownload()` 置 false
+  并改写通知 + `isPause()`」两步——仍按人工装机验证（见本文件末『架构深化』清单第 3 条）。
 - [x] ~~为 `CommentRepository` 添加单元测试（当前**零覆盖**）~~
   **已覆盖（2026-09-07 评论分页改造时）**：`CommentRepositoryTest`（纯 JVM，`CoroutineAdapter` 的
   刷新器/事件总线/令牌桶直接构造，假件路子沿用 `SessionTokenRefresherTest`，未引入 Robolectric）
@@ -557,8 +558,10 @@ isolated 不再需要 `dumpsys` 手工核对：`SandboxConnectionTest` 在 host 
 3. **接章无感**：进入某章即物化相邻两章，故未下载章节走网络时章界附近应已预热完；若章界处停在加载态，
    看 logcat 是相邻章正文还没抓回来（网络慢，可接受）还是压根没发请求（物化没触发，是缺陷）。
 4. **模式切换落点**：左右翻页读到第 5 屏 → 设置面板切「上下滚屏」，落点应在同一段字附近；再切回来同样。
-   偏了说明 `lastLineCount` 记晚了（必须在重分页之前）或换算用错了行数。
+   偏了说明换算读到的 `pageLineCount` 不是重分页前的旧模式值，或换算用错了行数。
 5. 字号/背景/亮度在滚屏模式下照常生效；改字号后重新分块且落点不丢（由 `LaunchedEffect(typesetter)` 接力）。
+   再补一次「改字号后停在末章触发追更」：追更后的重分页必须用新字号（本轮把 `syncAtTailChapter`
+   的捕获改为 `rememberUpdatedState`，旧写法会把首次组合的 `typesetter` 钉死）。
 6. **点击与按键**：左右三分区点一下滚一屏（受「点击翻页」开关控制）、中间三分区唤菜单；音量上下键滚一屏
    （受「按键翻页」开关控制）。竖向拖拽必须交给 LazyColumn 的惯性与 fling，不得与点击判定打架。
 7. **杀进程重进**应停在滚屏模式上次那一屏——偏移一屏即「`(章, 块)` ↔ 扁平 item 序号」的映射在控制器与
@@ -774,4 +777,43 @@ lib_ebook_api 37 / lib_ebook_db 35 / module_login 8 / module_main 4），手写�
 - [ ] `OkHttpScriptTransport` 响应协程取消：阻塞的 `Call.execute()` 未接 `call.cancel()`，取消后仍会跑满整轮重试；`JsCallbackProxy.await` 的 KDoc 已登记该缺口。
 - [ ] 下载中心 3000 章整本下发回归：启动 Intent 不携带任务列表，不触发 `TransactionTooLargeException`；运行中追加的章节由下一轮取篇。
 - [ ] 书源导入预览的 `ImportPreviewSheet` 仍嵌在 `BookSourceManageActivity` 中；`formatOf` 已在 `BookSourceViewModel`，但每条仍单独查一次 Room。剩余债务是把逐条查询合并成批量查询，并把 sheet 从 Activity 收进页面状态。
+
+## 人工装机验证清单（架构深化：分页/导航/条目仓库/下载/取源收口，2026-10-22）
+
+本轮把六处逻辑从宿主里抽成小接口模块：`ReaderPagination`（视口测量+分页切片+按行换算）、`ReaderNavigation`
+（模式路由与单进度出口）、`ShelfEntryStore`（四表写入与提交后事件）、`PageWalker`（四条翻页链共用的逐页机制）、
+`DownloadBatch`/`DownloadRunner`（队列策略与单章执行）、`SourceBinding`（取源结果四档 + 脚本失败层级公开）。
+自动化侧已锁：`ReaderPaginationTest`、`ReaderNavigationTest`、`ShelfEntryStoreTest`、`PageWalkerTest`、
+`DownloadBatchTest`、`DownloadRunnerTest`、`BookSourceManagerImplTest` 的四档路由。以下只列自动化够不到的
+**设备项**——重点全在「抽出/收口之后时序与观感有没有变」，属回归而非新形态。
+
+1. **切模式首帧不回到起点**（本轮最该盯的一条，且它推翻过一版写法）：左右翻页读到第 5 屏 → 面板切「上下滚屏」，
+   新容器出现的那一帧**不得是章首、空白或转圈**——预热给的落点是按另一模式屏号直接放置的，
+   允许它在下一帧被按行换算纠正到同一段字；判据是「不闪回起点」，不是「第一帧就精确」（换算是否落准同一段字由本文件
+   《阅读器上下滚屏翻页方式》清单第 4 条管，那条已在 2026-09-13 验过）。
+   滚屏切回翻页同样。改前的行为即如此，这条属回归：若发现切模式先闪一帧章首，说明另一侧没被 `converge` 预热上。
+   顺带验进度没被另一模式盖掉：切完模式后底栏滑条与「读至」文案应与切之前指向同一屏，不无故跳数字
+   （预热那侧以 `reportProgress = false` 走，本该不写进度）。
+2. **杀进程重进仍回同一屏**（两种模式各一次）：预热改了控制器初始化路径，`dur_chapter_page` 的落库口径
+   （只在 `onPause` 写）不应受影响；偏一屏即「`(章, 块)` ↔ item 序号」映射在容器与控制器两侧算不一致。
+   再补一次「进入后立刻退出」：块数未解析时进度不得被写成 0（滚屏侧现在先报目标页码，落定后才报真实块号）。
+3. **下载出队失败停在暂停态**（`DownloadRunner.dequeue` + Service 的 `Paused` 分支）：正常暂停→继续是既有路径，
+   这条要制造的是「抓取成功但任务删不掉」——真机难造，可用替代判据：任一章失败重试耗尽后队列继续跑、
+   通知仍是「正在下载」；若出现通知写着「正在下载」却不再有下一章推进，就是 `Paused` 收尾
+   （`pauseDownload()` 置 `isStartDownload=false` 并改写通知，再 `isPause()`）没生效。按「继续」后应从队头续跑且**不重抓已成功的那章**
+   （强刷任务例外：它保留 `forceRefresh`，续跑会先删章文件再抓，这是强刷语义）。
+4. **移出书架把内容一并清掉**（`Removed` 事件现在**先于**章文件删除发出）：长按条目 → 详情页 → 「移出书架」，
+   随后 `files/books/<该书包名>` 目录应消失（`adb shell run-as <包名> ls files/books`）；详情页应自动关闭、
+   书架列表不再显示这本书。若目录留下了，只可能由启动时对账回收（`reconcileContentStore`），重启一次再看。
+5. **换源后旧下载队列清空**（`replaceRows` 的 `extraWrite` 与四表同笔提交）：一本书有排队任务时换源，
+   下载中心里那本书的旧任务应一次清干净、不留半截；换源失败时旧任务仍在（同进同退的另一半）。
+6. **书源失效的两句提示分得开**：删掉一本书归属的那条源 → 阅读/详情应给「书源已失效」类可处置提示
+   （`Missing`）；把某条原生源的 `rule_json` 改坏 → 同样一句提示，但 logcat 里应有一条 `toItem` 的解码 ERROR
+   （`Broken`）。脚本书源求值失败**不得被说成「源已失效」**（当前落在通用加载失败，ADR-0046 明确本轮未按类型分流；
+   若后续补了类型化 `ScriptRuleException` 提示，再改这一条）。
+7. **本地书导入仍走先新后旧**：判重四处置、智能合并前缀判定各走一遍；导入中断（取消/进程被杀）后
+   不留「库里有行、章文件为空」的空壳书。
+
+> 本轮未做装机验证即登记于此。基线既有失败：`lib_book_source` 的 `DesktopJsHostTest` 4 例（桌面 QuickJS 宿主），
+> 本轮未触碰该环境。
 

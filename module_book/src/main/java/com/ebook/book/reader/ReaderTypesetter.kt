@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-import com.ebook.book.ReadBookActivity
 import kotlin.math.ceil
 /**
  * 正文排版的事实源：分页样式（字号/行高/对齐）+ 测量器 + 密度。
@@ -24,59 +23,51 @@ import kotlin.math.ceil
  * （历史缺陷见 [readerBodyTextStyle] 的说明）。
  *
  * `TextMeasurer`/`Density` 只能在组合期取得，故由 [rememberReaderTypesetter] 装配，
- * 再经 `ReadBookActivity.rePaginate` 落定为「当前样式」，切行与渲染都读它。
+ * 再经 [ReaderPagination.measure] 落定为「当前样式」，切行与渲染都读它。
  */
 internal class ReaderTypesetter(
     private val measurer: TextMeasurer,
     private val density: Density,
     val style: TextStyle,
-) {
+) : ReaderLayoutEngine {
+
+    override val fontSizeSp: Float get() = style.fontSize.value
 
     /**
      * 按渲染引擎自身的断行结果，返回每一「渲染行」在原文中的**起始偏移**。
      *
-     * 调用成本注意：本方法整章测量 O(章长)（非增量）。[ReadBookActivity.loadPage] 每页都调用
-     * 它重排整章、不缓存，同章 N 页即 N 次整章重排；数千字章节在 Default 线程可接受，但超长章
-     * （几十页）会放大成可见的 N× CPU 开销。若将来有性能诉求，应在调用侧按（章节，字号）粒度
-     * 缓存这份偏移，而非反复调用本方法。
+     * 调用成本注意：本方法整章测量 O(章长)（非增量）。[ReaderPagination.paginate] 用
+     * [ChapterLayoutCache] 按（章节、内容长度、字号、宽度）缓存这份偏移，同章翻页只重排一次；
+     * 缓存未命中时数千字章节在 Default 线程可接受，超长章（几十页）仍是可见的 O(章长) 开销。
+     * 新的分页入口一律走 [ReaderPagination.paginate]，不要绕过缓存直接调本方法。
      *
      * 只回偏移、不回子串：Compose 对 `\r\n`（本书源段落分隔符）的断行会把 `\n` 吞进
      * 行间隔而不归入任何一行（`getLineEnd(i, includeNewline=true)` 只到 `\r`），
      * 若把各行子串拼回原文会丢光 `\n`、只剩孤立的 `\r`；而孤立的 `\r` 在渲染端**不**被
      * 当作段落换行，段落会被并成一团重新折行——页数与折行同时错乱。
-     * 改用偏移在原文上取连续子串（[ReadBookActivity.loadPage]），段落分隔符原样保留，
+     * 改用偏移在原文上取连续子串（[ReaderPageWindow.slice]），段落分隔符原样保留，
      * 渲染端按同一宽度重排即得与分页完全一致的折行。
      *
      * 列表长度即渲染行总数，供分页切片；相邻行偏移之间的字符（含被吞的换行）天然属于
      * 前一行到后一行之间的原文，页与页首尾相接、不丢字。
      */
-    fun lineStartOffsets(text: String, widthPx: Int): List<Int> {
+    override fun lineStartOffsets(text: String, widthPx: Int): List<Int> {
         if (text.isEmpty() || widthPx <= 0) return emptyList()
         val layout = measure(text, widthPx)
         return List(layout.lineCount) { layout.getLineStart(it) }
     }
 
     /**
-     * 正文区高度放得下多少渲染行（翻页模式用：它只需要行数）。
-     *
-     * 不再用 `(高度 - 段距) / (字高 + 段距)` 估算——该公式拿平台字体度量算字高，
-     * 与 Compose 实际行高（含整数进位）每行差约 0.7px，25 行累计近 20px，
-     * 叠上「分行行数 != 渲染行数」就会把整行挤出可见区。这里直接问渲染引擎本身。
-     */
-    fun fitRenderLineCount(widthPx: Int, heightPx: Int): Int =
-        measureBlock(widthPx, heightPx)?.lineCount ?: 0
-
-    /**
      * 一次测量同时给出「视口放得下几行」与「这几行的实测总高」（滚屏模式用：块高要精确）。
      *
-     * 与 [fitRenderLineCount] 共用同一把探针与同一条 [fitLines] 判据，
-     * 因此两种翻页方式对「一屏几行」的回答只可能一致。
+     * 两种翻页方式共用同一把探针与同一条 [fitLines] 判据，
+     * 因此对「一屏几行」的回答只可能一致。
      */
-    fun measureBlock(widthPx: Int, viewportHeightPx: Int): ReaderBlockMetrics? {
+    override fun measureBlock(widthPx: Int, viewportHeightPx: Int): ReaderBlockMetrics? {
         if (widthPx <= 0 || viewportHeightPx <= 0) return null
         val layout = measure(probeText, widthPx)
         // getLineBottom 是 Float，转 Int 必须**向上取整**：向下取整会把「底部恰好越界」的行
-        // 压回界内（100.6 → 100 不再 > 100），fitRenderLineCount 就会多算进一行放不下的行，
+        // 压回界内（100.6 → 100 不再 > 100），measureBlock 就会多算进一行放不下的行，
         // 与改动前 `Float > Int` 的比较口径不一致。ceil(b) > h 与 b > h 在整数 h 下等价。
         return fitLines(
             IntArray(layout.lineCount) { ceil(layout.getLineBottom(it)).toInt() },
@@ -150,15 +141,14 @@ internal fun readerBodyTextStyle(textSizeSp: Float, lineHeight: TextUnit): TextS
  *
  * [heightPx] 是滚屏模式的**块高**：块与块要精确无缝拼接，高度必须取渲染引擎实测的
  * 行底部，不能用 `lineCount × lineHeight` 心算——那是拿度量猜几何，每行差零点几像素、
- * 25 行累计近 20px（同 [ReaderTypesetter.fitRenderLineCount] KDoc 记的老病根）。
+ * 25 行累计近 20px（同 [ReaderTypesetter.measureBlock] KDoc 记的老病根）。
  */
 internal data class ReaderBlockMetrics(val lineCount: Int, val heightPx: Int)
 
 /**
  * 给定每行的实测底部位置，求视口放得下几行、以及这几行的实测总高。
  *
- * 纯函数（不碰排版引擎），故可单测；[ReaderTypesetter.measureBlock] 与
- * [ReaderTypesetter.fitRenderLineCount] 都由它给结论，两者不可能算出不同的行数。
+ * 纯函数（不碰排版引擎），故可单测；[ReaderTypesetter.measureBlock] 由它给结论。
  *
  * @param lineBottoms 逐行的实测底部位置（升序），取自探针布局
  * @return 一行都放不下（或布局为空）时为 null——调用方据此不分块，

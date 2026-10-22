@@ -25,9 +25,6 @@ internal class ScriptPageChain(
     private val visited = mutableSetOf(visitKeyOf(entryUrl))
     private var arrayIndex = 0
 
-    /** 已访问页数（含入口）：调用方的页数上限判定依据（正文链的 `ScriptContentPager.MAX_CONTENT_PAGES`，Task 6） */
-    fun visitedCount(): Int = visited.size
-
     /**
      * 产出下一个未访问页地址；null = 链终止（无候选 / 回环 / 数组耗尽）。
      * [input] 是当前页的求值输入（字符串规则形态在当前页上求值，§7.1「输入是本页文档」）；

@@ -2,7 +2,6 @@ package com.ebook.common.analyze.source
 
 import com.ebook.api.entity.ScriptSourceRule
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 /**
@@ -54,7 +53,7 @@ object SourceStorageJson {
      */
     fun parseOrNull(rawJson: String): ScriptSourceRule? = try {
         storageJson.decodeFromString<ScriptSourceRule>(rawJson)
-    } catch (e: SerializationException) {
+    } catch (_: SerializationException) {
         null
     }
 }

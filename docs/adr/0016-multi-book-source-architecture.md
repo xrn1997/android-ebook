@@ -55,7 +55,7 @@ Status: accepted
 3. **书源清单加载：Room 是唯一来源**
    `BookSourceManagerImpl` 启动时：
    - 清单里每一行都由用户导入（应用不随包携带任何书源），因此没有 assets 清单可读、也没有首启灌库：构造期不碰任何 IO，清单一律经挂起读或 Flow 从 Room 取。
-   - **Manager 不持有清单副本**：挂起面（`getAllSources`/`getEnabledSources`/`getSourceByUrl`/`getParserFor`/两个 Flow）每次都现查 Room，排序统一为 `weight ASC, addedAt ASC, url ASC`。理由：留一份内存镜像就要在 seeding、`addSource` 覆盖、`setEnabled`、`removeSource` 每一处之后同步它，漏一处就是一个「库里已改、界面仍是旧值」的静默漂移点，而 Room 的失效追踪已经给了 UI 跟随变化的能力（`observeSources`）。代价只是每次取清单多一次本地查询。
+   - **Manager 不持有清单副本**：清单挂起面（`getAllSources`/`getEnabledSources`/`getSourceByUrl`/两个 Flow）每次都现查 Room，排序统一为 `weight ASC, addedAt ASC, url ASC`；`resolveSource` 的 parser 走 LRU，只在未命中时查库。理由：留一份内存镜像就要在 seeding、`addSource` 覆盖、`setEnabled`、`removeSource` 每一处之后同步它，漏一处就是一个「库里已改、界面仍是旧值」的静默漂移点，而 Room 的失效追踪已经给了 UI 跟随变化的能力（`observeSources`）。代价只是每次取清单多一次本地查询。
    - **本接口没有任何同步读面**：默认源等不了 Room，而应用又不随包携带书源、「启动时就能同步给出的默认源」这种东西根本不存在，于是同步面整体下线（曾经的同步属性 `currentSource` 与它消费的冷启动清单都已删除）。别为「首帧不空白」重新修一条同步出口——它要么靠随包资产、要么靠第二份内存缓存，两条路都是在 Room 之外另造一处事实源，而清单与默认源的真值只有 Room 一处。
    - **挂起面直接查 Room，没有要先等的后台写任务**：清单的写入只剩用户导入/启用/删除这几条显式路径，不存在「批量灌库与用户操作抢同一个 URL」的 TOCTOU 窗口，seeding 句柄与配套的 `await()` 不变式一并消失。
    - SharedPreferences `KEY_CURRENT_SOURCE` 语义收敛为「书城/默认搜索书源」（阅读/下载不再依赖它）。理由：阅读/下载路径按 `tag` 找 parser 后不再需要「当前书源」概念，只留书城使用。
@@ -67,7 +67,7 @@ Status: accepted
    suspend fun getEnabledSources(): List<BookSourceRule>       // 只含原生行
    suspend fun getSourceByUrl(url: String): BookSourceRule?    // 只含原生行
    suspend fun getFormatByUrl(url: String): SourceFormat?      // 只问一行的出身
-   suspend fun getParserFor(sourceUrl: String): BookParser?    // 按归属取源的唯一入口（LRU 3 + Mutex）
+   suspend fun resolveSource(sourceUrl: String): SourceBinding  // 按归属取源的唯一入口（LRU 3 + Mutex；四档结果见 ADR-0045）
    fun observeSources(): Flow<List<BookSourceItem>>            // 唯一带元数据的清单面，含脚本行
    fun observeDefaultSource(): Flow<SourceDefinition?>         // 默认源唯一出口（每次从 Room 现算）
    fun searchAcross(keyword, page, skipSourceUrls): Flow<AggregateSearchEvent>
@@ -84,13 +84,13 @@ Status: accepted
    - **默认源的载体是格式中立的密封 `SourceDefinition`**，而不是 `BookSourceRule`：`Native` 装已解码的规则，`Script` 装原始 JSON 加实体列带来的展示信息（`name`/`url` 的生产填充点只有 `toDefinition` 一处，绝不从 `rule_json` 里解展示字段）。密封保证新增第三种格式时编译器逼出所有分支。现算与写路径收敛共用同一个 `defaultFromRows(rows)`（条目面、**不筛格式**：SP 命中且启用 → 否则第一条启用行），`observeDefaultSource()` 因此是唯一出口、不可能口径分裂。
    - **规则类型化读面挡下脚本行，条目面带出它们**：脚本的社区 JSON 硬解成 `BookSourceRule` 有两种结局、都不是「可用规则」（键名对不上解出空规则而静默零条目；同名不同形的键直接抛解码异常）。所以 `getAllSources`/`getEnabledSources`/`getSourceByUrl` 只含原生行，而 `observeSources()` 必须继续带出脚本行（管理页要看得见、能禁用、能删），`searchAcross` 的候选集也取自条目面的全部启用行（脚本源参与聚合搜索）。两侧口径本就不同，不去「统一」。
    - **本接口没有任何同步读面**：`requireParser()` / `currentParser` 已删除，且**不得重新引入**；随后 `currentSource` 也一并删除（它的存在前提是「启动时能同步给出一个默认源」，而那要求随包资产或第二份内存缓存，如今两条都没有）。成稿时处方是「标 `@Deprecated` 保留一版、让未改造完的调用点仍可运行」，这一站没有走——调用点在同一条分支里一次迁完，没有要保护的中间态；反过来留一个「按全局默认源去解析任何一本书」的口子，其失败形态是「不闪退、拉回不相干的内容」，比崩溃难查，留着比删掉危险。
-   - **默认源的 parser 与其它源同构**：它进同一份 LRU（`getParserFor` 不再有默认源快路径），覆盖规则时一次 `evictParser` 即失效——「必须把定义连同 parser 整对换掉」这套口令只属于已拆除的内存快照时代。
+   - **默认源的 parser 与其它源同构**：它进同一份 LRU（`resolveSource` 不再有默认源快路径），覆盖规则时一次 `evictParser` 即失效——「必须把定义连同 parser 整对换掉」这套口令只属于已拆除的内存快照时代。
    - **`setDefaultSource(url)` 有一个不在名字里的副作用**：目标源处于禁用态时顺带把它启用。否则「默认源永不为禁用态」的回落规则会在下一次读清单时把它换掉，用户看到的现象是「点了没换」；因此 UI 侧不必走「先启用、再设默认」两步。反向同理：禁用当前默认源时自动回落到下一条启用源；当前没有任何可用默认源时，启用任意一条源都会把它提升为默认源。
 
 5. **业务解析路径一律跟书走，不跟全局配置走**
    每一处解析都从**那本书自己**的归属字段取源：书架加入与详情页刷新取 `BookShelfEntity.tag`、离线下载取 `DownloadChapterEntity.tag`、正文取 `BookLocation.sourceUrl`、书城取当前源的 URL。成稿时盘点的「正文与下载各自直调 parser」两处已不存在——网络书正文在 v3→v4 那轮改由 `chapterReaders[BookFormat].readChapter(entry, location)` 供给，`BookReadViewModel` 与 `DownloadService` 都收敛到 `JsoupSourceReader` 一处取正文，因此绑源语义只需在那一处落地。
    正文的归属经 `BookLocation` 新增的 `sourceUrl` 字段承载，而不是「给取正文的方法加一个 `sourceTag` 参数」：书级归属放进书级定位值类型里，`readChapter` 的签名不动，reader 一族不必为多书源长出一个参数。**该字段刻意不给默认值**——有默认值等于允许新构造点忘记表态，而漏传是静默的（正文会退回默认源去抓，抓回别的内容）。
-   取不到源按「用户能不能处置」分两支：本地书 `loc_book` 走到网络 reader 是编程错误（`IllegalStateException`）；网络书的 `tag` 为空白、或该 URL 在库里没有行（用户删了源）、或那一行 `rule_json` 是坏行，抛 `BookSourceNotFoundException`，UI 提示「书源已失效，请重新导入或换源」。`getParserFor` 返回 null 恒等于「书源不存在/坏行」这一种成因，脚本行的装载失败一律走类型化异常，两者不得混用（混了等于把「这条规则解不动」说成「这条源已失效」，用户会被支去重导一条本来好的源）。
+   取不到源按「用户能不能处置」分两支：本地书 `loc_book` 走到网络 reader 是编程错误（`IllegalStateException`）；网络书的 `tag` 为空白、或该 URL 在库里没有行（用户删了源）、或那一行 `rule_json` 是坏行，抛 `BookSourceNotFoundException`，UI 提示「书源已失效，请重新导入或换源」。`resolveSource` 的 `Missing`/`Broken` 恒等于「书源不存在/坏行」，脚本行的装载失败一律走公开的类型化异常，两者不得混用（混了等于把「这条规则解不动」说成「这条源已失效」，用户会被支去重导一条本来好的源；四档结果见 ADR-0045）。
    「抛异常 + UI 提示」不是一句承诺就能兑现，两侧各需要一处专门接线：
    - **正文侧**：取正文发生在阅读器页面，那里原先的 `catch (e: Exception)` 把一切异常吞成 `null`，提示永远出不来。现由该方法单独 catch `BookSourceNotFoundException`、经 `reportFailure` 上报（它只记日志、不重复提示会话过期），其余异常保持静默降级。
    - **下载侧**：与早期设想相反，书源失效**不**「留任务等重导源」，而是按普通失败重试到耗尽后出队并计入跳过章数——注定失败的队头会阻塞该书其余章节（常驻通知永不消失、后续章节全被卡住）。用户重导书源后重新发起下载即可续跑；暂停中断重试时不出队（任务保留待续跑）。

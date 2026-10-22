@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,19 +41,20 @@ import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_OTHER
 import com.ebook.book.mvvm.viewmodel.SourceSwitchViewModel
 import com.ebook.book.reader.AddShelfDialog
-import com.ebook.book.reader.ChapterLayoutCache
-import com.ebook.book.reader.ChapterLayoutKey
 import com.ebook.book.reader.ChapterListDrawer
 import com.ebook.book.reader.FontPanel
 import com.ebook.book.reader.LightPanel
 import com.ebook.book.reader.MoreSettingPanel
 import com.ebook.book.reader.ReaderBottomBar
+import com.ebook.book.reader.ReaderNavigation
 import com.ebook.book.reader.ReaderPager
 import com.ebook.book.reader.ReaderPagerController
+import com.ebook.book.reader.ReaderPagination
 import com.ebook.book.reader.ReaderPanel
 import com.ebook.book.reader.ReaderScroll
 import com.ebook.book.reader.ReaderScrollController
 import com.ebook.book.reader.ReaderTopBar
+import com.ebook.book.reader.ReaderTurnMode
 import com.ebook.book.reader.ReaderTypesetter
 import com.ebook.book.reader.SourceSwitchSheet
 import com.ebook.book.reader.SwitchFeedback
@@ -114,42 +116,20 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     @Inject
     lateinit var bookRepository: BookRepository
 
-    /** 翻页控制器引用：音量键翻页由 Activity.onKeyUp 转发（组合外入口） */
-    var pagerController: ReaderPagerController? = null
-
     /**
-     * 滚屏控制器引用：音量键滚一屏由 Activity.onKeyUp 转发（组合外入口）。
-     * 与 [pagerController] **同时只有一个非空**——「哪个非空」就是当前翻页方式的判据。
+     * 阅读器导航：音量键与重分页只经它，不再以「哪个控制器非空」判模式。
+     * 由组合期挂入、离开时置空。
      */
-    var scrollController: ReaderScrollController? = null
-
-    /** 滚屏模式的块高（px），由 [rePaginate] 按实测落定；0 = 尚未测算 */
-    internal var readerBlockHeightPx: Int = 0
-        private set
-
-    /** 上一次落定的每屏行数，供翻页方式切换时做落点换算（见 [convertPageIndex]） */
-    internal var lastLineCount: Int = 0
-
-    /** 正文区实测宽度（px）：StaticLayout 分行宽度，由页面测量回调写入 */
-    var readerContentWidthPx: Int = 0
-        private set
-
-    /** 正文区实测高度（px）：每页行数测算依据，由页面测量回调写入 */
-    var readerBodyHeightPx: Int = 0
-        private set
+    internal var navigation: ReaderNavigation? = null
 
     /**
-     * 当前分页排版上下文（测量器 + 正文样式 + 密度），由 [rePaginate] 落定、[loadPage] 取用。
+     * 分页唯一状态机：视口测量、整章排版缓存、页码换算与切片。
      *
-     * 为什么挂在 Activity 上而不是随参数传进控制器：翻页控制器在首次组合就被 `remember`
-     * 记住，其 lambda 捕获的引用不会随字号更新；而「样式变了」必然伴随一次 [rePaginate]，
-     * 让它作为唯一的换装点，取值时机就与行数测算严格同步了。
+     * 控制器在首次组合就被 `remember` 记住，lambda 捕获的引用不会随字号更新；
+     * 样式变化必然伴随一次 [rePaginate]，由 pagination 作为唯一换装点，取值时机
+     * 与行数测算严格同步。
      */
-    internal var readerTypesetter: ReaderTypesetter? = null
-        private set
-
-    /** 排版偏移缓存：同章翻页不重复整章重排（见 ChapterLayoutCache） */
-    private val layoutCache = ChapterLayoutCache()
+    internal val pagination = ReaderPagination()
 
     override fun enableToolbar(): Boolean = false
 
@@ -162,10 +142,9 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         applyReaderBrightness(this)
     }
 
-    /** 正文区尺寸测量回调：更新分行宽度与行数测算高度 */
+    /** 正文区尺寸测量回调：只更新分页状态机持有的视口 */
     fun onBodyMeasured(widthPx: Int, heightPx: Int) {
-        if (widthPx > 0) readerContentWidthPx = widthPx
-        if (heightPx > 0) readerBodyHeightPx = heightPx
+        pagination.updateViewport(widthPx, heightPx)
     }
 
     /**
@@ -284,63 +263,35 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     /**
      * 测算每页行数并启动/重分页（原 startLoading → initData(lineCount) → setInitData 链）。
      *
-     * 行数由 [ReaderTypesetter.fitRenderLineCount] 向渲染引擎本身实测得出：正文区高度
+     * 行数由 [ReaderTypesetter.measureBlock] 向渲染引擎本身实测得出：正文区高度
      * 放得下几行，一页就切几行。同时把这份排版上下文存下来给 [loadPage] 用——
      * 「测算行数的样式」与「切行、渲染用的样式」必须是同一份，否则又会回到两套判定。
      *
      * 禁止回到「用字体度量估行数」的老路（(高度-段距)/(字高+段距)）：那是拿平台度量
      * 猜 Compose 的几何，每行差零点几像素、25 行就累计出近 20px 的误差。
      *
-     * [readerBodyHeightPx] 是正文区的实测高度，只在首屏与字号变化时重算，因此**正文区高度
-     * 必须与页面状态无关**：页码行等内容若在 Loading/Loaded 两态占位不同，这里就会按虚高
-     * 的高度多算行，正文渲染时溢出到页码行并被其盖住（占位契约见 ReaderPageCard）。
+     * 正文区高度只在首屏与字号变化时重算，因此**正文区高度必须与页面状态无关**：
+     * 页码行等内容若在 Loading/Loaded 两态占位不同，这里就会按虚高的高度多算行，
+     * 正文渲染时溢出到页码行并被其盖住（占位契约见 ReaderPageCard）。
      */
     internal fun rePaginate(typesetter: ReaderTypesetter, startFromCurrent: Boolean = true) {
-        val width = readerContentWidthPx
-        val height = readerBodyHeightPx
-        if (width <= 0 || height <= 0) return
         // 一次实测同时给出「放得下几行」与「这几行的实测总高」：翻页模式要前者、
         // 滚屏模式还要后者当块高（块与块要精确无缝拼接，不能用心算的行高）。
         // 两种翻页方式共用同一条判据（fitLines），对「一屏几行」只可能同解。
-        val metrics = typesetter.measureBlock(width, height) ?: return
-        if (metrics.lineCount <= 0) return
-        // 样式与行数一起落定：随后的 loadPage 取的就是这份样式，测算与分页不可能错身
-        readerTypesetter = typesetter
-        viewModel.pageLineCount = metrics.lineCount
-        readerBlockHeightPx = metrics.heightPx
-        // 换算要用「切换前那个模式的行数」与新行数做对比：这份记录必须早于任何模式切换
-        lastLineCount = metrics.lineCount
+        pagination.measure(typesetter) ?: return
         val shelf = viewModel.bookShelf ?: return
         if (startFromCurrent) {
-            // 两个控制器都收敛：只有当前模式那个会被渲染，但两边共用一个落点，
-            // 换模式时不必再补一次初始化（换模式的落点换算见 ReadBookScreen 的 pendingTurnModeSwitch）
-            pagerController?.setInitData(shelf.durChapter, shelf.durChapterPage)
-            scrollController?.setInitData(shelf.durChapter, shelf.durChapterPage)
+            // 两侧一起收敛（另一侧只预热）：换模式后的落点换算见 ReadBookScreen 的
+            // pendingTurnModeSwitch，而那一帧之前另一侧必须已有正确落点
+            navigation?.converge(shelf.durChapter, shelf.durChapterPage)
         }
-    }
-
-    /**
-     * 翻页方式切换时的落点换算：按**行号**而不是屏号跨模式对齐。
-     *
-     * 两种模式的正文视口高度不同（滚屏模式没有块内标题行，视口更高），因此
-     * `pageLineCount` 不同、同一个屏号指向的不是同一段字。行号是两边共通的量：
-     * 旧模式读到第 oldPage 屏 = 读到了第 `oldPage × oldLineCount` 行，
-     * 新模式下含该行的屏是 `lineOffset / newLineCount`。
-     *
-     * 只在阅读器内切换时调用：冷启动时 `durChapterPage` 与已持久化的模式天然同口径，
-     * 不需要也不应该换算。
-     */
-    internal fun convertPageIndex(oldPageIndex: Int, oldLineCount: Int, newLineCount: Int): Int {
-        if (oldLineCount <= 0 || newLineCount <= 0) return 0
-        val lineOffset = oldPageIndex.coerceAtLeast(0) * oldLineCount
-        return lineOffset / newLineCount
     }
 
     /**
      * 加载单页内容（原 loadContent 的 suspend 化）：
      * 1. 按来源取正文（本地书走章文件、网络书走 DB 缓存→网络） → 2. 排版偏移缓存 → 3. 分页切片取原文子串。
      *
-     * 断行走 [readerTypesetter]（与页面渲染同一引擎、同一份样式）——见
+     * 断行走 [ReaderPagination]（与页面渲染同一引擎、同一份样式）——见
      * [ReaderTypesetter] 里「分页与渲染必须同源」的契约：两套引擎判定的行数不一致时，
      * 多出来的行会被静默裁掉，表现为上一页和下一页内容接不上。
      *
@@ -357,53 +308,23 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         val chapterSize = viewModel.getChapterListSize()
         if (bookShelf == null || chapterSize == 0) return null
         val chapter = viewModel.getChapter(chapterIndex) ?: return null
-        val typesetter = readerTypesetter ?: return null
 
         return try {
             // 取正文：本地书与网络书统一走 BookRepository.loadChapter（章文件 + 内存缓存）
             val chapterText: String? = viewModel.loadChapter(chapter)?.displayText
             if (chapterText.isNullOrEmpty()) return null
 
-            // 3. 按当前排版求渲染行起始偏移。排版结果走 [layoutCache] 缓存，同章翻页只重排一次；
-            //    键的构成（含重解析的内容指纹）见 ChapterLayoutKey
-            val width = readerContentWidthPx
-            if (width <= 0) return null
-            val content = chapterText
-            val layoutKey = ChapterLayoutKey(
-                contentRef = chapter.contentRef,
-                contentLength = content.length,
-                fontSizeSp = ReadBookControl.textSize.toFloat(),
-                widthPx = width,
-            )
-            val lineStarts = withContext(Dispatchers.Default) {
-                layoutCache.getOrCompute(layoutKey) { typesetter.lineStartOffsets(content, width) }
-            }
-
-            // 4. 分页切片
-            val pageLineCount = viewModel.pageLineCount
-            if (pageLineCount <= 0) return null
-            val tempCount = ceil(lineStarts.size * 1.0 / pageLineCount).toInt() - 1
-            if (tempCount < 0) return null
-            val resolved = when (pageIndex) {
-                DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN -> 0
-                DBCode.BookContentView.DUR_PAGE_INDEX_END -> tempCount
-                else -> pageIndex.coerceAtMost(tempCount).coerceAtLeast(0)
-            }
-            val start = resolved * pageLineCount
-            val end = if (resolved == tempCount) lineStarts.size else start + pageLineCount
-            // 页文本 = 原文的连续子串：从本页首行偏移取到「下一页首行偏移」（末页取到文末），
-            // 段落分隔符（\r\n）原样保留；再去掉结尾换行——段末换行留在结尾会让渲染引擎
-            // 多排一个空行，白占一行高度（内容不丢，但会顶掉最后一行）。
-            // 不能用「行子串拼接」：见 ReaderTypesetter.lineStartOffsets 的 CRLF 说明。
-            val from = lineStarts[start]
-            val to = if (end < lineStarts.size) lineStarts[end] else content.length
-            val pageText = content.substring(from, to).trimEnd('\r', '\n')
+            // 分页状态机负责排版缓存与切片；排版在 Default 线程跑整章 O(章长)
+            val window = withContext(Dispatchers.Default) {
+                pagination.paginate(chapterText, chapter.contentRef)
+            } ?: return null
+            val resolved = window.resolvePageIndex(pageIndex)
             com.ebook.book.reader.ReaderPageUi.Loaded(
                 title = chapter.durChapterName,
                 chapterIndex = chapterIndex,
                 durPageIndex = resolved,
-                pageAll = tempCount + 1,
-                text = pageText
+                pageAll = window.pageCount,
+                text = window.slice(resolved),
             )
         } catch (e: BookSourceNotFoundException) {
             // 书源失效是**可展示的业务失败**，不能跟着下面的降级一起吞成 null：
@@ -441,20 +362,11 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         if (ReadBookControl.canKeyTurn) {
             when (keyCode) {
                 KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                    // 两个控制器只有一个非空（方式互斥），非空的那个就是当前方式。
-                    // 用 when 而不是 `?:`：本类里 `pagerController?.turnNext()` 的返回值
-                    // 只为 Unit?，Elvis 的右侧读起来像「失败的兜底」而不是「换个分支」
-                    when {
-                        pagerController != null -> pagerController?.turnNext()
-                        else -> scrollController?.scrollOneScreen(forward = true)
-                    }
+                    navigation?.turnNext()
                     return true
                 }
                 KeyEvent.KEYCODE_VOLUME_UP -> {
-                    when {
-                        pagerController != null -> pagerController?.turnPrev()
-                        else -> scrollController?.scrollOneScreen(forward = false)
-                    }
+                    navigation?.turnPrev()
                     return true
                 }
             }
@@ -562,7 +474,7 @@ private fun ReadBookScreen(
     var importingBook by remember { mutableStateOf(false) } // 外部打开文本的导入遮罩
     var addShelfDialogVisible by remember { mutableStateOf(false) }
     // 正文区测量尺寸（Compose 状态，驱动首屏分页启动）；
-    // activity.onBodyMeasured 同步存非状态字段供 loadPage 分行使用。
+    // activity.onBodyMeasured 同步存进分页状态机，供 loadPage 分行使用。
     var bodyWidth by remember { mutableIntStateOf(0) }
     var bodyHeight by remember { mutableIntStateOf(0) }
 
@@ -602,7 +514,27 @@ private fun ReadBookScreen(
         }
     }
 
-    // ---------------- 翻页控制器 ----------------
+    // ---------------- 翻页导航 ----------------
+    // 翻页方式的页面级镜像：ReadBookControl.turnModeIndex 不是 Compose State，写入不触发重组。
+    // 与 clickTurnEnabled 同一套理由（见其注释）——不能让「换模式是否生效」依赖面板恰好重组。
+    var turnModeIndex by remember { mutableIntStateOf(ReadBookControl.turnModeIndex) }
+
+    // navigation 与两个控制器都只 remember 一次；直接捕获 syncAtTailChapter 会把首次组合的
+    // typesetter 钉死，改字号后末章追更仍按旧样式重分页（切行与渲染两套样式）。
+    val currentSyncAtTailChapter by rememberUpdatedState(syncAtTailChapter)
+    val navigation = remember {
+        ReaderNavigation(
+            initialMode = if (turnModeIndex == 0) ReaderTurnMode.PAGED else ReaderTurnMode.SCROLL,
+            onProgress = { c, p ->
+                // 两种方式唯一的进度出口：进度落 ViewModel + 菜单标题 + 章节滑条 + 末章追更。
+                // p 为翻页目标的页码（可能为哨兵），与原实现一致直接落库。
+                viewModel.updateProgress(c, p)
+                chapterTitle = viewModel.getChapterTitle(c)
+                sliderValue = (c + 1).toFloat()
+                currentSyncAtTailChapter(c)
+            },
+        )
+    }
     val controller = remember {
         ReaderPagerController(
             scope = scope,
@@ -610,20 +542,9 @@ private fun ReadBookScreen(
             chapterSize = { viewModel.getChapterListSize() },
             chapterTitle = { viewModel.getChapterTitle(it) },
             loadPage = { c, p -> activity.loadPage(c, p) },
-            onProgress = { c, p ->
-                // 对齐原 updateProgress：进度落 ViewModel + 菜单标题 + 章节滑条。
-                // p 为翻页目标的页码（可能为哨兵），与原实现一致直接落库。
-                viewModel.updateProgress(c, p)
-                chapterTitle = viewModel.getChapterTitle(c)
-                sliderValue = (c + 1).toFloat()
-                syncAtTailChapter(c)
-            }
+            onProgress = navigation.onProgress,
         )
     }
-    // 翻页方式的页面级镜像：ReadBookControl.turnModeIndex 不是 Compose State，写入不触发重组。
-    // 与 clickTurnEnabled 同一套理由（见其注释）——不能让「换模式是否生效」依赖面板恰好重组。
-    var turnModeIndex by remember { mutableIntStateOf(ReadBookControl.turnModeIndex) }
-
     val scrollController = remember {
         ReaderScrollController(
             scope = scope,
@@ -631,35 +552,26 @@ private fun ReadBookScreen(
             chapterSize = { viewModel.getChapterListSize() },
             chapterTitle = { viewModel.getChapterTitle(it) },
             loadPage = { c, p -> activity.loadPage(c, p) },
-            onProgress = { c, p ->
-                // 与翻页模式同一个回调口径：进度落 ViewModel + 菜单标题 + 章节滑条
-                viewModel.updateProgress(c, p)
-                chapterTitle = viewModel.getChapterTitle(c)
-                sliderValue = (c + 1).toFloat()
-                syncAtTailChapter(c)
-            }
+            onProgress = navigation.onProgress,
         )
     }
-    // 两个控制器都建、只把当前模式那个挂到 Activity：音量键分派靠「哪个非空」判方式（见 onKeyUp）
-    DisposableEffect(turnModeIndex) {
-        val isPage = turnModeIndex == 0
-        activity.pagerController = if (isPage) controller else null
-        activity.scrollController = if (isPage) null else scrollController
-        onDispose {
-            activity.pagerController = null
-            activity.scrollController = null
-        }
+    // 组合外入口（音量键、重分页）只认识导航；离开阅读器时置空。
+    // 装配放在 effect 里：组合期内直接改导航对象的状态会在每次重组重跑，与本文件其余
+    // 「写外部对象」的纪律（activity.navigation 同样只在 effect 里赋值）保持一致
+    DisposableEffect(navigation, controller, scrollController) {
+        navigation.attach(controller, scrollController)
+        activity.navigation = navigation
+        onDispose { activity.navigation = null }
     }
 
     /**
-     * 跳转统一入口：按当前翻页方式路由到对应控制器（目录跳章、进度条跳章、上下章、换页刷新、换源都用它）。
+     * 跳转统一入口：目录、进度条、上下章、换页刷新、换源都用它。
      *
-     * 两种控制器的 `setInitData(章号, 页号/哨兵)` 语义相同，故调用方不必知道当前是哪种方式。
-     * 直接调某一个控制器的后果不是崩溃而是**静默失效**：滚屏模式下翻页控制器没挂到视图上，
-     * 跳章只改了它的状态、页面上什么都不会发生。
+     * 导航按当前模式路由到对应控制器；直接调某一个会在另一种模式下**静默失效**：滚屏模式下
+     * 翻页控制器没挂到视图上，跳章只改了它的状态、页面上什么都不会发生。
      */
     val gotoPage: (chapterIndex: Int, pageIndex: Int) -> Unit = { c, p ->
-        if (turnModeIndex == 0) controller.setInitData(c, p) else scrollController.setInitData(c, p)
+        navigation.setPosition(c, p)
     }
 
     // ---------------- 生命周期与事件 ----------------
@@ -716,11 +628,9 @@ private fun ReadBookScreen(
             activity.rePaginate(typesetter, startFromCurrent = false)
             val initChapter = shelf?.durChapter ?: 0
             val initPage = shelf?.durChapterPage ?: DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
-            controller.setInitData(initChapter, initPage)
-            // 滚屏控制器同时喂：它此刻没有渲染，但不初始化就会带着「章号 0、块数 0」的
-            // 初值躺在那里；用户一换模式，pendingTurnModeSwitch 会在换算后重新定位它，
-            // 中间那一帧的落点便是错的
-            scrollController.setInitData(initChapter, initPage)
+            // 两侧一起收敛：另一侧此刻没有渲染，不预热落点就带着「章号 0、块数 0」的初值躺着，
+            // 用户一换模式、新容器成形的那一帧落点就是错的（pendingTurnModeSwitch 的换算在那一帧之后）
+            navigation.converge(initChapter, initPage)
         }
     }
 
@@ -735,24 +645,23 @@ private fun ReadBookScreen(
     // 立刻做（那会拿旧视口量新布局），而是等 bodyHeight 落到新模式的那一份之后再算。
     // 与「字号变化由 LaunchedEffect(typesetter) 接力」是同一条时序纪律。
     var pendingTurnModeSwitch by remember { mutableStateOf(false) }
+    // 切换前的行数必须在点击时快照：效应要等新容器的 bodyHeight 回报后才跑，中间可能已经
+    // 发生过一次 rePaginate（末章追加/字号变化），那时 pagination.pageLineCount 已是新模式的。
+    var modeSwitchOldLineCount by remember { mutableIntStateOf(0) }
     LaunchedEffect(bodyHeight, pendingTurnModeSwitch) {
         if (!pendingTurnModeSwitch) return@LaunchedEffect
-        // 先清标记、再判前置条件：首屏尚未启动时这次切换不需要换算（启动流程会把两个控制器
-        // 一起收敛到持久化落点），但标记必须清掉——留着它会让此后任意一次 bodyHeight 变化
+        // 先清标记、再判前置条件：首屏尚未启动时这次切换不需要换算（启动流程会把当前模式
+        // 收敛到持久化落点），但标记必须清掉——留着它会让此后任意一次 bodyHeight 变化
         // （例如改字号引起的重排）误触发一次换算，把用户当前的位置按行号又搬一次。
         pendingTurnModeSwitch = false
         if (!pagerStarted) return@LaunchedEffect
         val shelf = viewModel.bookShelf ?: return@LaunchedEffect
-        val oldLineCount = activity.lastLineCount
+        val oldLineCount = modeSwitchOldLineCount
         activity.rePaginate(typesetter, startFromCurrent = false)
-        val newLineCount = viewModel.pageLineCount
-        val target = activity.convertPageIndex(shelf.durChapterPage, oldLineCount, newLineCount)
-        viewModel.updateProgress(shelf.durChapter, target)
-        if (turnModeIndex == 0) {
-            controller.setInitData(shelf.durChapter, target)
-        } else {
-            scrollController.setInitData(shelf.durChapter, target)
-        }
+        val newLineCount = activity.pagination.pageLineCount
+        val target = activity.pagination.convertPageIndex(shelf.durChapterPage, oldLineCount, newLineCount)
+        // 定位本身会经控制器的 onProgress 同步写一次进度，不在这里重复 updateProgress
+        navigation.setPosition(shelf.durChapter, target)
     }
 
     // 返回键处置链（对齐原 onBackPressedDispatcher 回调）：
@@ -817,12 +726,12 @@ private fun ReadBookScreen(
                 bgColor = bgColor,
                 textSizeSp = textSizeSp,
                 lineHeight = lineHeight,
-                blockHeightPx = activity.readerBlockHeightPx,
+                blockHeightPx = activity.pagination.blockHeightPx,
                 canClickTurn = clickTurnEnabled,
                 onCenterTap = { menuVisible = !menuVisible },
                 // 滚屏的视口尺寸不比翻页模式：块内没有标题行、也没有块内页码行，
                 // 所以视口更高、每屏行数更多——这正是两模式 pageLineCount 不同、
-                // 切模式要按行号换算落点的原因（见 convertPageIndex）
+                // 切模式要按行号换算落点的原因（见 ReaderPagination.convertPageIndex）
                 onViewportSizeChanged = { w, h ->
                     activity.onBodyMeasured(w, h)
                     if (w != bodyWidth) bodyWidth = w
@@ -990,10 +899,12 @@ private fun ReadBookScreen(
             onClickTurnChanged = { clickTurnEnabled = it },
             onTurnModeChanged = { index ->
                 if (index != turnModeIndex) {
+                    // 先快照旧模式的行数：效应跑之前若又有一次 rePaginate，现读就拿到新值了
+                    modeSwitchOldLineCount = activity.pagination.pageLineCount
+                    // 同步改导航判据：pendingTurnModeSwitch 的效应可能在同帧内就调用 setPosition，
+                    // 若等 LaunchedEffect 再改 mode，那一次定位会落到旧模式的控制器上
+                    navigation.setMode(if (index == 0) ReaderTurnMode.PAGED else ReaderTurnMode.SCROLL)
                     turnModeIndex = index
-                    // 切换前先记下旧模式的行数：换算要用两个模式的行数。
-                    // rePaginate 也会刷新 lastLineCount，故这里必须**早于**那次重分页
-                    activity.lastLineCount = viewModel.pageLineCount
                     pendingTurnModeSwitch = true
                 }
             }

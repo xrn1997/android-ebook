@@ -1,6 +1,8 @@
 package com.ebook.source.script
 
 import com.ebook.db.entity.ChapterListEntity
+import com.ebook.source.analyze.PageWalker
+import com.ebook.source.analyze.WalkPage
 import com.xrn1997.common.util.Logger
 
 /**
@@ -38,46 +40,54 @@ internal class ScriptTocPager(
         noteUrl: String,
         tag: String,
     ): MutableList<ChapterListEntity> {
-        val chapters = mutableListOf<ChapterListEntity>()
-        // contentRef 跨页去重集：软 404（越界页以 HTTP 200 重复返回首页内容）靠它判零新增，
-        // 同页重复条目顺带去重——与原生 TocPager 的 seenRefs 同一职责
-        val seenRefs = mutableSetOf<String>()
         val chain = ScriptPageChain(
             entryUrl = entryUrl,
             nextRule = rules.rule(RuleObjectKind.TOC, "nextTocUrl").orEmpty(),
             nextArray = rules.nextUrlArray(RuleObjectKind.TOC, "nextTocUrl"),
             extractor = extractor,
         )
-        var current: String? = entryUrl
-        while (current != null) {
-            val sizeBefore = chapters.size
-            val page = fetchPage(current)
-            ctx.baseUrl = page.url  // 字段相对落位推进到当前页（§6.5「链接写在哪页就相对哪页」）
-            val input = RuleValue.Page(page.text)
-            val items = extractor.listItems(
-                extractor.evaluateListField(rules.rule(RuleObjectKind.TOC, "chapterList").orEmpty(), input)
-            )
-            for (item in items) {
-                if (chapters.size >= MAX_TOC_CHAPTERS) break
-                val urlRaw = extractor.fieldText(item, rules.rule(RuleObjectKind.TOC, "chapterUrl").orEmpty())
-                if (urlRaw.isBlank()) continue
-                val contentRef = extractor.resolveUrl(urlRaw, page.url)
-                if (!seenRefs.add(contentRef)) continue  // 跨页去重：软 404 重复内容靠它判零新增
-                chapters += ChapterListEntity(
-                    noteUrl = noteUrl,
-                    durChapterIndex = chapters.size,
-                    contentRef = contentRef,   // 含选项尾段：正文取文时消费
-                    durChapterName = extractor.fieldText(item, rules.rule(RuleObjectKind.TOC, "chapterName").orEmpty()),
-                    tag = tag,
-                )
-            }
-            if (chapters.size >= MAX_TOC_CHAPTERS) {
-                Logger.w(TAG, "章节索引触及防御上限 $MAX_TOC_CHAPTERS 章，按截断处理: $entryUrl")
-                break
-            }
-            // 零新增即到底——优先于翻页判定（§12：软 404 页与末页同判）
-            current = if (chapters.size == sizeBefore) null else chain.nextOf(input, page.url)
+        val result = PageWalker<ChapterListEntity, ScriptPage>(
+            maxItems = MAX_TOC_CHAPTERS,
+            stopOnNoNewItems = true,
+            // 回环与数组跳过由 ScriptPageChain 负责；walker 不再叠第二套 visited
+            guardLoops = false,
+            keyOf = { it.contentRef },
+        ).walk(
+            entryUrl = entryUrl,
+            fetch = { url -> WalkPage(url, fetchPage(url)) },
+            items = { page ->
+                ctx.baseUrl = page.payload.url  // 字段相对落位推进到当前页（§6.5）
+                val input = RuleValue.Page(page.payload.text)
+                extractor.listItems(
+                    extractor.evaluateListField(rules.rule(RuleObjectKind.TOC, "chapterList").orEmpty(), input)
+                ).asSequence().mapNotNull { item ->
+                    val urlRaw = extractor.fieldText(item, rules.rule(RuleObjectKind.TOC, "chapterUrl").orEmpty())
+                    if (urlRaw.isBlank()) {
+                        null
+                    } else {
+                        ChapterListEntity(
+                            noteUrl = noteUrl,
+                            // 全局序号在整条链走完后统一回填，不能按页内下标写
+                            durChapterIndex = 0,
+                            contentRef = extractor.resolveUrl(urlRaw, page.payload.url),
+                            durChapterName = extractor.fieldText(
+                                item,
+                                rules.rule(RuleObjectKind.TOC, "chapterName").orEmpty(),
+                            ),
+                            tag = tag,
+                        )
+                    }
+                }
+            },
+            next = { page ->
+                chain.nextOf(RuleValue.Page(page.payload.text), page.payload.url)
+            },
+        )
+        // 恰好收满且本页再无条目时 walker 不置 truncated；上限告警仍按收满即报（与原循环一致）
+        if (result.truncated || result.items.size >= MAX_TOC_CHAPTERS) {
+            Logger.w(TAG, "章节索引触及防御上限 $MAX_TOC_CHAPTERS 章，按截断处理: $entryUrl")
         }
-        return chapters
+        result.items.forEachIndexed { index, chapter -> chapter.durChapterIndex = index }
+        return result.items.toMutableList()
     }
 }

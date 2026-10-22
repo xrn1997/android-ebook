@@ -8,8 +8,9 @@ import com.ebook.api.entity.SourceFormat
 import com.ebook.api.entity.SourceDefinition
 import com.ebook.common.analyze.source.BookSourceItem
 import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
-import com.ebook.source.analyze.BookParser
+import com.ebook.db.entity.BookShelfEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -91,7 +92,8 @@ internal class FakeBookSourceManager(
 
     // region 同步面：P2 的页面只用挂起面与订阅面，这里一律不提供 parser
 
-    override suspend fun getParserFor(sourceUrl: String): BookParser? = null
+    override suspend fun resolveSource(sourceUrl: String): SourceBinding =
+        if (sourceUrl == BookShelfEntity.LOCAL_TAG) SourceBinding.Local else SourceBinding.Missing(sourceUrl)
 
     /** 聚合搜索由搜索页发起，书源管理页的用例不会走到这里 */
     override fun searchAcross(keyword: String, page: Int, skipSourceUrls: Set<String>) =

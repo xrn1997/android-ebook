@@ -93,7 +93,7 @@ class ReaderScrollController internal constructor(
     private val chapterTitle: (Int) -> String,
     loadPage: suspend (chapterIndex: Int, pageIndex: Int) -> ReaderPageUi.Loaded?,
     private val onProgress: (chapterIndex: Int, pageIndex: Int) -> Unit,
-) {
+) : ReaderTurnController {
 
     /** 已物化的章段，按章索引升序且连续（只在 [materialize] 里插入） */
     private val sections = mutableStateListOf<ChapterSection>()
@@ -122,6 +122,14 @@ class ReaderScrollController internal constructor(
     private var pendingTarget: Int = DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
     private var pendingChapter: Int = 0
 
+    /**
+     * 本次 [setInitData] 是预热（`reportProgress = false`）：落点解析完成时也不许补报。
+     *
+     * 预热侧此刻没有渲染，按它自己的块数解析完再报回来，会把当前模式刚写的进度盖掉
+     * （见 [ReaderNavigation.converge]）。用户真正滚动/翻页时清掉这位，后续加载照常上报。
+     */
+    private var suppressResolvedProgress = false
+
     // 仓库必须声明在状态属性之后：它的 onLoaded 直接读写这些状态，
     // 反过来（先声明 store）会形成属性初始化顺序上的循环依赖
     private val store: ReaderPageStore = ReaderPageStore(scope, loadPage).apply {
@@ -135,10 +143,12 @@ class ReaderScrollController internal constructor(
             if (key.chapterIndex != pendingChapter) return@onLoaded
             // 落点是哨兵（END）或越界页号时，此刻才知道它具体是第几块。落定前只能暂记章首，
             // 故「变了」必须补报一次进度：不然跳章到章末会把 dur_chapter_page 存成 0，
-            // 冷启动重进又回到章首（块数对而落点错）
+            // 冷启动重进又回到章首（块数对而落点错）。预热侧除外——它没有显示，
+            // 补报只会把当前模式的进度盖回旧页。
             val resolved = resolveTarget(pendingTarget, loaded.pageAll)
             val item = itemForBlock(pendingChapter, resolved)
-            moveTo(item, reportProgress = !isSameScreen(item))
+            moveTo(item, reportProgress = !suppressResolvedProgress && !isSameScreen(item))
+            suppressResolvedProgress = false
             requestJump(item, animate = false)
             // 探测块（0）通常就是要落的那块，此时这条 ensureLoad 被 Loaded 短路挡下；
             // 落点在章末时它会真正补发末块的加载
@@ -220,19 +230,43 @@ class ReaderScrollController internal constructor(
     /**
      * 初始化/跳转：取消在途加载，列表收敛到指定章（相邻章随即物化），落点由哨兵解析。
      * 与 [ReaderPagerController.setInitData] 同一语义，故两边可共用调用点。
+     *
+     * 块数尚未落定时先报**目标页码**（BEGIN 报 0、END 暂报哨兵），不把「解析不出来」的 0
+     * 当落点写出去；块数落定后由 `onLoaded` 补报真实块号。本方法会清空章段，故进入时块数总是未知。
+     *
+     * @param reportProgress false 只收敛落点、不回报进度——给没显示的那一侧预热用
+     *   （见 [ReaderNavigation.converge]）。异步落定后的补报也被压住：预热侧没有显示，
+     *   按它自己的块数补报只会把当前模式刚写的进度盖回旧页。
      */
-    fun setInitData(chapterIndex: Int, pageIndex: Int) {
+    fun setInitData(chapterIndex: Int, pageIndex: Int, reportProgress: Boolean = true) {
         store.clear()
         sections.clear()
         pendingChapter = chapterIndex
         pendingTarget = pageIndex
+        suppressResolvedProgress = !reportProgress
         materialize(chapterIndex)
         // 相邻章一并物化：跨章滚动才不必在章界等排版（这也是原设计里「预热」该起的作用）
         materializeNeighbors(chapterIndex)
         val item = itemForBlock(chapterIndex, resolveTarget(pageIndex, blockCountOf(chapterIndex)))
-        moveTo(item, reportProgress = true)
+        // 块数未知时 item 只能是章首；进度先报目标页码，不能把「解析不出来」的 0 当落点写出去
+        // （BEGIN 的解析值就是 0，可以直接报）。落定后 onLoaded 再补报真实块号。
+        moveTo(item, reportProgress = false)
+        if (reportProgress) {
+            onProgress(
+                chapterIndex,
+                if (pageIndex == DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN) 0 else pageIndex,
+            )
+        }
         requestJump(item, animate = false)
     }
+
+    override fun setPosition(chapterIndex: Int, pageIndex: Int, reportProgress: Boolean) =
+        setInitData(chapterIndex, pageIndex, reportProgress)
+
+    // 导航面把「下一屏/上一屏」统一成同一对语义；音量键在滚屏模式下也走这里
+    override fun turnNext() = scrollOneScreen(forward = true)
+
+    override fun turnPrev() = scrollOneScreen(forward = false)
 
     /**
      * 滚动位置变化：容器把 `firstVisibleItemIndex` 原样报进来，换算由本类做（它才持有章段）。
@@ -242,6 +276,8 @@ class ReaderScrollController internal constructor(
      */
     fun onScrolledToItem(flatIndex: Int) {
         val item = itemAt(flatIndex) ?: return
+        // 用户/容器真的动了位置：此前那次预热落点已不再需要保密，后续加载照常上报
+        suppressResolvedProgress = false
         moveTo(item, reportProgress = !isSameScreen(item))
     }
 
@@ -275,6 +311,8 @@ class ReaderScrollController internal constructor(
     fun scrollOneScreen(forward: Boolean) {
         val current = flatIndexOf(anchorItem)
         if (current < 0) return
+        // 主动滚动是真实阅读推进，预热期间的「不报进度」到此结束
+        suppressResolvedProgress = false
         val next = itemAt(if (forward) current + 1 else current - 1)
         if (next != null) {
             // 标题项 ↔ 该章第 0 块是同一屏，来回滚一屏不该各写一次进度

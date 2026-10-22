@@ -6,6 +6,7 @@ import com.ebook.common.analyze.local.ChapterContent
 import com.ebook.common.analyze.local.ChapterEntry
 import com.ebook.common.analyze.local.ChapterReader
 import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.parserOrThrow
 import com.ebook.common.domain.CommentKey
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
@@ -59,7 +60,7 @@ class BookRepository @Inject constructor(
      * 下载队列（`download_chapter`）的访问器。
      *
      * 只有一处用到：[switchSource] 收尾时把**旧条目**名下的在队任务一起删掉（见 [commitSwitch]）。
-     * 它不属于「一个书架条目由哪些行组成」那份清单（[deleteEntryRows]），因为队列是**流水**而不是
+     * 它不属于「一个书架条目由哪些行组成」那份清单（[ShelfEntryStore]），因为队列是**流水**而不是
      * 条目的附属数据：一行任务记的是「某站某一章的 URL」，书没了它也只是没人取的残留。
      */
     private val downloadChapterDao: DownloadChapterDao,
@@ -76,6 +77,16 @@ class BookRepository @Inject constructor(
     // ===== 事件 =====
     private val _bookShelfEvents = MutableSharedFlow<BookShelfEvent>(extraBufferCapacity = 64)
     val bookShelfEvents: SharedFlow<BookShelfEvent> = _bookShelfEvents.asSharedFlow()
+
+    /** 「一个书架条目」的四表写入、事务边界与提交后事件，见 [ShelfEntryStore]。 */
+    private val shelfEntryStore = ShelfEntryStore(
+        bookShelfDao = bookShelfDao,
+        bookInfoDao = bookInfoDao,
+        chapterListDao = chapterListDao,
+        bookGroupDao = bookGroupDao,
+        transactions = transactions,
+        events = _bookShelfEvents,
+    )
 
     // ===== 数据操作 =====
 
@@ -207,87 +218,25 @@ class BookRepository @Inject constructor(
      * 的行当孤立记录**删掉**，于是半截状态不只被读到，还会被写实。
      * 由 [com.ebook.db.entity.BookShelfFullInfo] 的 `@Relation` 读侧看，半截与孤儿无法区分。
      *
-     * 事件放在事务之外：**未提交的写不是事实**（与 [switchSource] 的 `publishSwitched` 同一口径）。
+     * 事件放在事务之外：**未提交的写不是事实**（与 [ShelfEntryStore.replaceRows] 同一口径）。
      */
     suspend fun addToShelf(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
-        transactions.run { writeEntry(bookShelf) }
-        _bookShelfEvents.emit(BookShelfEvent.Added(bookShelf))
+        shelfEntryStore.add(bookShelf)
     }
 
     /**
-     * 写「一个书架条目」的全部库内行：book_info → book_shelf → chapter_list → book_group 主键行。
+     * 从书架移除（含关联数据清理）。
      *
-     * 从 [addToShelf] 抽出而不复制：[switchSource] 要在**同一个写事务**里落下完整的新条目
-     * （见 [commitSwitch]，它在这份行之外还多删旧条目）。两处共用同一份「一个条目由哪些行组成」
-     * 的事实，将来加一张表 / 一列时不会只改到一边、留下半个条目。
-     *
-     * **本方法自己不开事务、也不带 `withContext`**：事务由调用方开（`commitSwitch` 还要在同一笔
-     * 里删旧行，事务边界只能有一处），而 `withContext` 写在方法内会跳出 Room 的事务线程。
-     * 本方法**不发事件**，且假设调用方负责线程与事务边界。
+     * 库内四表先提交并发出 `Removed`，随后删章文件、失效缓存：条目已移除是事实，
+     * 清目录失败只留孤儿目录（由启动时的内容对账回收）；反过来先删文件，会让
+     * 「库里仍是事实」的窗口里正文先丢。
      */
-    private suspend fun writeEntry(bookShelf: BookShelfEntity) {
-        // 先保存 bookInfo（如果存在）。章节时间戳顺手写成「现在」：两个调用方
-        // （加书架、换源）都在刚才那次解析里抓过目录了，不写就等于让用户紧接着进详情页时
-        // 白爬一遍多页目录。已有非零值不覆盖，保留「上次得出结论」的事实。
-        bookShelf.bookInfo?.let { bookInfo ->
-            bookInfo.noteUrl = bookShelf.noteUrl
-            if (bookInfo.finalRefreshData == 0L) {
-                bookInfo.finalRefreshData = System.currentTimeMillis()
-            }
-            bookInfoDao.insert(bookInfo)
-        }
-        // 保存 bookShelf
-        bookShelfDao.insert(bookShelf)
-        // 保存 chapterList：实体上是非空 List（默认空集），只需判空集，不用安全调用
-        val chapters = bookShelf.chapterList
-        if (chapters.isNotEmpty()) {
-            // 设置 noteUrl 关联
-            chapters.forEach { it.noteUrl = bookShelf.noteUrl }
-            chapterListDao.insertAll(chapters)
-        }
-        // book_group 关联行：用当前匹配信息算评论键，本地书导入器已写过同样的行，
-        // REPLACE 语义保证幂等；网络书此前不写，这里补上，M2 并集读才有数据可查
-        val name = bookShelf.matchName ?: bookShelf.bookInfo?.name
-        val author = bookShelf.matchAuthor ?: bookShelf.bookInfo?.author
-        if (!name.isNullOrEmpty()) {
-            bookGroupDao.insert(
-                BookGroupEntity(
-                    commentKey = CommentKey.compute(name, author),
-                    noteUrl = bookShelf.noteUrl,
-                    isPrimary = true,
-                )
-            )
-        }
-    }
-
-    /** 从书架移除（含关联数据清理） */
     suspend fun removeFromShelf(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
-        deleteEntryRows(bookShelf.noteUrl)
+        shelfEntryStore.remove(bookShelf)
         // 章文件清理：本地书与网络书统一走 BookStore（book_content 表已在 v3→v4 删除）
         val format = resolveFormat(bookShelf)
         bookStore.deleteBook(BookLocation(bookShelf.noteUrl, format, bookShelf.tag))
         contentCache.invalidateBook(bookShelf.noteUrl)
-        _bookShelfEvents.emit(BookShelfEvent.Removed(bookShelf))
-    }
-
-    /**
-     * 删「一个书架条目」的全部库内行：chapter_list → book_info → book_group → book_shelf。
-     *
-     * 与 [removeFromShelf] 的差别只在**范围**：本方法不删章文件、不失效内存缓存、不发事件，
-     * 因此它服务的是「条目要消失但内容要留下」的场景（[switchSource] 换源，旧章文件正是留给
-     * 用户切回时复用的）。真正的移除仍走 [removeFromShelf]——那里删文件是有意的：用户长按
-     * 「移出书架」就是不要这本书了，留着只会白占磁盘。
-     *
-     * 与 [writeEntry] 同理从 removeFromShelf 抽出，让「一个条目由哪些行组成」只有一个事实源。
-     * 注意本表库**无外键级联**（见 [com.ebook.db.dao.BookShelfDao.deleteByUrl] 的说明），
-     * 少删一行就是永久孤儿行，新增条目附属表时两侧都要跟。
-     */
-    private suspend fun deleteEntryRows(noteUrl: String) {
-        chapterListDao.deleteChaptersForBook(noteUrl)
-        bookInfoDao.deleteByUrl(noteUrl)
-        // book_group 行随书删：评论路由失去依据，留着只会让后续合并/拆分逻辑误判
-        bookGroupDao.deleteFor(noteUrl)
-        bookShelfDao.deleteByUrl(noteUrl)
     }
 
     // ===== 阅读中换源（ADR-0016 决策 8） =====
@@ -324,7 +273,7 @@ class BookRepository @Inject constructor(
      * `book_info` / `chapter_list` 的反向孤立行**没有任何清理路径**（[getAllBooksWithDetails] 只清
      * 「有 shelf 行却缺 info」那一个方向，`@Relation` 也不会去捞没有书架行的章节），留一次就永久躺在库里。
      *
-     * 本方法的折中：**库内行一律删净（[deleteEntryRows]），章文件与内存缓存一律不删**——
+     * 本方法的折中：**库内行一律删净（[ShelfEntryStore]），章文件与内存缓存一律不删**——
      * 也就是 [removeFromShelf] 里那两行 `bookStore.deleteBook` / `contentCache.invalidateBook`
      * 在换源路径上刻意不做。效果与代价：
      * - 切回旧源**必然重拉一次目录**（一次 HTTP，不是整本正文），但**已读章节的正文命中盘上文件**：
@@ -364,7 +313,7 @@ class BookRepository @Inject constructor(
         newBook: SearchBookEntity,
     ): Result<BookShelfEntity> {
         // 本地书没有「源」可换：它的 tag 恒为 loc_book，正文在自己导入的文件里。
-        // 拿 loc_book 去问 book_source 表永远查不到行（getParserFor 的 null 成因第 1 条），
+        // 拿 loc_book 去问 book_source 表永远查不到行（resolveSource 的 Local 档），
         // 报成「书源已失效」会把完全正常的状态说成故障，所以按参数错误挡在前面。
         if (oldShelf.tag == BookShelfEntity.LOCAL_TAG) {
             return Result.failure(
@@ -396,10 +345,8 @@ class BookRepository @Inject constructor(
 
         return try {
             withContext(Dispatchers.IO) {
-                transactions.run { commitSwitch(oldShelf.noteUrl, newShelf) }
+                commitSwitch(oldShelf, newShelf)
             }
-            // 事件只在提交成功之后发（未提交的写不是事实）
-            publishSwitched(oldShelf, newShelf)
             Result.success(newShelf)
         } catch (e: CancellationException) {
             throw e
@@ -415,18 +362,17 @@ class BookRepository @Inject constructor(
      * 其余字段交给 parser 填），不另立一套：两处走的是同一条解析链，构造方式一旦分叉，
      * 换源拉回来的书就会和「从搜索加书架」拉回来的不一样。
      *
-     * 取不到 parser 一律抛 [BookSourceNotFoundException]（null 的四种成因见
-     * [BookSourceManager.getParserFor]，前三种在此都该报错中止）。
+     * 取不到 parser 时：`Missing`/`Broken` 抛 [BookSourceNotFoundException]（用户可处置的源失效），
+     * `Local` 抛 [IllegalStateException]（本地书走换源是编程错误）。见 [BookSourceManager.resolveSource]。
      */
     private suspend fun fetchEntryFromSource(
         newBook: SearchBookEntity,
         oldShelf: BookShelfEntity,
     ): BookShelfEntity {
-        val parser = bookSourceManager.getParserFor(newBook.tag)
-            ?: throw BookSourceNotFoundException(
-                newBook.tag,
-                detail = "换源目标 noteUrl=${newBook.noteUrl}",
-            )
+        val parser = bookSourceManager.parserOrThrow(
+            newBook.tag,
+            detail = "换源目标 noteUrl=${newBook.noteUrl}",
+        )
         val stub = BookShelfEntity().apply {
             noteUrl = newBook.noteUrl
             tag = newBook.tag
@@ -460,7 +406,7 @@ class BookRepository @Inject constructor(
      * - **先插新、后删旧**是本仓「先导入新条目、后处置旧条目」的同一条纪律
      *   （同一判据见 [mergeTailChapters]）。反过来一旦中途失败，这本书就从书架上消失了（丢数据）；
      *   现在最坏是两条目并存（看得见、可手动删）。
-     * - **吸收必须先于删旧**：`book_group` 行随条目删（见 [deleteEntryRows]），旧条目身上挂着它历次
+     * - **吸收必须先于删旧**：`book_group` 行随条目删（见 [ShelfEntryStore]），旧条目身上挂着它历次
      *   合并攒下的 secondary 键，先删就把那些评论桶的读并集一起丢了。
      *
      * 最后一步清 [com.ebook.db.dao.DownloadChapterDao.deleteByNoteUrl] 是换源特有的：**这本书还在架上**，
@@ -476,29 +422,16 @@ class BookRepository @Inject constructor(
      * 的 [com.ebook.db.dao.DownloadChapterDao.clearAll] 兜底清掉（其 KDoc 明写了这一条），
      * 属既有行为；换源没有那个兜底窗口（用户可能此后再也不发起下载），故必须在这里删。
      *
-     * 本方法刻意不做任何 `withContext`：Room 的写事务线程受限，事务块里换线程就是伪事务。
+     * 库内四表、旧键吸收与旧队列清理由 [ShelfEntryStore.replaceRows] 收在同一笔事务里；
+     * 事件也由它在提交后按「先撤旧、后补新」发出。任务里的 `chapter_url` 是旧站的地址，
+     * 不能改归属续跑，故随旧条目一起删；删除失败整笔回滚，不会留下「换成了新源但旧队列还在」
+     * 的半截状态。
      */
-    private suspend fun commitSwitch(oldNoteUrl: String, newShelf: BookShelfEntity) {
-        writeEntry(newShelf)
-        absorbKeysInto(newShelf.noteUrl, oldNoteUrl)
-        deleteEntryRows(oldNoteUrl)
-        downloadChapterDao.deleteByNoteUrl(oldNoteUrl)
-    }
-
-    /**
-     * 换源完成后广播两个事件：先 [BookShelfEvent.Removed]（旧条目）再 [BookShelfEvent.Added]（新条目）。
-     *
-     * 两个事件指向两行不同的 `note_url`，最终态与顺序无关；选「先撤旧、后补新」是给
-     * **靠事件维护内存快照**的收集方看的（如搜索页的书架标记）：反过来会让它一瞬间同时持有同一作品
-     * 的两个条目，按书名或评论键聚合的页面就会闪一次「重复书」。书架页本身以
-     * [observeBookShelf] 为准，两个事件对它只是「该重查了」的信号。
-     */
-    private suspend fun publishSwitched(
-        oldShelf: BookShelfEntity,
-        newShelf: BookShelfEntity,
-    ) {
-        _bookShelfEvents.emit(BookShelfEvent.Removed(oldShelf))
-        _bookShelfEvents.emit(BookShelfEvent.Added(newShelf))
+    private suspend fun commitSwitch(oldShelf: BookShelfEntity, newShelf: BookShelfEntity) {
+        shelfEntryStore.replaceRows(newShelf, oldShelf) {
+            // 旧队列必须与四表同笔提交：删队列失败时整笔回滚，调用方看到的失败与库内状态一致
+            downloadChapterDao.deleteByNoteUrl(oldShelf.noteUrl)
+        }
     }
 
     // ===== 章节正文统一读取 =====
@@ -600,12 +533,13 @@ class BookRepository @Inject constructor(
             return ChapterSyncResult.Throttled
         }
 
-        // 取源在任何 try 之外：null 的成因即「书源不存在/坏行」，本路径按 Failed 带回而非抛，
-        // 理由见 ChapterSyncResult.Failed 的 KDoc。
-        val parser: BookParser = bookSourceManager.getParserFor(bookShelf.tag)
-            ?: return ChapterSyncResult.Failed(
-                BookSourceNotFoundException(bookShelf.tag, detail = "目录重抓 noteUrl=$noteUrl")
-            )
+        // 取源失败（Missing/Broken）按 Failed 带回而非抛，理由见 ChapterSyncResult.Failed 的 KDoc；
+        // 本地书已在方法开头挡掉，parserOrThrow 的 Local 分支在这里不可达。
+        val parser: BookParser = try {
+            bookSourceManager.parserOrThrow(bookShelf.tag, detail = "目录重抓 noteUrl=$noteUrl")
+        } catch (e: BookSourceNotFoundException) {
+            return ChapterSyncResult.Failed(e)
+        }
 
         val remoteChapters: List<ChapterListEntity> = try {
             parser.getChapterList(bookShelf).data.chapterList
@@ -797,21 +731,8 @@ class BookRepository @Inject constructor(
      */
     suspend fun absorbGroupKeys(targetNoteUrl: String, sourceNoteUrl: String) =
         withContext(Dispatchers.IO) {
-            absorbKeysInto(targetNoteUrl, sourceNoteUrl)
+            shelfEntryStore.absorbGroupKeys(targetNoteUrl, sourceNoteUrl)
         }
-
-    /**
-     * [absorbGroupKeys] 的不换线程版本：[switchSource] 要在同一个写事务里「先吸收旧键、后删旧条目」，
-     * 而 Room 的写事务是线程受限的——事务块里再 `withContext(Dispatchers.IO)` 会跳出事务线程，
-     * 留下「吸收没在事务内、删旧在事务内」这种比不加事务更糟的形态。
-     */
-    private suspend fun absorbKeysInto(targetNoteUrl: String, sourceNoteUrl: String) {
-        bookGroupDao.getAllForNoteUrl(sourceNoteUrl).forEach { row ->
-            bookGroupDao.addSecondary(
-                BookGroupEntity(commentKey = row.commentKey, noteUrl = targetNoteUrl, isPrimary = false)
-            )
-        }
-    }
 
     /**
      * 智能合并（导入时判重命中的「补章」处置）：把新条目多出来的**尾部章节**补进旧条目，
@@ -832,11 +753,9 @@ class BookRepository @Inject constructor(
      * 留下指向不存在文件的索引行）。中途失败最坏是旧目录多几个没有索引行的章文件——读取路径
      * 按索引行走，碰不到它们，也不会被对账误删（对账只回收库里已无书的整目录）。
      *
-     * 另一个失败窗口在补章事务提交**之后**：[removeFromShelf] 删新条目失败（磁盘级故障）时，
-     * 旧书已含补章（可用），新条目可能仍在书架或只剩残留章文件目录（后者由对账回收）。不做
-     * 自动补偿——回滚已提交的补章要反向删索引行和章文件，一旦中途再失败就是两头空，恰是
-     * 「先导入新条目、后处置旧条目」铁律要防的形态；自愈路径即用户手动删掉新条目（走正常
-     * removeFromShelf）。
+     * 补章与新条目退场收在同一笔事务（[ShelfEntryStore.appendTailAndRemove]）；章文件清理在其后。
+     * 文件清理失败最多留下孤儿章文件目录，由内容仓库对账回收，不影响已提交的目录；不做反向
+     * 补偿——回滚已提交的补章要反向删索引行和章文件，一旦中途再失败就是两头空。
      *
      * @param newNoteUrl 刚导入完成的那本（会被删除）
      * @param oldNoteUrl 书架上已有的那本（被补章，保留）
@@ -880,10 +799,10 @@ class BookRepository @Inject constructor(
                     tag = oldShelf.tag,
                 ).also { nextIndex++ }
             }
-            transactions.run { chapterListDao.insertAll(rows) }
-
-            // 新条目整本退场（DB 行 + 章文件 + book_group 随删 + 缓存失效）
-            removeFromShelf(newShelf)
+            // 补章与新条目退场收在同一笔事务里；库提交后再清理新条目的章文件（见上方 KDoc）
+            shelfEntryStore.appendTailAndRemove(newShelf, rows)
+            bookStore.deleteBook(newLocation)
+            contentCache.invalidateBook(newNoteUrl)
             // 旧条目多了章节：内存缓存里那本必须重取，否则读到补章前的旧页序
             contentCache.invalidateBook(oldNoteUrl)
             ImportMergeResult.Merged(appendedChapters = rows.size)
@@ -962,17 +881,6 @@ class BookRepository @Inject constructor(
     suspend fun reconcileContentStore() = withContext(Dispatchers.IO) {
         val liveBookIds = bookShelfDao.getAllBooks().map { it.noteUrl }.toSet()
         bookStore.reconcile(liveBookIds)
-    }
-
-    /**
-     * 只发"已加入书架"事件、不重复写任何表。
-     *
-     * 存在的理由：[addToShelf] 会级联写 book_info / book_shelf / chapter_list，而导入器已经
-     * 在自己的事务里写完这些了——旧实现导入后仍调 `addToShelf`，把 N 条章节行又 REPLACE 了
-     * 一遍。事件是书架刷新与"换源"提示的唯一依据，不能省，所以把"发事件"从"写数据"里拆出来。
-     */
-    suspend fun publishAdded(bookShelf: BookShelfEntity) {
-        _bookShelfEvents.emit(BookShelfEvent.Added(bookShelf))
     }
 
     private companion object {
@@ -1090,7 +998,7 @@ internal fun isTocCheckDue(
  * 异常消息带着内部 URL，从不上屏（同 [com.ebook.source.analyze.BookSourceNotFoundException]）。
  *
  * 为什么必须挡（不挡就是丢数据，不是「白换一次源」）：
- * - [writeEntry] 走 [com.ebook.db.dao.BookShelfDao.insert]，那是 `OnConflictStrategy.REPLACE`
+ * - [ShelfEntryStore] 的写入走 [com.ebook.db.dao.BookShelfDao.insert]，那是 `OnConflictStrategy.REPLACE`
  *   且主键就是自然键 `note_url` → 那本已有书的**阅读进度被整行换成旧条目映射过来的章序号**，
  *   两本书并成一册；
  * - `chapter_list` 的主键是 `content_ref`（章节 URL），两个站的同一章主键不同，谁也不覆盖谁

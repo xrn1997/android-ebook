@@ -332,7 +332,7 @@ class BookRepositorySwitchSourceTest {
     @Test
     fun `目标源取不到解析器时失败且书架未被改动`(): Unit = runTest {
         val old = seedShelf(chapterCount = 5, durChapter = 2)
-        // 库里没有 SOURCE_B 那一行（用户删了那个源）→ getParserFor 返回 null
+        // 库里没有 SOURCE_B 那一行（用户删了那个源）→ resolveSource 返回 Missing（适配器压回 null）
         manager.putParser(SOURCE_A, parserOf(SOURCE_A, OLD_URL, chapterCount = 5))
 
         val result = repository.switchSource(old, candidate())
@@ -412,7 +412,7 @@ class BookRepositorySwitchSourceTest {
     /**
      * 目标那条 `noteUrl` 是**书架上另一本已有的书**（不是当前这条）。
      *
-     * 不挡的后果不是「白换一次源」而是丢数据：`writeEntry` 走的 [com.ebook.db.dao.BookShelfDao.insert]
+     * 不挡的后果不是「白换一次源」而是丢数据：`ShelfEntryStore` 写条目时走的 [com.ebook.db.dao.BookShelfDao.insert]
      * 是 `OnConflictStrategy.REPLACE`，主键就是自然键 `note_url`——B 那一行被整行换成 A 映射过来的进度
      * （B 自己的阅读进度就此消失），两本书并成一册；而 `chapter_list` 的主键是 `content_ref`（章节 URL），
      * A 的新目录行与 B 原有的目录行主键不冲突，谁也不覆盖谁，于是这一册里混着两个站的目录。

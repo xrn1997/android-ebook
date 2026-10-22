@@ -8,6 +8,7 @@ import com.ebook.common.analyze.local.BookFormat
 import com.ebook.common.analyze.local.ChapterReader
 import com.ebook.common.analyze.source.FakeBookSourceManager
 import com.ebook.common.analyze.source.RecordingBookParser
+import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
 import com.ebook.common.store.WriteTransactionRunner
@@ -226,7 +227,8 @@ class ChapterAppendProgressTest {
      */
     private suspend fun remoteToc(): List<ChapterListEntity> {
         val entry = repository.getAllBooksWithDetails().single()
-        val parser = manager.getParserFor(SOURCE) ?: error("假件里没有这条源")
+        val parser = (manager.resolveSource(SOURCE) as? SourceBinding.Found)?.parser
+            ?: error("假件里没有这条源")
         return parser.getChapterList(entry).data.chapterList
     }
 

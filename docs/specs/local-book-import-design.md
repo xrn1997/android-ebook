@@ -30,11 +30,11 @@
 
 用户反馈"本地书籍入库时间超长"。排查结论：瓶颈不在解析，在存储模型与写入方式。
 
-当前本地导入（`module_book/.../util/BookImportManager.kt`）对一本 3000 章的 TXT：
+改造前的本地导入（`BookImportManager`，已删除）对一本 3000 章的 TXT：
 
 - 同一文件完整读 3 遍：全文件 MD5（`:52-59`）、编码探测（`:108-117`）、逐行切章（`:128-186`）
 - 每章 2 次独立 DAO 调用且**全程无事务包裹**（`:206` 逐条 `bookContentDao.insert`、`:221` `chapterListDao.insertAll(listOf(单条))`）→ 约 6000 次 SQLite 事务提交
-- 导入完成后 `BookImportViewModel.kt:91` 又调 `BookRepository.addToShelf`（`lib_book_common/.../BookRepository.kt:104-120`），把已全部入库的章节**再 REPLACE 一遍**
+- 导入完成后 `BookImportViewModel` 又调 `BookRepository.addToShelf`，把已全部入库的章节**再 REPLACE 一遍**
 - 每个非空行现场编译一次 `"\\s*".toRegex()`（`:160-161`）
 
 目标不是"把这套写得更快一点"，而是换掉模型：**导入耗时与文件大小解耦，同时让多格式、导出、跨源评论这三件未来事不必再改一次地基。**
@@ -154,7 +154,7 @@ chapter_list - has_cache
 - MD5 在拷贝那一次读里顺便算完，省掉当前那次独立的全文件读。
 - 批量写用 `RoomDatabase.withWriteTransaction`（`androidx.room3` 3.0.0 提供，room3-runtime sources `RoomDatabase.kt:662`）。全仓业务代码目前零使用事务，这是第一处。
 - 重复检测两级：**精确 = 内容 md5**（同一份文件重导由 `LocalBookImporter` 短路，不产生任何写入）；**模糊 = `comment_key` 命中书架某条目的当前主键** → 在导入时点弹四动作处置框（继续添加 / 智能合并 / 覆盖 / 跳过），不再做事后 SnackBar。处置一律**先导入新条目、后处置旧条目**（反过来时导入抛异常就是两头空），覆盖删旧之前先 `absorbGroupKeys` 吸收旧条目的关联键。语义与取舍见 §9.4 与 ADR-0023。
-- **性能数字目前只有量级推演，没有实测**（6000 次事务 → 1 次事务 + 顺序文件写）。M1a 的第一个任务是在真机上量出改前/改后基线，回填本节。夹具规格：2000 章 / 约 6MB UTF-8 TXT，走真实导入链路。**改前**夹具随旧链路（`BookImportManager`）留在 develop_book 分支（提交 2f248fa）；本分支的 `module_book/src/androidTest/java/com/ebook/book/ImportBaselineTest.kt` 是**改后**侧（新流水线，同规格夹具、同名测试）。两者均**待人工执行** `./gradlew :module_book:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.ebook.book.ImportBaselineTest`（改前数字须切到 develop_book 跑）并从输出的 `BASELINE elapsed=… chapters=… fileKb=… memDeltaKb=…` 行回填。回填时注意口径：旧夹具只包住 `importBook`、量不到调用方那遍「导入后再 `addToShelf` 全量重写」的热点；新链路的级联写入（含 `book_group`）已在导入器事务内完成、不存在第二个热点，本节在此之前不填任何具体数字。
+- **性能数字目前只有量级推演，没有实测**（6000 次事务 → 1 次事务 + 顺序文件写）。M1a 的第一个任务是在真机上量出改前/改后基线，回填本节。夹具规格：2000 章 / 约 6MB UTF-8 TXT，走真实导入链路。**改前**夹具随旧链路（`BookImportManager`）留在 develop_book 分支（提交 2f248fa）；本分支的 `module_book/src/androidTest/java/com/ebook/book/ImportBaselineTest.kt` 是**改后**侧（新流水线，同规格夹具、同名测试）。两者均**待人工执行** `./gradlew :module_book:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.ebook.book.ImportBaselineTest`（改前数字须切到 develop_book 跑）并从输出的 `BASELINE elapsed=… chapters=… fileKb=… memDeltaKb=…` 行回填。回填时注意口径：旧夹具只包住 `importBook`、量不到调用方那遍「导入后再 `addToShelf` 全量重写」的热点；新链路的级联写入（含 `book_group`）已由 `BookRepository.addToShelf` 内部的 `ShelfEntryStore` 收在一笔事务里、不存在第二个热点，本节在此之前不填任何具体数字。
 - `ReadBookActivity.openBookFromOther`（外部打开，`ACTION_VIEW`：`text/plain` 与 ADR-0017 的
   `application/epub+zip`）走同一条流水线，不再单独写一份。Uri 需先拷进 cacheDir 暂存
   （ContentResolver 流不可重放），**暂存文件必须保住源文件真名**：格式路由按扩展名（§7）、

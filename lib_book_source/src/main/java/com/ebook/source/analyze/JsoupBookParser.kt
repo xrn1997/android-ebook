@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import java.net.URLEncoder
 
 /**
@@ -38,37 +39,32 @@ class JsoupBookParser(
 
     // region 搜索书籍
     override suspend fun searchBook(content: String, page: Int): List<SearchBookEntity> = withContext(Dispatchers.IO) {
-        try {
-            val keyword = try {
-                URLEncoder.encode(content, rule.charset)
-            } catch (e: Exception) {
-                Logger.w(TAG, "URLEncoder.encode failed for charset=${rule.charset}, falling back to raw content", e)
-                content
-            }
-
-            // 计算页码：URL 模板交 ListPageUrl 渲染（首页不带页码段），
-            // 请求体是表单参数、首页仍要带真实页码，故此处单独换算
-            val pageParam = rule.searchPage
-            val url = ListPageUrl.build(
-                rule.searchUrl.replace("{{keyword}}", keyword),
-                page,
-                pageParam,
-            )
-
-            val method = rule.searchMethod.ifEmpty { rule.method }
-            val body = rule.searchBody
-                .replace("{{keyword}}", keyword)
-                .replace("{{page}}", ListPageUrl.actualPage(page, pageParam).toString())
-
-            Logger.d(TAG, "searchBook: url=$url, method=$method")
-            val html = network.getPage(url, method, body)
-            val results = parseSearchBook(html)
-            Logger.d(TAG, "searchBook: parsed ${results.size} results")
-            results
+        val keyword = try {
+            URLEncoder.encode(content, rule.charset)
         } catch (e: Exception) {
-            Logger.e(TAG, "searchBook: ", e)
-            emptyList()
+            Logger.w(TAG, "URLEncoder.encode failed for charset=${rule.charset}, falling back to raw content", e)
+            content
         }
+
+        // 计算页码：URL 模板交 ListPageUrl 渲染（首页不带页码段），
+        // 请求体是表单参数、首页仍要带真实页码，故此处单独换算
+        val pageParam = rule.searchPage
+        val url = ListPageUrl.build(
+            rule.searchUrl.replace("{{keyword}}", keyword),
+            page,
+            pageParam,
+        )
+
+        val method = rule.searchMethod.ifEmpty { rule.method }
+        val body = rule.searchBody
+            .replace("{{keyword}}", keyword)
+            .replace("{{page}}", ListPageUrl.actualPage(page, pageParam).toString())
+
+        Logger.d(TAG, "searchBook: url=$url, method=$method")
+        val html = network.getPage(url, method, body)
+        val results = parseSearchBook(html)
+        Logger.d(TAG, "searchBook: parsed ${results.size} results")
+        results
     }
 
     private fun parseSearchBook(html: String): List<SearchBookEntity> {
@@ -396,55 +392,55 @@ internal object TocPager {
         tag: String,
         fetch: suspend (String) -> String,
     ): MutableList<ChapterListEntity> {
-        val chapters = mutableListOf<ChapterListEntity>()
-        // contentRef 去重集：跨页防重复（软 404 的重复首页内容靠它判零新增），同页重复条目顺带去重
-        val seenRefs = mutableSetOf<String>()
-        // 已访问页集合：拦「下一页」链接回环
-        val visitedUrls = mutableSetOf(entryUrl)
-        var currentUrl = entryUrl
         // 站点侧页序号：索引页是第 1 页，模板模式从 2 起推算
         var pageNo = 1
-
-        while (true) {
-            val sizeBefore = chapters.size
-            val doc = Jsoup.parse(fetch(currentUrl))
-            for (el in JsoupHelper.selectElements(doc, tocRule.list)) {
-                if (chapters.size >= MAX_TOC_CHAPTERS) break
-                val contentRef = JsoupHelper.parseUrl(sourceRoot, JsoupHelper.selectAttr(el, tocRule.url))
-                if (contentRef.isEmpty() || !seenRefs.add(contentRef)) continue
-                chapters.add(
-                    ChapterListEntity(
-                        noteUrl = noteUrl,
-                        durChapterIndex = chapters.size,
-                        contentRef = contentRef,
-                        durChapterName = JsoupHelper.selectText(el, tocRule.name),
-                        tag = tag,
-                    )
-                )
-            }
-
-            if (chapters.size >= MAX_TOC_CHAPTERS) {
-                Logger.w(TAG, "章节索引触及防御上限 $MAX_TOC_CHAPTERS 章，按截断处理（请检查书源的分页规则是否配错）: $entryUrl")
-                break
-            }
-
-            // 零新增即到底：软 404 页与末页同判，两种模式共用这一终止条件
-            val nextUrl: String? = when {
-                chapters.size == sizeBefore -> null
-                // 选择器模式优先：链接是站点实况。无匹配（空串）或回环（已访问）都终止；
-                // 相对链接按浏览器语义落在当前页目录（与模板推算共用同一落位规则）
-                tocRule.nextPage.isNotEmpty() -> {
-                    val candidate = TocPageUrl.join(currentUrl, JsoupHelper.selectAttr(doc, tocRule.nextPage), sourceRoot)
-                    candidate.takeIf { it.isNotEmpty() && visitedUrls.add(it) }
+        val result = PageWalker<ChapterListEntity, Document>(
+            maxItems = MAX_TOC_CHAPTERS,
+            stopOnNoNewItems = true,
+            keyOf = { it.contentRef },
+        ).walk(
+            entryUrl = entryUrl,
+            fetch = { url -> WalkPage(url, Jsoup.parse(fetch(url))) },
+            items = { page ->
+                JsoupHelper.selectElements(page.payload, tocRule.list).asSequence().mapNotNull { el ->
+                    val contentRef = JsoupHelper.parseUrl(sourceRoot, JsoupHelper.selectAttr(el, tocRule.url))
+                    if (contentRef.isEmpty()) {
+                        null
+                    } else {
+                        ChapterListEntity(
+                            noteUrl = noteUrl,
+                            // 全局序号在整条链走完后统一回填，不能按页内下标写
+                            durChapterIndex = 0,
+                            contentRef = contentRef,
+                            durChapterName = JsoupHelper.selectText(el, tocRule.name),
+                            tag = tag,
+                        )
+                    }
                 }
-                // 模板模式：本页有新增才推下一页，页码自 2 起
-                tocRule.pageUrl.isNotEmpty() ->
-                    TocPageUrl.resolve(entryUrl, tocRule.pageUrl, ++pageNo, pageParam, sourceRoot)
-                else -> null
-            }
-            currentUrl = nextUrl ?: break
+            },
+            next = { page ->
+                when {
+                    // 选择器模式优先：链接是站点实况。无匹配（空串）即终止；
+                    // 相对链接按浏览器语义落在当前页目录（与模板推算共用同一落位规则）
+                    tocRule.nextPage.isNotEmpty() ->
+                        TocPageUrl.join(
+                            page.url,
+                            JsoupHelper.selectAttr(page.payload, tocRule.nextPage),
+                            sourceRoot,
+                        ).takeIf { it.isNotEmpty() }
+                    // 模板模式：本页有新增才推下一页，页码自 2 起
+                    tocRule.pageUrl.isNotEmpty() ->
+                        TocPageUrl.resolve(entryUrl, tocRule.pageUrl, ++pageNo, pageParam, sourceRoot)
+                    else -> null
+                }
+            },
+        )
+        // 恰好收满且本页再无条目时 walker 不置 truncated；上限告警仍按收满即报（与原循环一致）
+        if (result.truncated || result.items.size >= MAX_TOC_CHAPTERS) {
+            Logger.w(TAG, "章节索引触及防御上限 $MAX_TOC_CHAPTERS 章，按截断处理（请检查书源的分页规则是否配错）: $entryUrl")
         }
-        return chapters
+        result.items.forEachIndexed { index, chapter -> chapter.durChapterIndex = index }
+        return result.items.toMutableList()
     }
 }
 

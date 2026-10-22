@@ -8,6 +8,7 @@ import com.ebook.common.analyze.local.BookFormat
 import com.ebook.common.analyze.local.ChapterReader
 import com.ebook.common.analyze.source.BookSourceItem
 import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.store.BookStore
@@ -124,7 +125,7 @@ class BookDetailViewModelSourceTest {
             displayed.size,
             displayed.map { it.contentRef }.distinct().size,
         )
-        assertEquals("改用库里那份不该把进度抹回默认值", 1, state.bookShelf!!.durChapter)
+        assertEquals("改用库里那份不该把进度抹回默认值", 1, state.bookShelf.durChapter)
         assertEquals("为落库不该再翻一遍目录页", 1, parserB.chapterListCalls)
     }
 
@@ -337,7 +338,8 @@ class BookDetailViewModelSourceTest {
     /**
      * 按 URL 给 parser 的最小假件，只实现详情页用得到的成员。
      *
-     * `getParserFor` **照抄真实现的两条短路**（空白与 `loc_book` 不查库直接 null），
+     * `resolveSource` **照抄真实现的三档短路**（`loc_book` → Local、空白/库中无行 → Missing）；
+     * `Broken` 在调用点与 `Missing` 同路，由 `BookSourceManagerImplTest` 锁真实现。
      * 否则「本地书不会被报成书源失效」这类断言就成了假命题。
      */
     private class FakeSourceManager(
@@ -346,10 +348,12 @@ class BookDetailViewModelSourceTest {
         private val map = LinkedHashMap(parsers)
         val parserForCalls = mutableListOf<String>()
 
-        override suspend fun getParserFor(sourceUrl: String): BookParser? {
+        override suspend fun resolveSource(sourceUrl: String): SourceBinding {
             parserForCalls += sourceUrl
-            if (sourceUrl.isBlank() || sourceUrl == BookShelfEntity.LOCAL_TAG) return null
-            return map[sourceUrl]
+            if (sourceUrl == BookShelfEntity.LOCAL_TAG) return SourceBinding.Local
+            if (sourceUrl.isBlank()) return SourceBinding.Missing(sourceUrl)
+            return map[sourceUrl]?.let { SourceBinding.Found(it) }
+                ?: SourceBinding.Missing(sourceUrl)
         }
 
         /** 本假件只服务详情页取源；聚合搜索的编排由 Manager 与 SearchViewModel 的用例锁 */

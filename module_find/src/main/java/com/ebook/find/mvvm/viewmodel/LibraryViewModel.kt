@@ -115,7 +115,7 @@ class LibraryViewModel @Inject constructor(
      * 2e 起脚本行**进**候选：脚本书源已是合法的默认源候选（`setDefaultSource` 对它生效），
      * 「点了没反应」的成因消失。候选条目的 `rule` 对脚本行是按实体列合成的展示空壳，
      * 本页（切换器）只读它的 name/url/enabled 三件真值——**别把空壳规则当可用规则用**：
-     * 需要规则内容的场合一律经 `getParserFor(url)` 拿解析器。
+     * 需要解析器的场合一律经 `parserOrThrow(url)`（内部走 `resolveSource` 的四档）。
      *
      * [SharingStarted.Eagerly] 而非 `WhileSubscribed`：书城是主 Tab，VM 与宿主同生命周期，
      * 且这条流的值要在页面首次组合前就是热的（切换器首帧就得知道有没有得切）。

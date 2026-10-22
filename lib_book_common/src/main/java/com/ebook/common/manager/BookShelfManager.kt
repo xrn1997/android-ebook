@@ -1,6 +1,7 @@
 package com.ebook.common.manager
 
 import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.parserOrThrow
 import com.ebook.common.repository.BookRepository
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.SearchBookEntity
@@ -57,8 +58,7 @@ class BookShelfManager @Inject constructor(
                 tag = searchBook.tag
             }
             // 两次解析共用同一个 parser 实例：中途用户删了源也不至于一半新一半旧
-            val parser = bookSourceManager.getParserFor(searchBook.tag)
-                ?: throw BookSourceNotFoundException(searchBook.tag)
+            val parser = bookSourceManager.parserOrThrow(searchBook.tag)
             val bookInfo = parser.getBookInfo(shelf)
             val chapterResult = parser.getChapterList(bookInfo)
             val bookShelf = chapterResult.data

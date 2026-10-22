@@ -3,8 +3,10 @@ package com.ebook.common.analyze.local
 import com.ebook.common.domain.FileNameMetadata
 import com.ebook.common.store.BookStore
 import com.ebook.common.text.TextNormalizer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.io.File
@@ -32,41 +34,41 @@ class EpubSourceReader @Inject constructor(
         return LocalBookMeta(title = resolved.first, author = resolved.second, coverFile = null)
     }
 
-    override fun buildChapters(source: BookSourceFile, sink: ChapterSink): Flow<ChapterEntry> = flow {
-        val zip = ZipFile(source.file)
-        try {
-            val opfPath = parseContainerXml(zip)
-            val opfBytes = zip.readEntryBytes(opfPath)
-                ?: throw IllegalStateException("EPUB 缺少 OPF 文件：$opfPath")
-            val opfDoc = Jsoup.parse(opfBytes.toString(Charsets.UTF_8))
-            val (manifest, spineIds) = parseManifestAndSpine(opfDoc, opfPath)
+    override fun buildChapters(source: BookSourceFile, sink: ChapterSink): Flow<ChapterEntry> =
+        flow {
+            val zip = ZipFile(source.file)
+            zip.use { zip ->
+                val opfPath = parseContainerXml(zip)
+                val opfBytes = zip.readEntryBytes(opfPath)
+                    ?: throw IllegalStateException("EPUB 缺少 OPF 文件：$opfPath")
+                val opfDoc = Jsoup.parse(opfBytes.toString(Charsets.UTF_8))
+                val (manifest, spineIds) = parseManifestAndSpine(opfDoc, opfPath)
 
-            var index = 0
-            for (itemId in spineIds) {
-                val item = manifest[itemId] ?: continue
-                if (!isHtmlMediaType(item.mediaType)) continue
+                var index = 0
+                for (itemId in spineIds) {
+                    val item = manifest[itemId] ?: continue
+                    if (!isHtmlMediaType(item.mediaType)) continue
 
-                val xhtmlBytes = zip.readEntryBytes(item.resolvedPath) ?: continue
-                val xhtml = xhtmlBytes.toString(Charsets.UTF_8)
-                val doc = Jsoup.parse(xhtml)
+                    val xhtmlBytes = zip.readEntryBytes(item.resolvedPath) ?: continue
+                    val xhtml = xhtmlBytes.toString(Charsets.UTF_8)
+                    val doc = Jsoup.parse(xhtml)
 
-                val title = extractChapterTitle(doc, item.id)
-                val paragraphs = extractParagraphs(doc)
-                if (!hasBody(paragraphs)) continue
+                    val title = extractChapterTitle(doc, item.id)
+                    val paragraphs = extractParagraphs(doc)
+                    if (!hasBody(paragraphs)) continue
 
-                emit(
-                    ChapterEntry(
-                        index = index,
-                        title = title,
-                        contentRef = sink.write(index, paragraphs),
-                    ),
-                )
-                index++
+                    emit(
+                        ChapterEntry(
+                            index = index,
+                            title = title,
+                            contentRef = sink.write(index, paragraphs),
+                        ),
+                    )
+                    index++
+                }
             }
-        } finally {
-            zip.close()
         }
-    }
+            .flowOn(Dispatchers.IO)
 
     override suspend fun readChapter(entry: ChapterEntry, location: BookLocation): ChapterContent {
         val paragraphs = store.readParagraphs(location, entry.index)
@@ -81,7 +83,7 @@ class EpubSourceReader @Inject constructor(
      */
     override fun extractCover(source: BookSourceFile, targetDir: File) {
         val zip = ZipFile(source.file)
-        try {
+        zip.use { zip ->
             val opfPath = parseContainerXml(zip)
             val opfBytes = zip.readEntryBytes(opfPath) ?: return
             val opfDoc = Jsoup.parse(opfBytes.toString(Charsets.UTF_8))
@@ -96,8 +98,6 @@ class EpubSourceReader @Inject constructor(
 
             val ext = item.resolvedPath.substringAfterLast('.', "jpg")
             store.writeCover(targetDir, ext, bytes)
-        } finally {
-            zip.close()
         }
     }
 
@@ -124,7 +124,7 @@ class EpubSourceReader @Inject constructor(
      */
     private fun parseOpfMetadata(file: File): Pair<String?, String?> {
         val zip = ZipFile(file)
-        try {
+        zip.use { zip ->
             val opfPath = parseContainerXml(zip)
             val opfBytes = zip.readEntryBytes(opfPath)
                 ?: return null to null
@@ -132,8 +132,6 @@ class EpubSourceReader @Inject constructor(
             val title = opfDoc.selectFirst("metadata title")?.text()?.ifBlank { null }
             val author = opfDoc.selectFirst("metadata creator")?.text()?.ifBlank { null }
             return title to author
-        } finally {
-            zip.close()
         }
     }
 

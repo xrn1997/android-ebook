@@ -40,6 +40,23 @@ class ScriptContentPagerTest {
     }
 
     @Test
+    fun `中间空白页不贡献文本但仍继续翻页`() = runTest {
+        // 正文没有「零新增即止」：空白页仍要跟进 nextContentUrl，只是不进整章串；
+        // 若把空白页的空白拼进去，replaceRegex 的跨页输入就会多出一段空行。
+        val pager = pagerOf(
+            """{"content":"id.content@textNodes","nextContentUrl":"class.next@href"}""",
+            mapOf(
+                "https://a.com/c1.html" to
+                    """<div id="content">页一</div><a class="next" href="c1_2.html">下一页</a>""",
+                "https://a.com/c1_2.html" to
+                    """<div id="content">   </div><a class="next" href="c1_3.html">下一页</a>""",
+                "https://a.com/c1_3.html" to """<div id="content">页三</div>""",
+            ),
+        )
+        assertEquals("页一\n页三", pager.collect("https://a.com/c1.html"))
+    }
+
+    @Test
     fun `replaceRegex 以净化形态跑在拼接后的整章串上`() = runTest {
         val pager = pagerOf(
             """{"content":"id.content@textNodes","replaceRegex":"##本章未完.*继续阅读##"}""",
@@ -112,8 +129,8 @@ class ScriptContentPagerTest {
     @Test
     fun `触顶防御上限按截断处理且不再发请求`() = runTest {
         // 52 页经数组形态 nextContentUrl 驱动（不依赖字符串规则求值）：触顶 50 后停止抓取、
-        // 不再发请求——与目录链触顶用例（ScriptTocPagerTest）同构，判型与原生
-        // `JsoupSourceReader` 的 `visited.size <= MAX_CONTENT_PAGES` 同一条
+        // 不再发请求——与目录链触顶用例（ScriptTocPagerTest）同构，判型与原生正文链的
+        // `PageWalker(maxPages = MAX_CONTENT_PAGES)` 同一条
         val urls = (1..52).map { "https://a.com/c1_$it.html" }
         val pages = urls.mapIndexed { i, url -> url to """<div id="content">页${i + 1}</div>""" }.toMap()
         var fetchCalls = 0

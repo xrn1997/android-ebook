@@ -250,10 +250,45 @@ class ReaderScrollControllerTest {
             controller.jump?.itemIndex,
         )
         assertEquals(
-            "落点是块数落定后才算出来的，必须补报一次，否则冷启动重进回到章首",
-            listOf(1 to 0, 1 to 3),
+            "块数未知时先报哨兵，落定后补报真实末块；先报 0 会把进度写错成章首",
+            listOf(1 to DBCode.BookContentView.DUR_PAGE_INDEX_END, 1 to 3),
             progress,
         )
+    }
+
+    @Test
+    fun `块数未知时先报目标页码而不是 0`() = runTest {
+        val book = FakeScrollBook(listOf(3))
+        book.gates[ReaderPageKey(0, 0)] = CompletableDeferred()
+        val progress = mutableListOf<Pair<Int, Int>>()
+        val controller = newScroll(book, onProgress = { c, p -> progress += c to p })
+
+        controller.setInitData(0, 2)
+        advanceUntilIdle()
+
+        assertEquals("解析不出块号时不能把 0 当落点写出去", listOf(0 to 2), progress)
+
+        book.gates.getValue(ReaderPageKey(0, 0)).complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("落定后仍是同一块", 2, controller.anchorBlock)
+        assertEquals("落定前的首报必须是目标页码", 0 to 2, progress.first())
+    }
+
+    @Test
+    fun `预热加载完成不报进度`() = runTest {
+        val book = FakeScrollBook(listOf(3, 4))
+        book.gates[ReaderPageKey(0, 0)] = CompletableDeferred()
+        val progress = mutableListOf<Pair<Int, Int>>()
+        val controller = newScroll(book, onProgress = { c, p -> progress += c to p })
+
+        controller.setInitData(0, 2, reportProgress = false)
+        advanceUntilIdle()
+        book.gates.getValue(ReaderPageKey(0, 0)).complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("预热侧没有显示，异步落定也不得回写进度", emptyList<Pair<Int, Int>>(), progress)
+        assertEquals("但落点必须预热到位", 2, controller.anchorBlock)
     }
 
     @Test

@@ -97,10 +97,10 @@ class BookSourceManagerImpl internal constructor(
      * 即可锁「并发上限、单源失败不外溢、hasMore 判据」这些**编排**行为；
      * 「按规则怎么把 HTML 解成实体」属 [JsoupBookParser] 自己的面，不在本类测试范围内。
      *
-     * 全类的 parser **只经本工厂诞生**（当前唯一调用点是 [getParserFor] 的 LRU 未命中分支），
+     * 全类的 parser **只经本工厂诞生**（当前唯一调用点是 [resolveSource] 的 LRU 未命中分支），
      * 这样注入点只有一个，不会出现「测试换了工厂、某条路径仍偷偷 new 真 parser」的假绿。
      * 参数从 [BookSourceRule] 换成 [SourceDefinition] 正是为了守住这条：格式路由一旦挪到工厂之外
-     * （比如在 [getParserFor] 里直接给脚本行 new 一个后端），注入假工厂的用例就再也锁不住那条路径
+     * （比如在 [resolveSource] 里直接给脚本行 new 一个后端），注入假工厂的用例就再也锁不住那条路径
      * 真实会构造什么了。
      *
      * 注入方注意：只服务原生规则的假工厂应当在 Script 分支**直接抛断**，不要图省事返回 null 或复用
@@ -111,7 +111,7 @@ class BookSourceManagerImpl internal constructor(
             is SourceDefinition.Native -> JsoupBookParser(definition.rule, okHttpClient)
             // 真解析器只收原始 JSON + 同一个纯净客户端（不带 token）+ 进程级沙箱装配面（可空，
             // null 时 JS 段照 2d 报「待执行」）；规则装载是**惰性**的，
-            // 所以构造永不失败——getParserFor 对脚本行「不 null、不在取 parser 时抛」的契约由它承担。
+            // 所以构造永不失败——resolveSource 对脚本行「不返回 Missing/Broken、不在取 parser 时抛」的契约由它承担。
             // 实例按 URL 各建一份进 LRU（不像旧的待实现桩是单例），因为它的可变状态就是那份规则集。
             is SourceDefinition.Script -> ScriptBookParser(definition.rawJson, okHttpClient, jsHost)
         }
@@ -189,7 +189,7 @@ class BookSourceManagerImpl internal constructor(
             size > PARSER_CACHE_SIZE
     }
 
-    /** 串行化 [parserCache] 读写：并发 getParserFor 同一 URL 时不致各建一个实例 */
+    /** 串行化 [parserCache] 读写：并发 resolveSource 同一 URL 时不致各建一个实例 */
     private val parserCacheMutex = Mutex()
 
     // region 默认源
@@ -346,10 +346,9 @@ class BookSourceManagerImpl internal constructor(
      *   但正常链路不该用 WARN 吵日志——WARN 留给「解不动」那一类真正的失败（各解析器自己的日志）。
      * - [SourceFormat.NATIVE]：既有解码路径 [toRule]，解不出即 null。
      *
-     * **null 的语义没有被格式拓宽**：空白或未知的 `format` 都被 [SourceFormat.fromRaw] 归到
-     * [SourceFormat.NATIVE]（走既有校验，报错对用户更有指向性），因此返回 null 仍然只有
-     * 「原生行的 `rule_json` 解不出来」这一种成因——[getParserFor] 的「null 就等于没有这行/这行坏了」
-     * 不会被格式判不出来给污染。
+     * **失败语义没有被格式拓宽**：空白或未知的 `format` 都被 [SourceFormat.fromRaw] 归到
+     * [SourceFormat.NATIVE]（走既有校验，报错对用户更有指向性），因此 [SourceBinding.Broken]
+     * 仍然只有「原生行的 `rule_json` 解不出来」这一种成因；[SourceBinding.Missing] 只表示「没有这行」。
      */
     private fun toDefinition(entity: BookSourceEntity): SourceDefinition? =
         when (SourceFormat.fromRaw(entity.format)) {
@@ -409,36 +408,38 @@ class BookSourceManagerImpl internal constructor(
      * 五个要点：
      * - **查库走 [BookSourceDao.getByUrl] 而不是 [getSourceByUrl]**：后者是规则类型化读面，
      *   已按 `format` 把脚本书源挡下（见 [toRule]），照它读就会让「脚本行」在求值链路上凭空变成
-     *   「没有这行」——而 null 在这里只该表示「源不存在/坏行」，混进「这条源是脚本出身」就等于
-     *   把可正常阅读的源说成已失效。
+     *   「没有这行」——而 `getByUrl` 的 null 只该表示「库里没有这行」，混进「这条源是脚本出身」
+     *   就等于把可正常阅读的源说成已失效。
      * - **按 [toDefinition] 分格式路由，两条格式共用同一套缓存结构**：脚本行与原生行一样进 [parserCache]
      *   （命中哪个后端只由 `format` 列决定，不由缓存决定；实例按 URL 各建一份，因为脚本解析器的
      *   可变状态就是它那份规则集），
      *   格式翻转后的失效仍统一走 [evictParser]——缓存只按 URL 存，若写侧漏了失效，缓存就成了
      *   「第二个格式事实源」，现象是同 URL 换了格式却还拿到旧后端。
-     * - **本地书短路**：`tag` 为空白或 `loc_book` 时直接返回 null，不查库——本地书根本不该走到网络 parser 上；
+     * - **本地书短路**：`tag` 为 `loc_book` 时返回 `Local`、空白返回 `Missing`，都不查库——本地书根本不该走到网络 parser 上；
      * - **整段上锁**：「查缓存 → 查库 → 放缓存」必须整体在 [parserCacheMutex] 内，
      *   否则并发下各建一个实例、后写的把先写的覆盖掉（构建本身不便宜，`BookSourceNetwork` 会建 Retrofit service）；
      * - **默认源没有特殊路径**：它与其它源共用一个 LRU（配置成默认源不额外复制 parser，也就没有
      *   「改规则后缓存里那份仍是旧的」这种只在默认源上出现的坑）；改掉默认源那一行的写入口
      *   照常调 [evictParser] 失效缓存即可。
      *
-     * 返回 null 的三种成因：本地书 tag / 空白、库里没这行、行在但原生格式的 `rule_json` 解不出来
-     * （[toRule] 跳过脏行）。逐条处置由调用方定，见接口 KDoc。
-     * **脚本书源不在这三种里**：它拿到的是真解析器 [ScriptBookParser]，且**取 parser 永不为脚本行抛**
-     * （规则装载是惰性的）。坏 JSON 的脚本行要等到**首次求值**才抛类型化装载失败，
-     * 消息含「脚本书源 JSON 无法解析」——null 仍然只说「没有这行/这行坏了」，
-     * 「源在库里、这条规则解不动」必须是另一种可区分的结局（§12 的失败如实报）。
+     * 结果分四档（见 [SourceBinding]）：本地书短路为 [SourceBinding.Local]；空白/库中无行为
+     * [SourceBinding.Missing]；原生 `rule_json` 解不出来为 [SourceBinding.Broken]（真解码失败已由
+     * [toItem] 记 ERROR，本档不再复制一个 cause）；其余为 [SourceBinding.Found]。
+     * **脚本书源不在这四档里另开一档**：它拿到的是真解析器 [ScriptBookParser]，且**取 parser 永不为脚本行抛**
+     * （规则装载是惰性的）。坏 JSON 的脚本行要等到**首次求值**才抛公开的 `ScriptRuleException`
+     * 子类——「源在库里、这条规则解不动」与取不到源必须可区分（§12 的失败如实报）。
      */
-    override suspend fun getParserFor(sourceUrl: String): BookParser? {
-        if (sourceUrl.isBlank() || sourceUrl == BookShelfEntity.LOCAL_TAG) return null
+    override suspend fun resolveSource(sourceUrl: String): SourceBinding {
+        if (sourceUrl == BookShelfEntity.LOCAL_TAG) return SourceBinding.Local
+        if (sourceUrl.isBlank()) return SourceBinding.Missing(sourceUrl)
         return parserCacheMutex.withLock {
-            parserCache[sourceUrl]
-                ?: dao.getByUrl(sourceUrl)?.let { entity ->
-                    toDefinition(entity)?.let { definition ->
-                        parserFactory(definition).also { parserCache[sourceUrl] = it }
-                    }
-                }
+            parserCache[sourceUrl]?.let { return@withLock SourceBinding.Found(it) }
+            val entity = dao.getByUrl(sourceUrl) ?: return@withLock SourceBinding.Missing(sourceUrl)
+            val definition = toDefinition(entity)
+                ?: return@withLock SourceBinding.Broken(sourceUrl)
+            val parser = parserFactory(definition)
+            parserCache[sourceUrl] = parser
+            SourceBinding.Found(parser)
         }
     }
 
@@ -450,7 +451,7 @@ class BookSourceManagerImpl internal constructor(
      * - **不加 [flowOn]**：解析器内部（`JsoupBookParser.searchBook`）自己就 `withContext(Dispatchers.IO)`，
      *   Room 的挂起查询也由 Room 自己的执行器承接，本流只剩「查清单 + 发事件」这点轻活；
      *   留在收集者的调度器上，测试才能用虚拟时间确定性地驱动并发编排。
-     * - [getParserFor] 返回 null 时**发 Failed 而不是让整条流少一格**：清单来自 enabled 行，
+     * - [parserOrThrow] 取不到 parser 时**发 Failed 而不是让整条流少一格**：清单来自 enabled 行，
      *   理论上取不到 parser 只可能是那一行的 `rule_json` 解不出来（脏行被 [toRule] 跳过），
      *   这是「这条源坏了」而不是「聚合逻辑坏了」，处置范围必须限定在它自己身上。
      * - **候选集走 [BookSourceDao.getEnabled] + [toItem]，不走 [getEnabledSources]**：后者是
@@ -491,9 +492,12 @@ class BookSourceManagerImpl internal constructor(
     ): Flow<AggregateSearchEvent> = flow {
         emit(AggregateSearchEvent.SourceStarted(item.rule.url, item.rule.name))
         try {
-            val parser = getParserFor(item.rule.url)
-                // 清单里的源取不到 parser：按「这条源坏了」报出去，范围不外溢（理由见 searchAcross）
-                ?: throw IllegalStateException("书源清单里的源取不到解析器：${item.rule.name}(${item.rule.url})")
+            // 清单里的源取不到 parser：经 parserOrThrow 折成 BookSourceNotFoundException（ADR-0045
+            // 决策 2 禁止调用点各自重推四档），再由下面的 catch 按「这条源坏了」报出去、范围不外溢
+            val parser = parserOrThrow(
+                item.rule.url,
+                detail = "聚合搜索 source=${item.rule.name}",
+            )
             val books = parser.searchBook(keyword, page)
             emit(AggregateSearchEvent.SourceResult(item.rule.url, books))
             emit(AggregateSearchEvent.SourceFinished(item.rule.url, hasMore = books.isNotEmpty()))
@@ -664,8 +668,8 @@ class BookSourceManagerImpl internal constructor(
      *
      * [BookSourceDao.deleteByUrl] 返回 0 只有一种成因——这行本就不存在，故失败消息也只有一条。
      *
-     * **删完不碰书架**（刻意）：书架行的 `tag` 仍指向已删书源，按 `tag` 取 parser 会拿到 null，
-     * 由调用方抛 [com.ebook.source.analyze.BookSourceNotFoundException] 提示「书源已失效」。不在这里顺手清理书架，
+     * **删完不碰书架**（刻意）：书架行的 `tag` 仍指向已删书源，按 `tag` 取源会得到 `Missing`，
+     * 由 `parserOrThrow` 抛 [com.ebook.source.analyze.BookSourceNotFoundException] 提示「书源已失效」。不在这里顺手清理书架，
      * 是因为「删源」不该连带删掉用户藏书（重新导入同一书源即可恢复阅读），静默清书才是更大的坑。
      */
     override suspend fun removeSource(url: String): Result<Unit> {
@@ -718,7 +722,7 @@ class BookSourceManagerImpl internal constructor(
      * 但 [kotlinx.coroutines.CancellationException] 必须原样上抛（与 [searchOneSource] 同一写法）：
      * 判据里的 [resolveDefault] 是 suspend 调用，被它吞掉的取消会让方法在协程已取消后继续往下走。
      *
-     * 禁用态的源仍可被 [getParserFor] 取到 parser——那是「不切断归属」的语义。
+     * 禁用态的源仍可被 [resolveSource] 取到 parser——那是「不切断归属」的语义。
      */
     override suspend fun setEnabled(url: String, enabled: Boolean) {
         try {
@@ -800,7 +804,7 @@ class BookSourceManagerImpl internal constructor(
      * 书源规则，解析行为一点没变，而且没有任何报错。故凡是可能改变解析结果的写操作
      * （[addSource] / [removeSource] / [setEnabled] / [setDefaultSource]）成功后都失效对应条目。
      *
-     * **默认源没有单独的缓存位**：它与其它源共用 [parserCache]（见 [getParserFor]），
+     * **默认源没有单独的缓存位**：它与其它源共用 [parserCache]（见 [resolveSource]），
      * 所以这里清掉就等于默认源也清掉了，不存在「缓存清了、别处还留着一份旧规则」的缝隙——
      * 这份「只有一处缓存」的简单性正是拆掉内存快照换来的。
      *
@@ -810,7 +814,7 @@ class BookSourceManagerImpl internal constructor(
      * 现象是用户换成了原生源却仍拿到「该规则含可执行脚本段，需脚本沙箱执行器才能求值」的提示，
      * 或反过来。任何写 `format` 的入口都必须在写成功后调本方法。
      *
-     * 顺序上也无需担心「并发请求把旧实例回灌进缓存」：[getParserFor] 查 Room 与写缓存同在
+     * 顺序上也无需担心「并发请求把旧实例回灌进缓存」：[resolveSource] 查 Room 与写缓存同在
      * [parserCacheMutex] 之内，本方法拿的是同一把锁，因此任何一次「按旧规则建的实例」要么在本方法
      * 之前入缓存（随即被这里清掉）、要么在本方法之后入缓存（那时 Room 已是新规则）。
      */

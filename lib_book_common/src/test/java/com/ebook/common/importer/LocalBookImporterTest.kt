@@ -12,13 +12,11 @@ import com.ebook.common.analyze.local.TxtSourceReader
 import com.ebook.common.analyze.source.FakeBookSourceManager
 import com.ebook.common.domain.CommentKey
 import com.ebook.common.repository.BookRepository
-import com.ebook.common.repository.DirectTransactionRunner
 import com.ebook.common.repository.FakeDaos
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
 import com.ebook.common.store.WriteTransactionRunner
 import com.ebook.db.entity.BookShelfEntity
-import com.ebook.db.entity.LocBookShelfEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
@@ -71,8 +69,6 @@ class LocalBookImporterTest {
         bookShelfDao = daos.shelf,
         bookInfoDao = daos.info,
         chapterListDao = daos.chapter,
-        bookGroupDao = daos.group,
-        transactions = ImmediateTransactionRunner { txCount++ },
         bookRepository = BookRepository(
             daos.shelf, daos.info, daos.chapter, daos.group, daos.download,
             chapterReaders = mapOf(BookFormat.TXT to reader),
@@ -80,7 +76,8 @@ class LocalBookImporterTest {
             bookSourceManager = FakeBookSourceManager(),
             bookStore = store,
             contentCache = ChapterContentCache(),
-            transactions = DirectTransactionRunner,
+            // 导入的四表写入由 ShelfEntryStore 走仓库注入的 runner；计数点因此跟着仓库走
+            transactions = ImmediateTransactionRunner { txCount++ },
         ),
     )
 

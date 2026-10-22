@@ -36,7 +36,7 @@ enum class ThemeMode {
  * 默认值为 [ThemeMode.SYSTEM]，与 Compose 的 `isSystemInDarkTheme()` 默认语义一致，
  * 也与 [com.xrn1997.common.ui.theme.MyApplicationTheme] 的默认 `darkTheme = isSystemInDarkTheme()` 对齐。
  *
- * 单例：Hilt 在 [com.ebook.common.di.ThemeModule] 绑定到 [SingletonComponent]；
+ * 单例：Hilt 在 [com.ebook.common.di.ThemeModule] 绑定到 [dagger.hilt.components.SingletonComponent]；
  * [com.ebook.common.BookApplication] 通过 Hilt entry point 取出后调用 [installIntoCompanion]
  * 挂到 [Companion.instance]，主题装配 lambda 在 Compose 重组时经此读取（lambda 在 Composable
  * 作用域外调用，无法走 Hilt 注入）。

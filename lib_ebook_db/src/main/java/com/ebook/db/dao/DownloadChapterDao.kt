@@ -35,7 +35,7 @@ interface DownloadChapterDao {
      *
      * 服务每轮就靠它定下一章，所以**失败章必须从表里删掉**——队头不动，下一轮 [getFirstByNoteUrl]
      * 还会拿到同一章，外层无退避无上限即成无限重试（常驻通知不消失、前台 dataSync 配额白烧，
-     * 后续章节全被队头阻塞），详见 ADR-0018 与 DownloadService.downloading。
+     * 后续章节全被队头阻塞），详见 ADR-0018 与 DownloadRunner。
      * 暂停中断则相反：任务保留待续跑。
      */
     @Query("SELECT * FROM download_chapter WHERE note_url = :noteUrl ORDER BY dur_chapter_index ASC LIMIT 1")

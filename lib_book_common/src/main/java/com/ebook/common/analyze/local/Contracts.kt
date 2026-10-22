@@ -41,7 +41,7 @@ enum class BookFormat(val extension: String, val isFileBased: Boolean) {
  * @property sourceUrl 该书的**书源归属**（`book_shelf.tag`，值即书源 URL）。多书源共存（见 ADR-0016）后
  * 「用哪个 parser 抓正文」是书级属性而非全局属性，故与 [bookId]、[format] 同处一个书级定位值类型——
  * 放这里 `ChapterReader.readChapter` 的签名就不用动，也不会有 reader 漏拿归属。
- * 本地书没有书源，一律传 `BookShelfEntity.LOCAL_TAG`（`getParserFor` 对它短路返回 null，
+ * 本地书没有书源，一律传 `BookShelfEntity.LOCAL_TAG`（`resolveSource` 对它返回 `SourceBinding.Local`，
  * 且本地书按 [format] 路由到 TXT/EPUB reader，根本走不到取 parser 那一步）。
  *
  * **这个字段刻意没有默认值**：给了默认值就等于允许「新构造点忘记传归属」，而漏传的后果是
@@ -69,36 +69,14 @@ data class ChapterEntry(val index: Int, val title: String, val contentRef: Strin
  *
  * [paragraphs] 从 reader 出来时是**章文件里的原文**（存储层不清洗，spec §4）；
  * 规范化由读取管线在入缓存之前做一次（`BookRepository.loadChapter` → `TextNormalizer`），
- * 所以下游（分页渲染、段评锚点）拿到的始终是「规范化后的纯段落」，不含缩进等表现层字符——
- * 段评锚点建立在它之上（spec §9.1），掺进表现层会让锚点随渲染规则漂移。
+ * 所以下游（分页渲染等）拿到的始终是「规范化后的纯段落」，不含缩进等表现层字符。
+ * 段评锚点尚未落地，其口径以 `docs/specs/local-book-import-design.md` §9.1 的设计记录为准：
+ * 它同样建立在上述规范化结果之上，掺进表现层会让锚点随渲染规则漂移。
  * [displayText] 才是给分页与渲染共用的文本（spec §8）。
  */
 data class ChapterContent(val title: String, val paragraphs: List<String>) {
 
     val displayText: String get() = TextNormalizer.toDisplayText(paragraphs)
-
-    /**
-     * 段评锚点（spec §9.1）：`pa1:<下标>:<该段规范化后前 16 字的 sha256 前 12 位>`。
-     *
-     * `pa1:` 版本前缀与 `ck1:` 同理——锚点建立在规范化规则之上，规则一改所有锚点全变、
-     * 段评整体散桶，而评论不可再生。哈希命中优先、失败回落下标，是跨来源切分不一致时
-     * 唯一的补救手段。
-     */
-    fun anchorFor(paragraphIndex: Int): String {
-        val text = paragraphs.getOrNull(paragraphIndex).orEmpty()
-        return "pa1:$paragraphIndex:" + shortHash(text.take(PARAGRAPH_ANCHOR_PREFIX_CHARS))
-    }
-
-    private fun shortHash(text: String): String =
-        java.security.MessageDigest.getInstance("SHA-256")
-            .digest(text.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
-            .take(12)
-
-    private companion object {
-        /** 锚点取样长度：太短易撞、太长则一处排版差异即失配 */
-        const val PARAGRAPH_ANCHOR_PREFIX_CHARS = 16
-    }
 }
 
 /** 源文件能提供的书级元数据（作者为 null 表示未知，由显示层填占位词） */

@@ -6,6 +6,7 @@ import com.ebook.api.entity.SourceFormat
 import com.ebook.api.entity.SourceDefinition
 import com.ebook.common.analyze.source.BookSourceItem
 import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.store.BookStore
@@ -378,7 +379,7 @@ class SourceSwitchViewModelTest {
 
     @Test
     fun `换源失败时仓库的异常原样交回而不被吞掉`(): Unit = runTest(mainDispatcher) {
-        // 目标源在清单里没有行 → getParserFor 返回 null → 仓库抛 BookSourceNotFoundException
+        // 目标源在清单里没有行 → resolveSource 返回 Missing → 仓库抛 BookSourceNotFoundException
         val manager = ScriptedManager(scriptBySource = emptyMap(), parsers = emptyMap())
         val viewModel = viewModelWith(manager)
         val old = BookShelfEntity(noteUrl = "https://a.example/book/1.html", tag = SOURCE_A, durChapter = 4)
@@ -439,10 +440,12 @@ class SourceSwitchViewModelTest {
             emit(AggregateSearchEvent.AllFinished)
         }
 
-        override suspend fun getParserFor(sourceUrl: String): BookParser? {
+        override suspend fun resolveSource(sourceUrl: String): SourceBinding {
             parserForCalls += sourceUrl
-            if (sourceUrl.isBlank() || sourceUrl == BookShelfEntity.LOCAL_TAG) return null
-            return parsers[sourceUrl]
+            if (sourceUrl == BookShelfEntity.LOCAL_TAG) return SourceBinding.Local
+            if (sourceUrl.isBlank()) return SourceBinding.Missing(sourceUrl)
+            return parsers[sourceUrl]?.let { SourceBinding.Found(it) }
+                ?: SourceBinding.Missing(sourceUrl)
         }
 
         /** 书源清单与默认源流都不属于换源面板的路径，取到即抛：静默返回空值会让断言假绿 */

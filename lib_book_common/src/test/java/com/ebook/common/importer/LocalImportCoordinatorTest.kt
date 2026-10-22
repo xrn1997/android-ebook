@@ -76,8 +76,6 @@ class LocalImportCoordinatorTest {
             bookShelfDao = daos.shelf,
             bookInfoDao = daos.info,
             chapterListDao = daos.chapter,
-            bookGroupDao = daos.group,
-            transactions = DirectTransactionRunner,
             bookRepository = bookRepository,
         )
         coordinator = LocalImportCoordinator(

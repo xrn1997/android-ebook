@@ -58,9 +58,9 @@ data class DownloadChapterEntity(
     /**
      * 书源归属标记（该任务来自哪个书源，见 CONTEXT.md「书源归属标记」）。
      *
-     * ADR-0016 落地后本列是**取 parser 的依据**，不再只是记录：`DownloadService` 用它构造
+     * ADR-0016 落地后本列是**取 parser 的依据**，不再只是记录：`DownloadRunner` 用它构造
      * `BookLocation.sourceUrl`，正文抓取因此按这本书自己的书源解析（删掉该书源后这些任务会按
-     * 普通失败重试并出队，见 `BookSourceManager.getParserFor` 的 null 成因）。
+     * 普通失败重试并出队，见 `BookSourceManager.resolveSource` 的 Missing/Broken）。
      */
     @ColumnInfo(name = "tag")
     var tag: String = String(),

@@ -19,7 +19,6 @@ class BookReadViewModel @Inject constructor(
     var isAdd = false
     var bookShelf: BookShelfEntity? = null
 
-    var pageLineCount = 5
     val nextInShelfEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     fun updateProgress(chapterIndex: Int, pageIndex: Int) {

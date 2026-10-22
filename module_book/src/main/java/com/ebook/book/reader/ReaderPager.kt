@@ -105,7 +105,7 @@ class ReaderPagerController internal constructor(
     private val chapterTitle: (Int) -> String,
     private val loadPage: suspend (chapterIndex: Int, pageIndex: Int) -> ReaderPageUi.Loaded?,
     private val onProgress: (chapterIndex: Int, pageIndex: Int) -> Unit
-) {
+) : ReaderTurnController {
     /** 当前页标识 */
     var durKey by mutableStateOf(ReaderPageKey(0, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN))
         private set
@@ -149,17 +149,23 @@ class ReaderPagerController internal constructor(
 
     /**
      * 初始化/跳转：取消在途加载，窗口收敛到指定章节页（哨兵页码由加载结果解析）。
-     * 对齐原 setInitData：立即回调一次进度（驱动菜单标题与章节滑条）。
+     * 对齐原 setInitData：[reportProgress] 为 true 时立即回调一次进度（驱动菜单标题与章节滑条）。
+     *
+     * @param reportProgress false 只收敛落点、不回调进度——给没显示的那一侧预热用
+     *   （见 [ReaderNavigation.converge]）
      */
-    fun setInitData(chapterIndex: Int, durPageIndex: Int) {
+    fun setInitData(chapterIndex: Int, durPageIndex: Int, reportProgress: Boolean = true) {
         store.clear()
         prevKey = null
         nextKey = null
         durKey = ReaderPageKey(chapterIndex, durPageIndex)
         scope.launch { drag.snapTo(0f) }
         store.ensureLoad(durKey)
-        onProgress(chapterIndex, durPageIndex)
+        if (reportProgress) onProgress(chapterIndex, durPageIndex)
     }
+
+    override fun setPosition(chapterIndex: Int, pageIndex: Int, reportProgress: Boolean) =
+        setInitData(chapterIndex, pageIndex, reportProgress)
 
     /** 加载失败重试 */
     fun reload(key: ReaderPageKey) = store.reload(key)
@@ -226,7 +232,7 @@ class ReaderPagerController internal constructor(
     }
 
     /** 程序化向前翻页（点击左三分区 / 音量键上）。对齐原 initMoveSuccessAnim(viewContents[0], 0) */
-    fun turnPrev() {
+    override fun turnPrev() {
         if (isMoving) return
         if (prevKey == null) {
             ToastUtil.showShort(context, context.getString(R.string.no_prev_page))
@@ -242,7 +248,7 @@ class ReaderPagerController internal constructor(
     }
 
     /** 程序化向后翻页（点击右三分区 / 音量键下）。对齐原 initMoveSuccessAnim(next, -width) */
-    fun turnNext() {
+    override fun turnNext() {
         if (isMoving) return
         if (nextKey == null) {
             ToastUtil.showShort(context, context.getString(R.string.no_next_page))

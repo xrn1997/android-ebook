@@ -2,6 +2,7 @@ package com.ebook.find.repository
 
 import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.analyze.source.LibraryDiskCache
+import com.ebook.common.analyze.source.parserOrThrow
 import com.ebook.db.entity.LibraryEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.find.entity.BookType
@@ -94,8 +95,7 @@ class BookSourceRepository @Inject constructor(
             emit(LibraryEntity())
             return@flow
         }
-        val parser = bookSourceManager.getParserFor(sourceUrl)
-            ?: throw BookSourceNotFoundException(sourceUrl)
+        val parser = bookSourceManager.parserOrThrow(sourceUrl)
 
         when (policy) {
             LibraryLoadPolicy.ForceNetwork -> {
@@ -183,17 +183,21 @@ class BookSourceRepository @Inject constructor(
      *
      * - **[sourceUrl] 空白 → 返回 null（「无源」）**：调用方给空数据，页面走「请先启用或导入书源」
      *   的引导态。这是 P3-a 定下的契约（旧写法在这里直接抛 IllegalStateException，页面只剩一行
-     *   看不出根因的日志），保留不变；空白也照旧交给 [BookSourceManager.getParserFor] 的
-     *   「空白 URL 短路」，让那条契约来兜底，不查 Room。
-     * - **有源但取不到 parser → 抛 [BookSourceNotFoundException]（「该源坏了」）**：行被删或
-     *   `rule_json` 解不出来（成因封闭，见 getParserFor 的 KDoc）。这种情况**不能返回空数据**：
+     *   看不出根因的日志），保留不变；空白也照旧交给 [BookSourceManager.resolveSource] 的
+     *   `Missing` 档，让那条契约来兜底，不查 Room。
+     * - **有源但取不到 parser → 抛 [BookSourceNotFoundException]（「该源坏了」）**：`Missing`（行被删）
+     *   或 `Broken`（`rule_json` 解不出来）。这种情况**不能返回空数据**：
      *   那等于把一条坏掉的源扮成「这个源本来就没书」给用户看，而他要的其实是一句
      *   「书源已失效，请重新导入或换源」。上层要能分辨这两件事，故一种给空值、一种给异常。
      *
-     * 禁用中的源照样能取到 parser（`getParserFor` 不看 `enabled`）——书城切换器只列启用中的源，
+     * 禁用中的源照样能取到 parser（`resolveSource` 不看 `enabled`）——书城切换器只列启用中的源，
      * 但「禁用不切断归属」是书源层的既定语义，这里不额外加判断。
      */
     private suspend fun parserFor(sourceUrl: String): BookParser? =
-        bookSourceManager.getParserFor(sourceUrl)
-            ?: if (sourceUrl.isBlank()) null else throw BookSourceNotFoundException(sourceUrl)
+        try {
+            // 空白也走一次读面：让「无源」在调用账上可见，并复用 resolveSource 对空白的短路
+            bookSourceManager.parserOrThrow(sourceUrl)
+        } catch (e: BookSourceNotFoundException) {
+            if (sourceUrl.isBlank()) null else throw e
+        }
 }

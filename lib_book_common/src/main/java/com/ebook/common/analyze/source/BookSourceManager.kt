@@ -4,7 +4,6 @@ import com.ebook.api.entity.BookSourceRule
 import com.ebook.api.entity.SourceDefinition
 import com.ebook.api.entity.SourceFormat
 import com.ebook.source.analyze.AggregateSearchEvent
-import com.ebook.source.analyze.BookParser
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -40,7 +39,7 @@ import kotlinx.coroutines.flow.Flow
  * 都不是「可用规则」（键名对不上解出空规则静默零条目；同名不同形的键直接抛解码异常），理由见
  * [BookSourceManagerImpl.toRule]。但**默认源不再是原生专属**：[observeDefaultSource] 以
  * [SourceDefinition] 为载体，脚本行同样有资格被立为默认源；
- * 脚本书源仍在 [observeSources]（条目带 `format`）、[getParserFor]（真解析器）、
+ * 脚本书源仍在 [observeSources]（条目带 `format`）、[resolveSource]（真解析器）、
  * [getFormatByUrl]（出身查询）与 [getExploreEntries]（分类条目）四处现身。
  *
  * **关于「有没有可用默认源」只有一个答案**：Room 里没有任何 enabled 行（用户把源全禁用了）时
@@ -89,33 +88,25 @@ interface BookSourceManager {
     suspend fun getSourceByUrl(url: String): BookSourceRule?
 
     /**
-     * 按书源 URL 取解析器（带 LRU 缓存）。「每本书绑源」的落点。
+     * 按书源 URL 解析出「本地 / 找到 / 缺失 / 坏行」四档结果（见 [SourceBinding]）。
      *
-     * null 的成因是封闭的，下面逐条列出三种，**调用方自己决定怎么处置**
-     * （前两种一般是抛 [BookSourceNotFoundException]）：
-     * 1. [sourceUrl] 是空白，或等于 [com.ebook.db.entity.BookShelfEntity.LOCAL_TAG]（`"loc_book"`）——
-     *    本地书不归属任何书源，压根不查库；
-     * 2. 该 URL 在库里没有行（用户删了这个源，或这条 `tag` 本就是脏数据）；
-     * 3. 行存在但 `rule_json` 解不出来（版本降级或手工改库留下的脏行），实现按行跳过并记 ERROR 日志。
+     * 与旧 `getParserFor(): BookParser?` 的 null 契约相比，四档互斥且可区分：
+     * - [SourceBinding.Local]：本地书 tag，不归属任何书源，不是故障；
+     * - [SourceBinding.Missing]：空白 tag 或库里没有这行（源被删 / 脏 tag）；
+     * - [SourceBinding.Broken]：行在，但原生 `rule_json` 解不出来（降级或手工改库的脏行）；
+     * - [SourceBinding.Found]：真解析器。脚本行取 parser **永不抛**，坏 JSON 留到首次求值，
+     *   抛公开的 `ScriptRuleException` 子类（ADR-0029/0045），不得折叠成 [SourceBinding.Broken]。
      *
-     * **脚本书源（`format = script`）不在这三种里，也绝不返回 null**：拿到的是真解析器
-     * `com.ebook.source.analyze.ScriptBookParser`（2d 落地），它的规则装载是**惰性**的，
-     * 所以取 parser 这一步对脚本行既不为 null 也不抛。坏 `rule_json` 的行在**首次求值**才抛类型化
-     * 装载失败（消息含「脚本书源 JSON 无法解析」），含 JS 段或使用本项目不支持能力的规则同样在
-     * 求值期抛类型化异常。
-     * 这条区分仍是本方法契约的一部分：null 说的是「没有这行/这行坏了」，类型化异常说的是
-     * 「源在、这条规则解不动」，混用的话用户会被提示去重新导入一个本就导入成功的书源。
-     *
-     * 注意取到 null **不等于**「书源被删」这个结论可以套到所有 `tag` 上：本地书的 `tag` 在此表里
-     * 永无对应行（见 [com.ebook.db.entity.BookSourceEntity.url] 的例外说明）。
+     * 需要区分四档的调用方对这个结果做一次模式匹配；只要 parser 的调用方走 [parserOrThrow]，
+     * 不再各自重推四档。
      */
-    suspend fun getParserFor(sourceUrl: String): BookParser?
+    suspend fun resolveSource(sourceUrl: String): SourceBinding
 
     /**
      * 聚合搜索（一次搜全站）：对每条**启用中**的书源并发解析该页，按 [AggregateSearchEvent] 增量吐出。
      *
      * 集合取自**启用中的两种格式行**（经条目面读，故脚本书源也参与，见
-     * [BookSourceManagerImpl.searchAcross]），每条源经 [getParserFor] 拿自己的 parser，
+     * [BookSourceManagerImpl.searchAcross]），每条源经 [resolveSource] 拿自己的 parser，
      * 于是 `SearchBookEntity.tag`/`origin` 天然写成该书真正的归属源（解析器负责写，见 [AggregateSearchEvent.SourceResult]）。
      *
      * **并发上限 5**：一条源一次请求打的是第三方站点，同时给 10+ 个站点发同一关键词极易被判定为
@@ -134,7 +125,7 @@ interface BookSourceManager {
      * 下一轮把它列进 [skipSourceUrls]。
      *
      * 全部源都发完 [AggregateSearchEvent.SourceFinished] 后发 [AggregateSearchEvent.AllFinished]，
-     * 流随之下游完成。零条启用源时 [AllFinished] 是唯一的事件。
+     * 流随之下游完成。零条启用源时 [AggregateSearchEvent.AllFinished] 是唯一的事件。
      *
      * **本方法是冷流**：每次收集才查库、才发请求，收集结束即停；不做共享，多个收集者就是多轮全站请求。
      *
@@ -214,7 +205,7 @@ interface BookSourceManager {
      * 启用/禁用某书源。
      *
      * 禁用只意味着「不参与聚合搜索、不出现在书城候选」，**不切断已有归属**：
-     * 书架里绑着该源的书仍经 [getParserFor] 解析。两条默认源分支（判据都在写之前求值）：
+     * 书架里绑着该源的书仍经 [resolveSource] 解析。两条默认源分支（判据都在写之前求值）：
      * - 禁用分支：**SP 是否命中被禁用的这个 URL**，命中才收敛；
      * - 启用分支：**写之前是否没有可用默认源**（源全被禁用），是才收敛。
      *

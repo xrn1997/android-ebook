@@ -36,7 +36,7 @@ data class BookShelfEntity(
      * 书源归属标记（这本书来自哪个书源，取值为该书源的 URL；本地书为 [LOCAL_TAG]）。
      *
      * 多书源共存下本列是「按哪套规则解析这本书」的唯一依据：书架刷新、详情、正文与下载都拿它
-     * 去 `BookSourceManager.getParserFor` 取源（见 CONTEXT.md「书源归属标记」）。
+     * 去 `BookSourceManager.resolveSource` 取源（见 CONTEXT.md「书源归属标记」）。
      * 禁用某源不切断归属（禁用的源仍解析得到自己的书），删除该源才会让这本书解析不出来。
      */
     @ColumnInfo(name = "tag")

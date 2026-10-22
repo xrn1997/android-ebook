@@ -1,10 +1,10 @@
 package com.ebook.common.analyze.local
 
 import com.ebook.common.text.TextNormalizer
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlin.coroutines.coroutineContext
 
 /**
  * 章节切分器（spec §6 §7）：**原文**行序列 → 章节流。
@@ -53,7 +53,7 @@ class ChapterSplitter(private val titleRule: Regex = DEFAULT_TITLE_RULE) {
                 if (title == null) title = normalizeTitle(line)
                 paragraphs.add(line)
             }
-            coroutineContext.ensureActive()
+            currentCoroutineContext().ensureActive()
         }
 
         if (paragraphs.isNotEmpty()) {
