@@ -149,7 +149,7 @@ class ReaderPagerController internal constructor(
 
     /**
      * 初始化/跳转：取消在途加载，窗口收敛到指定章节页（哨兵页码由加载结果解析）。
-     * 对齐原 setInitData：[reportProgress] 为 true 时立即回调一次进度（驱动菜单标题与章节滑条）。
+     * 对齐原 setInitData：[reportProgress] 为 true 时立即回调一次进度（驱动会话位置；标题/滑条由会话派生）。
      *
      * @param reportProgress false 只收敛落点、不回调进度——给没显示的那一侧预热用
      *   （见 [ReaderNavigation.converge]）

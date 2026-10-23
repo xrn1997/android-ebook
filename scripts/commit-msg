@@ -58,7 +58,7 @@ if ! printf '%s\n' "$MSG" | grep -qE "$HEADER_PATTERN" && \
   正确格式: <type>(<scope>): <description>
 
   type: feat | fix | build | refactor | docs | test | perf | chore | revert
-  scope: 可选，模块目录名（module_me, lib_book_common, lib_ebook_api 等）
+  scope: 可选，模块目录名（module_me, lib_book_common, lib_ebook_api 等）或领域切片（reader / search / download / import）
 
   示例:
     feat(module_me): 新增个人中心编辑资料入口

@@ -17,8 +17,8 @@ import org.junit.Test
  */
 class SourceBindingTest {
 
-    private fun managerWith(binding: SourceBinding): BookSourceManager =
-        object : BookSourceManager by FakeBookSourceManager() {
+    private fun managerWith(binding: SourceBinding): SourceResolver =
+        object : SourceResolver by FakeBookSourceManager() {
             override suspend fun resolveSource(sourceUrl: String): SourceBinding = binding
         }
 

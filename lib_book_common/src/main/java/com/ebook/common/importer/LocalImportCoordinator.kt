@@ -39,21 +39,17 @@ sealed class ImportDuplicateState {
      *
      * [matches] 必须整列展示——同一键下可能挂着多个条目（此前重复导入攒下的），只取第一条
      * 会让用户在不知情的情况下被删掉另外几本。
+     *
+     * [available] 由 [DispositionPolicy] 一次算定，UI 直接读它决定给哪些按钮，不再自己重算；
+     * 默认参数让现有构造点保持不变。
      */
     data class Detected(
         val file: File,
         val meta: ParsedBookMeta,
         val matches: List<DuplicateBookDetector.ImportMatch>,
+        val available: Set<DuplicateResolution> = DispositionPolicy.available(matches),
     ) : ImportDuplicateState()
 }
-
-/**
- * 用户对判重命中的处置选择。
- *
- * [KEEP_BOTH] 是 spec §6 要求的非破坏默认项（"要看现有条目还是继续添加"）：同键的两个条目
- * 读评论时天然取并集，共存本身就是这套模型支持的正常形态，不是需要修补的缺陷。
- */
-private enum class DuplicateResolution { KEEP_BOTH, MERGE, OVERWRITE, CANCEL }
 
 /** 一批导入的收尾结果，供 UI 提示（成功走轻提示，有失败走结果文案） */
 data class ImportBatchOutcome(val successCount: Int, val failCount: Int)

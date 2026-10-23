@@ -45,7 +45,7 @@ dependencies {
     api(libs.common)
     api(project(":lib_ebook_api"))
     api(project(":lib_ebook_db"))
-    // 原生书源解析器一族已迁入 lib_book_source；本层公开面（BookSourceManager.resolveSource /
+    // 原生书源解析器一族已迁入 lib_book_source；本层公开面（SourceResolver.resolveSource /
     // SourceBinding.Found）直接暴露其类型，故用 api 而非 implementation，业务模块才能只依赖本模块就编译通过
     api(project(":lib_book_source"))
     api(libs.androidx.appcompat)

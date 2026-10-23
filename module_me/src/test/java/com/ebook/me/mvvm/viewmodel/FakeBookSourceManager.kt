@@ -7,10 +7,9 @@ import com.ebook.api.entity.SearchRule
 import com.ebook.api.entity.SourceFormat
 import com.ebook.api.entity.SourceDefinition
 import com.ebook.common.analyze.source.BookSourceItem
-import com.ebook.common.analyze.source.BookSourceManager
-import com.ebook.common.analyze.source.SourceBinding
-import com.ebook.common.analyze.source.SourceExploreEntry
-import com.ebook.db.entity.BookShelfEntity
+import com.ebook.common.analyze.source.SourceAdmin
+import com.ebook.common.analyze.source.SourceCatalog
+import com.ebook.common.analyze.source.SourceCodec
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -18,8 +17,10 @@ import org.json.JSONException
 import org.json.JSONObject
 
 /**
- * [BookSourceManager] 的内存假件，供 module_me 的书源相关 ViewModel 测试共用
- * （`BookSourceViewModelTest` 与 `SettingViewModelTest` 同包，故 internal 即可）。
+ * 书源清单/管理/编解码三面的内存假件（[SourceCatalog] + [SourceAdmin] + [SourceCodec]），
+ * 供 module_me 的书源相关 ViewModel 测试共用（`BookSourceViewModelTest` 与 `SettingViewModelTest`
+ * 同包，故 internal 即可）。设置页只注入 [SourceCatalog]，书源管理页三面都注入，测试把同一个假件
+ * 分别按面传进去。
  *
  * 抄的是接口的**行为契约**而不是实现细节，几条与页面上「哪条算默认源」直接相关的语义都保留了：
  * - `addSource` 同 URL 即覆盖，空白 URL 返回 failure；
@@ -38,7 +39,7 @@ import org.json.JSONObject
  */
 internal class FakeBookSourceManager(
     initial: List<BookSourceRule> = emptyList(),
-) : BookSourceManager {
+) : SourceCatalog, SourceAdmin, SourceCodec {
 
     private val rows = LinkedHashMap<String, BookSourceRule>()
 
@@ -90,24 +91,9 @@ internal class FakeBookSourceManager(
      */
     private fun defaultDefinition(): SourceDefinition? = defaultRule()?.let { SourceDefinition.Native(it) }
 
-    // region 同步面：P2 的页面只用挂起面与订阅面，这里一律不提供 parser
-
-    override suspend fun resolveSource(sourceUrl: String): SourceBinding =
-        if (sourceUrl == BookShelfEntity.LOCAL_TAG) SourceBinding.Local else SourceBinding.Missing(sourceUrl)
-
-    /** 聚合搜索由搜索页发起，书源管理页的用例不会走到这里 */
-    override fun searchAcross(keyword: String, page: Int, skipSourceUrls: Set<String>) =
-        throw UnsupportedOperationException("书源管理页不发起聚合搜索")
-
-    // endregion
     // region 挂起读
 
     override suspend fun getAllSources(): List<BookSourceRule> = sortedRows()
-
-    override suspend fun getEnabledSources(): List<BookSourceRule> =
-        sortedRows().filter { it.enabled }
-
-    override suspend fun getSourceByUrl(url: String): BookSourceRule? = rows[url]
 
     // endregion
     // region 写侧
@@ -196,10 +182,6 @@ internal class FakeBookSourceManager(
         url in scriptSources -> SourceFormat.SCRIPT
         else -> null
     }
-
-    /** 书城分类条目由书城页发起，书源管理页的用例不会走到这里 */
-    override suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry> =
-        throw UnsupportedOperationException("书源管理页不发起分类条目查询")
 
     override suspend fun removeSource(url: String): Result<Unit> {
         removedUrls += url

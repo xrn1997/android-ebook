@@ -76,8 +76,8 @@ import com.ebook.common.ui.InfoChip
 import com.ebook.common.ui.preview.AppPreview
 import com.ebook.common.ui.preview.sampleSearchHistories
 import com.ebook.db.entity.SearchHistoryEntity
-import com.ebook.find.mvvm.viewmodel.SearchProgress
 import com.ebook.find.mvvm.viewmodel.SearchViewModel
+import com.ebook.find.search.SearchProgress
 import com.ebook.find.view.SearchBookItem
 import com.therouter.TheRouter
 import com.therouter.router.Route
@@ -376,7 +376,7 @@ class SearchActivity : BaseMvvmRefreshActivity<SearchViewModel>() {
         keyboardController?.hide()
         lifecycleScope.launch {
             delay(SEARCH_AFTER_KEYBOARD_HIDE_DELAY_MS.milliseconds)
-            // 不再由页面重置页码：聚合搜索的分页游标按源住在 VM 里（见 SearchViewModel.pageBySource）
+            // 不再由页面重置页码：聚合搜索的分页游标按源住在 AggregationSession 里
             viewModel.toSearchBooks(key)
         }
     }

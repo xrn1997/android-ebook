@@ -75,6 +75,9 @@ class BookSourceViewModelTest {
         Dispatchers.resetMain()
     }
 
+    /** 三面注入同一个假件：书源管理页同时消费清单、管理与编解码 */
+    private fun viewModelWith(fake: FakeBookSourceManager) = BookSourceViewModel(fake, fake, fake)
+
     /** 四条规则齐备的规则；不设置 body/headers/method 等字段，好让「导出再导入」能逐字段相等 */
     private fun rule(
         url: String,
@@ -117,7 +120,7 @@ class BookSourceViewModelTest {
                 rule("https://c.example", name = "丙站", enabled = false),
             )
         )
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
 
         advanceUntilIdle()
         val state = viewModel.bookSourceState.value
@@ -130,7 +133,7 @@ class BookSourceViewModelTest {
     @Test
     fun `全部禁用后页面状态里没有默认源`(): Unit = runTest(mainDispatcher) {
         val fake = FakeBookSourceManager(initial = listOf(rule("https://a.example", name = "甲站")))
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
         advanceUntilIdle()
         assertEquals("https://a.example", viewModel.bookSourceState.value.defaultSourceUrl)
 
@@ -145,7 +148,7 @@ class BookSourceViewModelTest {
 
     @Test
     fun `导入数组形态的 JSON 得到逐条预览且顺序跟随文件`(): Unit = runTest(mainDispatcher) {
-        val viewModel = BookSourceViewModel(FakeBookSourceManager())
+        val viewModel = viewModelWith(FakeBookSourceManager())
 
         val items = viewModel.parseImportJson(
             """
@@ -165,7 +168,7 @@ class BookSourceViewModelTest {
 
     @Test
     fun `导入单条对象形态的 JSON 也认`(): Unit = runTest(mainDispatcher) {
-        val viewModel = BookSourceViewModel(FakeBookSourceManager())
+        val viewModel = viewModelWith(FakeBookSourceManager())
 
         val items = viewModel.parseImportJson(sourceJson("甲站", "https://a.example"))
         advanceUntilIdle()
@@ -177,7 +180,7 @@ class BookSourceViewModelTest {
     @Test
     fun `读不出书源对象时给提示而不是弹一个空预览`(): Unit = runTest(mainDispatcher) {
         val fake = FakeBookSourceManager(initial = listOf(rule("https://a.example")))
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
         advanceUntilIdle()
 
         // 三种「文件里没有一个书源对象」的形态：纯文本、数组里没有对象、空串
@@ -200,7 +203,7 @@ class BookSourceViewModelTest {
     @Test
     fun `预览项里已存在同 URL 的标为将覆盖`(): Unit = runTest(mainDispatcher) {
         val fake = FakeBookSourceManager(initial = listOf(rule("https://a.example", name = "甲站")))
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
 
         val items = viewModel.parseImportJson(
             """
@@ -222,7 +225,7 @@ class BookSourceViewModelTest {
     @Test
     fun `确认导入只落库校验通过的条目并按三类统计`(): Unit = runTest(mainDispatcher) {
         val fake = FakeBookSourceManager(initial = listOf(rule("https://a.example", name = "甲站")))
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
         advanceUntilIdle()
 
         val items = viewModel.parseImportJson(
@@ -254,7 +257,7 @@ class BookSourceViewModelTest {
     fun `写库失败计入失败条数并另走失败上报`(): Unit = runTest(mainDispatcher) {
         val fake = FakeBookSourceManager()
         fake.failingAddUrls = setOf("https://b.example")
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
 
         val items = viewModel.parseImportJson(
             """
@@ -289,7 +292,7 @@ class BookSourceViewModelTest {
     fun `行仍在清单里时删除失败只走失败上报不编人话`(): Unit = runTest(mainDispatcher) {
         val fake = FakeBookSourceManager(initial = listOf(rule("https://a.example", name = "甲站")))
         fake.failingRemoveUrls = setOf("https://a.example")
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
         advanceUntilIdle()
 
         viewModel.removeSource("https://a.example")
@@ -305,7 +308,7 @@ class BookSourceViewModelTest {
     /** 「这一行已不在库里」的判据是清单里查不到它（而不是 Manager 消息里有没有「不存在」） */
     @Test
     fun `删除不存在的源时给已不在清单中的解释`(): Unit = runTest(mainDispatcher) {
-        val viewModel = BookSourceViewModel(FakeBookSourceManager())
+        val viewModel = viewModelWith(FakeBookSourceManager())
 
         viewModel.removeSource("https://gone.example")
         advanceUntilIdle()
@@ -321,7 +324,7 @@ class BookSourceViewModelTest {
         val fake = FakeBookSourceManager(
             initial = listOf(rule("https://a.example"), rule("https://b.example")),
         )
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
         advanceUntilIdle()
 
         viewModel.removeSource("https://b.example")
@@ -342,7 +345,7 @@ class BookSourceViewModelTest {
                 rule("https://c.example", name = "丙站", enabled = false),
             )
         )
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
         advanceUntilIdle()
 
         val json = viewModel.exportAll()
@@ -367,7 +370,7 @@ class BookSourceViewModelTest {
 
     @Test
     fun `库里没有书源时导出空串`(): Unit = runTest(mainDispatcher) {
-        val viewModel = BookSourceViewModel(FakeBookSourceManager())
+        val viewModel = viewModelWith(FakeBookSourceManager())
 
         assertEquals("", viewModel.exportAll())
     }
@@ -380,7 +383,7 @@ class BookSourceViewModelTest {
                 rule("https://b.example", name = "乙站", weight = 1, enabled = false),
             )
         )
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
         advanceUntilIdle()
 
         // 页面不必「先启用、再设默认」：setDefaultSource 自己会把禁用源带上（接口 KDoc 的副作用）
@@ -395,7 +398,7 @@ class BookSourceViewModelTest {
 
     @Test
     fun `预览项校验不通过时保留全部原因供弹层展示`(): Unit = runTest(mainDispatcher) {
-        val viewModel = BookSourceViewModel(FakeBookSourceManager())
+        val viewModel = viewModelWith(FakeBookSourceManager())
 
         // 一条既没有搜索地址也没有解析规则的 JSON（只有名称与地址是好的）
         val items = viewModel.parseImportJson(
@@ -436,7 +439,7 @@ class BookSourceViewModelTest {
     @Test
     fun `脚本书源按特征键判为脚本出身并给出三项警示`(): Unit = runTest(mainDispatcher) {
         val fake = FakeBookSourceManager()
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
 
         val items = viewModel.parseImportJson(
             scriptSourceJson(
@@ -474,7 +477,7 @@ class BookSourceViewModelTest {
     @Test
     fun `确认导入脚本项交出的是原文整块且不走 addSource`(): Unit = runTest(mainDispatcher) {
         val fake = FakeBookSourceManager()
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
 
         val items = viewModel.parseImportJson(
             scriptSourceJson("甲脚本站", "https://s.example", content = "<js>getHost()</js>")
@@ -511,7 +514,7 @@ class BookSourceViewModelTest {
     @Test
     fun `脚本书源里坏一条不该带崩整包`(): Unit = runTest(mainDispatcher) {
         val fake = FakeBookSourceManager()
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
 
         // 社区手改 JSON 的常态：bookSourceType 是 Int，却装了非数值（带引号的数字反而能过，
         // 判据见 lib_book_common 的 SourceStorageJsonTest——预览与落库用的是同一个解码器）。
@@ -565,7 +568,7 @@ class BookSourceViewModelTest {
     @Test
     fun `将覆盖判定认得跨出身的同URL行`(): Unit = runTest(mainDispatcher) {
         val fake = FakeBookSourceManager(initial = listOf(rule("https://a.example", name = "甲站")))
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
         advanceUntilIdle()
 
         // ① 库里是原生行，导一条同 URL 的脚本书源
@@ -602,7 +605,7 @@ class BookSourceViewModelTest {
     @Test
     fun `脚本书源不参与导出`(): Unit = runTest(mainDispatcher) {
         val fake = FakeBookSourceManager(initial = listOf(rule("https://a.example", name = "甲站")))
-        val viewModel = BookSourceViewModel(fake)
+        val viewModel = viewModelWith(fake)
         val scriptItem = BookSourceItem(
             // 真实现里脚本行的 rule 就是这样一条按实体列合成的展示用空壳（没有任何选择器）
             rule = BookSourceRule(name = "乙脚本", url = "https://s.example"),

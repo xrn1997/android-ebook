@@ -7,10 +7,12 @@ import com.ebook.api.entity.KindItem
 import com.ebook.api.entity.SourceFormat
 import com.ebook.api.entity.SourceDefinition
 import com.ebook.common.analyze.source.BookSourceItem
-import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.analyze.source.LibraryDiskCache
+import com.ebook.common.analyze.source.SourceAdmin
 import com.ebook.common.analyze.source.SourceBinding
+import com.ebook.common.analyze.source.SourceCatalog
 import com.ebook.common.analyze.source.SourceExploreEntry
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.LibraryEntity
 import com.ebook.db.entity.LibraryKindBookListEntity
@@ -46,7 +48,7 @@ import org.junit.Test
  * 锁的是「书城整页跟着书源走」这几件事：
  * 1. 默认源一到位，分类入口与书库就按**那个源**算（不再有「构造时读一次」的快照）；
  * 2. 切换器清单只收启用中的源（禁用项进了列表用户就会点了才知道切不过去），
- *    且只带规则、不带 `format` 那类管理面元数据（元数据出管理页是 [BookSourceManager] 接口 KDoc 的禁令）；
+ *    且只带规则、不带 `format` 那类管理面元数据（元数据出管理页是 [SourceCatalog] 接口 KDoc 的禁令）；
  *    2e 起**脚本书源也进**候选——脚本行已是合法默认源（`setDefaultSource` 对它生效、
  *    `resolveSource` 返回真解析器），旧「点了没反应」的死条目成因消失
  *    （见 `脚本书源进切换器候选且能成为当前源`）；
@@ -135,8 +137,8 @@ class LibraryViewModelTest {
         /**
          * 脚本书源的一行清单条目，形状照真实现：[BookSourceItem.rule] 只是按实体列合成的**展示用空壳**
          * （名称/地址/启用态，没有任何选择器），真正的区分信息在 `format` 那一位上。
-         * 假件的 [BookSourceManager.getFormatByUrl] 与 [BookSourceManager.addScriptSource] 仍是
-         * 「一调就抛」——本页只吃 [BookSourceManager.observeSources]，用不到那两个面。
+         * 假件的 [SourceCatalog.getFormatByUrl] 与 [SourceAdmin.addScriptSource] 仍是
+         * 「一调就抛」的兜底——本页只吃 [SourceCatalog.observeSources]，仓库也只吃 [SourceResolver] 的取源面。
          */
         fun scriptItem(name: String = "脚本站", url: String = URL_SCRIPT, enabled: Boolean = true) =
             BookSourceItem(
@@ -159,16 +161,17 @@ class LibraryViewModelTest {
     // region 装配
 
     /**
-     * 只实现「清单订阅 + 默认源 + 按 URL 取源/取 parser」的 Manager 假件。
+     * 取源 + 清单订阅 + 默认源三面的假件：同一实例既交给 [BookSourceRepository]（[SourceResolver]），
+     * 也交给 [LibraryViewModel]（[SourceCatalog] + [SourceAdmin]）。
      *
      * [setDefaultSource] 的行为照真实现：**改默认源快照并推送订阅**（禁用中的目标源顺带启用，
-     * 那是 Manager 的既定语义，本假件不必模拟成两步）。
+     * 那是管理面的既定语义，本假件不必模拟成两步）。
      */
     private class FakeBookSourceManager(
         private val items: List<BookSourceItem>,
         private val defaultUrl: String?,
         private val parsers: Map<String, BookParser>,
-    ) : BookSourceManager {
+    ) : SourceResolver, SourceCatalog, SourceAdmin {
         val setDefaultCalls = mutableListOf<String>()
         val parserForCalls = mutableListOf<String>()
         val urlByQueryCalls = mutableListOf<String>()
@@ -206,12 +209,6 @@ class LibraryViewModelTest {
                 ?: SourceBinding.Missing(sourceUrl)
         }
 
-        override suspend fun getSourceByUrl(url: String): BookSourceRule? {
-            urlByQueryCalls += url
-            if (url.isBlank()) return null
-            return items.firstOrNull { it.rule.url == url }?.rule
-        }
-
         /** 分类条目读面照真实现建模：条目壳 rule 的 ruleFind.kinds 对脚本行是默认空表，映射结果自然为空 */
         override suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry> {
             urlByQueryCalls += sourceUrl
@@ -224,8 +221,8 @@ class LibraryViewModelTest {
         private fun unsupported(who: String): Nothing =
             throw UnsupportedOperationException("FakeBookSourceManager 未实现 $who")
 
+        // 下面这些属于已实现的面，但本组用例不调用：留成会炸的兜底，静默给空值会让「没走到」的断言假绿
         override suspend fun getAllSources(): List<BookSourceRule> = unsupported("getAllSources")
-        override suspend fun getEnabledSources(): List<BookSourceRule> = unsupported("getEnabledSources")
         override suspend fun addSource(rule: BookSourceRule): Result<Unit> = unsupported("addSource")
         override suspend fun addScriptSource(rawJson: String): Result<Unit> = unsupported("addScriptSource")
         override suspend fun getFormatByUrl(url: String): SourceFormat? = unsupported("getFormatByUrl")
@@ -233,9 +230,6 @@ class LibraryViewModelTest {
         override suspend fun setEnabled(url: String, enabled: Boolean) = unsupported("setEnabled")
         override fun searchAcross(keyword: String, page: Int, skipSourceUrls: Set<String>) =
             unsupported("searchAcross")
-
-        override fun importFromJson(jsonStr: String): BookSourceRule? = unsupported("importFromJson")
-        override fun exportToJson(rule: BookSourceRule): String = unsupported("exportToJson")
     }
 
     /**
@@ -318,7 +312,8 @@ class LibraryViewModelTest {
             LibraryDiskCache(Files.createTempDirectory("library-vm-test").toFile().apply { deleteOnExit() }),
         )
         // VM 必须记进 liveViewModels，否则收尾时收不掉它的 viewModelScope（见该字段 KDoc）
-        val viewModel = LibraryViewModel(repository, manager).also { liveViewModels += it }
+        val viewModel = LibraryViewModel(repository, sourceCatalog = manager, sourceAdmin = manager)
+            .also { liveViewModels += it }
         return Fixture(manager, viewModel, parsers)
     }
 

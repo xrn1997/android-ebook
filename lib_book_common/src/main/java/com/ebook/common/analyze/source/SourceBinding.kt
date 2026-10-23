@@ -34,15 +34,15 @@ sealed interface SourceBinding {
 /**
  * 旧 null 读面的兼容适配：只在测试/旧调用点把四档压回 parser-or-null。
  *
- * **生产解析路径一律走 [BookSourceManager.resolveSource] / [parserOrThrow]**：前者区分
+ * **生产解析路径一律走 [SourceResolver.resolveSource] / [parserOrThrow]**：前者区分
  * [SourceBinding.Missing]（数据没了）与 [SourceBinding.Broken]（数据坏了），也才能把
  * 本地书（[SourceBinding.Local]）与故障分开；后者把「只要 parser」的调用统一翻译一次。
  * 本适配保留是为了不把几十处测试布置一次性改成模式匹配；新增生产代码不得使用。
  */
-@Deprecated("生产路径用 BookSourceManager.resolveSource；本适配只服务旧调用点/测试",
+@Deprecated("生产路径用 SourceResolver.resolveSource；本适配只服务旧调用点/测试",
     ReplaceWith("(resolveSource(sourceUrl) as? SourceBinding.Found)?.parser")
 )
-suspend fun BookSourceManager.getParserFor(sourceUrl: String): BookParser? =
+suspend fun SourceResolver.getParserFor(sourceUrl: String): BookParser? =
     (resolveSource(sourceUrl) as? SourceBinding.Found)?.parser
 
 /**
@@ -54,7 +54,7 @@ suspend fun BookSourceManager.getParserFor(sourceUrl: String): BookParser? =
  * 调用方不需要各自重推四档；需要把失败折成返回值的（目录重抓）自行 catch
  * [BookSourceNotFoundException]。
  */
-suspend fun BookSourceManager.parserOrThrow(
+suspend fun SourceResolver.parserOrThrow(
     sourceUrl: String,
     detail: String? = null,
 ): BookParser = when (val binding = resolveSource(sourceUrl)) {

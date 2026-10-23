@@ -5,7 +5,7 @@ import com.ebook.common.analyze.local.BookLocation
 import com.ebook.common.analyze.local.ChapterContent
 import com.ebook.common.analyze.local.ChapterEntry
 import com.ebook.common.analyze.local.ChapterReader
-import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.analyze.source.parserOrThrow
 import com.ebook.common.domain.CommentKey
 import com.ebook.common.store.BookStore
@@ -66,10 +66,10 @@ class BookRepository @Inject constructor(
     private val downloadChapterDao: DownloadChapterDao,
     private val chapterReaders: @JvmSuppressWildcards Map<BookFormat, ChapterReader>,
     /**
-     * 书源清单的唯一入口。换源事务要按**目标条目**的 `tag` 取 parser 拉详情与目录（见 [switchSource]）；
+     * 取源面。换源事务要按**目标条目**的 `tag` 取 parser 拉详情与目录（见 [switchSource]）；
      * 本仓库其余读面（[loadChapter]）不需要它——那条路径的归属已随 [BookLocation] 交给 reader。
      */
-    private val bookSourceManager: BookSourceManager,
+    private val sourceResolver: SourceResolver,
     private val bookStore: BookStore,
     private val contentCache: ChapterContentCache,
     private val transactions: WriteTransactionRunner,
@@ -180,8 +180,10 @@ class BookRepository @Inject constructor(
      * 而那条路径不写 `chapter_list`——本地比远端少一章，内存目录就比库里长一章。
      * 本方法是那条分叉的**持久化防线**：钳住它造成的损坏，不修分叉本身。
      *
-     * 就地改而非改副本：调用方（`BookReadViewModel.bookShelf`）与 [BookShelfEvent.ProgressUpdated]
-     * 的消费方从此看到同一个值，书架事件驱动的刷新因此直接显示钳后的落点，而不是等下次读库。
+     * 就地改而非改副本：[BookShelfEvent.ProgressUpdated] 携带的就是钳后的这一份，书架事件驱动的
+     * 刷新因此直接显示钳后的落点，而不是等下次读库。阅读器交进来的是位置副本（见
+     * `ReaderSession.saveProgress`），钳制不回写它的实时章页——实时位置由会话持有，
+     * 越界只说明调用方目录比库长，不该借此把读者挪到另一章。
      *
      * **库里一行都没有时不钳**：0 行没有「最后一行」可钳，钳与不钳书架都解析不出那一章，
      * 而钳了会误伤一条正常路径 —— 从搜索直接开读（还没加书架）时 `chapter_list` 是空的，
@@ -363,13 +365,13 @@ class BookRepository @Inject constructor(
      * 换源拉回来的书就会和「从搜索加书架」拉回来的不一样。
      *
      * 取不到 parser 时：`Missing`/`Broken` 抛 [BookSourceNotFoundException]（用户可处置的源失效），
-     * `Local` 抛 [IllegalStateException]（本地书走换源是编程错误）。见 [BookSourceManager.resolveSource]。
+     * `Local` 抛 [IllegalStateException]（本地书走换源是编程错误）。见 [SourceResolver.resolveSource]。
      */
     private suspend fun fetchEntryFromSource(
         newBook: SearchBookEntity,
         oldShelf: BookShelfEntity,
     ): BookShelfEntity {
-        val parser = bookSourceManager.parserOrThrow(
+        val parser = sourceResolver.parserOrThrow(
             newBook.tag,
             detail = "换源目标 noteUrl=${newBook.noteUrl}",
         )
@@ -536,7 +538,7 @@ class BookRepository @Inject constructor(
         // 取源失败（Missing/Broken）按 Failed 带回而非抛，理由见 ChapterSyncResult.Failed 的 KDoc；
         // 本地书已在方法开头挡掉，parserOrThrow 的 Local 分支在这里不可达。
         val parser: BookParser = try {
-            bookSourceManager.parserOrThrow(bookShelf.tag, detail = "目录重抓 noteUrl=$noteUrl")
+            sourceResolver.parserOrThrow(bookShelf.tag, detail = "目录重抓 noteUrl=$noteUrl")
         } catch (e: BookSourceNotFoundException) {
             return ChapterSyncResult.Failed(e)
         }

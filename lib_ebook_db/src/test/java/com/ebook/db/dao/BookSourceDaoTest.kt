@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config
  *   它是双格式共存的路由键，被无声改写就会让脚本书源退回原生解析
  *
  * 规则 JSON 内容不在本测试关心范围内——DAO 只搬字符串，`BookSourceRule` 的编解码由
- * `lib_book_common` 的 BookSourceManager 测试覆盖。
+ * `lib_book_common` 的 `BookSourceManagerImplTest` 覆盖。
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])

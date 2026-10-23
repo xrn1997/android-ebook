@@ -64,7 +64,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun downloadChapterDao(): DownloadChapterDao
     /** 作品分组表：来源条目与评论桶键的关联，评论读写与合并/拆分 UI 的数据源 */
     abstract fun bookGroupDao(): BookGroupDao
-    /** 书源表：书源站点与解析规则清单，`lib_book_common` 的 BookSourceManager 的唯一数据源（见 ADR-0016） */
+    /** 书源表：书源站点与解析规则清单，`lib_book_common` 的书源四面（实现为 `BookSourceManagerImpl`）的唯一数据源（见 ADR-0016） */
     abstract fun bookSourceDao(): BookSourceDao
     /** 按书暂停标记表：行存在即该书下载暂停（v8 新增，见 ADR-0036），取篇遍历跳过命中书 */
     abstract fun pausedBookDao(): PausedBookDao

@@ -231,7 +231,7 @@ object DatabaseModule {
     @Singleton
     fun provideBookGroupDao(db: AppDatabase): BookGroupDao = db.bookGroupDao()
 
-    /** 书源表访问器：落地后由 `lib_book_common` 的 BookSourceManager 消费，业务模块不直调（见 ADR-0016） */
+    /** 书源表访问器：由 `lib_book_common` 的书源四面（实现为 `BookSourceManagerImpl`）消费，业务模块不直调（见 ADR-0016） */
     @Provides
     @Singleton
     fun provideBookSourceDao(db: AppDatabase): BookSourceDao = db.bookSourceDao()

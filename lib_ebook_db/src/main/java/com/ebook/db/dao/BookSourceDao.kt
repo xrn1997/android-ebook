@@ -10,7 +10,8 @@ import kotlinx.coroutines.flow.Flow
  * 一行 = 一个书源站点，主键是自然键 `url`（见 [BookSourceEntity]），因此**没有"按 id 更新"这回事**，
  * 写入一律是整行 REPLACE upsert；`url` 既是匹配键也是业务表 `tag` 列指向的目标，覆盖导入不会改变归属。
  *
- * 本表由 `lib_book_common` 的 `BookSourceManager` 独占消费（挂起面一律现查本表）：由它把行
+ * 本表由 `lib_book_common` 的书源四面（`SourceResolver` / `SourceCatalog` / `SourceAdmin` /
+ * `SourceCodec`，实现为 `BookSourceManagerImpl`）独占消费（挂起面一律现查本表）：由它们把行
  * 反序列化成 `BookSourceRule` 对外暴露，业务模块不直接依赖本 DAO——想加新方法前先确认这个
  * 边界是否真的要破。
  *
@@ -35,7 +36,7 @@ interface BookSourceDao {
     @Query("SELECT * FROM book_source ORDER BY weight ASC, added_at ASC, url ASC")
     fun observeAll(): Flow<List<BookSourceEntity>>
 
-    /** 全量书源快照（含被禁用的），一次性读取用：`BookSourceManager.getAllSources` 的背后就是它 */
+    /** 全量书源快照（含被禁用的），一次性读取用：`SourceCatalog.getAllSources` 的背后就是它 */
     @Query("SELECT * FROM book_source ORDER BY weight ASC, added_at ASC, url ASC")
     suspend fun getAll(): List<BookSourceEntity>
 
@@ -52,7 +53,7 @@ interface BookSourceDao {
     suspend fun getByUrl(url: String): BookSourceEntity?
 
     /**
-     * 启用中的书源，按统一排序口径：供规则类型化读面（`getEnabledSources`）与聚合搜索（并发逐源）取用。
+     * 启用中的书源，按统一排序口径：供聚合搜索（并发逐源）取用。
      *
      * 默认源回落**不查本方法**——它读 [getAll] 后在条目面筛 `enabled`，因为候选要先经解码挡下坏行；
      * 书城切换候选走 [observeAll] 的 enabled 过滤。

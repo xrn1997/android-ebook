@@ -68,7 +68,7 @@ class JsoupSourceReaderTest {
         context = ApplicationProvider.getApplicationContext()
     }
 
-    private fun readerWith(manager: BookSourceManager) =
+    private fun readerWith(manager: SourceResolver) =
         JsoupSourceReader(store, manager, context, OkHttpClient())
 
     private fun rule(sourceUrl: String) = BookSourceRule(name = "源<$sourceUrl>", url = sourceUrl)

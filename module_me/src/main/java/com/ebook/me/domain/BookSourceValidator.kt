@@ -60,7 +60,7 @@ object BookSourceValidator {
      * [ScriptSourceRule] 根本看不到它们（社区语料里 62% 的源规则就是整段脚本，
      * 拿选择器去判会把绝大多数正常源误拦在门外）。名称与地址两条则是两种格式共有的硬前提：
      * 名称是清单里唯一的识别位，地址既是主键又是所有请求的拼接起点——
-     * 缺任一条连「存下来」都做不到（`BookSourceManager.addScriptSource` 同样拒收）。
+     * 缺任一条连「存下来」都做不到（`SourceAdmin.addScriptSource` 同样拒收）。
      * 报的原因也用同一批 [ValidationReason] 值，预览层才不必为两种出身各写一套渲染。
      *
      * **三项警示一律不拦导入**（ADR-0029 决策 6：逐源报告要把「依赖登录」「漫画/音频类」
@@ -190,7 +190,7 @@ enum class ValidationReason {
      * 或声明过的键写着 `null`）。
      *
      * 不是 [BookSourceValidator.validate] / [BookSourceValidator.validateScript] 判出来的，
-     * 而是导入预览在解码那一步直接给出的：解码器与 `BookSourceManager.addScriptSource`
+     * 而是导入预览在解码那一步直接给出的：解码器与 `SourceAdmin.addScriptSource`
      * 共用同一实例，所以「预览判解不出」与「落库判存不下」是同一个接受集——
      * 预览标为不通过的条目，确认导入时也确实进不去，反之亦然。
      */

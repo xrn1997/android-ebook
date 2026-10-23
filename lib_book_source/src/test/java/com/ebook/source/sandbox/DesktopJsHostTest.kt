@@ -124,7 +124,9 @@ class DesktopJsHostTest {
     @Test
     fun `白名单外的 host 被拒且不发出请求`() = runTest {
         val t = transport
-        val error = runCatching { bridgeFor(newCtx()).runSegment("java.ajax('https://evil.com/x')", page) }
+        // bridgeFor 内含 assumeTrue，必须留在 runCatching 之外：库缺席时按跳过处置，不得被吞成断言失败
+        val bridge = bridgeFor(newCtx())
+        val error = runCatching { bridge.runSegment("java.ajax('https://evil.com/x')", page) }
             .exceptionOrNull()
         assertTrue("实际：${error?.let { it::class.simpleName }}", error is JsExecutionFailedException)
         assertTrue((error as JsExecutionFailedException).message!!.contains("白名单"))
@@ -133,7 +135,8 @@ class DesktopJsHostTest {
 
     @Test
     fun `白名单外能力报 UNSUPPORTED_API 而不是 ReferenceError`() = runTest {
-        val error = runCatching { bridgeFor(newCtx()).runSegment("java.connect('https://x')", page) }
+        val bridge = bridgeFor(newCtx())
+        val error = runCatching { bridge.runSegment("java.connect('https://x')", page) }
             .exceptionOrNull()
         assertTrue(error is JsExecutionFailedException)
         assertEquals(JsStatus.UNSUPPORTED_API, (error as JsExecutionFailedException).status)
@@ -141,7 +144,8 @@ class DesktopJsHostTest {
 
     @Test
     fun `死循环在 wallClockMs 内被打断`() = runTest {
-        val error = runCatching { bridgeFor(newCtx()).runSegment("var i=0; while(true){i++;} i;", page) }
+        val bridge = bridgeFor(newCtx())
+        val error = runCatching { bridge.runSegment("var i=0; while(true){i++;} i;", page) }
             .exceptionOrNull()
         assertTrue(error is JsExecutionFailedException)
         assertEquals(JsStatus.TIMEOUT, (error as JsExecutionFailedException).status)
@@ -217,7 +221,8 @@ class DesktopJsHostTest {
 
     @Test
     fun `真内核下 source 的登录族报 UNSUPPORTED_API 而不是类型错误`() = runTest {
-        val error = runCatching { bridgeFor(newCtx()).runSegment("source.getLoginInfoMap()", page) }.exceptionOrNull()
+        val bridge = bridgeFor(newCtx())
+        val error = runCatching { bridge.runSegment("source.getLoginInfoMap()", page) }.exceptionOrNull()
         assertTrue(error is JsExecutionFailedException)
         assertEquals(JsStatus.UNSUPPORTED_API, (error as JsExecutionFailedException).status)
         assertTrue(error.message!!, error.message!!.contains("getLoginInfoMap"))

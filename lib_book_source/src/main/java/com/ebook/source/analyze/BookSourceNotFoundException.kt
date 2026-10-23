@@ -8,7 +8,7 @@ package com.ebook.source.analyze
  * 在「拿不到可用书源就无法继续」的分支上；该类型用于把根因说清楚，并让需要展示提示的调用方
  * 把它与其他解析失败分开。
  *
- * 与 `lib_book_common` 的 `BookSourceManager.resolveSource` 的关系：`Missing`/`Broken` 是「查不到/行坏了」
+ * 与 `lib_book_common` 的 `SourceResolver.resolveSource` 的关系：`Missing`/`Broken` 是「查不到/行坏了」
  * 这个事实，抛不抛由调用方定；
  * 本地书的 `tag`（`loc_book`）由 `SourceBinding.Local` 单独表示，**不是**本异常的场景；
  * 经 `parserOrThrow` 时那一档会抛 `IllegalStateException`，调用方不必自己排除本地书。

@@ -2,7 +2,7 @@ package com.ebook.me.mvvm.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.viewModelScope
-import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceCatalog
 import com.ebook.common.domain.ThemeMode
 import com.ebook.common.domain.ThemeModeManager
 import com.ebook.common.domain.UserSessionManager
@@ -67,7 +67,7 @@ class SettingViewModel @Inject constructor(
     private val releaseRepository: ReleaseRepository,
     private val releaseStateStore: ReleaseStateStore,
     private val themeModeManager: ThemeModeManager,
-    bookSourceManager: BookSourceManager,
+    sourceCatalog: SourceCatalog,
 ) : BaseViewModel<CacheModel>(cacheModel) {
 
     /** 当前登录态（控制退出登录区块显隐） */
@@ -141,14 +141,14 @@ class SettingViewModel @Inject constructor(
      * 也不是这一行的动作能改的。全部禁用时这里仍显示条数，不是 bug——禁用项仍在清单里、
      * 仍可在页面上打开，入口行报「0」反而会让人以为书源丢了。
      *
-     * [BookSourceManager.observeSources] 是**冷流**（收集时才查 DAO），故首帧的初值 0 只是「还没读到库」的占位，
+     * [SourceCatalog.observeSources] 是**冷流**（收集时才查 DAO），故首帧的初值 0 只是「还没读到库」的占位，
      * 不代表一个源都没有；真值到达后这一行自动刷新（Room 失效追踪，无需 onResume 重算）。
      * 该流给的是 `BookSourceItem`（规则 + `format` 出身），本行只取条数、不读元数据——
      * 「这条能不能删」「导出入口给不给」是书源管理页的判断，入口行不该长出第二个口径。
      * WhileSubscribed(5s) 与 [MePageViewModel] 同形态：设置页可能被长期压在返回栈里，
      * 无订阅者时不该继续挂着一个 Room 失效监听。
      */
-    val sourcesCount: StateFlow<Int> = bookSourceManager.observeSources()
+    val sourcesCount: StateFlow<Int> = sourceCatalog.observeSources()
         .map { it.size }
         .stateIn(
             scope = viewModelScope,

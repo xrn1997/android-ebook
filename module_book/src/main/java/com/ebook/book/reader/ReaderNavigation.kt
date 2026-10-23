@@ -27,7 +27,7 @@ interface ReaderTurnController {
  * 现在：
  * - 路由判据只有 [mode]（页面用 `turnModeIndex` 镜像驱动重组，切换时同步写入）；
  * - 调用方只调 [turnNext]/[turnPrev]/[setPosition]/[converge]，不关心当前挂的是哪个控制器；
- * - 两个控制器共用 [onProgress] 一个出口，进度扇出（标题/滑条/追更）只写一次。
+ * - 两个控制器共用 [onProgress] 一个出口，进度交会话；标题/滑条由会话派生，追更由会话判定。
  *
  * 定位分两档：跳转（目录、滑条、换源）与换模式后的换算只驱动当前模式（[setPosition]）；
  * 冷启动与重分页另用 [converge] 把另一侧的落点预热上——不预热它就带着「章号 0、块数 0」的初值
@@ -37,7 +37,7 @@ interface ReaderTurnController {
  */
 internal class ReaderNavigation(
     initialMode: ReaderTurnMode,
-    /** 两个控制器共用的唯一进度出口（由页面注入；扇出见 `ReadBookScreen`） */
+    /** 两个控制器共用的唯一进度出口（由页面注入；落点见 `ReadBookScreen`） */
     val onProgress: (chapterIndex: Int, pageIndex: Int) -> Unit,
 ) {
     private var paged: ReaderTurnController? = null

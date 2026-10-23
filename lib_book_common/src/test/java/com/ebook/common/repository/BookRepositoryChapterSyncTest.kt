@@ -81,7 +81,7 @@ class BookRepositoryChapterSyncTest {
             downloadChapterDao = daos.download,
             // 本路径不读正文，reader 一律用不上
             chapterReaders = emptyMap<BookFormat, ChapterReader>(),
-            bookSourceManager = manager,
+            sourceResolver = manager,
             bookStore = BookStore(booksRoot.root),
             contentCache = ChapterContentCache(capacity = 3),
             transactions = DirectTransactionRunner,

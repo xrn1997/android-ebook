@@ -27,7 +27,7 @@ internal val storageJson = Json { ignoreUnknownKeys = true }
  * 于是顺手再开一份——那正好破坏上面那条唯一性。改成 `SourceStorageJson` 说的是同一件事的另一面：
  * 这里是**书源存储侧 JSON 的唯一定义处**。
  *
- * 与 [BookSourceManager.addScriptSource] 共用 [storageJson]，因此**「预览判得出字段」与
+ * 与 [SourceAdmin.addScriptSource] 共用 [storageJson]，因此**「预览判得出字段」与
  * 「落库存得下来」是同一件事**：预览把一个对象标成可导入，确认时就不会在解码这一步被撞回来。
  * 这也是本函数放在 `lib_book_common`、而不是让调用模块自己开一个 `Json` 实例的理由——
  * 各模块各解一遍，就是给这个接受集添第二个事实源。

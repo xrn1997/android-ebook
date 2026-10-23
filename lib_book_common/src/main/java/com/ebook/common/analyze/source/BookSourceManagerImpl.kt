@@ -70,12 +70,12 @@ import javax.inject.Singleton
  * `book_source` 表现在同时装两种出身的行：原生规则书源与脚本书源（社区通用 JSON，规则内嵌可执行脚本）。
  * 路由键是 `format` 列，**读它的有四处、各办各的事**：
  * - [toDefinition]：求值链路唯一的分岔点，按分支把行交给 [parserFactory]（原生解规则、脚本原样递出 JSON）；
- * - [toRule]：把非原生行整条挡下，于是 [getAllSources] / [getEnabledSources] / [getSourceByUrl]
- *   三面同时生效，不需要每个入口各写一次判断（默认源回落不在此列：它走 [defaultFromRows]，
+ * - [toRule]：把非原生行整条挡下，于是规则类型化读面（[getAllSources]）自动对脚本行不可见，
+ *   不需要每个入口各写一次判断（默认源回落不在此列：它走 [defaultFromRows]，
  *   脚本行同样可以是默认源）；
  * - [toItem]：决定这一行**要不要**解 `rule_json`（脚本行不解，条目 rule 由实体列合成，见其 KDoc）；
  * - [getFormatByUrl]：只问一行的出身，供导入预览判「会不会覆盖、覆盖成什么格式」。
- * 这几处读法必须一起看：让求值链路改走 [getSourceByUrl]，脚本书源就会凭空变成「库里没这行」；
+ * 这几处读法必须一起看：让求值链路改走规则类型化读面（[getAllSources]），脚本书源就会凭空变成「库里没这行」；
  * 让 [toItem] 无条件解 `rule_json`，形状冲突的脚本行就会整行消失（曾是的）。
  * **写侧同样只有两处**（[addSource] 写 NATIVE、[addScriptSource] 写 SCRIPT），两处都显式取 `.raw`
  * 并在写成功后失效该 URL 的缓存——`format` 是路由键，谁悄悄改它而不 evict，LRU 就成了第二个事实源。
@@ -312,8 +312,8 @@ class BookSourceManagerImpl internal constructor(
     /**
      * 行 → 规则；解析链路与挂起读面只要规则，元数据经 [toItem] 只随 [observeSources] 出门。
      *
-     * **非原生格式的行在这里被挡下**，于是规则类型化读面（[getAllSources] / [getEnabledSources] /
-     * [getSourceByUrl]）自动对脚本书源不可见。默认源回落不在其中——它走 [defaultFromRows]
+     * **非原生格式的行在这里被挡下**，于是规则类型化读面（[getAllSources]）自动对脚本书源不可见。
+     * 默认源回落不在其中——它走 [defaultFromRows]
      * （[toItem] 筛、[toDefinition] 造），脚本行同样有资格当默认源。
      *
      * 为什么必须挡而不是「让它解出个空规则」：脚本书源的 `rule_json` 是社区格式的原始 JSON，
@@ -391,23 +391,11 @@ class BookSourceManagerImpl internal constructor(
         dao.getAll().mapNotNull { toRule(it) }
 
     /**
-     * 启用中的书源。**当前无生产调用方**，保留为规则类型化读面的一员（与 [getAllSources]、
-     * [getSourceByUrl] 同族）：聚合搜索候选走 [BookSourceDao.getEnabled] + [toItem]，
-     * 默认源回落走 [defaultFromRows]（读全量行后在条目面筛 `enabled`），两条链路都不经过本方法。
-     */
-    override suspend fun getEnabledSources(): List<BookSourceRule> =
-        dao.getEnabled().mapNotNull { toRule(it) }
-
-    /** 按 URL 取单个源；null 只可能是「这行真不存在」或「这行不是原生格式/解码失败」 */
-    override suspend fun getSourceByUrl(url: String): BookSourceRule? =
-        dao.getByUrl(url)?.let { toRule(it) }
-
-    /**
      * 按 URL 取 parser，未命中则查库构建并放入 LRU。
      *
      * 五个要点：
-     * - **查库走 [BookSourceDao.getByUrl] 而不是 [getSourceByUrl]**：后者是规则类型化读面，
-     *   已按 `format` 把脚本书源挡下（见 [toRule]），照它读就会让「脚本行」在求值链路上凭空变成
+     * - **查库走 [BookSourceDao.getByUrl] 而不是规则类型化读面**：[toRule] 已按 `format`
+     *   把脚本书源挡下，照它读就会让「脚本行」在求值链路上凭空变成
      *   「没有这行」——而 `getByUrl` 的 null 只该表示「库里没有这行」，混进「这条源是脚本出身」
      *   就等于把可正常阅读的源说成已失效。
      * - **按 [toDefinition] 分格式路由，两条格式共用同一套缓存结构**：脚本行与原生行一样进 [parserCache]
@@ -454,8 +442,8 @@ class BookSourceManagerImpl internal constructor(
      * - [parserOrThrow] 取不到 parser 时**发 Failed 而不是让整条流少一格**：清单来自 enabled 行，
      *   理论上取不到 parser 只可能是那一行的 `rule_json` 解不出来（脏行被 [toRule] 跳过），
      *   这是「这条源坏了」而不是「聚合逻辑坏了」，处置范围必须限定在它自己身上。
-     * - **候选集走 [BookSourceDao.getEnabled] + [toItem]，不走 [getEnabledSources]**：后者是
-     *   **规则类型化读面**，按 `format` 把脚本行挡下（它的返回类型是 [BookSourceRule]，
+     * - **候选集走 [BookSourceDao.getEnabled] + [toItem]，不走规则类型化读面（[getAllSources]）**：
+     *   后者经 [toRule] 按 `format` 把脚本行挡下（返回类型是 [BookSourceRule]，
      *   脚本行的 `rule_json` 硬解只会得到一条键名全对不上的空规则）。2d 起脚本源参与聚合搜索，
      *   所以这里读条目面：[toItem] 对两种出身都给真 `url`/`name`（脚本行的 rule 只是实体列合成的
      *   展示壳，聚合只取它的 url 与 name 发事件，从不拿规则字段去发请求）。
@@ -644,7 +632,7 @@ class BookSourceManagerImpl internal constructor(
      * 按 URL 查已入库书源的格式出身；null 就是「库里真没有这一行」。
      *
      * 这一位为什么必须单独开一个查询面：导入预览要判「这条会不会覆盖已有的源、覆盖的是哪种格式」，
-     * 而规则类型化读面（[getSourceByUrl]）对脚本行**刻意**给 null——拿它判会把「已有一行脚本源」
+     * 而规则类型化读面（[getAllSources]）对脚本行**刻意**不可见——拿它判会把「已有一行脚本源」
      * 误报成「新源」，用户就看到一句指错方向的提示。本方法不碰 `rule_json`，
      * 只读主键与 `format` 列，两种格式的行在这里都是平等的一行。
      */

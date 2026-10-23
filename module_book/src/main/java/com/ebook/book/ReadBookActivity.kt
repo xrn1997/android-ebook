@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,17 +34,20 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.TextUnit
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.ebook.book.manager.BitIntentDataManager
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.OPEN_FROM_OTHER
+import com.ebook.book.mvvm.viewmodel.BookReadViewModel.Companion.TAG
 import com.ebook.book.mvvm.viewmodel.SourceSwitchViewModel
 import com.ebook.book.reader.AddShelfDialog
 import com.ebook.book.reader.ChapterListDrawer
 import com.ebook.book.reader.FontPanel
 import com.ebook.book.reader.LightPanel
 import com.ebook.book.reader.MoreSettingPanel
+import com.ebook.book.reader.ReaderAppendResult
 import com.ebook.book.reader.ReaderBottomBar
 import com.ebook.book.reader.ReaderNavigation
 import com.ebook.book.reader.ReaderPager
@@ -54,6 +56,8 @@ import com.ebook.book.reader.ReaderPagination
 import com.ebook.book.reader.ReaderPanel
 import com.ebook.book.reader.ReaderScroll
 import com.ebook.book.reader.ReaderScrollController
+import com.ebook.book.reader.ReaderSession
+import com.ebook.book.reader.ReaderSessionState
 import com.ebook.book.reader.ReaderTopBar
 import com.ebook.book.reader.ReaderTurnMode
 import com.ebook.book.reader.ReaderTypesetter
@@ -82,6 +86,7 @@ import com.xrn1997.common.util.ToastUtil
 import com.xrn1997.common.util.detectColor
 import com.xrn1997.common.util.setStatusBarColor
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -172,7 +177,7 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
             finish()
             return
         }
-        viewModel.bookShelf = bookShelf
+        viewModel.session.adopt(bookShelf)
         // 记下「阅读会话进行中」，供启动页在异常关闭后恢复（见 ReaderResumeStore）
         ReaderResumeStore.markReading(bookShelf.noteUrl)
         viewModel.checkInShelf()
@@ -190,7 +195,7 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
                 val result = withContext(Dispatchers.IO) {
                     bookImportRepository.import(uri)
                 }
-                viewModel.bookShelf = result.bookShelf
+                viewModel.session.adopt(result.bookShelf)
                 // 应用外导入后同样记标记：这一类会话被划掉时也该恢复到刚导入的这本书上
                 ReaderResumeStore.markReading(result.bookShelf.noteUrl)
                 onImporting(false)
@@ -220,20 +225,17 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
             return
         }
         lifecycleScope.launch {
-            // 必须用 getBookWithDetails 而不是 getBookByUrl：后者只给一行 book_shelf，
-            // bookInfo/chapterList 是 @Ignore 字段不会被带出来，章节列表为空会让阅读器
-            // 停在空白页（loadPage 在 chapterSize == 0 时直接返回 null）
-            val shelf = withContext(Dispatchers.IO) { bookRepository.getBookWithDetails(noteUrl) }
-            if (shelf == null) {
+            // 会话的 openFromStore 走 getBookWithDetails 而不是 getBookByUrl：后者只给一行
+            // book_shelf，bookInfo/chapterList 是 @Ignore 字段不会被带出来，章节列表为空会让
+            // 阅读器停在空白页（loadChapter 在无目录时直接返回 null）
+            if (!viewModel.session.openFromStore(noteUrl)) {
                 Logger.e(TAG, "openBookForResume: 条目已不存在 $noteUrl")
                 ToastUtil.showShort(this@ReadBookActivity, getString(R.string.reader_load_failed))
                 finish()
                 return@launch
             }
-            viewModel.bookShelf = shelf
             // 恢复进来后重新落一次标记：用户可能继续读很久再被划掉，标记必须仍是这本书
-            ReaderResumeStore.markReading(shelf.noteUrl)
-            viewModel.checkInShelf()
+            ReaderResumeStore.markReading(noteUrl)
         }
     }
 
@@ -246,12 +248,14 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
      * 后插入的那行，猜首元素会把评论写进旧桶，见 spec §9.2）。
      */
     fun navToComment(bookShelf: BookShelfEntity, bookKeys: List<String>, writeKey: String?) {
-        val chapter = viewModel.getChapter(bookShelf.durChapter)
+        // 章级定位取会话的实时位置：`bookShelf` 只是打开时的快照，`durChapter` 不随阅读前进
+        val chapterIndex = viewModel.readerState.value.chapterIndex
+        val chapter = viewModel.session.chapterAt(chapterIndex)
         // 章级聚合键：每个 bookKey 都拼 "#" + chapterIndex，逗号分隔传给接收方
-        val chapterKeys = bookKeys.joinToString(",") { "$it#${bookShelf.durChapter}" }
+        val chapterKeys = bookKeys.joinToString(",") { "$it#$chapterIndex" }
         val bundle = Bundle().apply {
             putString(RouteArgs.COMMENT_KEY, chapterKeys)
-            putString(RouteArgs.PRIMARY_COMMENT_KEY, writeKey?.let { "$it#${bookShelf.durChapter}" })
+            putString(RouteArgs.PRIMARY_COMMENT_KEY, writeKey?.let { "$it#$chapterIndex" })
             putString(RouteArgs.CHAPTER_URL, chapter?.contentRef ?: "")
             putString(RouteArgs.CHAPTER_NAME, chapter?.durChapterName ?: getString(R.string.unknown_chapter))
             putString(RouteArgs.BOOK_NAME, bookShelf.bookInfo?.name ?: getString(R.string.unknown_book))
@@ -280,17 +284,19 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         // 滚屏模式还要后者当块高（块与块要精确无缝拼接，不能用心算的行高）。
         // 两种翻页方式共用同一条判据（fitLines），对「一屏几行」只可能同解。
         pagination.measure(typesetter) ?: return
-        val shelf = viewModel.bookShelf ?: return
+        val state = viewModel.readerState.value
+        if (state.shelf == null) return
         if (startFromCurrent) {
             // 两侧一起收敛（另一侧只预热）：换模式后的落点换算见 ReadBookScreen 的
             // pendingTurnModeSwitch，而那一帧之前另一侧必须已有正确落点
-            navigation?.converge(shelf.durChapter, shelf.durChapterPage)
+            navigation?.converge(state.chapterIndex, state.pageIndex)
         }
     }
 
     /**
      * 加载单页内容（原 loadContent 的 suspend 化）：
-     * 1. 按来源取正文（本地书走章文件、网络书走 DB 缓存→网络） → 2. 排版偏移缓存 → 3. 分页切片取原文子串。
+     * 1. 经会话按索引取正文（本地书走章文件、网络书走 DB 缓存→网络，标题与 `contentRef` 随正文带回）
+     * → 2. 排版偏移缓存 → 3. 分页切片取原文子串。
      *
      * 断行走 [ReaderPagination]（与页面渲染同一引擎、同一份样式）——见
      * [ReaderTypesetter] 里「分页与渲染必须同源」的契约：两套引擎判定的行数不一致时，
@@ -305,23 +311,17 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
      * 其余异常（解析失败、排版未就绪等）保持既有的静默降级——只记日志 + 错误态重试按钮。
      */
     suspend fun loadPage(chapterIndex: Int, pageIndex: Int): com.ebook.book.reader.ReaderPageUi.Loaded? {
-        val bookShelf = viewModel.bookShelf
-        val chapterSize = viewModel.getChapterListSize()
-        if (bookShelf == null || chapterSize == 0) return null
-        val chapter = viewModel.getChapter(chapterIndex) ?: return null
-
         return try {
-            // 取正文：本地书与网络书统一走 BookRepository.loadChapter（章文件 + 内存缓存）
-            val chapterText: String? = viewModel.loadChapter(chapter)?.displayText
-            if (chapterText.isNullOrEmpty()) return null
+            // 取正文：会话按索引从书架快照里取章，本地书与网络书同一条仓库路径
+            val chapter = viewModel.session.loadChapter(chapterIndex) ?: return null
 
             // 分页状态机负责排版缓存与切片；排版在 Default 线程跑整章 O(章长)
             val window = withContext(Dispatchers.Default) {
-                pagination.paginate(chapterText, chapter.contentRef)
+                pagination.paginate(chapter.text, chapter.contentRef)
             } ?: return null
             val resolved = window.resolvePageIndex(pageIndex)
             com.ebook.book.reader.ReaderPageUi.Loaded(
-                title = chapter.durChapterName,
+                title = chapter.title,
                 chapterIndex = chapterIndex,
                 durPageIndex = resolved,
                 pageAll = window.pageCount,
@@ -337,7 +337,8 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
             // （MvvmBinder 在主线程消费），不在 Activity 里补 Toast。
             // 文案取字符串资源而非 e.message：异常消息带内部 URL，不适合直接上屏。
             viewModel.reportFailure(e, getString(R.string.book_source_invalid))
-            Logger.e(TAG, "loadPage 书源已失效: ${bookShelf.tag} / ${chapter.contentRef}", e)
+            val tag = viewModel.readerState.value.shelf?.tag
+            Logger.e(TAG, "loadPage 书源已失效: $tag / ${viewModel.session.chapterAt(chapterIndex)?.contentRef}", e)
             null
         } catch (e: Exception) {
             Logger.e(TAG, "loadPage error: ", e)
@@ -400,7 +401,10 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
         // 不在本页内层再包一层固定浅色 MaterialTheme，直接继承基类 AppTheme 装配点的主题，
         // chrome 层所有 colorScheme.* 语义色随浅色/深色解析。
         // 正文层与 chrome 层各管一段：纸张配色由 ReadBookControl 显式给出，深浅色切换不动它。
-        ReadBookScreen(this, viewModel)
+        // 阅读状态由会话持有，此处只收一份快照交给下面渲染；回调里的「当前值」仍读 readerState.value，
+        // 免得被首次组合的旧快照钉死。
+        val readerState by viewModel.readerState.collectAsStateWithLifecycle()
+        ReadBookScreen(this, viewModel, readerState)
     }
 }
 
@@ -443,7 +447,8 @@ private fun turnModeOf(index: Int): ReaderTurnMode =
 @Composable
 private fun ReadBookScreen(
     activity: ReadBookActivity,
-    viewModel: BookReadViewModel
+    viewModel: BookReadViewModel,
+    readerState: ReaderSessionState,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -473,14 +478,18 @@ private fun ReadBookScreen(
     // 避免"点击翻页是否生效"依赖 panel 变化恰好触发重组（隐式耦合）。
     // 注意：canKeyTurn 不走此镜像——onKeyDown/onKeyUp 是 Activity 回调，运行时直读单例即最新值。
     var clickTurnEnabled by remember { mutableStateOf(ReadBookControl.canClickTurn) }
-    // 章节标题初值走 stringResource：context.getString 的读取不随 Configuration 变化失效
-    // （lint LocalContextGetResourceValueCall 判 Error）。刻意**不**把 noChapter 当 remember 的
-    // key——key 一变会把已加载的章节标题重置回占位文案；本页未声明 android:configChanges，
-    // 语言切换走 Activity 重建，重建后的新组合自然取到新语言初值。
+    // 章节标题与滑条都由会话状态派生，页面不再各自镜像：位置一变它们随 readerState 重组。
+    // 占位文案走 stringResource：context.getString 的读取不随 Configuration 变化失效
+    // （lint LocalContextGetResourceValueCall 判 Error）；本页未声明 android:configChanges，
+    // 语言切换走 Activity 重建，重建后的新组合自然取到新语言文案。
     val noChapter = stringResource(R.string.no_chapter)
-    var chapterTitle by remember { mutableStateOf(noChapter) }
-    var sliderValue by remember { mutableFloatStateOf(1f) }
-    var bookReady by remember { mutableStateOf(false) } // nextInShelfEvent 已到
+    // 仅拖动期间存滑条预览值；抬手即清空，非拖动时位置一律取会话派生的 sliderValue
+    var sliderPreview by remember { mutableStateOf<Float?>(null) }
+    // 菜单收起时清掉预览：拖动中被手势取消时结束回调不会来，半途值会一直压着会话派生的位置，
+    // 下次打开底栏就显示一个并不存在的位置。
+    LaunchedEffect(menuVisible) {
+        if (!menuVisible) sliderPreview = null
+    }
     var pagerStarted by remember { mutableStateOf(false) }
     var importingBook by remember { mutableStateOf(false) } // 外部打开文本的导入遮罩
     var addShelfDialogVisible by remember { mutableStateOf(false) }
@@ -489,8 +498,10 @@ private fun ReadBookScreen(
     var bodyWidth by remember { mutableIntStateOf(0) }
     var bodyHeight by remember { mutableIntStateOf(0) }
 
-    val bookShelf = viewModel.bookShelf
-    val chapterAll = viewModel.getChapterListSize()
+    val bookShelf = readerState.shelf
+    val chapterAll = readerState.chapterCount
+    val chapterTitle = readerState.chapterTitle ?: noChapter
+    val sliderValue = sliderPreview ?: readerState.sliderValue
     // 追更提示在组合期取模板与资源 locale、回调里再 format：syncAtTailChapter 的回调不是
     // Composable，在那儿调 context.getString 会踩 lint LocalContextGetResourceValueCall（同
     // noChapter 的理由）；显式带 locale 是为了保持 context.getString(id, args) 的资源格式化口径
@@ -498,34 +509,40 @@ private fun ReadBookScreen(
     val chaptersAppendedLocale = LocalConfiguration.current.locales[0]
 
     /**
-     * 到达末章时静默查一次目录更新。
+     * 静默查一次目录更新。
      *
      * 挂在 `onProgress` 而不是别处：它是两种翻页方式（左右翻页 / 上下滚屏）**唯一共用**的
-     * 进度回调，翻页方式与容器无关，挂在这里就不必各接一遍。
+     * 进度回调，翻页方式与容器无关，挂在这里就不必各接一遍。是否在末章、是否该发网络，
+     * 都由会话的 [ReaderSession.appendIfAtTail] 一手判定（不在末章时直接返回、不发请求），
+     * 页面不再持有自己的「第几章 / 共几章」副本。
      *
-     * 追加成功后复用换源那条已验证的重载路径，差别有三点：不需要整体替换
-     * `viewModel.bookShelf`（VM 已就地更新它的 chapterList，阅读器现取该字段）、
-     * `startFromCurrent = true`（换源是 false，因为页级进度不跨源）、不调 `gotoPage`
-     * （纯追加不改既有章的序号，位置没动）。
-     * `sliderValue` 与 `chapterTitle` 是页面本地状态、不随 VM 重组，必须一并跟上，
-     * 否则滑条仍按旧的「共 M 章」计算、重组成后读到的章数也停在旧值。
+     * 只有 [ReaderAppendResult.Appended] 需要宿主开口：重分页并提示新增章数。
+     * 其余结局（不在末章、归属不符等静默跳过）都不改动页面，`NotAtTail` 是翻页的常态。
+     * 追加成功后复用换源那条已验证的重载路径，差别有两点：`startFromCurrent = true`
+     * （换源是 false，因为页级进度不跨源）、不调 `gotoPage`（纯追加不改既有章的序号，位置没动）。
+     * 标题、滑条与章数都从会话状态派生，目录变了自然重组到新值，不再手工跟进。
      *
      * 声明必须早于下面两个控制器：它们的 lambda 要引用本函数，而 Kotlin 不允许
      * lambda 前向引用后面才声明的局部 `val`。
      */
-    val syncAtTailChapter: (Int) -> Unit = { chapterIndex ->
-        if (chapterIndex == viewModel.getChapterListSize() - 1) {
-            scope.launch {
-                val appended = viewModel.appendChaptersIfAny()
-                if (!appended.isNullOrEmpty()) {
-                    activity.rePaginate(typesetter, startFromCurrent = true)
-                    chapterTitle = viewModel.getChapterTitle(chapterIndex)
-                    sliderValue = (chapterIndex + 1).toFloat()
-                    ToastUtil.showShort(
-                        context,
-                        chaptersAppendedFormat.format(chaptersAppendedLocale, appended.size),
-                    )
-                }
+    val syncAtTailChapter: () -> Unit = {
+        scope.launch {
+            // 宿主合同：仓库已把网络/解析失败折成非 Appended 结果；逃出来的只有 DB/IO 失败与取消。
+            // 取消必须原样上抛，其余记日志即可——追更是静默后台动作，不向用户报错。
+            val result = try {
+                viewModel.session.appendIfAtTail()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Logger.e(TAG, "追更异常", e)
+                null
+            }
+            if (result is ReaderAppendResult.Appended) {
+                activity.rePaginate(typesetter, startFromCurrent = true)
+                ToastUtil.showShort(
+                    context,
+                    chaptersAppendedFormat.format(chaptersAppendedLocale, result.count),
+                )
             }
         }
     }
@@ -542,12 +559,10 @@ private fun ReadBookScreen(
         ReaderNavigation(
             initialMode = turnModeOf(turnModeIndex),
             onProgress = { c, p ->
-                // 两种方式唯一的进度出口：进度落 ViewModel + 菜单标题 + 章节滑条 + 末章追更。
+                // 两种方式唯一的进度出口：位置落会话（标题、滑条、章数都从它派生）+ 末章追更。
                 // p 为翻页目标的页码（可能为哨兵），与原实现一致直接落库。
-                viewModel.updateProgress(c, p)
-                chapterTitle = viewModel.getChapterTitle(c)
-                sliderValue = (c + 1).toFloat()
-                currentSyncAtTailChapter(c)
+                viewModel.session.updateProgress(c, p)
+                currentSyncAtTailChapter()
             },
         )
     }
@@ -555,8 +570,8 @@ private fun ReadBookScreen(
         ReaderPagerController(
             scope = scope,
             context = context,
-            chapterSize = { viewModel.getChapterListSize() },
-            chapterTitle = { viewModel.getChapterTitle(it) },
+            chapterSize = { viewModel.readerState.value.chapterCount },
+            chapterTitle = { viewModel.session.chapterAt(it)?.durChapterName ?: noChapter },
             loadPage = { c, p -> activity.loadPage(c, p) },
             onProgress = navigation.onProgress,
         )
@@ -565,8 +580,8 @@ private fun ReadBookScreen(
         ReaderScrollController(
             scope = scope,
             context = context,
-            chapterSize = { viewModel.getChapterListSize() },
-            chapterTitle = { viewModel.getChapterTitle(it) },
+            chapterSize = { viewModel.readerState.value.chapterCount },
+            chapterTitle = { viewModel.session.chapterAt(it)?.durChapterName ?: noChapter },
             loadPage = { c, p -> activity.loadPage(c, p) },
             onProgress = navigation.onProgress,
         )
@@ -614,11 +629,6 @@ private fun ReadBookScreen(
         activity.setStatusBarColor(colorUnderStatusBar.detectColor())
     }
 
-    // 书架归属检查完成事件（原 initBaseViewObservable 的 nextInShelfEvent 收集）
-    LaunchedEffect(Unit) {
-        viewModel.nextInShelfEvent.collect { bookReady = true }
-    }
-
     // 打开书籍（对齐原 csvBook.bookReadInit 回调）
     LaunchedEffect(Unit) {
         when {
@@ -635,18 +645,16 @@ private fun ReadBookScreen(
         }
     }
 
-    // 书籍就绪 + 正文区完成测量 → 测算行数并启动翻页（两者先后顺序不定，均在此汇合）
-    LaunchedEffect(bookReady, bodyHeight) {
-        if (bookReady && !pagerStarted && bodyHeight > 0) {
+    // 书籍就绪 + 正文区完成测量 → 测算行数并启动翻页（两者先后顺序不定，均在此汇合）。
+    // 就绪判据是会话的 shelfChecked：打开路径落定归属的那一步，不再另设事件。
+    LaunchedEffect(readerState.shelfChecked, bodyHeight) {
+        if (readerState.shelfChecked && !pagerStarted && bodyHeight > 0) {
             pagerStarted = true
-            sliderValue = ((viewModel.bookShelf?.durChapter ?: 0) + 1).toFloat()
-            val shelf = viewModel.bookShelf
             activity.rePaginate(typesetter, startFromCurrent = false)
-            val initChapter = shelf?.durChapter ?: 0
-            val initPage = shelf?.durChapterPage ?: DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN
+            val state = viewModel.readerState.value
             // 两侧一起收敛：另一侧此刻没有渲染，不预热落点就带着「章号 0、块数 0」的初值躺着，
             // 用户一换模式、新容器成形的那一帧落点就是错的（pendingTurnModeSwitch 的换算在那一帧之后）
-            navigation.converge(initChapter, initPage)
+            navigation.converge(state.chapterIndex, state.pageIndex)
         }
     }
 
@@ -671,13 +679,14 @@ private fun ReadBookScreen(
         // （例如改字号引起的重排）误触发一次换算，把用户当前的位置按行号又搬一次。
         pendingTurnModeSwitch = false
         if (!pagerStarted) return@LaunchedEffect
-        val shelf = viewModel.bookShelf ?: return@LaunchedEffect
+        val state = viewModel.readerState.value
+        if (state.shelf == null) return@LaunchedEffect
         val oldLineCount = modeSwitchOldLineCount
         activity.rePaginate(typesetter, startFromCurrent = false)
         val newLineCount = activity.pagination.pageLineCount
-        val target = activity.pagination.convertPageIndex(shelf.durChapterPage, oldLineCount, newLineCount)
+        val target = activity.pagination.convertPageIndex(state.pageIndex, oldLineCount, newLineCount)
         // 定位本身会经控制器的 onProgress 同步写一次进度，不在这里重复 updateProgress
-        navigation.setPosition(shelf.durChapter, target)
+        navigation.setPosition(state.chapterIndex, target)
     }
 
     // 返回键处置链（对齐原 onBackPressedDispatcher 回调）：
@@ -688,7 +697,7 @@ private fun ReadBookScreen(
             panel == ReaderPanel.CHAPTER -> panel = ReaderPanel.NONE
             menuVisible -> menuVisible = false
             addShelfDialogVisible -> addShelfDialogVisible = false
-            !viewModel.isAdd -> addShelfDialogVisible = true
+            !readerState.inShelf -> addShelfDialogVisible = true
             else -> activity.finish()
         }
     }
@@ -696,25 +705,26 @@ private fun ReadBookScreen(
     // ---------------- 下载入口（打开「下载中心」直达该书选章二级页） ----------------
     // 下载任务须挂在书架行上才能被 DownloadService 拉取，且二级页按 note_url 读章目录，
     // 故先确保该书在架（原「确认下载时加架」语义提前到入口），成功后再带参打开。
+    // 回调只在会话确认这次写入属于当前书时到来（写库期间换书则不回调），不会为另一本书开二级页。
     val openDownloadCenter = {
         menuVisible = false
-        viewModel.addToShelf(object : BookReadViewModel.OnAddListener {
-            override fun addSuccess() {
-                val shelf = viewModel.bookShelf ?: return
-                context.startActivity(
-                    Intent(context, DownloadManageActivity::class.java).apply {
-                        putExtra(DownloadManageActivity.EXTRA_NOTE_URL, shelf.noteUrl)
-                        putExtra(DownloadManageActivity.EXTRA_TAG, shelf.tag)
-                        putExtra(DownloadManageActivity.EXTRA_FOCUS_CHAPTER, shelf.durChapter)
-                        putExtra(DownloadManageActivity.EXTRA_OPEN_PICK, true)
-                    }
-                )
-            }
-        })
+        viewModel.addToShelf {
+            // 焦点章取实时位置：书架快照的 durChapter 停在打开那一刻，不随阅读前进
+            val state = viewModel.readerState.value
+            val shelf = state.shelf ?: return@addToShelf
+            context.startActivity(
+                Intent(context, DownloadManageActivity::class.java).apply {
+                    putExtra(DownloadManageActivity.EXTRA_NOTE_URL, shelf.noteUrl)
+                    putExtra(DownloadManageActivity.EXTRA_TAG, shelf.tag)
+                    putExtra(DownloadManageActivity.EXTRA_FOCUS_CHAPTER, state.chapterIndex)
+                    putExtra(DownloadManageActivity.EXTRA_OPEN_PICK, true)
+                }
+            )
+        }
     }
 
     // ---------------- 布局 ----------------
-    // 章节列表取 bookShelf.chapterList（书架页经 getAllBooksWithDetails() 填充；
+    // 章节列表取会话书架快照的 chapterList（书架页经 getAllBooksWithDetails() 填充；
     // 本地导入书由 LocalBookImporter 回填）；不用 bookInfo.chapterList（仅网络书解析时填充）
     val chapters = bookShelf?.chapterList ?: emptyList()
 
@@ -781,7 +791,7 @@ private fun ReadBookScreen(
                     // 返回箭头 = 退出阅读器（未加入书架先弹确认），不能走 onBackPressedDispatcher：
                     // 处置链首位是"菜单可见→关菜单"，会把退出语义降级为隐藏控制界面；
                     // 硬件返回键仍走 BackHandler（菜单可见时先收菜单，符合阅读器习惯）
-                    if (!viewModel.isAdd) {
+                    if (!readerState.inShelf) {
                         addShelfDialogVisible = true
                     } else {
                         activity.finish()
@@ -791,7 +801,7 @@ private fun ReadBookScreen(
                 onRefresh = {
                     menuVisible = false
                     scope.launch {
-                        val position = viewModel.refreshCurrentChapter()
+                        val position = viewModel.session.refreshCurrentChapter()
                         if (position != null) {
                             gotoPage(position.first, position.second)
                         }
@@ -804,7 +814,7 @@ private fun ReadBookScreen(
                 },
                 onComment = {
                     menuVisible = false
-                    viewModel.bookShelf?.let { shelf ->
+                    readerState.shelf?.let { shelf ->
                         scope.launch {
                             val keys = activity.bookRepository.getCommentKeysForBook(shelf.noteUrl)
                             // 兜底：book_group 无行时（旧数据未迁移）退回当前书信息算一个键
@@ -840,27 +850,32 @@ private fun ReadBookScreen(
                 chapterAll = chapterAll,
                 sliderValue = sliderValue.coerceIn(1f, chapterAll.coerceAtLeast(1).toFloat()),
                 activePanel = panel,
-                onSliderChange = { sliderValue = it },
+                onSliderChange = { sliderPreview = it },
                 onSliderFinished = {
-                    // 对齐原 moveStopProgress：抬手取整跳章
-                    var realDur = ceil(sliderValue.toDouble()).toInt()
+                    // 对齐原 moveStopProgress：抬手取整跳章；预览值只活到抬手，随后回到会话派生的位置
+                    val preview = sliderPreview ?: readerState.sliderValue
+                    var realDur = ceil(preview.toDouble()).toInt()
                     if (realDur < 1) realDur = 1
-                    val shelf = viewModel.bookShelf
-                    if (shelf != null && realDur - 1 != shelf.durChapter) {
+                    sliderPreview = null
+                    val state = viewModel.readerState.value
+                    if (state.shelf != null && realDur - 1 != state.chapterIndex) {
                         gotoPage(realDur - 1, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
                     }
-                    if (sliderValue != realDur.toFloat()) sliderValue = realDur.toFloat()
                 },
                 prevEnabled = sliderValue > 1f,
                 nextEnabled = sliderValue < chapterAll.toFloat(),
                 onPrevChapter = {
-                    viewModel.bookShelf?.let { shelf ->
-                        gotoPage(shelf.durChapter - 1, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
+                    // 读实时状态：组合快照在同帧连点时还没重组，用它算章号会只步进一次
+                    val state = viewModel.readerState.value
+                    if (state.shelf != null) {
+                        gotoPage(state.chapterIndex - 1, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
                     }
                 },
                 onNextChapter = {
-                    viewModel.bookShelf?.let { shelf ->
-                        gotoPage(shelf.durChapter + 1, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
+                    // 同 onPrevChapter：章号必须取会话的实时值，不能用首次组合的旧快照
+                    val state = viewModel.readerState.value
+                    if (state.shelf != null) {
+                        gotoPage(state.chapterIndex + 1, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
                     }
                 },
                 onCatalog = { panel = ReaderPanel.CHAPTER },
@@ -885,7 +900,7 @@ private fun ReadBookScreen(
             visible = panel == ReaderPanel.CHAPTER,
             bookName = bookShelf?.bookInfo?.name ?: "",
             chapters = chapters,
-            durChapter = bookShelf?.durChapter ?: 0,
+            durChapter = readerState.chapterIndex,
             onChapterClick = { index ->
                 panel = ReaderPanel.NONE
                 gotoPage(index, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
@@ -926,7 +941,7 @@ private fun ReadBookScreen(
             }
         )
         // 换源（ADR-0016 决策 8，P3-d）：候选来自跨源聚合搜索，点中即执行仓库那条「先插新、后删旧」事务
-        ReaderPanel.SOURCE_SWITCH -> bookShelf?.let { shelf ->
+        ReaderPanel.SOURCE_SWITCH -> readerState.shelf?.let { shelf ->
             val switchViewModel: SourceSwitchViewModel = hiltViewModel()
             // 三句反馈在组合期解析好交给回调：回调不是 Composable，在那儿调 context.getString
             // 会踩 lint LocalContextGetResourceValueCall（同上方 chapterTitle 初值的理由）
@@ -935,33 +950,29 @@ private fun ReadBookScreen(
             val emptyCatalogText = stringResource(R.string.source_switch_empty_catalog)
             SourceSwitchSheet(
                 viewModel = switchViewModel,
-                oldShelf = shelf,
+                // 仓库按 `oldShelf.durChapter` 把进度映射到新目录：书架快照里的 durChapter 停在
+                // 打开那一刻，直接交出去会把读完几十章的读者拉回开头，故这份「旧条目」带上实时章号
+                oldShelf = shelf.copy(durChapter = readerState.chapterIndex),
                 onDismiss = { panel = ReaderPanel.NONE },
                 onSwitched = { outcome ->
                     panel = ReaderPanel.NONE
                     menuVisible = false
-                    // 「当前读的是哪一本」只有一个状态源：BookReadViewModel.bookShelf。
-                    // 阅读器的一切都现取这个字段——正文（loadChapter 用它拿 noteUrl/tag/归属）、
-                    // 目录（getChapter / getChapterListSize）、进度（updateProgress 写它的章页、
-                    // saveProgress 按它的 noteUrl 落库）。所以**整体替换**即让新条目成为唯一事实源：
-                    // 旧实体随替换不再被任何地方引用，也就不可能再把旧 noteUrl 的进度写回去
-                    // （旧行已被换源事务删掉，写回去等于凭空造一本不存在的书的行）。
+                    // 「当前读的是哪一本」只有一个状态源：会话的书架快照。正文（loadChapter 取它的
+                    // noteUrl/tag/归属）、目录（chapterAt / chapterCount）、进度（updateProgress 写实时
+                    // 章页，saveProgress 按它的 noteUrl 落库）都从这一份来。所以**整行替换**即让新条目
+                    // 成为唯一事实源：旧实体随替换不再被任何地方引用，也就不可能再把旧 noteUrl 的进度
+                    // 写回去（旧行已被换源事务删掉，写回去等于凭空造一本不存在的书的行）。
                     // 反面做法是「另存一份新条目 + 各处继续读旧条目」——两处各自演进，早晚写错书。
-                    viewModel.bookShelf = outcome.newShelf
+                    // 换源写的就是书架行本身，故会话同时把 inShelf/shelfChecked 落定为真，
+                    // 不会再残留「未加入书架」的旧判定而弹一次无意义的加架确认。
+                    viewModel.session.adoptAfterSourceSwitch(outcome.newShelf)
                     // 换源即换 noteUrl，恢复标记必须跟着换：旧条目的行已被换源事务删掉，
                     // 下次按旧 noteUrl 恢复只会查不到实体、白跑一趟恢复流程
                     ReaderResumeStore.markReading(outcome.newShelf.noteUrl)
-                    // 换源是「先插新、后删旧」，此刻新条目确实已在架上；不跟着置真就残留
-                    // 「未加入书架」的旧判定，返回时弹一次无意义的加架确认
-                    viewModel.isAdd = true
                     // 目录长度已变、页级进度不跨源（仓库把 durChapterPage 复位为「第一页」）：
                     // 按当前样式重分页后从目标章第一页起排，与首屏同一条启动路径
                     activity.rePaginate(typesetter, startFromCurrent = false)
                     gotoPage(outcome.targetChapter, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
-                    // 顶栏章节标题与底栏滑条是页面本地状态（不随 VM 重组），必须一并跟上，
-                    // 否则换源后标题仍写着旧源「第 N 章 · 共 M 章」
-                    chapterTitle = viewModel.getChapterTitle(outcome.targetChapter)
-                    sliderValue = (outcome.targetChapter + 1).toFloat()
                     ToastUtil.showShort(
                         context,
                         when (switchFeedbackOf(outcome.chapterCount, outcome.clamped)) {
@@ -986,7 +997,7 @@ private fun ReadBookScreen(
                 activity.finish()
             },
             onAddShelf = {
-                viewModel.addToShelf(null)
+                viewModel.addToShelf { }
                 addShelfDialogVisible = false
             },
             onDismiss = { addShelfDialogVisible = false }

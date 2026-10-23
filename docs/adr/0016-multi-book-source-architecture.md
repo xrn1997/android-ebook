@@ -55,34 +55,39 @@ Status: accepted
 3. **书源清单加载：Room 是唯一来源**
    `BookSourceManagerImpl` 启动时：
    - 清单里每一行都由用户导入（应用不随包携带任何书源），因此没有 assets 清单可读、也没有首启灌库：构造期不碰任何 IO，清单一律经挂起读或 Flow 从 Room 取。
-   - **Manager 不持有清单副本**：清单挂起面（`getAllSources`/`getEnabledSources`/`getSourceByUrl`/两个 Flow）每次都现查 Room，排序统一为 `weight ASC, addedAt ASC, url ASC`；`resolveSource` 的 parser 走 LRU，只在未命中时查库。理由：留一份内存镜像就要在 seeding、`addSource` 覆盖、`setEnabled`、`removeSource` 每一处之后同步它，漏一处就是一个「库里已改、界面仍是旧值」的静默漂移点，而 Room 的失效追踪已经给了 UI 跟随变化的能力（`observeSources`）。代价只是每次取清单多一次本地查询。
+   - **Manager 不持有清单副本**：清单挂起面（`getAllSources`/`getFormatByUrl`/两个 Flow）每次都现查 Room，排序统一为 `weight ASC, addedAt ASC, url ASC`；`resolveSource` 的 parser 走 LRU，只在未命中时查库。理由：留一份内存镜像就要在 seeding、`addSource` 覆盖、`setEnabled`、`removeSource` 每一处之后同步它，漏一处就是一个「库里已改、界面仍是旧值」的静默漂移点，而 Room 的失效追踪已经给了 UI 跟随变化的能力（`observeSources`）。代价只是每次取清单多一次本地查询。
    - **本接口没有任何同步读面**：默认源等不了 Room，而应用又不随包携带书源、「启动时就能同步给出的默认源」这种东西根本不存在，于是同步面整体下线（曾经的同步属性 `currentSource` 与它消费的冷启动清单都已删除）。别为「首帧不空白」重新修一条同步出口——它要么靠随包资产、要么靠第二份内存缓存，两条路都是在 Room 之外另造一处事实源，而清单与默认源的真值只有 Room 一处。
    - **挂起面直接查 Room，没有要先等的后台写任务**：清单的写入只剩用户导入/启用/删除这几条显式路径，不存在「批量灌库与用户操作抢同一个 URL」的 TOCTOU 窗口，seeding 句柄与配套的 `await()` 不变式一并消失。
    - SharedPreferences `KEY_CURRENT_SOURCE` 语义收敛为「书城/默认搜索书源」（阅读/下载不再依赖它）。理由：阅读/下载路径按 `tag` 找 parser 后不再需要「当前书源」概念，只留书城使用。
 
 4. **`BookSourceManager` 的读面按「谁消费」分工**
-   现行成员（`lib_book_common` 的 `BookSourceManager.kt`）：
+   接口按调用方拆成四个窄面（`lib_book_common` 的 `SourceResolver.kt` 等；`BookSourceManager` 是四者的聚合类型，生产消费者注入最窄的一面，见 ADR-0047）：
    ```
-   suspend fun getAllSources(): List<BookSourceRule>           // 只含原生行
-   suspend fun getEnabledSources(): List<BookSourceRule>       // 只含原生行
-   suspend fun getSourceByUrl(url: String): BookSourceRule?    // 只含原生行
-   suspend fun getFormatByUrl(url: String): SourceFormat?      // 只问一行的出身
-   suspend fun resolveSource(sourceUrl: String): SourceBinding  // 按归属取源的唯一入口（LRU 3 + Mutex；四档结果见 ADR-0045）
-   fun observeSources(): Flow<List<BookSourceItem>>            // 唯一带元数据的清单面，含脚本行
-   fun observeDefaultSource(): Flow<SourceDefinition?>         // 默认源唯一出口（每次从 Room 现算）
-   fun searchAcross(keyword, page, skipSourceUrls): Flow<AggregateSearchEvent>
-   suspend fun addSource(rule: BookSourceRule): Result<Unit>          // REPLACE
-   suspend fun addScriptSource(rawJson: String): Result<Unit>         // REPLACE，format 落 script
-   suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry>  // 书城分类条目
-   suspend fun removeSource(url: String) / setEnabled(url, enabled) / setDefaultSource(url)
-   fun importFromJson(jsonStr: String): BookSourceRule? / fun exportToJson(rule): String   // 纯函数
+   SourceResolver   // 取 parser、聚合搜索、分类入口
+     suspend fun resolveSource(sourceUrl: String): SourceBinding  // 按归属取源的唯一入口（LRU 3 + Mutex；四档结果见 ADR-0045）
+     fun searchAcross(keyword, page, skipSourceUrls): Flow<AggregateSearchEvent>
+     suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry>  // 书城分类条目
+
+   SourceCatalog    // 清单/默认源订阅、格式查询
+     suspend fun getAllSources(): List<BookSourceRule>           // 只含原生行
+     suspend fun getFormatByUrl(url: String): SourceFormat?      // 只问一行的出身
+     fun observeSources(): Flow<List<BookSourceItem>>            // 唯一带元数据的清单面，含脚本行
+     fun observeDefaultSource(): Flow<SourceDefinition?>         // 默认源唯一出口（每次从 Room 现算）
+
+   SourceAdmin      // 增删、启停、设默认
+     suspend fun addSource(rule: BookSourceRule): Result<Unit>          // REPLACE
+     suspend fun addScriptSource(rawJson: String): Result<Unit>         // REPLACE，format 落 script
+     suspend fun removeSource(url: String) / setEnabled(url, enabled) / setDefaultSource(url)
+
+   SourceCodec      // JSON 导入导出（纯函数）
+     fun importFromJson(jsonStr: String): BookSourceRule? / fun exportToJson(rule): String
    ```
    成稿时列的 `switchSource(rule)` 与 `saveCurrentSource(context)` 都不在接口上：前者与「阅读中换源」那条书架事务同名，留着等于两个「换源」共用一个词；后者「设为默认」的职责由 `setDefaultSource` 承担，没有独立实体。成稿时的同步属性 `currentSource` 同样不在接口上了（见本节开头的事实更新）——本接口现在没有任何同步读面。
 
    - **只有清单订阅面带元数据**：`observeSources` 发的是 `BookSourceItem`（规则 + `format` 出身位），规则类型化读面仍只发 `BookSourceRule`。判据是「谁消费」：解析链路只关心规则，面向用户的管理页才需要知道这一行出自哪种格式（脚本行的 `rule` 只是按实体列合成的展示空壳）。不把 `format` 塞进 `BookSourceRule`——规则要随社区 JSON 导入导出，带上一个只属于本机这一行的状态会让往返语义变脏；也不把 `BookSourceEntity` 直接递给 UI——那会让 Compose 依赖数据库行。元数据同样**不沿链路往下带**：书城顶部切换器取的是 `item.rule` 并当场滤掉禁用项，一旦 `format` 出管理页就开始长出第二个用途。
    - **`addSource` 是覆盖（REPLACE）语义**，不是「url 冲突拒绝」——社区书源 JSON 通常整包重发，拒绝策略会让已有书源永远无法更新，且与导入预览的「将覆盖」标记互斥。覆盖后若默认源正指向该 URL，下一次现算自然取到新规则，不需要额外的同步动作。
    - **默认源的载体是格式中立的密封 `SourceDefinition`**，而不是 `BookSourceRule`：`Native` 装已解码的规则，`Script` 装原始 JSON 加实体列带来的展示信息（`name`/`url` 的生产填充点只有 `toDefinition` 一处，绝不从 `rule_json` 里解展示字段）。密封保证新增第三种格式时编译器逼出所有分支。现算与写路径收敛共用同一个 `defaultFromRows(rows)`（条目面、**不筛格式**：SP 命中且启用 → 否则第一条启用行），`observeDefaultSource()` 因此是唯一出口、不可能口径分裂。
-   - **规则类型化读面挡下脚本行，条目面带出它们**：脚本的社区 JSON 硬解成 `BookSourceRule` 有两种结局、都不是「可用规则」（键名对不上解出空规则而静默零条目；同名不同形的键直接抛解码异常）。所以 `getAllSources`/`getEnabledSources`/`getSourceByUrl` 只含原生行，而 `observeSources()` 必须继续带出脚本行（管理页要看得见、能禁用、能删），`searchAcross` 的候选集也取自条目面的全部启用行（脚本源参与聚合搜索）。两侧口径本就不同，不去「统一」。
+   - **规则类型化读面挡下脚本行，条目面带出它们**：脚本的社区 JSON 硬解成 `BookSourceRule` 有两种结局、都不是「可用规则」（键名对不上解出空规则而静默零条目；同名不同形的键直接抛解码异常）。所以 `getAllSources` 只含原生行，而 `observeSources()` 必须继续带出脚本行（管理页要看得见、能禁用、能删），`searchAcross` 的候选集也取自条目面的全部启用行（脚本源参与聚合搜索）。两侧口径本就不同，不去「统一」。
    - **本接口没有任何同步读面**：`requireParser()` / `currentParser` 已删除，且**不得重新引入**；随后 `currentSource` 也一并删除（它的存在前提是「启动时能同步给出一个默认源」，而那要求随包资产或第二份内存缓存，如今两条都没有）。成稿时处方是「标 `@Deprecated` 保留一版、让未改造完的调用点仍可运行」，这一站没有走——调用点在同一条分支里一次迁完，没有要保护的中间态；反过来留一个「按全局默认源去解析任何一本书」的口子，其失败形态是「不闪退、拉回不相干的内容」，比崩溃难查，留着比删掉危险。
    - **默认源的 parser 与其它源同构**：它进同一份 LRU（`resolveSource` 不再有默认源快路径），覆盖规则时一次 `evictParser` 即失效——「必须把定义连同 parser 整对换掉」这套口令只属于已拆除的内存快照时代。
    - **`setDefaultSource(url)` 有一个不在名字里的副作用**：目标源处于禁用态时顺带把它启用。否则「默认源永不为禁用态」的回落规则会在下一次读清单时把它换掉，用户看到的现象是「点了没换」；因此 UI 侧不必走「先启用、再设默认」两步。反向同理：禁用当前默认源时自动回落到下一条启用源；当前没有任何可用默认源时，启用任意一条源都会把它提升为默认源。
@@ -101,9 +106,9 @@ Status: accepted
    ```
    实现要点：
    - 对所有启用书源用 `flatMapMerge(concurrency = 5)` 并发调用 `parser.searchBook(keyword, page)`；concurrency 上限 5 避免同时打爆 10+ 站点触发风控。
-   - 每个书源独立分页游标（VM 内 `Map<sourceUrl, Int>`），某书源返回空只标记该书源 `hasMore=false`，不影响其他书源继续翻页。
-   - **轮次由调用方自己串行化**：基类的加载更多状态机只在「已进入 Loading」时拒绝重入，而首轮搜索由搜索按钮直接发起、不经状态机——那一刻机器仍在 Idle，触底判据又只看 `!isLoadingMore`，于是首轮结果正一条条往外蹦时用户停在底部就会并起第二轮，而游标表与本轮账目都是 VM 字段、新一轮开局即清空，旧轮随后到达的事件于是记在新一轮的账上（「已收到 X/Y」算重、每源游标互相覆写）。处方取「上一轮在途即忽略」而不是「取消旧轮重开」：旧轮收尾会放出状态机，界面仍在底部时触底自会再触发一次并带上正确游标；取消旧轮则会重问已问过的页，那页去重后「零新条目」把每条源都判到底、footer 亮出假的「没有更多」。
-   - **「哪些源已到底」由调用方每轮带进来**（`skipSourceUrls`）：Manager 不持有搜索会话状态——它跨页面、跨关键词，任何「记住上一轮」的做法都会在 VM 之外长出第二个事实源；而这个信息只有握着游标的那一方知道，不带进来下一轮就会对已结束的源重复发请求。
+   - 每个书源独立分页游标（`module_find` 的 `AggregationSession` 内 `Map<sourceUrl, Int>`），某书源返回空只标记该书源 `hasMore=false`，不影响其他书源继续翻页。
+   - **轮次由调用方自己串行化**：基类的加载更多状态机只在「已进入 Loading」时拒绝重入，而首轮搜索由搜索按钮直接发起、不经状态机——那一刻机器仍在 Idle，触底判据又只看 `!isLoadingMore`，于是首轮结果正一条条往外蹦时用户停在底部就会并起第二轮，而游标表与本轮账目都是聚合会话的字段：本轮账目由 `beginRound` 整块换新，游标表跨轮存活到换词才由 `startSearch` 清空——旧轮随后到达的事件于是记在新一轮的账上（「已收到 X/Y」算重），游标又被新一轮的 `page` 覆写。处方取「上一轮在途即忽略」而不是「取消旧轮重开」：旧轮收尾会放出状态机，界面仍在底部时触底自会再触发一次并带上正确游标；取消旧轮则会重问已问过的页，那页去重后「零新条目」把每条源都判到底、footer 亮出假的「没有更多」。
+   - **「哪些源已到底」由调用方每轮带进来**（`skipSourceUrls`）：Manager 不持有搜索会话状态——它跨页面、跨关键词，任何「记住上一轮」的做法都会在调用方（`AggregationSession`）之外长出第二个事实源；而这个信息只有握着游标的那一方知道，不带进来下一轮就会对已结束的源重复发请求。
    - 事件流：`AggregateSearchEvent` = `SourceStarted(url)` / `SourceResult(url, books)` / `SourceFailed(url, err)` / `SourceFinished(url, hasMore)` / `AllFinished`；UI 层按需渲染「已收到 X/Y 书源结果」进度条。**收尾判据是 `AllFinished`，不是「Finished 计数 == Started 计数」**：单源异常一律收敛成 `SourceFailed` + `SourceFinished(hasMore = false)`，但 `CancellationException` 原样上抛（否则换关键词重搜掐不掉旧轮次），代价是某一路被取消时 `flatMapMerge` 丢弃整路、该源连 Finished 都不发，只数 Finished 会让进度永远差一格。
    - 去重策略：按 `noteUrl` 全局去重（同一 URL 只可能出现一次）；不按 name+author 去重——不同书源的同名书是有效备选，交给用户在换源时选择。
    - 每条结果自带 `origin`（书源名）与 `tag`（书源 URL），UI 必须把它露出来——聚合搜索后一份列表混着多站的条目，`origin` 是「这条是谁家的」的判据（渲染形态随页面定：搜索条目上是第三行右侧的普通文本，整页锁定单一书源的分类选书页则不重复显示，详情页用 `InfoChip`）。理由：聚合搜索让用户体验一次搜全站，并发上限与独立游标平衡了风控风险与可用性。
@@ -193,7 +198,7 @@ Status: accepted
 - **`lib_book_common`**：`BookSourceManager` 接口重写（本接口现已无任何同步读面——`requireParser` / `currentParser` 与后来的同步属性 `currentSource` 都已删除）；`BookSourceManagerImpl` 以 Room 为唯一事实源（没有 assets 冷启动快照、也没有默认源内存快照，默认源每次从行现算）；`BookLocation` 加 `sourceUrl`；`BookRepository` 新增 `switchSource`；书库缓存分两处收口——key 的**形态**唯一由 `com.ebook.common.event` 的顶层函数 `libraryCacheKey(sourceUrl)` 决定，读写落在独立的 `LibraryDiskCache` 类（落盘文件名取该 key 的 MD5），刻意不同类：挪进缓存类等于把「谁都能自己拼一份」的旧格局换个地方长回来。
 - **`lib_book_source`**：解析器一族与 `AggregateSearchEvent`、`BookSourceNotFoundException` 住在这里（Manager 侧只留编排与持久化）。
 - **`lib_ebook_api`**：多书源落地本身无改动；该模块原有的书库缓存工具类 `ACache` 已删除（缓存整体换到 `lib_book_common` 的文件缓存，策略上收 `module_find` 的 `BookSourceRepository`）。
-- **`module_find`**：`SearchViewModel` 从单书源分页改为聚合搜索（消费 `searchAcross`、自持轮次与游标）；`LibraryViewModel` 加 `currentSource` / `sources` / `sourceState` 与切换源的方法；搜索/书城 UI 加书源标签与顶部切换器。
+- **`module_find`**：`SearchViewModel` 从单书源分页改为聚合搜索（消费 `searchAcross`；轮次与游标收在 `module_find` 的 `AggregationSession`）；`LibraryViewModel` 加 `currentSource` / `sources` / `sourceState` 与切换源的方法；搜索/书城 UI 加书源标签与顶部切换器。
 - **`module_book`**：`BookDetailViewModel` 按 `tag` 找 parser，`JsoupSourceReader` 按 `BookLocation.sourceUrl` 找 parser（`BookReadViewModel` / `DownloadService` 经它取正文，不直调）；`ReadBookActivity` 挂「换源」入口与 `SourceSwitchSheet`（面板 + `SourceSwitchViewModel`）。
 - **`module_me`**：`BookSourceManageActivity` + `BookSourceViewModel`；`SettingActivity` 加书源管理入口；`KeyCode.Me.BOOK_SOURCE_PATH`；导入/导出/校验失败/覆盖确认等字符串资源。
 - **兼容性**：成稿时老用户升级后 `tag` 值天然指向内置默认源，书架/缓存/下载全部可用，零手工迁移；不存在「按全局默认源兜底」这条旧路径。（**事实更新 2026-09-11**：应用不再随包携带书源，该内置源已随 v6→v7 迁移从库里清掉——只在开发分支装过携带内置源版本的设备上，绑着它的书会显示「书源已失效」，重新导入该书源即恢复；发布基线从未建过这张表，正式用户不受影响。）

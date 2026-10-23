@@ -73,7 +73,7 @@ class LocalBookImporterTest {
             daos.shelf, daos.info, daos.chapter, daos.group, daos.download,
             chapterReaders = mapOf(BookFormat.TXT to reader),
             // 导入路径不换源，空清单的假书源管理器只为补齐构造参数
-            bookSourceManager = FakeBookSourceManager(),
+            sourceResolver = FakeBookSourceManager(),
             bookStore = store,
             contentCache = ChapterContentCache(),
             // 导入的四表写入由 ShelfEntryStore 走仓库注入的 runner；计数点因此跟着仓库走

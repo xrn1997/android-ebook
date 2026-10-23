@@ -12,7 +12,7 @@ import androidx.room3.PrimaryKey
  * 存的就是这里 [url] 的值（本地书行除外，见 [url] 的例外说明），构成「每本书绑源」的归属关系——
  * 因此 [url] 一旦写入就是外键意义上的稳定标识，改 URL 等于换一个书源（REPLACE 覆盖时 URL 是匹配键，不会变）。
  *
- * 刻意不实现 Parcelable：本行只在「DAO → BookSourceManager → 规则反序列化」这条链上出现，
+ * 刻意不实现 Parcelable：本行只在「DAO → 书源四面（实现为 `BookSourceManagerImpl`）→ 规则反序列化」这条链上出现，
  * 跨页面传递用的是解析后的 `BookSourceRule`（`lib_ebook_api`），不是数据库行本身。
  */
 @Entity(tableName = "book_source")
@@ -39,8 +39,8 @@ data class BookSourceEntity(
      *
      * 存一整块 JSON 而不是把规则拆成列：规则字段还在演进（发现页、排行榜、正文图片选择器等），
      * 拆列意味着每次扩字段都要过一次 schema 迁移，而本表没有任何「按规则内字段过滤」的查询需求
-     * （见 ADR-0016 权衡）。代价是 SQL 侧筛不到规则内容，读取一律由 `BookSourceManager`
-     * 反序列化成 `BookSourceRule` 后再用。
+     * （见 ADR-0016 权衡）。代价是 SQL 侧筛不到规则内容，读取一律由书源四面（实现为
+     * `BookSourceManagerImpl`）反序列化成 `BookSourceRule` 后再用。
      */
     @ColumnInfo(name = "rule_json")
     val ruleJson: String,

@@ -11,12 +11,12 @@ import com.ebook.api.entity.SourceFormat
  * 规则对象 [BookSourceRule] 没有、也不该有它。
  *
  * 为什么不直接把 `BookSourceEntity` 递出去、也不把 [format] 塞进 [BookSourceRule]：
- * - 递实体会让 UI 依赖数据库行（`lib_ebook_db` 的实体不该越过 [BookSourceManager] 出现在 Compose 里），
+ * - 递实体会让 UI 依赖数据库行（`lib_ebook_db` 的实体不该越过 [SourceCatalog] 出现在 Compose 里），
  *   届时列名调整、schema 迁移都会直接打在页面上；
  * - 塞进规则则让「导入一份社区 JSON」多出一个与规则内容无关的本机列状态，而且规则还要在社区之间交换，
  *   带一个本机装机才有的字段会让「导出再导入」的往返语义变脏（交换的是规则，不是这台机器上的行状态）。
  *
- * 因此这条元数据只在**面向用户的管理面**（[BookSourceManager.observeSources]）出现，
+ * 因此这条元数据只在**面向用户的管理面**（[SourceCatalog.observeSources]）出现，
  * 解析链路拿到的仍是纯规则。
  */
 data class BookSourceItem(

@@ -5,7 +5,7 @@ import org.junit.Test
 
 /**
  * [SourceDefinition] 展示信息成员的载体口径：Native 读规则自带字段、Script 读实体列合成字段。
- * 2e 起本类型是默认源的载体（默认源经 `BookSourceManager.observeDefaultSource()` 订阅获得），
+ * 2e 起本类型是默认源的载体（默认源经 `SourceCatalog.observeDefaultSource()` 订阅获得），
  * 展示信息不再要求调用方分格式取。
  */
 class SourceDefinitionTest {

@@ -6,7 +6,9 @@ import com.ebook.api.entity.ScriptSourceRule
 import com.ebook.api.entity.SourceFormat
 import com.ebook.api.entity.SourceFormatDetector
 import com.ebook.common.analyze.source.BookSourceItem
-import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceAdmin
+import com.ebook.common.analyze.source.SourceCatalog
+import com.ebook.common.analyze.source.SourceCodec
 import com.ebook.common.analyze.source.SourceStorageJson
 import com.ebook.common.util.reportFailure
 import com.ebook.me.domain.BookSourceValidator
@@ -32,27 +34,27 @@ import javax.inject.Inject
  * 书源管理页 ViewModel（ADR-0016 第 9 条 / 路线图 P2）。
  *
  * 职责边界：本页是 `book_source` 表唯一的用户可写面，因此**一切读写都经
- * [BookSourceManager]**，不直调 DAO——规则整块存在 `rule_json` 列里（脚本书源那一列存的是
- * 社区原文，见 [BookSourceManager.addScriptSource]），绕开这层拿到的是
- * 没经实体列（`enabled`/`weight`/`group`）覆盖的脏规则。Manager 的接口契约里有几条
+ * [SourceCatalog] / [SourceAdmin] / [SourceCodec]**，不直调 DAO——规则整块存在 `rule_json` 列里
+ * （脚本书源那一列存的是社区原文，见 [SourceAdmin.addScriptSource]），绕开这组接口拿到的是
+ * 没经实体列（`enabled`/`weight`/`group`）覆盖的脏规则。三面的接口契约里有几条
  * 直接决定了本页的写法，逐条对应到下面的方法：
- * - [BookSourceManager.addSource] 同 URL 即整行覆盖——所以「重复导入更新规则」是正常用法，
+ * - [SourceAdmin.addSource] 同 URL 即整行覆盖——所以「重复导入更新规则」是正常用法，
  *   预览层只把它标成「将覆盖」而不拦；
- * - [BookSourceManager.observeSources] 两种出身**都**放进行（用户得看得见、删得掉自己导进来的脚本源），
+ * - [SourceCatalog.observeSources] 两种出身**都**放进行（用户得看得见、删得掉自己导进来的脚本源），
  *   但脚本行的 `rule` 只是按实体列合成的展示用空壳。所以本页凡是要「拿 rule 当一条可用规则」
  *   的渲染都得先看 [BookSourceItem.format]：出身标记、导出入口的取舍都由此而来
  *   （[exportSourceJson] 因此也带这一道守卫）；
- * - 「这条 URL 库里有没有、是什么出身」一律问 [BookSourceManager.getFormatByUrl]——
- *   `getSourceByUrl` 那类规则类型化读面看不见脚本行，用它们判覆盖会把「覆盖一条脚本源」说成「新增」；
- * - [BookSourceManager.removeSource] **任何一行都可删**（应用不随包携带书源，`book_source` 表里
+ * - 「这条 URL 库里有没有、是什么出身」一律问 [SourceCatalog.getFormatByUrl]——
+ *   `getAllSources` 那类规则类型化读面看不见脚本行，用它们判覆盖会把「覆盖一条脚本源」说成「新增」；
+ * - [SourceAdmin.removeSource] **任何一行都可删**（应用不随包携带书源，`book_source` 表里
  *   每一行都是用户导入的），删不掉的唯一成因是这行本就不存在，本页把它翻成
  *   [Notice.DeleteMissing]，分流判据是「清单里还有没有这一行」而**不是** failure 的消息措辞
  *   （理由见 [removeSource]）；
- * - [BookSourceManager.setDefaultSource] **会顺带启用目标源**，所以「设为默认」不需要
+ * - [SourceAdmin.setDefaultSource] **会顺带启用目标源**，所以「设为默认」不需要
  *   先拨开关，两步走反而会把「点了没换」的现象暴露给用户。
  *
  * 继承 [BaseViewModel] 而非裸 `ViewModel`（docs/architecture.md「Hilt 与 Application」的 VM 基类约定）：本页没有 Model 门面
- * （依赖直接注入 Manager），故用 [NoOpModel] 占位。状态流命名避开基类的 `uiState`
+ * （依赖直接注入 `SourceCatalog` / `SourceAdmin` / `SourceCodec` 三个窄面），故用 [NoOpModel] 占位。状态流命名避开基类的 `uiState`
  * （那个只驱加载/错误覆盖层）。
  *
  * **一次性提示为什么不塞进状态流的字符串字段、也不直接 sendToast**：
@@ -65,7 +67,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class BookSourceViewModel @Inject constructor(
-    private val bookSourceManager: BookSourceManager,
+    private val sourceCatalog: SourceCatalog,
+    private val sourceAdmin: SourceAdmin,
+    private val sourceCodec: SourceCodec,
 ) : BaseViewModel<NoOpModel>(NoOpModel()) {
 
     /**
@@ -87,8 +91,8 @@ class BookSourceViewModel @Inject constructor(
      * 但预览上「将覆盖」必须与用户看到的那一份清单同源。
      *
      * @param scriptRawJson 脚本项的原始 JSON 整块，落库时**原样**交给
-     *   [BookSourceManager.addScriptSource]（零翻译是脚本书源的存储契约，见 ADR-0029 决策 1）；
-     *   原生项为空串（那条路径落库交 [BookSourceManager.addSource]，规则对象本身就是载荷）
+     *   [SourceAdmin.addScriptSource]（零翻译是脚本书源的存储契约，见 ADR-0029 决策 1）；
+     *   原生项为空串（那条路径落库交 [SourceAdmin.addSource]，规则对象本身就是载荷）
      * @param scriptWarnings 脚本项的三项知情警示（原生项恒为空表）。警示**不影响** [isValid]
      * @param overwriteFormat 库里同 URL 那一行的出身，该行不存在时为 null。与 [format] 不同时，
      *   「将覆盖」说的其实是**把另一种出身的源换掉**（原生规则源被脚本导入顶掉、或反过来），
@@ -151,8 +155,8 @@ class BookSourceViewModel @Inject constructor(
     /**
      * 页面状态：清单 + 默认源 + 导入预览 + 一次性提示。
      *
-     * 由 [BookSourceManager.observeSources]（含禁用项，排序 `weight ASC, addedAt ASC, url ASC`）
-     * 与 [BookSourceManager.observeDefaultSource]（永不为禁用态；全部禁用时为 null）合并而来，
+     * 由 [SourceCatalog.observeSources]（含禁用项，排序 `weight ASC, addedAt ASC, url ASC`）
+     * 与 [SourceCatalog.observeDefaultSource]（永不为禁用态；全部禁用时为 null）合并而来，
      * UI 只订阅这一条流，不在 Composable 里散落多条 collect 与回落判断。
      *
      * 清单项用 [BookSourceItem] 而不是裸规则：[BookSourceItem.format] 决定「脚本」出身标记与
@@ -181,8 +185,8 @@ class BookSourceViewModel @Inject constructor(
     private val _notice = MutableStateFlow<Notice?>(null)
 
     val bookSourceState: StateFlow<BookSourcePageState> = combine(
-        bookSourceManager.observeSources(),
-        bookSourceManager.observeDefaultSource(),
+        sourceCatalog.observeSources(),
+        sourceCatalog.observeDefaultSource(),
         _preview,
         _notice,
     ) { sources, defaultSource, preview, notice ->
@@ -194,7 +198,7 @@ class BookSourceViewModel @Inject constructor(
         )
     }.stateIn(
         scope = viewModelScope,
-        // Eagerly 而不是 MePageViewModel 的 WhileSubscribed(5s)：Manager 的两个流都是**冷流**
+        // Eagerly 而不是 MePageViewModel 的 WhileSubscribed(5s)：SourceCatalog 的两个流都是**冷流**
         // （收集时才查 Room、不做共享），Eagerly 让这份查询在 VM 构造时就开始，
         // 页面首帧组合完即可读到已合并的清单；WhileSubscribed 下无订阅者时不发射，
         // 只会把同一个查询推到首帧之后。
@@ -215,22 +219,22 @@ class BookSourceViewModel @Inject constructor(
     /**
      * 设为默认源。
      *
-     * Manager 对库里不存在的 URL 只记日志、静默忽略；本页清单本就来自同一个 Room，
+     * `SourceAdmin.setDefaultSource` 对库里不存在的 URL 只记日志、静默忽略；本页清单本就来自同一个 Room，
      * 传进不存在的 URL 只可能是竞态，不必额外提示用户。禁用源会被顺带启用（见类注释）。
      */
     fun setDefaultSource(url: String) {
-        viewModelScope.launch { bookSourceManager.setDefaultSource(url) }
+        viewModelScope.launch { sourceAdmin.setDefaultSource(url) }
     }
 
     /**
      * 启用/禁用某个书源。
      *
-     * 不判失败：[BookSourceManager.setEnabled] 自身吞异常并记日志，清单由
-     * [BookSourceManager.observeSources] 驱动——真没写进去时开关会保持原状，
+     * 不判失败：[SourceAdmin.setEnabled] 自身吞异常并记日志，清单由
+     * [SourceCatalog.observeSources] 驱动——真没写进去时开关会保持原状，
      * 比「弹一条与界面变化对不上的错误提示」更准。
      */
     fun setEnabled(url: String, enabled: Boolean) {
-        viewModelScope.launch { bookSourceManager.setEnabled(url, enabled) }
+        viewModelScope.launch { sourceAdmin.setEnabled(url, enabled) }
     }
 
     /**
@@ -239,15 +243,15 @@ class BookSourceViewModel @Inject constructor(
      * 表里每一行都删得掉（应用不随包携带书源），故失败只可能是**这行本就不存在**或写库异常：
      * 前者翻成 [Notice.DeleteMissing]，后者交回 [reportFailure] 的共享口径。
      *
-     * 分流判据是**清单里还有没有这一行**（清单与库经同一条 [BookSourceManager.observeSources] 流
-     * 而来），而不是 [BookSourceManager.removeSource] 的失败消息措辞：接口返回的 [Result] 没有
+     * 分流判据是**清单里还有没有这一行**（清单与库经同一条 [SourceCatalog.observeSources] 流
+     * 而来），而不是 [SourceAdmin.removeSource] 的失败消息措辞：接口返回的 [Result] 没有
      * 错误码，按关键字分流等于把另一模块的文案措辞变成隐式契约——措辞一改就静默落到
      * [reportFailure]（只记日志），现象是「点了删除，界面不提示也没反应」。而分流所需的事实
      * 本页自己就有。
      */
     fun removeSource(url: String) {
         viewModelScope.launch {
-            bookSourceManager.removeSource(url).onFailure { e ->
+            sourceAdmin.removeSource(url).onFailure { e ->
                 val rowStillListed = bookSourceState.value.sources.any { it.rule.url == url }
                 if (rowStillListed) reportFailure(e) else _notice.value = Notice.DeleteMissing
             }
@@ -263,21 +267,21 @@ class BookSourceViewModel @Inject constructor(
      * 用户于是看到第二条莫名其妙的错误，而首字符分派只失败一次、结论只有一个。
      *
      * 切出顶层对象后**每个对象再按格式分流**（[SourceFormatDetector] 按键集判别，见 [toPreviewItem]）：
-     * 原生走既有的 [BookSourceManager.importFromJson] + 四条结构校验，脚本走 [SourceStorageJson] +
+     * 原生走既有的 [SourceCodec.importFromJson] + 四条结构校验，脚本走 [SourceStorageJson] +
      * [BookSourceValidator.validateScript]。混排的包（原生与脚本各半）因此逐条各走各路，
      * 坏条目也只是标为不通过，不会带崩整包。
      *
      * **为什么用 `org.json` 拆条目、而不是 kotlinx-serialization**：本模块编译类路径上只有
      * `kotlinx-serialization-core`（`Json` 所属的 `-json` 制品在 `lib_ebook_api` 里是
      * `implementation` 依赖，不随 `api` 传播），本阶段不新增依赖；而书源规则的**解码面本来就
-     * 收在** [BookSourceManager.importFromJson]（接口注释即契约），再造一个规则解码器反而会出现
+     * 收在** [SourceCodec.importFromJson]（接口注释即契约），再造一个规则解码器反而会出现
      * 两套解码行为。`org.json` 是 Android SDK 自带，这里只用它做「把一段 JSON 文本切成顶层对象」
      * 这一件与规则无关的事。**脚本书源同理不自建解码器**：它走 `lib_book_common` 的
-     * [SourceStorageJson]，那与 [BookSourceManager.addScriptSource] 用的是同一个解码器。
+     * [SourceStorageJson]，那与 [SourceAdmin.addScriptSource] 用的是同一个解码器。
      *
      * **为什么「将覆盖」判定不再预取一份清单**（旧写法：`getAllSources()` 取 URL 集合）：
      * 那个读面**只含原生规则书源**（脚本书源被格式挡下，见其接口 KDoc），拿它判覆盖会把
-     * 「用一条脚本源覆盖已有的原生源」误报成新增。现在逐条问 [BookSourceManager.getFormatByUrl]
+     * 「用一条脚本源覆盖已有的原生源」误报成新增。现在逐条问 [SourceCatalog.getFormatByUrl]
      * ——接口正是为这一处留的（「导入预览的『将覆盖』判定与格式显示经此查询」），
      * 它是唯一对两种出身平等可见的按 URL 读面，还顺带带回被覆盖那行的出身
      * （[ImportPreviewItem.overwriteFormat]）。代价是一包 N 条就问 N 次，
@@ -334,14 +338,14 @@ class BookSourceViewModel @Inject constructor(
     /**
      * 原生分支：解码与四条校验**沿用既有路径**，只是包装成双格式的 [ImportPreviewItem]。
      *
-     * 解不出规则（[BookSourceManager.importFromJson] 返回 null）的唯一成因是 `name` 或 `url`
+     * 解不出规则（[SourceCodec.importFromJson] 返回 null）的唯一成因是 `name` 或 `url`
      * 为空，这两个字段正是这里能从 `org.json` 直接读到的，于是用它们拼一条**退化规则**去校验：
      * 预览层仍能指出「名称为空 / 地址不是 http 开头」，而不会把整条源静默丢掉。
      * 退化规则的其余规则字段为空，会一并报「缺入口 URL / 缺解析规则」——这条源本来也导不进来，
      * 多报的原因不算误导。
      */
     private suspend fun toNativePreviewItem(obj: JSONObject): ImportPreviewItem {
-        val rule = bookSourceManager.importFromJson(obj.toString())
+        val rule = sourceCodec.importFromJson(obj.toString())
             ?: BookSourceRule(
                 name = obj.optString("name"),
                 url = obj.optString("url"),
@@ -361,7 +365,7 @@ class BookSourceViewModel @Inject constructor(
      *
      * [BookSourceValidator.validateScript] 要同时拿到解码后的顶层字段与原文
      * （可执行代码只能从原文里扫出来），解码用 [SourceStorageJson]——与
-     * [BookSourceManager.addScriptSource] 同一个解码器，于是预览标「可导入」的条目
+     * [SourceAdmin.addScriptSource] 同一个解码器，于是预览标「可导入」的条目
      * 落库时不会在解码这一步被撞回来。
      *
      * **解不出时不丢条目、也不猜字段**（与 [toNativePreviewItem] 的退化规则同一手法）：
@@ -399,18 +403,18 @@ class BookSourceViewModel @Inject constructor(
     /**
      * 库里同 URL 那一行的出身；URL 空白或库里没有这一行时为 null。
      *
-     * 走 [BookSourceManager.getFormatByUrl] 而不是 `getSourceByUrl`：后者只对原生行有值，
+     * 走 [SourceCatalog.getFormatByUrl] 而不是 `getAllSources`：后者只对原生行有值，
      * 脚本行会被它当成「库里不存在」，覆盖判定与出身文案就都错了。
      * 空白 URL 不必去问——主键为空不可能有行，问了也是白问。
      */
     private suspend fun formatOf(url: String): SourceFormat? =
-        url.takeIf { it.isNotBlank() }?.let { bookSourceManager.getFormatByUrl(it) }
+        url.takeIf { it.isNotBlank() }?.let { sourceCatalog.getFormatByUrl(it) }
 
     /**
      * 确认导入：只把校验通过的条目落库，统计结果经 [Notice.Imported] 反馈。
      *
-     * 逐条写（不是批量接口）：Manager 的写面只有单条 [BookSourceManager.addSource] /
-     * [BookSourceManager.addScriptSource]，且它们的失败是**逐条**语义（一条 URL 空白不该让整包回滚）。
+     * 逐条写（不是批量接口）：写面只有单条 [SourceAdmin.addSource] /
+     * [SourceAdmin.addScriptSource]，且它们的失败是**逐条**语义（一条 URL 空白不该让整包回滚）。
      * 两条写路径按 [ImportPreviewItem.format] 分流，**脚本书源交出的必须是预览看到的那份原文**
      * （[ImportPreviewItem.scriptRawJson] 整块）：零翻译是脚本书源的存储契约（ADR-0029 决策 1），
      * 落库前若经模型转一道，规则块与脚本就全丢了，「重导即升级」也跟着失效。
@@ -426,7 +430,7 @@ class BookSourceViewModel @Inject constructor(
             var writeFailed = 0
             for (item in valid) {
                 val result = when (item.format) {
-                    SourceFormat.SCRIPT -> bookSourceManager.addScriptSource(item.scriptRawJson)
+                    SourceFormat.SCRIPT -> sourceAdmin.addScriptSource(item.scriptRawJson)
                     SourceFormat.NATIVE -> {
                         val rule = item.nativeRule
                         // 走到这里 rule 为 null 只可能是构造点写错（预览项由本类自己造的）：
@@ -434,7 +438,7 @@ class BookSourceViewModel @Inject constructor(
                         if (rule == null) {
                             Result.failure(IllegalStateException("原生出身的预览项缺少规则，无法落库"))
                         } else {
-                            bookSourceManager.addSource(rule)
+                            sourceAdmin.addSource(rule)
                         }
                     }
                 }
@@ -460,13 +464,13 @@ class BookSourceViewModel @Inject constructor(
     /**
      * 全部书源（含禁用项）导成 JSON 数组文本。
      *
-     * 逐条走 [BookSourceManager.exportToJson]（美化输出，社区交换要能看懂能手改）再拼数组壳：
-     * 编码面只有 Manager 一份，规则字段日后扩展时导出格式自动跟手，本类不会出现第二套字段清单。
+     * 逐条走 [SourceCodec.exportToJson]（美化输出，社区交换要能看懂能手改）再拼数组壳：
+     * 编码面只有一份，规则字段日后扩展时导出格式自动跟手，本类不会出现第二套字段清单。
      * 禁用项**一并导出**（用户导出的语义是「把我这套书源备份/分享出去」，禁用只是本地开关状态，
      * `enabled` 字段本身就在规则里，对面导入后仍是禁用态）。
      * 写文件由 UI 层负责（SAF 输出的 `contentResolver` 在页面上）。
      *
-     * **脚本书源不在导出范围内**：数据源是 [BookSourceManager.getAllSources]，
+     * **脚本书源不在导出范围内**：数据源是 [SourceCatalog.getAllSources]，
      * 那个读面只含原生规则书源（脚本行被格式挡下），所以这里天然不会导出它们——
      * 不是漏了，而是脚本源的导出要连原文与格式声明一起做，那件事随 Plan 2 的解释器一起补
      * （行内导出入口同理，见 [exportSourceJson]）。副作用是「导出全部」这个按钮对
@@ -477,10 +481,10 @@ class BookSourceViewModel @Inject constructor(
      *   UI 据此提示「没有可导出的书源」
      */
     suspend fun exportAll(): String {
-        val rules = bookSourceManager.getAllSources()
+        val rules = sourceCatalog.getAllSources()
         if (rules.isEmpty()) return ""
         return rules.joinToString(prefix = "[\n", postfix = "\n]", separator = ",\n") {
-            bookSourceManager.exportToJson(it)
+            sourceCodec.exportToJson(it)
         }
     }
 
@@ -504,6 +508,6 @@ class BookSourceViewModel @Inject constructor(
             )
             return null
         }
-        return bookSourceManager.exportToJson(item.rule)
+        return sourceCodec.exportToJson(item.rule)
     }
 }

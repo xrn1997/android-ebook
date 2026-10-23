@@ -1,15 +1,11 @@
 package com.ebook.book.mvvm.viewmodel
 
 import androidx.test.core.app.ApplicationProvider
-import com.ebook.api.entity.BookSourceRule
-import com.ebook.api.entity.SourceFormat
-import com.ebook.api.entity.SourceDefinition
 import com.ebook.common.analyze.local.BookFormat
 import com.ebook.common.analyze.local.ChapterReader
-import com.ebook.common.analyze.source.BookSourceItem
-import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
@@ -30,7 +26,6 @@ import com.xrn1997.common.BaseApplication
 import java.io.File
 import java.lang.reflect.Proxy
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -185,7 +180,7 @@ class BookDetailViewModelSourceTest {
     )
 
     /** 只喂一个空书架：详情页流程里仓库只被问 `getAllBooks` */
-    private fun repository(manager: BookSourceManager): BookRepository = BookRepository(
+    private fun repository(manager: SourceResolver): BookRepository = BookRepository(
         bookShelfDao = emptyDaoStub(BookShelfDao::class.java, "getAllBooks"),
         bookInfoDao = emptyDaoStub(BookInfoDao::class.java),
         chapterListDao = emptyDaoStub(ChapterListDao::class.java),
@@ -194,7 +189,7 @@ class BookDetailViewModelSourceTest {
         downloadChapterDao = emptyDaoStub(DownloadChapterDao::class.java),
         chapterReaders = emptyMap<BookFormat, ChapterReader>(),
         // 换源才用得上书源管理器；详情页不换源，但仓库构造要它，与 VM 共用同一份假清单
-        bookSourceManager = manager,
+        sourceResolver = manager,
         bookStore = BookStore(File(System.getProperty("java.io.tmpdir"), "book-detail-test-books")),
         contentCache = ChapterContentCache(capacity = 3),
         transactions = DirectRunner,
@@ -211,7 +206,7 @@ class BookDetailViewModelSourceTest {
      * 「上次得出结论」的时间戳，其余成员一旦被问就是走错了路径。
      */
     private fun repository(
-        manager: BookSourceManager,
+        manager: SourceResolver,
         chapters: ChapterListDao,
         shelfRow: BookShelfEntity,
     ): BookRepository = BookRepository(
@@ -221,7 +216,7 @@ class BookDetailViewModelSourceTest {
         bookGroupDao = emptyDaoStub(BookGroupDao::class.java),
         downloadChapterDao = emptyDaoStub(DownloadChapterDao::class.java),
         chapterReaders = emptyMap<BookFormat, ChapterReader>(),
-        bookSourceManager = manager,
+        sourceResolver = manager,
         bookStore = BookStore(File(System.getProperty("java.io.tmpdir"), "book-detail-test-books")),
         contentCache = ChapterContentCache(capacity = 3),
         transactions = DirectRunner,
@@ -344,7 +339,7 @@ class BookDetailViewModelSourceTest {
      */
     private class FakeSourceManager(
         parsers: Map<String, BookParser>,
-    ) : BookSourceManager {
+    ) : SourceResolver {
         private val map = LinkedHashMap(parsers)
         val parserForCalls = mutableListOf<String>()
 
@@ -363,21 +358,9 @@ class BookDetailViewModelSourceTest {
         private fun unsupported(who: String): Nothing =
             throw UnsupportedOperationException("FakeSourceManager 未实现 $who")
 
-        override suspend fun getAllSources(): List<BookSourceRule> = unsupported("getAllSources")
-        override suspend fun getEnabledSources(): List<BookSourceRule> = unsupported("getEnabledSources")
-        override suspend fun getSourceByUrl(url: String): BookSourceRule? = unsupported("getSourceByUrl")
-        override suspend fun addSource(rule: BookSourceRule): Result<Unit> = unsupported("addSource")
-        override suspend fun addScriptSource(rawJson: String): Result<Unit> = unsupported("addScriptSource")
-        override suspend fun getFormatByUrl(url: String): SourceFormat? = unsupported("getFormatByUrl")
+        /** 分类条目不属于详情页路径；同一面内留一条会炸的兜底 */
         override suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry> =
             unsupported("getExploreEntries")
-        override suspend fun removeSource(url: String): Result<Unit> = unsupported("removeSource")
-        override suspend fun setEnabled(url: String, enabled: Boolean) = unsupported("setEnabled")
-        override suspend fun setDefaultSource(url: String) = unsupported("setDefaultSource")
-        override fun observeSources(): Flow<List<BookSourceItem>> = unsupported("observeSources")
-        override fun observeDefaultSource(): Flow<SourceDefinition?> = unsupported("observeDefaultSource")
-        override fun importFromJson(jsonStr: String): BookSourceRule? = unsupported("importFromJson")
-        override fun exportToJson(rule: BookSourceRule): String = unsupported("exportToJson")
     }
 
     /** 身份可辨的 parser 替身：`ownedSourceUrl` 就是「我是哪个源的 parser」 */

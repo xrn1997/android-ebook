@@ -34,8 +34,8 @@ Status: accepted
 
 ## 下游影响
 
-- `lib_book_common`：`BookSourceManager.resolveSource` 取代 `getParserFor` 成为生产读面；`BookSourceManagerImpl` 把 `toDefinition` 的 null 归为 `Broken`；`BookShelfManager`、`BookRepository`、`JsoupSourceReader` 改经 `parserOrThrow`；`BookSourceRepository`/`BookDetailViewModel` 同步。
+- `lib_book_common`：`SourceResolver.resolveSource` 取代 `getParserFor` 成为生产读面；`BookSourceManagerImpl` 把 `toDefinition` 的 null 归为 `Broken`；`BookShelfManager`、`BookRepository`、`JsoupSourceReader` 改经 `parserOrThrow`；`BookSourceRepository`/`BookDetailViewModel` 同步。
 - 测试：`BookSourceManagerImplTest` 新增 Local/Missing/Broken/Found 四例；既有 fakes 的 `getParserFor` 改为 `resolveSource`，测试调用仍可经 deprecated 适配。
 - `getParserFor` 仅作为测试/旧调用适配存在，不属于生产接口。
 
-锚点：`SourceBinding`；`BookSourceManager.resolveSource`；`parserOrThrow`；`BookSourceManagerImplTest`
+锚点：`SourceBinding`；`SourceResolver.resolveSource`；`parserOrThrow`；`BookSourceManagerImplTest`

@@ -63,7 +63,7 @@ class BookShelfManagerTest {
             // 书架写入不经 reader，本用例不需要任何 ChapterReader 装配
             chapterReaders = emptyMap<BookFormat, ChapterReader>(),
             // 换源才用得到书源管理器；这里给的就是被测的那个假件，两处共用同一份源清单
-            bookSourceManager = manager,
+            sourceResolver = manager,
             bookStore = BookStore(booksRoot),
             contentCache = ChapterContentCache(capacity = 3),
             transactions = DirectTransactionRunner,

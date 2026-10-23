@@ -3,7 +3,7 @@ package com.ebook.book.mvvm.viewmodel
 import com.ebook.book.R
 import com.xrn1997.common.util.Logger
 import androidx.lifecycle.viewModelScope
-import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.analyze.source.parserOrThrow
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.repository.BookShelfEvent
@@ -53,7 +53,7 @@ data class BookDetailUiState(
 @HiltViewModel
 class BookDetailViewModel @Inject constructor(
     private val bookRepository: BookRepository,
-    private val bookSourceManager: BookSourceManager
+    private val sourceResolver: SourceResolver
 ) : BaseViewModel<BookRepository>(bookRepository) {
     val bookShelfList: MutableList<BookShelfEntity> =
         Collections.synchronizedList(ArrayList())
@@ -296,7 +296,7 @@ class BookDetailViewModel @Inject constructor(
                 durChapterPage = 0,
                 tag = searchBook.tag
             )
-            val parser = bookSourceManager.parserOrThrow(searchBook.tag)
+            val parser = sourceResolver.parserOrThrow(searchBook.tag)
             parser.getBookInfo(shelf)
         } catch (e: CancellationException) {
             // 取消不是「拉不到详情」：吞掉会让销毁中的页面渲染成错误态
@@ -320,7 +320,7 @@ class BookDetailViewModel @Inject constructor(
      */
     private suspend fun fetchChapterList(bookShelf: BookShelfEntity): BookShelfEntity? {
         return try {
-            val parser = bookSourceManager.parserOrThrow(bookShelf.tag)
+            val parser = sourceResolver.parserOrThrow(bookShelf.tag)
             // getChapterList 返回非空包装对象（data 才可能为空），不需要安全调用
             parser.getChapterList(bookShelf).data
         } catch (e: CancellationException) {

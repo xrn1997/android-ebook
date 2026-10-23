@@ -64,7 +64,7 @@ class LocalImportCoordinatorTest {
             daos.shelf, daos.info, daos.chapter, daos.group, daos.download,
             chapterReaders = mapOf(BookFormat.TXT to TxtSourceReader(store)),
             // 导入路径不换源，空清单的假书源管理器只为补齐构造参数
-            bookSourceManager = FakeBookSourceManager(),
+            sourceResolver = FakeBookSourceManager(),
             bookStore = store,
             contentCache = ChapterContentCache(),
             transactions = DirectTransactionRunner,

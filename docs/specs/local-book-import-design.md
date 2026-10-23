@@ -189,7 +189,7 @@ ChapterContent(title: String, paragraphs: List<String>)
 - 目录规则是**数据不是代码**：`第.{1,7}章.*` 从 `BookImportManager.kt:106` 的硬编码挪进 reader 的规则集，可被用户导入的规则覆盖（本期只做规则可插拔，不做管理 UI）。
 - 编码探测结果**存进 `book_shelf.text_charset`**，不再每次导入重头探测。
 
-内容路由按 `tag` 选出 `SourceRef.Local` 或 `SourceRef.Web`，`ReadBookActivity.loadPage`（`:269-279`）"取内容 → 用"的结构不动，只换实现。这顺带根治一个现存缺陷：本地书内容缺失时，`BookReadViewModel.kt:120-128` 会拿 `md5_章号` 当 URL 去打第三方书源。
+内容路由按 `tag` 选出 `SourceRef.Local` 或 `SourceRef.Web`；`ReadBookActivity.loadPage` 的"取内容 → 用"结构不动，只换实现——正文统一经 `ReaderSession.loadChapter` / `BookRepository.loadChapter` 按 `BookFormat` 路由到对应 reader。这顺带根治一个现存缺陷：本地书内容缺失时，旧实现会拿 `md5_章号` 当 URL 去打第三方书源。
 
 **必须有一层章节内容内存缓存**（r5 补）：`loadPage` 是**每翻一页都取一次正文**，而 §8 的规范化也在取内容时跑。正文原先在 DB 时这只是一次主键查询；改成章文件后，没有缓存就等于每页都 open + read + 解码 + 规范化一遍。所以 `SourceReader` 之上要有个按 `content_ref` 为键的小容量缓存（当前章 + 前后各一章足够，翻页场景全覆盖），并在字号/排版无关的维度上复用——排版偏移本身是另一层可缓存的派生数据（`ReadBookActivity.kt:281-293` 的注释已经自认"每页整章重排"是会放大的开销）。M1a 需同时定下这两层的失效条件：换来源、改字体字号、章节重解析。
 

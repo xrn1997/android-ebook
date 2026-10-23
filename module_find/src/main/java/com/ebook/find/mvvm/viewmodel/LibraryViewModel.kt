@@ -3,7 +3,8 @@ package com.ebook.find.mvvm.viewmodel
 import androidx.lifecycle.viewModelScope
 import com.ebook.api.entity.BookSourceRule
 import com.ebook.api.entity.SourceDefinition
-import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceAdmin
+import com.ebook.common.analyze.source.SourceCatalog
 import com.ebook.db.entity.LibraryKindBookListEntity
 import com.ebook.find.entity.BookType
 import com.ebook.find.repository.BookSourceRepository
@@ -33,7 +34,7 @@ import javax.inject.Inject
  *   在顶部**换一个源**，或到书源管理**重导**那条源。
  *
  * 把后者误报成前者最坏：用户被指去「启用书源」，可他启用的正是那条坏源，怎么点都没用。
- * 判据分别来自两条不同的事实（[BookSourceManager.observeDefaultSource] 与一次加载抛出的
+ * 判据分别来自两条不同的事实（[SourceCatalog.observeDefaultSource] 与一次加载抛出的
  * [BookSourceNotFoundException]），合成一处由 [librarySourceStateOf] 负责，页面只读不猜。
  *
  * [Unknown] 是另一类东西：它**不是一种处境，而是「还没有结论」**——只作 [LibraryViewModel.sourceState]
@@ -85,11 +86,11 @@ internal fun librarySourceStateOf(currentSource: SourceDefinition?, sourceUnusab
  * （点进去拿 A 源的分类 url 让 B 源解析，得到的是不相干的书目）；② 「当前源是谁」被固化在
  * 构造期那一次读取上，用户之后在书源管理页改的东西（换默认源、禁用）不会回流到这一页。
  *
- * 三条流的分工照 [BookSourceManager] 接口的口径来：**切换器候选吃条目、当前源吃定义**——[sources]
+ * 三条流的分工照 [SourceCatalog] 接口的口径来：**切换器候选吃条目、当前源吃定义**——[sources]
  * 把订阅到的 [com.ebook.common.analyze.source.BookSourceItem] 当场塌成 `rule`，只挡禁用项
  * （2e 起脚本行**进**候选，脚本书源已是合法默认源，理由见 [sources]），
  * 「当前源是谁」以 [currentSource] 为唯一事实源，
- * 本 VM 不自行判空回落（回落规则住在 Manager，两处各算一份就会口径分裂）。
+ * 本 VM 不自行判空回落（回落规则住在 `SourceCatalog.observeDefaultSource`，两处各算一份就会口径分裂）。
  *
  * 页面「该说什么」由 [sourceState] 一次给全，各档各说各的话（见 [LibrarySourceState]）：
  * 无源（[currentSource] 为 null）不发任何请求、不白屏、不无限转圈；
@@ -102,11 +103,12 @@ internal fun librarySourceStateOf(currentSource: SourceDefinition?, sourceUnusab
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val bookSourceRepository: BookSourceRepository,
-    private val bookSourceManager: BookSourceManager,
+    private val sourceCatalog: SourceCatalog,
+    private val sourceAdmin: SourceAdmin,
 ) : BaseRefreshViewModel<LibraryKindBookListEntity, BookSourceRepository>(bookSourceRepository) {
 
     /**
-     * 切换器候选清单：**启用中的书源**（排序沿用 Manager 的 `weight ASC, addedAt ASC, url ASC`）。
+     * 切换器候选清单：**启用中的书源**（排序沿用 `SourceCatalog.observeSources` 的 `weight ASC, addedAt ASC, url ASC`）。
      *
      * 只过滤 `enabled` 而不给禁用项打标记：切换器要回答的是「我能切到哪个源」，
      * 「有一条被禁用了」是书源管理页的事，摆进城里的下拉只会让人点了才知道切不过去。
@@ -120,7 +122,7 @@ class LibraryViewModel @Inject constructor(
      * [SharingStarted.Eagerly] 而非 `WhileSubscribed`：书城是主 Tab，VM 与宿主同生命周期，
      * 且这条流的值要在页面首次组合前就是热的（切换器首帧就得知道有没有得切）。
      */
-    val sources: StateFlow<List<BookSourceRule>> = bookSourceManager.observeSources()
+    val sources: StateFlow<List<BookSourceRule>> = sourceCatalog.observeSources()
         .map { items -> items.filter { it.rule.enabled }.map { it.rule } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -129,14 +131,14 @@ class LibraryViewModel @Inject constructor(
      * 的含义，首帧的 null 只是「还不知道」，页面判据因此不直接看这条流（见下段）。
      *
      * 初值给 null 是因为**已经没有同步初值可取了**：默认源不再随包携带、也不再有冷启动快照，
-     * 唯一的出口是 Room 的 [BookSourceManager.observeDefaultSource] 订阅（首启时要走一次查库）。
+     * 唯一的出口是 Room 的 [SourceCatalog.observeDefaultSource] 订阅（首启时要走一次查库）。
      * 故首帧必然是 null，真实值由订阅尽快补上；载体是 [SourceDefinition]：默认源可以是脚本行（2e 起）。
      *
      * **首帧的 null 不等于「没有源」**：页面判据不直接看这条流，而是看 [sourceState]——它首帧是
      * [LibrarySourceState.Unknown]（整片留空），等 Room 回答后才落进 Ready / NoSource / BrokenSource。
      * 直接把 null 当「无源」画出来的话，有源用户的冷启动会先闪一帧「还没有可用书源」的误导文案。
      */
-    val currentSource: StateFlow<SourceDefinition?> = bookSourceManager.observeDefaultSource()
+    val currentSource: StateFlow<SourceDefinition?> = sourceCatalog.observeDefaultSource()
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /**
@@ -203,12 +205,12 @@ class LibraryViewModel @Inject constructor(
      * 切换书源：只负责把目标源设为默认，剩下的由 [currentSource] 的变化回流完成
      * （换源是持久化后的订阅者先看到、加载随后跟着走，本方法不亲自去拉数据）。
      *
-     * [BookSourceManager.setDefaultSource] 会顺带把禁用中的目标源启用（「默认源永不为禁用态」
+     * [SourceAdmin.setDefaultSource] 会顺带把禁用中的目标源启用（「默认源永不为禁用态」
      * 这条不变式的代价，见其 KDoc），本 VM 因此不需要先调 `setEnabled`、也不判断目标源的状态。
-     * 目标 URL 不在清单里时 Manager 记日志忽略，页面保持原样（不会停在「点了没换」的中间态）。
+     * 目标 URL 不在清单里时 `SourceAdmin` 的实现记日志忽略，页面保持原样（不会停在「点了没换」的中间态）。
      */
     fun switchSource(url: String) {
-        viewModelScope.launch { bookSourceManager.setDefaultSource(url) }
+        viewModelScope.launch { sourceAdmin.setDefaultSource(url) }
     }
 
     /**

@@ -28,12 +28,13 @@
 
 ### Scope
 
-Scope 直接使用模块目录名：
+Scope 优先使用模块目录名：
 
 - **业务模块**：`module_app` / `module_main` / `module_book` / `module_find` / `module_me` / `module_login`
 - **共享/基础库**：`lib_book_common` / `lib_book_source` / `lib_ebook_api` / `lib_ebook_db`
 - **横切关注点**：`build` / `docs` / `scripts` / `adr`
 - **跨模块**：`all`（改动覆盖多个模块且无法归到单一模块时使用）
+- **领域切片**：`reader` / `search` / `download` / `import` 等，改动集中在一个功能切片、跨该切片的 UI/VM/领域层时使用；能用模块目录名表达时仍优先模块名。
 - **可省略**：改动仅涉及根目录文件（如 `.gitignore`、`AGENTS.md`）或与 scope 无关的杂务时，可省略 scope
 
 ### Description

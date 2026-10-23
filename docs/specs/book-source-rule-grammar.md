@@ -668,6 +668,6 @@ https://www.baidu.com,{"charset":"gbk","method":"POST","body":"bid=10086","heade
 - **相对地址落位**：`TocPageUrl.join` 的三形态语义（绝对原样 / `/` 相对源根 / 其余相对当前页目录）。
 - **正文分页的「宁漏页不串章」取舍**：属原生链路的推断式判定（§7.3 已说明脚本链路为何不同，但**不推翻**原生链路的既有口径）。
 - **解析器不碰缓存**：书库/分页缓存策略住在仓库层（`module_find` 的 `BookSourceRepository` + `LibraryDiskCache`），脚本解释器同样只做网络解析。
-- **多书源归属**：每本书按 `tag`（= 书源 URL）绑源、经 `bookSourceManager.resolveSource(url)` 得到 `SourceBinding` 四档（Local / Found / Missing / Broken，见 ADR-0045）；只要解析器就经 `parserOrThrow` 统一翻译一次（正文入口的本地/空白短路见 [ADR-0045](../adr/0045-source-binding-typed-result.md)「边界」）。不存在全局默认源去解别人的书。
+- **多书源归属**：每本书按 `tag`（= 书源 URL）绑源、经 `sourceResolver.resolveSource(url)` 得到 `SourceBinding` 四档（Local / Found / Missing / Broken，见 ADR-0045）；只要解析器就经 `parserOrThrow` 统一翻译一次（正文入口的本地/空白短路见 [ADR-0045](../adr/0045-source-binding-typed-result.md)「边界」）。不存在全局默认源去解别人的书。
 - **失败要如实报**：`resolveSource` 对脚本行返回 `Found`（**永不 Missing/Broken、也不在构造期抛**）——「行在但 JSON 坏」以首次求值时的类型化 `ScriptRuleParseException` 如实报（规则装载是惰性的，见 `ScriptBookParser`）；`Missing`（没有这行）与 `Broken`（原生坏行）另成两档，与脚本求值失败**不得混用**（混了等于把「这条规则解不动」说成「这条源已失效」，用户会被支去重导一条本来好的源）。规则用了本规格未覆盖的语法同样必须给出类型化、可区分的失败，不得返回空列表冒充「这个源没有结果」。
 - **`bookSourceType` 的取值口径以本文 §1.1 为准**：`0` 文本、`1` 音频、`2` 图片（漫画）、`3` 文件/下载站、`4` 视频（音频站点取值为 1）。`ScriptSourceRule.kt` 的 KDoc 曾写作「0=文本，1=图片(漫画)，2=音频」，与公开文档及语料**顺序不符**；导入警示逻辑本身用的是 `!= 0`，行为从未受影响，注释已于 2026-09-08（Plan 2a Task 8）就地校正为上述取值。

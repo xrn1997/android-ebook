@@ -5,7 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.book.R
 import com.ebook.book.repository.DownloadRepository
 import com.ebook.book.repository.DownloadState
-import com.ebook.book.reader.defaultChapterWindow
+import com.ebook.book.reader.initialChapterSelection
+import com.ebook.book.reader.planChapterDownload
 import com.ebook.book.service.DownloadService
 import com.ebook.common.util.reportFailure
 import com.ebook.db.entity.ChapterListEntity
@@ -333,7 +334,12 @@ class DownloadManageViewModel @Inject constructor(
                 val active = if (isDownloading) {
                     tasks.firstOrNull { it.durChapterUrl == activeChapterUrl }?.durChapterIndex
                 } else null
-                val initialSelected = buildInitialSelection(chapters, cached, queued)
+                val initialSelected = initialChapterSelection(
+                    chapters = chapters,
+                    cachedIndices = cached,
+                    queuedIndices = queued,
+                    focusChapter = pendingFocusChapter,
+                )
                 _bookSheet.value = BookSelectionState.Ready(
                     BookChapterSelection(
                         noteUrl = noteUrl,
@@ -361,24 +367,6 @@ class DownloadManageViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 预勾选：「当前章 .. 当前章+50」中未缓存且未排队者（原下载面板一键下载习惯）。
-     * **排除已排队**——排队中的章确认时会跳过，预勾上只会让确认文案多一行"将跳过"。
-     *
-     * 窗口本身由 [defaultChapterWindow] 定义，与二级页范围对话框「无勾选时的默认区间」
-     * 同源：两处若各写一个 50，边界上会悄悄分叉成一个 51 章、一个 50 章。
-     */
-    private fun buildInitialSelection(
-        chapters: List<ChapterListEntity>,
-        cached: Set<Int>,
-        queued: Set<Int>,
-    ): Set<Int> {
-        val window = defaultChapterWindow(chapters.size, pendingFocusChapter) ?: return emptySet()
-        return window.filterTo(mutableSetOf()) { i ->
-            i !in cached && i !in queued
-        }
-    }
-
     /** 从二级选章页返回一级列表（取消装载协程，清掉二级结果，避免退回时旧结果短暂上屏）。 */
     fun backToBooks() {
         loadJob?.cancel()
@@ -388,8 +376,8 @@ class DownloadManageViewModel @Inject constructor(
 
     /**
      * 确认下载：**剔除已在队列中的章**（排队中再勾 = 无意义重下，与队列唯一索引语义重复），
-     * 构建任务（forceRefresh=true）后经 [DownloadRepository.startDownload] 统一下发。
-     * 跳过计数由页面读 selection + selected 计算（见 BookChapterSelectContent）。
+     * 计划（任务、有效数、跳过数）与页面预演同源（见 [planChapterDownload]），
+     * 再经 [DownloadRepository.startDownload] 统一下发。
      *
      * 下发前**先解除该书暂停**（见 ADR-0036）：用户刚明确表达「这本书要下」，残留的暂停
      * 标记会让新入队的任务静默不跑（取篇跳过该书）——那是确认按钮失效，不是暂停语义。
@@ -400,31 +388,18 @@ class DownloadManageViewModel @Inject constructor(
     fun confirmDownload(selected: Set<Int>) {
         val ready = _bookSheet.value as? BookSelectionState.Ready ?: return
         val selection = ready.selection
-        val tasks = (selected - selection.queuedIndices).sorted().mapNotNull { i ->
-            selection.chapters.getOrNull(i)?.let { chapter ->
-                DownloadChapterEntity(
-                    noteUrl = selection.noteUrl,
-                    durChapterIndex = chapter.durChapterIndex,
-                    durChapterName = chapter.durChapterName,
-                    durChapterUrl = chapter.contentRef,
-                    tag = selection.tag,
-                    bookName = selection.bookName,
-                    coverUrl = selection.coverUrl,
-                    forceRefresh = true,
-                )
-            }
-        }
-        if (tasks.isEmpty()) return
+        val plan = planChapterDownload(selection, selected)
+        if (plan.tasks.isEmpty()) return
         // 先解暂停再下发：startDownload 会拉起服务，此刻标记已清，新任务立即进入取篇候选
         _bookSheet.value = BookSelectionState.Ready(
             selection.copy(
                 paused = false,
-                queuedIndices = selection.queuedIndices + tasks.map { it.durChapterIndex }
+                queuedIndices = selection.queuedIndices + plan.tasks.map { it.durChapterIndex }
             )
         )
         viewModelScope.launch {
             model.resumeBook(selection.noteUrl)
-            model.startDownload(tasks)
+            model.startDownload(plan.tasks)
         }
     }
 }

@@ -1,11 +1,9 @@
 package com.ebook.find.repository
 
-import com.ebook.api.entity.BookSourceRule
-import com.ebook.api.entity.SourceFormat
-import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.analyze.source.LibraryDiskCache
 import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.LibraryEntity
 import com.ebook.db.entity.SearchBookEntity
@@ -26,8 +24,8 @@ import org.junit.Test
  * 锁四条：
  * 1. 本仓库**不再自己猜源**：三个方法的源都来自入参 `sourceUrl`，问的是
  *    `resolveSource(sourceUrl)` / `getExploreEntries(sourceUrl)`。「当前默认源是谁」由书城页经
- *    [BookSourceManager.observeDefaultSource] 订阅后自己递进来——仓库再读一次全局就是第二个事实源
- *    （默认源也不再有任何同步读面，见 [BookSourceManager]）；
+ *    `SourceCatalog.observeDefaultSource` 订阅后自己递进来——仓库再读一次全局就是第二个事实源
+ *    （默认源也不再有任何同步读面，见 `SourceCatalog`）；
  * 2. 「无源」（`sourceUrl` 空白）拿到的是**空数据**而不是异常——用户在书源管理页把源全禁用了，
  *    这里没有值得报错的根因，页面据此走引导态。旧实现按全局默认源取 parser，那里直接抛
  *    IllegalStateException，页面只留下一行看不出根因的日志；
@@ -55,16 +53,14 @@ class BookSourceRepositoryNoSourceTest {
      * `resolveSource` 照抄真实现对空白 URL 的短路（不查库直接 Missing），
      * 否则「无默认源」这条断言测的就是假件而不是被测代码。
      *
-     * @param rules 按 URL 可查到的规则（[BookSourceManager.getSourceByUrl] 的返回来源）
      * @param parsers 按 URL 可取到的 parser；缺项即「这一行取不到解析器」
-     * @param exploreEntries 按 URL 可查到的分类条目（[BookSourceManager.getExploreEntries]
+     * @param exploreEntries 按 URL 可查到的分类条目（[SourceResolver.getExploreEntries]
      *   的返回来源）：条目照真读面原样递出、不在此滤空白标题（过滤归仓库），缺项即该源没有条目
      */
     private class FakeSourceManager(
-        private val rules: Map<String, BookSourceRule> = emptyMap(),
         private val parsers: Map<String, BookParser> = emptyMap(),
         private val exploreEntries: Map<String, List<SourceExploreEntry>> = emptyMap(),
-    ) : BookSourceManager {
+    ) : SourceResolver {
         val parserForCalls = mutableListOf<String>()
         val exploreCalls = mutableListOf<String>()
 
@@ -74,11 +70,6 @@ class BookSourceRepositoryNoSourceTest {
             if (sourceUrl.isBlank()) return SourceBinding.Missing(sourceUrl)
             return parsers[sourceUrl]?.let { SourceBinding.Found(it) }
                 ?: SourceBinding.Missing(sourceUrl)
-        }
-
-        override suspend fun getSourceByUrl(url: String): BookSourceRule? {
-            if (url.isBlank()) return null
-            return rules[url]
         }
 
         /** 分类条目读面照真实现建模：按入参 URL 返回，空白/缺失行给空列表 */
@@ -94,23 +85,10 @@ class BookSourceRepositoryNoSourceTest {
 
         private fun unsupported(who: String): Nothing =
             throw UnsupportedOperationException("FakeSourceManager 未实现 $who")
-
-        override suspend fun getAllSources(): List<BookSourceRule> = unsupported("getAllSources")
-        override suspend fun getEnabledSources(): List<BookSourceRule> = unsupported("getEnabledSources")
-        override suspend fun addSource(rule: BookSourceRule): Result<Unit> = unsupported("addSource")
-        override suspend fun addScriptSource(rawJson: String): Result<Unit> = unsupported("addScriptSource")
-        override suspend fun getFormatByUrl(url: String): SourceFormat? = unsupported("getFormatByUrl")
-        override suspend fun removeSource(url: String): Result<Unit> = unsupported("removeSource")
-        override suspend fun setEnabled(url: String, enabled: Boolean) = unsupported("setEnabled")
-        override suspend fun setDefaultSource(url: String) = unsupported("setDefaultSource")
-        override fun observeSources() = unsupported("observeSources")
-        override fun observeDefaultSource() = unsupported("observeDefaultSource")
-        override fun importFromJson(jsonStr: String): BookSourceRule? = unsupported("importFromJson")
-        override fun exportToJson(rule: BookSourceRule): String = unsupported("exportToJson")
     }
 
     private fun repositoryWith(
-        manager: BookSourceManager,
+        manager: SourceResolver,
         // 每个用例独立临时目录：本组用例不关心缓存内容，但构造被测对象需要一个真缓存载体
         cache: LibraryDiskCache = LibraryDiskCache(
             Files.createTempDirectory("repo-no-source").toFile().apply { deleteOnExit() }

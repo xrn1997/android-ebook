@@ -1,13 +1,9 @@
 package com.ebook.book.mvvm.viewmodel
 
 import androidx.test.core.app.ApplicationProvider
-import com.ebook.api.entity.BookSourceRule
-import com.ebook.api.entity.SourceFormat
-import com.ebook.api.entity.SourceDefinition
-import com.ebook.common.analyze.source.BookSourceItem
-import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
@@ -102,7 +98,7 @@ class SourceSwitchViewModelTest {
         SourceSwitchViewModel(manager, repository(manager))
 
     /** 黑四张表的「白名单」仓库：VM 用例只关心 Result 与候选编排，落库范围另有仓库用例 */
-    private fun repository(manager: BookSourceManager): BookRepository = BookRepository(
+    private fun repository(manager: SourceResolver): BookRepository = BookRepository(
         // getBookByUrl：换源前仓库要问一句「目标那条 noteUrl 是否本就在架上」（一律答 null = 不在）
         bookShelfDao = daoStub(
             BookShelfDao::class.java,
@@ -126,7 +122,7 @@ class SourceSwitchViewModelTest {
         // 换源收尾会清掉旧条目名下的在队任务（见 BookRepository.commitSwitch）
         downloadChapterDao = daoStub(DownloadChapterDao::class.java, "deleteByNoteUrl" to Unit),
         chapterReaders = emptyMap(),
-        bookSourceManager = manager,
+        sourceResolver = manager,
         bookStore = BookStore(File(System.getProperty("java.io.tmpdir"), "source-switch-test-books")),
         contentCache = ChapterContentCache(capacity = 3),
         transactions = DirectRunner,
@@ -409,7 +405,7 @@ class SourceSwitchViewModelTest {
     private data class Request(val keyword: String, val page: Int, val skip: Set<String>)
 
     /**
-     * 按脚本发事件的 Manager 假件：只实现换源面板用得到的两面（聚合搜索 + 按 tag 取源）。
+     * 按脚本发事件的取源面假件：只实现换源面板用得到的聚合搜索与按 tag 取源。
      *
      * 事件按源**顺序**发出（真实现会交错，见 [AggregateSearchEvent] 类注释）：本组用例锁的是
      * VM 对事件的处置，顺序化只为让断言写得出来；交错与并发由 `BookSourceManagerImplTest` 锁真实现。
@@ -423,7 +419,7 @@ class SourceSwitchViewModelTest {
          * 模拟「查书源清单失败」这类脚本之外的流出问题——真实现里此刻 AllFinished 根本不会发出。
          */
         private val failFlowWith: Throwable? = null,
-    ) : BookSourceManager {
+    ) : SourceResolver {
         val requests = mutableListOf<Request>()
         val parserForCalls = mutableListOf<String>()
 
@@ -448,25 +444,12 @@ class SourceSwitchViewModelTest {
                 ?: SourceBinding.Missing(sourceUrl)
         }
 
-        /** 书源清单与默认源流都不属于换源面板的路径，取到即抛：静默返回空值会让断言假绿 */
         private fun unsupported(who: String): Nothing =
             throw UnsupportedOperationException("ScriptedManager 未实现 $who")
 
-        override suspend fun getAllSources(): List<BookSourceRule> = unsupported("getAllSources")
-        override suspend fun getEnabledSources(): List<BookSourceRule> = unsupported("getEnabledSources")
-        override suspend fun getSourceByUrl(url: String): BookSourceRule? = unsupported("getSourceByUrl")
-        override suspend fun addSource(rule: BookSourceRule): Result<Unit> = unsupported("addSource")
-        override suspend fun addScriptSource(rawJson: String): Result<Unit> = unsupported("addScriptSource")
-        override suspend fun getFormatByUrl(url: String): SourceFormat? = unsupported("getFormatByUrl")
+        /** 分类条目不属于换源面板路径；同一面内留一条会炸的兜底 */
         override suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry> =
             unsupported("getExploreEntries")
-        override suspend fun removeSource(url: String): Result<Unit> = unsupported("removeSource")
-        override suspend fun setEnabled(url: String, enabled: Boolean) = unsupported("setEnabled")
-        override suspend fun setDefaultSource(url: String) = unsupported("setDefaultSource")
-        override fun observeSources(): Flow<List<BookSourceItem>> = unsupported("observeSources")
-        override fun observeDefaultSource(): Flow<SourceDefinition?> = unsupported("observeDefaultSource")
-        override fun importFromJson(jsonStr: String): BookSourceRule? = unsupported("importFromJson")
-        override fun exportToJson(rule: BookSourceRule): String = unsupported("exportToJson")
     }
 
     /** 只回答「新源能解出这本书」的 parser：详情与目录都是固定内容，[chapterCount] 决定目录长度 */

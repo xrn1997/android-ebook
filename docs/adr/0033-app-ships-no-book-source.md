@@ -58,4 +58,4 @@ Status: accepted
 - **不做首启引导页**：只做书城零源空态上的入口按钮，不做专门的引导页或弹窗。
 - **`is_user_imported` 的语义不可恢复**：迁移后无法再区分「曾经是内置行」；将来若真需要「受保护的行」这类概念，要新加一列而不是复用旧列语义。
 
-锚点：`BookSourceEntity`；`BookSourceDao.deleteByUrl`；`BookSourceMigration6To7Test`；`BookSourceManager.observeDefaultSource`
+锚点：`BookSourceEntity`；`BookSourceDao.deleteByUrl`；`BookSourceMigration6To7Test`；`SourceCatalog.observeDefaultSource`

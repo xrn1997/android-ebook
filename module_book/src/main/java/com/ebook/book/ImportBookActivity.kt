@@ -55,6 +55,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.ebook.book.mvvm.viewmodel.BookImportViewModel
+import com.ebook.common.importer.DuplicateResolution
 import com.ebook.common.importer.ImportDuplicateState
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
@@ -416,7 +417,8 @@ private fun ImportBookScreen(
  *   只展示第一条等于让用户在看不见后果的情况下按按钮。
  * - **「继续添加」占主按钮位**：共存不是需要被打扰的缺陷——同键条目读评论取并集，本来就是
  *   §9 这套模型支持的正常形态；破坏性与改数据的动作全部降到次要位。
- * - **「智能合并」只在有本地命中时出现**：补章的载体是本机章文件，网络书的正文在书源那边。
+ * - **「智能合并」只在 `available` 含 `MERGE` 时出现**：可用集由 `DispositionPolicy` 一处判定，
+ *   本页只按它给不给按钮，不自己重算判据。
  * - 点框外不关闭：四个动作语义差别太大，误触的代价不对等。
  */
 @Composable
@@ -427,7 +429,7 @@ private fun DuplicateDispositionDialog(
     onOverwrite: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    val canMerge = detected.matches.any { it.isLocal }
+    val canMerge = detected.available.contains(DuplicateResolution.MERGE)
     AlertDialog(
         onDismissRequest = { },
         title = { Text(stringResource(R.string.import_duplicate_title)) },

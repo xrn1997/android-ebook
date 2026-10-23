@@ -1,145 +1,51 @@
 package com.ebook.book.mvvm.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.ebook.common.analyze.local.ChapterContent
+import com.ebook.book.reader.ReaderSession
+import com.ebook.book.reader.RepositoryReaderSessionGateway
 import com.ebook.common.repository.BookRepository
-import com.ebook.common.repository.ChapterSyncResult
-import com.ebook.db.entity.BookShelfEntity
-import com.ebook.db.entity.ChapterListEntity
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.launch
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * 阅读页 ViewModel：只持有一个 [ReaderSession]，本身不再存书架副本或阅读位置。
+ *
+ * 位置、目录、在架状态与追更都归会话所有；页面经 [readerState] 读，经 [session] 写。
+ * 本类只剩三个生命周期动作：进入/离开时落进度、打开后查在架、下载入口前确保在架。
+ */
 @HiltViewModel
 class BookReadViewModel @Inject constructor(
-    private val bookRepository: BookRepository
+    bookRepository: BookRepository,
 ) : BaseViewModel<BookRepository>(bookRepository) {
-    var isAdd = false
-    var bookShelf: BookShelfEntity? = null
 
-    val nextInShelfEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    /** 阅读位置的单一所有者；页面只经它读写，不再持第二份 `(章, 页)`。 */
+    internal val session = ReaderSession(RepositoryReaderSessionGateway(bookRepository))
 
-    fun updateProgress(chapterIndex: Int, pageIndex: Int) {
-        bookShelf?.let {
-            it.durChapter = chapterIndex
-            it.durChapterPage = pageIndex
-        }
-    }
+    /** 页面渲染状态（书架快照、实时章页、在架结论及其派生标题/章数/滑条值）。 */
+    internal val readerState = session.state
 
+    /** 进入与离开时落一次进度；落库值是会话里的实时位置，不是打开时的快照。 */
     fun saveProgress() {
-        bookShelf?.let {
-            viewModelScope.launch {
-                bookRepository.saveProgress(it)
-            }
-        }
+        viewModelScope.launch { session.saveProgress() }
     }
 
-    fun getChapterTitle(chapterIndex: Int): String {
-        val chapters = bookShelf?.chapterList
-        return if (chapters.isNullOrEmpty()) {
-            "无章节"
-        } else chapters.getOrNull(chapterIndex)?.durChapterName ?: "无章节"
-    }
-
+    /** 查询书架归属；结论由会话落定到 `readerState.shelfChecked`，不再另发事件。 */
     fun checkInShelf() {
-        val noteUrl = bookShelf?.noteUrl ?: return
+        viewModelScope.launch { session.checkInShelf() }
+    }
+
+    /**
+     * 加入书架，写入的是会话里的实时位置。
+     *
+     * 只有当前会话确实因这次写入而在架才回调：会话在写库期间换了书时返回 false，
+     * 不为另一本书打开下载中心。
+     */
+    fun addToShelf(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            isAdd = bookRepository.getBookByUrl(noteUrl) != null
-            nextInShelfEvent.tryEmit(Unit)
+            if (session.addToShelf()) onSuccess()
         }
-    }
-
-    fun addToShelf(addListener: OnAddListener?) {
-        bookShelf?.let {
-            viewModelScope.launch {
-                bookRepository.addToShelf(it)
-                isAdd = true
-                addListener?.addSuccess()
-            }
-        }
-    }
-
-    /** 统一章节正文读取（本地书与网络书同路径） */
-    suspend fun loadChapter(chapter: ChapterListEntity): ChapterContent? =
-        bookShelf?.let {
-            bookRepository.loadChapter(
-                it, chapter.durChapterIndex, chapter.durChapterName, chapter.contentRef,
-            )
-        }
-
-    /**
-     * 刷新当前章节缓存（仅网络书）：删除章文件 + 失效内存缓存。
-     * 返回当前章节索引和页码，供 UI 重新加载页面。
-     */
-    suspend fun refreshCurrentChapter(): Pair<Int, Int>? {
-        val shelf = bookShelf ?: return null
-        val chapterIndex = shelf.durChapter
-        val pageIndex = shelf.durChapterPage
-        bookRepository.refreshChapter(shelf, chapterIndex)
-        return chapterIndex to pageIndex
-    }
-
-    /**
-     * 读到末章时静默查一次目录更新。
-     *
-     * 追加成功时**就地更新** `bookShelf.chapterList`：阅读器的一切都现取这个字段
-     * （正文走 `loadChapter`、目录走 [getChapter] / [getChapterListSize]），故替换掉它
-     * 持有的那个 List 即可生效，**不需要整体替换实体** —— 换源那条路径要替换是因为
-     * 换了另一本书，这里还是同一本、只是目录变长。
-     *
-     * 返回值只区分「有新章」（交回新章，宿主据此重分页并跟上滑条与标题）与
-     * 「页面不用动」（其余全部结局，包括失败 —— 那是静默路径，见目录重抓的处置口径）。
-     *
-     * **落库前先认归属**：书架行不存在、或书架行的 `tag` 与本次解析的 `tag` 不一致时
-     * 静默跳过本次追更（不发网络、不写库、不写结论时间戳）。跨源浏览进阅读器时手上
-     * 那份是别家源的目录——用它去 diff 不但几乎必判分叉，还会把「检查得出分叉结论」
-     * 写进 `final_refresh_data`，占掉这本书自己的检查窗口；未加书架时库里没有这本书的
-     * 行，追更写进去的是永远没人清理的 `chapter_list` 孤行。与详情页的同名门同一口径。
-     *
-     * **单飞**：宿主的进度回调在末章每一页翻动时都会调本方法，限频只能保证
-     * 「窗口内一次网络」，挡不住同一批页快速来回翻时并发起来。本方法只在主线程
-     * （Compose 回调）被调，故普通 [Boolean] 足够，不需要原子量。
-     */
-    suspend fun appendChaptersIfAny(): List<ChapterListEntity>? {
-        val shelf = bookShelf ?: return null
-        if (syncInFlight) return null
-        syncInFlight = true
-        try {
-            val stored = bookRepository.getBookByUrl(shelf.noteUrl)
-            if (stored == null || stored.tag != shelf.tag) return null
-            val result = bookRepository.syncChaptersFromSource(shelf)
-            val appended = (result as? ChapterSyncResult.Appended)?.appended ?: return null
-            // 目录回读库里那份，不在这里拼基数：`shelf.chapterList` 是调用方交进来的那一份，
-            // 详情页的搜索入口交进来的是源上的远端目录，「远端 + appended」会拼出重复的章，
-            // 按它写回的列表位置在书架侧越界（见 BookRepository.getStoredChapters 的契约）
-            bookShelf = shelf.copy(chapterList = bookRepository.getStoredChapters(shelf.noteUrl))
-            return appended
-        } finally {
-            syncInFlight = false
-        }
-    }
-
-    /** 目录检查是否正在进行（单飞标志，见 [appendChaptersIfAny]） */
-    private var syncInFlight = false
-
-    /**
-     * 获取章节列表大小
-     */
-    fun getChapterListSize(): Int {
-        return bookShelf?.chapterList?.size ?: 0
-    }
-
-    /**
-     * 获取指定索引的章节
-     */
-    fun getChapter(index: Int): ChapterListEntity? {
-        return bookShelf?.chapterList?.getOrNull(index)
-    }
-
-    interface OnAddListener {
-        fun addSuccess()
     }
 
     companion object {

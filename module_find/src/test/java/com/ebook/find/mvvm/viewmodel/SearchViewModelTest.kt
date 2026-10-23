@@ -1,10 +1,9 @@
 package com.ebook.find.mvvm.viewmodel
 
 import com.ebook.api.entity.BookSourceRule
-import com.ebook.api.entity.SourceFormat
-import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.manager.BookShelfManager
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.store.BookStore
@@ -22,6 +21,7 @@ import com.ebook.db.entity.SearchBookEntity
 import com.ebook.db.entity.SearchHistoryEntity
 import com.ebook.db.entity.WebChapterEntity
 import com.ebook.find.repository.SearchHistoryRepository
+import com.ebook.find.search.SearchProgress
 import com.ebook.source.analyze.AggregateSearchEvent
 import com.ebook.source.analyze.BookParser
 import com.xrn1997.common.mvvm.viewmodel.Overlay
@@ -62,7 +62,7 @@ import org.junit.Test
  * 用到的分支不碰 Context——`reportFailure` 的文案取异常自身消息，`addBookToShelf` 的
  * 成功路径也不需要 string 资源。
  *
- * `BookSourceManager` 用只实现「聚合 + 按 tag 取源」两面的假件（其余成员一调就抛，
+ * `SourceResolver` 用只实现「聚合 + 按 tag 取源」的假件（同一面的其它方法一调就抛，
  * 免得「其实没走到那条路径」的断言假绿）；`BookShelfManager` / `BookRepository` 用真件配
  * 白名单 DAO 替身（同一写法见 module_book 的 `BookDetailViewModelSourceTest`），
  * 于是「加书架用的是哪个 parser」测的是真链路，而不是两个替身之间的私下约定。
@@ -130,7 +130,7 @@ class SearchViewModelTest {
          * `flatMapMerge` 丢弃整路的形态（连 SourceFinished 都不发，故进度只能靠 AllFinished 收口）。
          */
         private val vanishUrls: Set<String> = emptySet(),
-    ) : BookSourceManager {
+    ) : SourceResolver {
         val requests = mutableListOf<Request>()
         val parserForCalls = mutableListOf<String>()
         var gateFor: Pair<String, CompletableDeferred<Unit>>? = null
@@ -194,21 +194,9 @@ class SearchViewModelTest {
         private fun unsupported(who: String): Nothing =
             throw UnsupportedOperationException("FakeAggregateManager 未实现 $who")
 
-        override suspend fun getAllSources(): List<BookSourceRule> = unsupported("getAllSources")
-        override suspend fun getEnabledSources(): List<BookSourceRule> = unsupported("getEnabledSources")
-        override suspend fun getSourceByUrl(url: String): BookSourceRule? = unsupported("getSourceByUrl")
-        override suspend fun addSource(rule: BookSourceRule): Result<Unit> = unsupported("addSource")
-        override suspend fun addScriptSource(rawJson: String): Result<Unit> = unsupported("addScriptSource")
-        override suspend fun getFormatByUrl(url: String): SourceFormat? = unsupported("getFormatByUrl")
+        /** 分类条目不属于搜索页路径；同一面内留一条会炸的兜底 */
         override suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry> =
             unsupported("getExploreEntries")
-        override suspend fun removeSource(url: String): Result<Unit> = unsupported("removeSource")
-        override suspend fun setEnabled(url: String, enabled: Boolean) = unsupported("setEnabled")
-        override suspend fun setDefaultSource(url: String) = unsupported("setDefaultSource")
-        override fun observeSources() = unsupported("observeSources")
-        override fun observeDefaultSource() = unsupported("observeDefaultSource")
-        override fun importFromJson(jsonStr: String): BookSourceRule? = unsupported("importFromJson")
-        override fun exportToJson(rule: BookSourceRule): String = unsupported("exportToJson")
     }
 
     /**
@@ -283,7 +271,7 @@ class SearchViewModelTest {
             downloadChapterDao = daoStub(DownloadChapterDao::class.java, emptyMap()),
             chapterReaders = emptyMap(),
             // BookRepository 新增的构造参数只服务换源事务（本用例不走）；与 VM 共用同一份假清单
-            bookSourceManager = manager,
+            sourceResolver = manager,
             bookStore = BookStore(File(System.getProperty("java.io.tmpdir"), "search-vm-test-books")),
             contentCache = ChapterContentCache(capacity = 3),
             transactions = DirectRunner,
@@ -299,7 +287,7 @@ class SearchViewModelTest {
         )
         return SearchViewModel(
             searchHistoryRepository = SearchHistoryRepository(historyDao),
-            bookSourceManager = manager,
+            sourceResolver = manager,
             bookShelfManager = BookShelfManager(manager, bookRepository),
             bookRepository = bookRepository,
         )
@@ -411,14 +399,14 @@ class SearchViewModelTest {
      * 触底判据只看 `!isLoadingMore`，于是第一轮结果正一条条往外蹦、列表刚长过一屏时，
      * 用户停在底部的这一次滑动就会真的走进 [SearchViewModel.loadMore]。
      *
-     * 并起的后果是**共享集合被两轮流交错改写**：本轮的源集合、结束集合与新增计数表
-     * （VM 里的 `AggregationBookkeeping.round`）是本轮共享状态，新一轮 `startRound` 一上来就把它整块换新，
-     * 旧轮随后的 Finished 于是记在新一轮的账上（「已收到 X/Y」算重），游标也被两轮的 `putIfAbsent` 互相覆写。
+     * 并起的后果是**会话状态被两轮流交错改写**：本轮的参与源、结束集与新增计数
+     * （`AggregationSession` 的单轮簿记）是共享状态，新一轮 `beginRound` 一上来就把它整块换新，
+     * 旧轮随后的 Finished 于是记在新一轮的账上（「已收到 X/Y」算重），跨轮的每源游标也被两轮互相覆写。
      *
      * 处方取「在途即忽略」而不是「取消旧轮再开新一轮」：旧轮那些**已经到手的结果**不该被丢掉，
      * 且旧轮的收尾本身就会发 `updateStopLoadMore` 把状态机从 Loading 放出来，
      * 界面仍停在底部时会再触发一次触底 → 下一轮带正确游标继续翻。
-     * 反过来取消旧轮会让 `pageBySource` 停在旧值、新轮重问一遍已问过的页，
+     * 反过来取消旧轮会让会话里的游标停在旧值、新轮重问一遍已问过的页，
      * 那一页去重后「零新条目」→ 每条源都被判「到底」→ footer 直接亮出假的「没有更多」。
      */
     @Test

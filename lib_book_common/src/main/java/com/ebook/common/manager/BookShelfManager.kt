@@ -1,6 +1,6 @@
 package com.ebook.common.manager
 
-import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.analyze.source.parserOrThrow
 import com.ebook.common.repository.BookRepository
 import com.ebook.db.entity.BookShelfEntity
@@ -18,7 +18,7 @@ import kotlinx.coroutines.CancellationException
  */
 @Singleton
 class BookShelfManager @Inject constructor(
-    private val bookSourceManager: BookSourceManager,
+    private val sourceResolver: SourceResolver,
     private val bookRepository: BookRepository
 ) {
     /** 加载书架列表（用于搜索结果比对） */
@@ -58,7 +58,7 @@ class BookShelfManager @Inject constructor(
                 tag = searchBook.tag
             }
             // 两次解析共用同一个 parser 实例：中途用户删了源也不至于一半新一半旧
-            val parser = bookSourceManager.parserOrThrow(searchBook.tag)
+            val parser = sourceResolver.parserOrThrow(searchBook.tag)
             val bookInfo = parser.getBookInfo(shelf)
             val chapterResult = parser.getChapterList(bookInfo)
             val bookShelf = chapterResult.data

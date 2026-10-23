@@ -96,7 +96,7 @@ class BookRepositorySwitchSourceTest {
         downloadChapterDao = daos.download,
         // 换源路径不读正文，reader 一律用不上
         chapterReaders = emptyMap<BookFormat, ChapterReader>(),
-        bookSourceManager = sources,
+        sourceResolver = sources,
         bookStore = store,
         contentCache = ChapterContentCache(capacity = 3),
         transactions = DirectTransactionRunner,

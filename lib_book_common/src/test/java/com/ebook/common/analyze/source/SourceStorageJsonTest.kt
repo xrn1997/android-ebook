@@ -8,7 +8,7 @@ import org.junit.Test
  * [SourceStorageJson] 的解码契约（纯 JVM：只碰 kotlinx-serialization，不碰 Android 框架）。
  *
  * 这个解码器存在的唯一理由是**接受集只能有一份**：书源管理页的导入预览用它判「这一条解不解得开」，
- * [BookSourceManager.addScriptSource] 用同一个 [storageJson] 实例决定「这一条存不存得下」。
+ * [SourceAdmin.addScriptSource] 用同一个 [storageJson] 实例决定「这一条存不存得下」。
  * 两边各开一个 `Json { }` 就会漂移，出现「预览说能导、点确认才发现存不下」——
  * 那种故障没有报错，只有统计里的一个「失败」数字，用户与开发者都追不到根因。
  * 因此这里钉的就是**接受集的边界形态**，而不是模型字段本身（字段定义见 [com.ebook.api.entity.ScriptSourceRule]）。

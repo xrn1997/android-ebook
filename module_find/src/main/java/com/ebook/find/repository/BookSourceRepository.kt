@@ -1,7 +1,7 @@
 package com.ebook.find.repository
 
-import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.analyze.source.LibraryDiskCache
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.analyze.source.parserOrThrow
 import com.ebook.db.entity.LibraryEntity
 import com.ebook.db.entity.SearchBookEntity
@@ -54,7 +54,7 @@ enum class LibraryLoadPolicy {
  */
 @Singleton
 class BookSourceRepository @Inject constructor(
-    private val bookSourceManager: BookSourceManager,
+    private val sourceResolver: SourceResolver,
     private val libraryDiskCache: LibraryDiskCache,
 ) : BaseModel() {
 
@@ -94,7 +94,7 @@ class BookSourceRepository @Inject constructor(
             emit(LibraryEntity())
             return@flow
         }
-        val parser = bookSourceManager.parserOrThrow(sourceUrl)
+        val parser = sourceResolver.parserOrThrow(sourceUrl)
 
         when (policy) {
             LibraryLoadPolicy.ForceNetwork -> {
@@ -147,7 +147,7 @@ class BookSourceRepository @Inject constructor(
     /**
      * 书籍类型列表：按 [sourceUrl] 取分类条目，空白标题过滤后映射成 [BookType]。
      *
-     * 读经 [BookSourceManager.getExploreEntries]——格式路由（原生 `ruleFind.kinds` / 脚本
+     * 读经 [SourceResolver.getExploreEntries]——格式路由（原生 `ruleFind.kinds` / 脚本
      * `exploreUrl` 条目）在 Manager 一处完成，本方法对两种出身**格式盲**：拿到的都是
      * 「标题 + 分类地址」，脚本条的 url 承载 URL 规则串，由对应解析器在分类页渲染。
      * 空白标题过滤保留在这里：`KindItem`/`exploreUrl` 条目的字段非空带默认值，书源规则
@@ -158,7 +158,7 @@ class BookSourceRepository @Inject constructor(
      * 由调用方（`LibraryViewModel.bookTypeList` 的 catch）按「加载失败给空列表」兜底。
      */
     suspend fun getBookTypeList(sourceUrl: String): List<BookType> =
-        bookSourceManager.getExploreEntries(sourceUrl)
+        sourceResolver.getExploreEntries(sourceUrl)
             .filter { it.title.isNotBlank() }
             .map { BookType(it.title, it.url) }
 
@@ -182,7 +182,7 @@ class BookSourceRepository @Inject constructor(
      *
      * - **[sourceUrl] 空白 → 返回 null（「无源」）**：调用方给空数据，页面走「请先启用或导入书源」
      *   的引导态。这是 P3-a 定下的契约（旧写法在这里直接抛 IllegalStateException，页面只剩一行
-     *   看不出根因的日志），保留不变；空白也照旧交给 [BookSourceManager.resolveSource] 的
+     *   看不出根因的日志），保留不变；空白也照旧交给 [SourceResolver.resolveSource] 的
      *   `Missing` 档，让那条契约来兜底，不查 Room。
      * - **有源但取不到 parser → 抛 [BookSourceNotFoundException]（「该源坏了」）**：`Missing`（行被删）
      *   或 `Broken`（`rule_json` 解不出来）。这种情况**不能返回空数据**：
@@ -195,7 +195,7 @@ class BookSourceRepository @Inject constructor(
     private suspend fun parserFor(sourceUrl: String): BookParser? =
         try {
             // 空白也走一次读面：让「无源」在调用账上可见，并复用 resolveSource 对空白的短路
-            bookSourceManager.parserOrThrow(sourceUrl)
+            sourceResolver.parserOrThrow(sourceUrl)
         } catch (e: BookSourceNotFoundException) {
             if (sourceUrl.isBlank()) null else throw e
         }

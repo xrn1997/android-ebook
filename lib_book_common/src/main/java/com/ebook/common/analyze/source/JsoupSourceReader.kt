@@ -50,12 +50,12 @@ import javax.inject.Singleton
  * 决定，而不是由「当前默认书源」决定——多书源共存时后者会把 A 站的书拿去按 B 站规则解析。
  * 由此一条必须知道的语义差异：[readChapter] 先判章文件存在性、命中就直接读盘，
  * 所以**已缓存过的章节即使所属书源被删也照样能读**，只有需要联网补抓的章才会抛
- * [BookSourceNotFoundException]。这是「删源不删书」（见 `BookSourceManager.removeSource`）能成立的前提。
+ * [BookSourceNotFoundException]。这是「删源不删书」（见 [SourceAdmin.removeSource]）能成立的前提。
  */
 @Singleton
 class JsoupSourceReader @Inject constructor(
     private val store: BookStore,
-    private val bookSourceManager: BookSourceManager,
+    private val sourceResolver: SourceResolver,
     @ApplicationContext private val context: Context,
     @Named("source") private val okHttpClient: OkHttpClient,
 ) : ChapterReader {
@@ -106,7 +106,7 @@ class JsoupSourceReader @Inject constructor(
      * 混成一个就会说错根因：
      * 1. **本地书被路由到网络 reader**（`tag` 等于 [BookShelfEntity.LOCAL_TAG]）→ [IllegalStateException]
      *    （编程错误）。reader 按 `book_format` 选，本地书永远是 TXT/EPUB reader，正常路由下走不到这里。
-     *    [BookSourceManager.resolveSource] 对它返回 [SourceBinding.Local]，若照此报成「书源已失效」，用户会收到
+     *    [SourceResolver.resolveSource] 对它返回 [SourceBinding.Local]，若照此报成「书源已失效」，用户会收到
      *    「请重新导入或换源」——本地书压根没有书源可导，等于把数据 bug 转嫁成用户操作。
      *    消息带现场（本地 tag 值 + `bookId`），否则只有一行「拿到本地书」的日志无从定位是哪条路由错了。
      * 2. **网络书的 `tag` 为空白**→ [BookSourceNotFoundException]。这与第 1 种**不是一回事**：
@@ -140,7 +140,7 @@ class JsoupSourceReader @Inject constructor(
         if (location.sourceUrl.isBlank()) {
             throw BookSourceNotFoundException(location.sourceUrl, "bookId=${location.bookId}")
         }
-        return bookSourceManager.parserOrThrow(location.sourceUrl)
+        return sourceResolver.parserOrThrow(location.sourceUrl)
     }
 
     /**

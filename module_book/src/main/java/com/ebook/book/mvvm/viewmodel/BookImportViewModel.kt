@@ -8,6 +8,7 @@ import com.ebook.book.R
 import com.ebook.common.importer.ImportBatchOutcome
 import com.ebook.common.importer.ImportDuplicateState
 import com.ebook.common.importer.ImportNotice
+import com.ebook.common.importer.ImportScanner
 import com.ebook.common.importer.LocalImportCoordinator
 import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.model.NoOpModel
@@ -33,12 +34,15 @@ import javax.inject.Inject
  * coordinator 状态的投影：[duplicateState]（处置框）、[importProgress]（进度文案）、
  * [isImporting]（遮罩）以及成功/失败事件与合并处置 Toast。
  *
- * 文件扫描仍归本类：那是纯页面交互（扫描按钮/取消/结果列表），与导入执行无关。
+ * 文件扫描的调度仍归本类：Android 根目录、挂载判断与取消信号在这里，扫描资格规则（扩展名、
+ * 体积阈值、无权限目录）住在 [ImportScanner]；两者都与导入执行无关。
  */
 @HiltViewModel
 class BookImportViewModel @Inject constructor(
     private val coordinator: LocalImportCoordinator,
 ) : BaseViewModel<NoOpModel>(NoOpModel()) {
+    private val importScanner = ImportScanner()
+
     val mImportBookList = MutableLiveData<List<File>>()
     val searchFinishEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val addSuccessEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -113,49 +117,16 @@ class BookImportViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val files = withContext(Dispatchers.IO) {
-                    val result = mutableListOf<File>()
                     if (Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) {
-                        searchBook(result, File(Environment.getExternalStorageDirectory().absolutePath))
+                        importScanner.scan(Environment.getExternalStorageDirectory()) { isCancel }
+                    } else {
+                        emptyList()
                     }
-                    result
                 }
                 mImportBookList.value = files
                 searchFinishEvent.tryEmit(Unit)
             } catch (e: Exception) {
                 Logger.e(TAG, "onError: ", e)
-            }
-        }
-    }
-
-    private fun searchBook(result: MutableList<File>, parentFile: File) {
-        if (isCancel) return
-        if (!parentFile.listFiles().isNullOrEmpty()) {
-            val childFiles = parentFile.listFiles()
-            if (childFiles != null) {
-                for (childFile in childFiles) {
-                    if (childFile.isFile) {
-                        val ext = childFile.name.substringAfterLast('.', "").lowercase()
-                        val isEligible = when (ext) {
-                            "epub" -> true
-                            "txt" -> childFile.length() > 100 * 1024
-                            else -> false
-                        }
-                        if (isEligible) {
-                            result.add(childFile)
-                            continue
-                        }
-                    }
-                    if (childFile.absolutePath == "/storage/emulated/0/Android/data"
-                        || childFile.absolutePath == "/storage/emulated/0/Android/obb"
-                    ) {
-                        //这个两个路径没有权限，不扫
-                        continue
-                    }
-                    if (childFile.isDirectory && !childFile.listFiles().isNullOrEmpty()) {
-                        //进入文件夹中继续扫
-                        searchBook(result, childFile)
-                    }
-                }
             }
         }
     }

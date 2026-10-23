@@ -1,11 +1,9 @@
 package com.ebook.find.repository
 
-import com.ebook.api.entity.BookSourceRule
-import com.ebook.api.entity.SourceFormat
-import com.ebook.common.analyze.source.BookSourceManager
 import com.ebook.common.analyze.source.LibraryDiskCache
 import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.LibraryEntity
 import com.ebook.db.entity.LibraryKindBookListEntity
@@ -102,7 +100,7 @@ class BookSourceRepositoryLibraryCacheTest {
     }
 
     /** 只回答「这个源有没有 parser」的最小假件：`resolveSource` 的空白短路返回 Missing，缺项即「源坏了」 */
-    private class FakeManager(private val parsers: Map<String, BookParser>) : BookSourceManager {
+    private class FakeManager(private val parsers: Map<String, BookParser>) : SourceResolver {
         val parserForCalls = mutableListOf<String>()
 
         override suspend fun resolveSource(sourceUrl: String): SourceBinding {
@@ -116,23 +114,11 @@ class BookSourceRepositoryLibraryCacheTest {
         private fun unsupported(who: String): Nothing =
             throw UnsupportedOperationException("FakeManager 未实现 $who")
 
-        override suspend fun getSourceByUrl(url: String): BookSourceRule? = unsupported("getSourceByUrl")
-        override suspend fun getAllSources(): List<BookSourceRule> = unsupported("getAllSources")
-        override suspend fun getEnabledSources(): List<BookSourceRule> = unsupported("getEnabledSources")
-        override suspend fun addSource(rule: BookSourceRule): Result<Unit> = unsupported("addSource")
-        override suspend fun addScriptSource(rawJson: String): Result<Unit> = unsupported("addScriptSource")
-        override suspend fun getFormatByUrl(url: String): SourceFormat? = unsupported("getFormatByUrl")
-        override suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry> =
-            unsupported("getExploreEntries")
-        override suspend fun removeSource(url: String): Result<Unit> = unsupported("removeSource")
-        override suspend fun setEnabled(url: String, enabled: Boolean) = unsupported("setEnabled")
-        override suspend fun setDefaultSource(url: String) = unsupported("setDefaultSource")
         override fun searchAcross(keyword: String, page: Int, skipSourceUrls: Set<String>) =
             unsupported("searchAcross")
-        override fun observeSources() = unsupported("observeSources")
-        override fun observeDefaultSource() = unsupported("observeDefaultSource")
-        override fun importFromJson(jsonStr: String): BookSourceRule? = unsupported("importFromJson")
-        override fun exportToJson(rule: BookSourceRule): String = unsupported("exportToJson")
+
+        override suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry> =
+            unsupported("getExploreEntries")
     }
 
     private class Fixture(

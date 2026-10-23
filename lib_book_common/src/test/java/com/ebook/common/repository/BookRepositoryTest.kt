@@ -75,7 +75,7 @@ class BookRepositoryTest {
             downloadChapterDao = daos.download,
             chapterReaders = readers,
             // 本测试类的用例不碰换源，空清单的假书源管理器即可（需要 parser 的见 BookRepositorySwitchSourceTest）
-            bookSourceManager = FakeBookSourceManager(),
+            sourceResolver = FakeBookSourceManager(),
             bookStore = store,
             contentCache = ChapterContentCache(),
             transactions = DirectTransactionRunner,
@@ -146,7 +146,7 @@ class BookRepositoryTest {
             bookGroupDao = daos.group,
             downloadChapterDao = daos.download,
             chapterReaders = mapOf(BookFormat.TXT to FakeChapterReader()),
-            bookSourceManager = FakeBookSourceManager(),
+            sourceResolver = FakeBookSourceManager(),
             bookStore = store,
             contentCache = ChapterContentCache(),
             transactions = object : WriteTransactionRunner {
@@ -467,7 +467,7 @@ class BookRepositoryTest {
             bookGroupDao = daos.group,
             downloadChapterDao = daos.download,
             chapterReaders = mapOf(BookFormat.TXT to FakeChapterReader()),
-            bookSourceManager = FakeBookSourceManager(),
+            sourceResolver = FakeBookSourceManager(),
             bookStore = store,
             contentCache = ChapterContentCache(),
             transactions = ImmediateTransactionRunner { runs++ },

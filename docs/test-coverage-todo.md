@@ -60,6 +60,13 @@
   覆盖候选域、按书暂停跳过、孤儿清理与队列计数。`DownloadService` 只剩前台生命周期、通知、
   跳过计数与下一章调度，其生命周期与通知——含收到 `Paused` 时「`pauseDownload()` 置 false
   并改写通知 + `isPause()`」两步——仍按人工装机验证（见本文件末『架构深化』清单第 3 条）。
+- [x] 为下载中心的选章计划（`ChapterSelectionPlan`）添加回归测试（架构深化，2026-10-23）
+  —— `module_book/src/test/.../reader/ChapterSelectionPlanTest.kt`（10 例，纯 JVM）锁住计划轮廓：
+  预勾选取焦点章起 50 章并剔除已缓存/排队、无有效焦点章为空集、窗口封顶末章；未缓存集合同样排除排队；
+  确认计划按序构造任务且 `forceRefresh = true`、书名/封面取自 `BookChapterSelection`（章节行无此字段）；
+  越界勾选被丢弃、有效数取实际任务数、跳过数只数已在队列者；三态动作矩阵（有队列→暂停、有队列已暂停→继续、
+  无队列→下载）；空勾选已暂停有队列时继续且不下发、空勾选无队列时下载不可用。
+  `ChapterSelectionTest`（23 例）与 `ChapterDownloadStatusTest`（6 例）保持原样、口径未变。
 - [x] ~~为 `CommentRepository` 添加单元测试（当前**零覆盖**）~~
   **已覆盖（2026-09-07 评论分页改造时）**：`CommentRepositoryTest`（纯 JVM，`CoroutineAdapter` 的
   刷新器/事件总线/令牌桶直接构造，假件路子沿用 `SessionTokenRefresherTest`，未引入 Robolectric）
@@ -80,6 +87,38 @@
   **仍未覆盖**：其余 Compose 页面（列表滚动、对话框、手势）同样只能用像素断言锁「画出来没有」，
   按此回路逐页补
 - [ ] `AuthInterceptor` 测试归属 lib_common（android-practice 仓库，随认证体系对齐后不再在本仓库维护）
+- [x] 阅读器位置收进单一会话（`ReaderSession`）后的回归
+  —— `module_book/src/test/.../reader/ReaderSessionTest.kt`（32 例，纯 JVM，假网关）锁位置所有权：
+  书架快照与实时章页分离、`saveProgress` 把实时位置合并进副本（未 adopt 为 no-op）、标题/章数/滑条派生与封顶、
+  在架查询命中/未命中；加架（含挂起期间换书不标记新书、追更换目录实例不误判换书）；追更收口：末章判定、`tag` 归属门、单飞、回读目录整体替换、
+  回读期间换书即作废；换源 `adoptAfterSourceSwitch` 整行收下并把位置复位到新条目。
+  `ReadingProgressFlowTest`（6 例，Robolectric）改为经会话读写，仍是真 ViewModel + 真仓库 + Room 内存库跑真 SQL 的端到端。
+- [x] 聚合搜索的轮次协议收进单一会话（`AggregationSession`）后的回归
+  —— `module_find/src/test/.../search/AggregationSessionTest.kt`（16 例，纯 JVM）锁协议：
+  `startSearch` 整块重置（游标、结束集、已见条目）、`beginRound` 从上一轮观测算请求（活跃源最小游标 +
+  跳过已结束源）、游标按源保存，覆盖页号推进、已结束源跳过与换词重置、软 404 零新增即判该源结束、
+  部分源失败不算 `allFailed`（展示由 `SearchViewModelTest` 的接线用例锁住）、全部源失败才进错误态、
+  `AllFinished` 为消失源补齐进度、所有源都到底时收尾判没有更多、非空轮遇致命异常仍补齐进度、
+  空源集合既不算失败也没有更多、进度随 Started/Finished 变化。
+  `SearchViewModelTest` 仍是接线测试（结果合并/list、历史、书架标记与覆盖层渲染）。
+- [x] 书源接口按调用方拆成四个窄面（架构深化，2026-10-23）
+  —— `BookSourceManager` 收敛为 `SourceResolver` / `SourceCatalog` / `SourceAdmin` / `SourceCodec` 的聚合类型，
+  10 个生产注入点改注入最窄面；8 个完整测试替身（两份具名 `FakeBookSourceManager` + 六份内联类替身）
+  只实现测试实际调用的面，另有 `SourceBindingTest` 的匿名委托与 `ReadingProgressFlowTest` 的 Proxy
+  两份替身，合计 10 份。`BookSourceManagerImplTest` 仍以聚合类型测实现本身：直接调用已删的
+  `getEnabledSources` / `getSourceByUrl` 的 4 个用例改用 `getAllSources()` / `observeSources()` 断言，
+  锁住的语义（实体列覆盖、禁用不切断归属、脚本行不进规则面）不变；各消费者既有单测断言零改动、全绿。
+  Hilt 四个窄面各 `@Binds @Singleton` 指向同一个 `BookSourceManagerImpl`（聚合绑定已删），
+  绑定完整性由编译期 Hilt 图校验兜住。
+- [x] 导入扫描与处置可用性收进纯策略模块（架构深化，2026-10-23）
+  —— `lib_book_common/src/test/.../importer/ImportScannerTest.kt`（9 例，纯 JVM，临时目录）锁扫描资格：
+  100KB 边界两侧（`small.txt` 恰 100KB 不入选、`big.txt` 多 1 字节入选）、EPUB 一律、其它扩展名不入选、
+  嵌套目录入选、`Android/data` 与 `Android/obb` 整棵跳过、入口即取消返回空、中途取消返回已收集前缀、
+  大写扩展名入选、空目录与不存在/不可读根返回空（`isFile` 门由实现审阅对齐，纯 JVM 临时目录造不出
+  非目录特殊条目）。`lib_book_common/src/test/.../importer/DispositionPolicyTest.kt`（4 例）锁处置可用集：
+  无命中与仅网络书命中都不给 `MERGE`，本地书命中与混合命中给 `MERGE` 且 `canMerge` 同一判据。
+  `LocalImportCoordinatorTest` 断言未改、原样通过；处置框交互（四个动作各点一遍）仍只能人工装机验证
+  （见下方《人工装机验证清单（本地书导入与评论分页改造）》第 5 项）。
 
 ## 本轮（2026-09-03 评审）明确延后的技术债
 
@@ -815,5 +854,39 @@ lib_ebook_api 37 / lib_ebook_db 35 / module_login 8 / module_main 4），手写�
    不留「库里有行、章文件为空」的空壳书。
 
 > 本轮未做装机验证即登记于此。基线既有失败：`lib_book_source` 的 `DesktopJsHostTest` 4 例（桌面 QuickJS 宿主），
-> 本轮未触碰该环境。
+> 本轮未触碰该环境。（2026-10-23 修复：该 4 例实为假红——`bridgeFor` 内的 `assumeTrue` 被测试自己的
+> `runCatching` 吞掉，库缺席时本应整类跳过却报成断言失败；已把桥构造提到 `runCatching` 之外，
+> 缺库机器上现为 34 例全跳过。）
+
+## 人工装机验证清单（阅读器位置单一所有者，2026-10-23）
+
+自动覆盖见上方待办条目。
+以下只列自动化够不到的**设备项**（位置改由会话持有后的回归），均未做装机验证。
+
+1. 书架进阅读器（`OPEN_FROM_APP`）：首屏出正文，标题/滑条/顶栏书名正确；不在架时返回弹出加架确认。
+2. 外部打开（`OPEN_FROM_OTHER`）：导入后直接进阅读器；首次导入落在第一章，重复导入（命中现有条目）落回该行已存的位置。
+3. 异常关闭恢复（`RESUME_NOTE_URL`）：落回存储的章页；行缺失时仍提示加载失败并退出，不空白停留。
+4. 进度持久化：Home/应用切换触发 `onPause` 后重进，落回离开时那一页（不是打开时的位置）。
+5. 翻页 ↔ 滚屏互切：落点在同一段字附近，追更后再切一次同样不丢位置。
+6. 进度滑条：拖动只出预览、松手才跳章；上/下一章按钮可用；目录抽屉高亮跟随实时章。
+7. 末章追更：追加后「已追加 N 章」只提示一次，滑条与「共 M 章」分母变长，当前屏不动。
+8. 换源：进度映射到新目录的当前章（不是开头），标题/滑条跟随，之后不再弹加架确认。
+9. 下载入口：先把书加入书架，再进下载中心并聚焦当前读的章。
+10. 评论入口：读了几章后进评论区，章节 key/章名/URL 与屏上章一致。
+11. 强制刷新当前章：正文重取后仍停在同一页。
+12. 本地书（`tag` 为本地源）：追更在 `BookRepository.syncChaptersFromSource` 处短路为 `NotNetworkBook`（不是会话的 `tag` 归属门），保持静默；强制刷新是 no-op。
+
+**已知待观察（ReaderSession 接线遗留）**：
+
+- 每次翻页都会更新 `readerState.pageIndex`，逐页重组对滚屏顺滑度的影响需装机观察。
+- 非末章的进度上报会起一个立即返回的协程（当前按设计接受）。
+
+**评审发现的既有风险（不在本轮修）**：
+
+- `openBookFromApp` 在 Activity 重建时会重跑，而 `BitIntentDataManager.cleanData` 已在首次打开时消费掉入口载荷，
+  重建后取不到数据、直接 `finish()`。页面锁定竖屏，常规旋转不触发；语言或 `uiMode` 变化会重建，
+  届时会退出阅读器。
+- 追更与换源的竞态：`tag` 归属门在 `syncChaptersFromSource` 之前检查，其写事务内不再复核；换源恰好落在
+  两者之间时会留下孤儿 `chapter_list` 行。会话的回读守卫保护的是会话（不把旧书目录装进新书），
+  保护不了数据库。
 

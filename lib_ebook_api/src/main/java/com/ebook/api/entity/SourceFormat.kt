@@ -54,7 +54,7 @@ object SourceFormatDetector {
 
 /**
  * 已落库书源的**求值输入与默认源载体**：Manager 按实体 `format` 列构造，交给解析器工厂分发；
- * 2e 起同时是默认源的载体——默认源经 `BookSourceManager.observeDefaultSource()` 订阅获得，
+ * 2e 起同时是默认源的载体——默认源经 `SourceCatalog.observeDefaultSource()` 订阅获得，
  * 不再有同步取默认源的出口。密封类型同时表达两种出身，
  * 各自带展示信息（[sourceUrl]/[displayName]），调用方不再需要在「规则字段」与「实体列」之间分格式取值。
  * 密封保证新增格式时编译器逼出所有分支。

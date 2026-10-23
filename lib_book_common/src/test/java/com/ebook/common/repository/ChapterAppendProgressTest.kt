@@ -48,11 +48,11 @@ import org.robolectric.annotation.Config
  * 编排层（时间戳、事件、序号从 max+1 起）由 [BookRepositoryChapterSyncTest] 用假件锁，
  * 两边不重复。
  *
- * 阅读器与详情页那一侧在本文件里按生产的写法逐字镜像（`BookReadViewModel.appendChaptersIfAny`
+ * 阅读器与详情页那一侧在本文件里按生产的写法逐字镜像（`ReaderSession.appendIfAtTail`
  * 与 `BookDetailViewModel.getBookShelfInfo` 各自的「落库 → 回读库里那份」+ 目录抽屉按列表位置跳章
- * + 退出时 `saveProgress`）：跨模块拿不到那些 ViewModel，而这几步的口径正是本用例要钉的东西。
+ * + 退出时 `saveProgress`）：跨模块拿不到那些 ViewModel 与会话，而这几步的口径正是本用例要钉的东西。
  * 详情页侧另有一条真跑 VM 的锁，见 module_book 的 `BookDetailViewModelSourceTest`。
- * 改动这些 ViewModel 时必须同步这里。
+ * 改动这些 ViewModel 或会话时必须同步这里。
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -91,7 +91,7 @@ class ChapterAppendProgressTest {
             bookGroupDao = db.bookGroupDao(),
             downloadChapterDao = db.downloadChapterDao(),
             chapterReaders = emptyMap<BookFormat, ChapterReader>(),
-            bookSourceManager = manager,
+            sourceResolver = manager,
             bookStore = BookStore(File(System.getProperty("java.io.tmpdir"), "ebook-append-progress")),
             contentCache = ChapterContentCache(capacity = 3),
             // 与生产 TransactionModule 同一实现：假事务不回滚会把「半笔写」测成正常
@@ -260,7 +260,7 @@ class ChapterAppendProgressTest {
 
     @Test
     fun `阅读器末章追更后回读库里那份，跳最新不再需要钳制`() = runBlocking {
-        // 生产的写法（BookReadViewModel.appendChaptersIfAny）：追加成功后目录回读库里那份，
+        // 生产的写法（ReaderSession.appendIfAtTail）：追加成功后目录回读库里那份，
         // 不再用「传进来的那份 + appended」拼基数。
         seedLocal(indices = listOf(0, 1, 2))
         givenRemote(remoteCount = 5)

@@ -569,7 +569,14 @@ class BookSourceManagerImplTest {
         assertFalse("库里禁用、内存 rule 却说启用 —— 视图与真值分裂", split.enabled)
         assertEquals(7, split.weight)
         assertEquals("源<https://split.example>", split.name)
-        assertTrue(manager.getEnabledSources().none { it.url == "https://split.example" })
+        val listed = manager.observeSources().first().single { it.rule.url == "https://split.example" }
+        assertFalse("清单条目的展示规则同样按实体列给启用态", listed.rule.enabled)
+        assertTrue(
+            "observeSources 带禁用行；按 enabled 过滤后的清单（书城切换器口径）不得含它",
+            manager.observeSources().first()
+                .filter { it.rule.enabled }
+                .none { it.rule.url == "https://split.example" },
+        )
     }
 
     @Test
@@ -579,7 +586,10 @@ class BookSourceManagerImplTest {
         manager.setEnabled("https://off.example", false)
 
         assertNotNull(manager.getParserFor("https://off.example"))
-        assertNotNull(manager.getSourceByUrl("https://off.example"))
+        assertFalse(
+            "禁用不切断归属：这行仍在规则类型化读面里（只是 enabled=false）",
+            manager.getAllSources().first { it.url == "https://off.example" }.enabled,
+        )
     }
 
     // endregion
@@ -730,7 +740,7 @@ class BookSourceManagerImplTest {
      * 与 `weight`（null vs 非空 Int）都会让解码抛异常并 `return null`。
      *
      * 修复后脚本行不再进那条解码路径：条目里的 `rule` 由实体列合成，**只用于展示**
-     * （名字/地址/启用态），求值另有 [BookSourceManager.resolveSource] 的格式路由（本用例一并钉住）。
+     * （名字/地址/启用态），求值另有 [SourceResolver.resolveSource] 的格式路由（本用例一并钉住）。
      * 同时规则类型化读面必须仍然看不见它——那才是「不会有人拿着空规则去发请求」的防线。
      */
     @Test
@@ -742,9 +752,7 @@ class BookSourceManagerImplTest {
         seedScriptRow(ruleJson = communityScriptRuleJson)
         val manager = newManager()
 
-        val items = manager.observeSources().first()
-
-        val item = items.single { it.rule.url == SCRIPT_URL }
+        val item = manager.observeSources().first().single { it.rule.url == SCRIPT_URL }
         assertEquals(SourceFormat.SCRIPT, item.format)
         // 展示字段全部来自实体列（rule_json 根本没被解）
         assertEquals("脚本测试源", item.rule.name)
@@ -766,7 +774,6 @@ class BookSourceManagerImplTest {
             emptyList<BookSourceRule>(),
             manager.getAllSources(),
         )
-        assertNull(manager.getSourceByUrl(SCRIPT_URL))
     }
 
     @Test
@@ -829,15 +836,14 @@ class BookSourceManagerImplTest {
         val manager = newManager()
 
         assertEquals("getAllSources 只给原生规则", emptyList<BookSourceRule>(), manager.getAllSources())
+
+        val item = manager.observeSources().first().single { it.rule.url == SCRIPT_URL }
         assertEquals(
-            "getEnabledSources 是规则类型化读面，脚本源参与聚合走条目面（见 searchAcross）",
-            emptyList<BookSourceRule>(),
-            manager.getEnabledSources(),
+            "脚本行仍是表里的一行：条目面（管理页）必须看得见它，才禁用得了、删得掉",
+            SourceFormat.SCRIPT,
+            item.format,
         )
-        assertNull(
-            "getSourceByUrl 对脚本行给 null，否则调用方会拿到一条空规则去解析",
-            manager.getSourceByUrl(SCRIPT_URL),
-        )
+        assertEquals("脚本测试源", item.rule.name)
 
         assertNotNull("行必须留在库里——原始规则已导入，待引擎升级后自动生效", dao.getByUrl(SCRIPT_URL))
         assertEquals(SourceFormat.SCRIPT.raw, dao.getByUrl(SCRIPT_URL)?.format)
@@ -1379,7 +1385,8 @@ class BookSourceManagerImplTest {
     /**
      * 2d 的落地项：脚本书源参与聚合搜索（ADR-0029 决策 6）。
      *
-     * 候选集从 [BookSourceManagerImpl.getEnabledSources]（规则类型化读面，按格式挡下脚本行）换成
+     * 候选集从规则类型化读面（[BookSourceManagerImpl.getAllSources] 背后的
+     * [BookSourceManagerImpl.toRule]，按格式挡下脚本行）换成
      * 「启用行 × [BookSourceManagerImpl.toItem]」正是为此。这里注入两分支都给的假工厂：
      * 真 [com.ebook.source.analyze.ScriptBookParser] 会真的向第三方站点发请求，而本用例锁的是
      * **编排**——脚本行有没有进候选、事件与归属有没有按它自己走；「按规则怎么解」由

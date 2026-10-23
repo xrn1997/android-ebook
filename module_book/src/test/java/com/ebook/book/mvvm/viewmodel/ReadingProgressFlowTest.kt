@@ -4,9 +4,10 @@ import android.content.Context
 import android.os.Looper
 import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
+import com.ebook.book.reader.ReaderAppendResult
 import com.ebook.common.analyze.local.BookFormat
 import com.ebook.common.analyze.local.ChapterReader
-import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.store.BookStore
@@ -45,7 +46,7 @@ import org.robolectric.annotation.Config
 
 /**
  * 「读至XXX变空 → 点进去提示章节加载失败」这条用户序列的**端到端**回归
- * （真 ViewModel + 真仓库 + Room 内存库跑真 SQL）。
+ * （真 ViewModel（内部真 ReaderSession）+ 真仓库 + Room 内存库跑真 SQL）。
  *
  * 与另两份锁的分工（为什么要三份）：
  * - `lib_book_common` 的 `ChapterAppendProgressTest` 锁仓库与 SQL 语义，但它对阅读器/详情页是
@@ -53,9 +54,9 @@ import org.robolectric.annotation.Config
  * - `BookDetailViewModelSourceTest` 真跑详情页 VM，但 DAO 是空库替身，看不见落库与回读的互作；
  * - 本文件把两个真 VM 串起来：详情页交出去的那份目录 → 阅读器持有它 → 末章追更 → 跳最新 →
  *   退出保存 → 书架回读。症状的两处读点（书架 `chapterList.getOrNull(durChapter)`、阅读器
- *   `getChapter(index)`）都由生产代码本身跑出来，所以任何一环把「列表位置」写歪这里就红。
+ *   `ReaderSession.chapterAt(index)`）都由生产代码本身跑出来，所以任何一环把「列表位置」写歪这里就红。
  *
- * `BookSourceManager` 与 `BookParser` 用 [Proxy] 桩而不是手写实现：两个接口成员多，本流程只用到
+ * `SourceResolver` 与 `BookParser` 用 [Proxy] 桩而不是手写实现：两个接口成员多，本流程只用到
  * `resolveSource` / `getBookInfo` / `getChapterList`，其余成员一旦被问就抛，「其实没走到那条路径」
  * 不会假绿。lib_book_common 里那两份同名假件是 internal，跨模块看不到，只能各留一份。
  */
@@ -99,7 +100,7 @@ class ReadingProgressFlowTest {
             bookGroupDao = db.bookGroupDao(),
             downloadChapterDao = db.downloadChapterDao(),
             chapterReaders = emptyMap<BookFormat, ChapterReader>(),
-            bookSourceManager = managerStub(parsers),
+            sourceResolver = managerStub(parsers),
             bookStore = BookStore(File(System.getProperty("java.io.tmpdir"), "reading-progress-flow")),
             contentCache = ChapterContentCache(capacity = 3),
             // 就地执行事务：Room 的 withWriteTransaction 在 runTest 的 Main 调度器下等不到
@@ -117,10 +118,10 @@ class ReadingProgressFlowTest {
         db.close()
     }
 
-    private fun managerStub(parsers: Map<String, BookParser> = emptyMap()): BookSourceManager =
+    private fun managerStub(parsers: Map<String, BookParser> = emptyMap()): SourceResolver =
         Proxy.newProxyInstance(
-            BookSourceManager::class.java.classLoader,
-            arrayOf(BookSourceManager::class.java),
+            SourceResolver::class.java.classLoader,
+            arrayOf(SourceResolver::class.java),
         ) { _, method, args ->
             when (method.name) {
                 // 照抄真实现的三条短路：本地书、空白、库中无行，否则「本地书不会被报成
@@ -138,10 +139,10 @@ class ReadingProgressFlowTest {
                 "hashCode" -> System.identityHashCode(parsers)
                 "toString" -> "ManagerStub"
                 else -> throw UnsupportedOperationException(
-                    "BookSourceManager.${method.name} 不该被本用例调用",
+                    "SourceResolver.${method.name} 不该被本用例调用",
                 )
             }
-        } as BookSourceManager
+        } as SourceResolver
 
     /**
      * 只回「源上这份目录」的 parser 桩，形为与真解析器一致：详情原样回传入参、
@@ -241,22 +242,29 @@ class ReadingProgressFlowTest {
         assertEquals("详情页目录该是落库后回读的那份", 5, detail.mBookShelf?.chapterList?.size)
 
         // BookDetailActivity.onReadClick 交出去的就是详情页这份
-        val reader = BookReadViewModel(repository).apply { bookShelf = detail.mBookShelf!!.copy() }
-        assertNull(
+        val reader = BookReadViewModel(repository).apply {
+            session.adopt(detail.mBookShelf!!.copy())
+        }
+        // 会话先判「在不在末章」再碰网络：先把位置移到末章，下面这次追更才落进限频判据
+        reader.session.updateProgress(reader.session.state.value.chapterCount - 1, 0)
+        assertEquals(
             "末章再查一次该被限频挡下（详情页刚为这本书落过库、写过结论）",
-            reader.appendChaptersIfAny(),
+            ReaderAppendResult.Skipped,
+            reader.session.appendIfAtTail(),
         )
         assertEquals("为落库不该再翻一遍目录页", 1, chapterListCalls)
         assertEquals("库里已长到 5 行", 5, runBlocking { repository.getStoredChapters(NOTE_URL).size })
 
-        reader.updateProgress(reader.getChapterListSize() - 1, 0)
-        reader.saveProgress()
+        reader.session.saveProgress()
         awaitUntil("进度已落库") { readToChapter()?.durChapterName == "第5章" }
 
         val shelf = runBlocking { repository.getAllBooksWithDetails().single() }
         assertEquals("落点本就在库内，钳制不该出手", 4, shelf.durChapter)
         assertNotNull("书架「读至」不该空白", readToChapter())
-        assertNotNull("点进去要能解析出这一章（loadPage 的第一道判据）", reader.getChapter(shelf.durChapter))
+        assertNotNull(
+            "点进去要能解析出这一章（loadPage 的第一道判据）",
+            reader.session.chapterAt(shelf.durChapter),
+        )
     }
 
     @Test
@@ -266,19 +274,17 @@ class ReadingProgressFlowTest {
         parsers[SOURCE_A] = parserStub((0 until 5).map { chapter(SOURCE_A, it) })
         // 这条路径没有详情页参与：书架页把库内条目直接交给阅读器
         val reader = BookReadViewModel(repository).apply {
-            bookShelf = runBlocking { repository.getAllBooksWithDetails().single() }
+            session.adopt(runBlocking { repository.getAllBooksWithDetails().single() })
         }
 
-        val appended = reader.appendChaptersIfAny()
-        assertNotNull("末章该追到新章", appended)
-        assertEquals(2, appended?.size)
-        assertEquals("追更后内存与库同一份目录", 5, reader.getChapterListSize())
+        assertEquals("末章该追到新章 2 章", ReaderAppendResult.Appended(2), reader.session.appendIfAtTail())
+        assertEquals("追更后内存与库同一份目录", 5, reader.session.state.value.chapterCount)
 
-        reader.updateProgress(reader.getChapterListSize() - 1, 0)
-        reader.saveProgress()
+        reader.session.updateProgress(reader.session.state.value.chapterCount - 1, 0)
+        reader.session.saveProgress()
         awaitUntil("进度已落库") { readToChapter()?.durChapterName == "第5章" }
         assertEquals(4, runBlocking { repository.getAllBooksWithDetails().single().durChapter })
-        assertNotNull(reader.getChapter(runBlocking { reader.bookShelf!!.durChapter }))
+        assertNotNull(reader.session.chapterAt(reader.session.state.value.chapterIndex))
     }
 
     @Test
@@ -290,13 +296,13 @@ class ReadingProgressFlowTest {
             bookInfo = BookInfoEntity(noteUrl = NOTE_URL, name = "斗破苍穹", origin = SOURCE_A)
         }
         val reader = BookReadViewModel(repository).apply {
-            bookShelf = carrier.copy(chapterList = (0 until 100).map { chapter(SOURCE_A, it) })
+            session.adopt(carrier.copy(chapterList = (0 until 100).map { chapter(SOURCE_A, it) }))
         }
-        reader.updateProgress(99, 0)
-        reader.saveProgress()
+        reader.session.updateProgress(99, 0)
+        reader.session.saveProgress()
         awaitUntil("进度行已写过一次（此时还没有 book_info，是条孤立记录）") { shelfRow() != null }
 
-        reader.addToShelf(null)
+        reader.session.addToShelf()
         // 等的是「整个条目到位」，不是「书架上先长出一行」：生产的 `addToShelf` 把四张表收进一笔
         // 写事务，读方看不到半截条目；本文件的假事务接缝刻意就地执行 block（真 Room 事务在 runTest
         // 的 Main 下等不到 Robolectric 主 looper，见 setUp 里那条注释），所以「书架行已在、100 章
@@ -360,14 +366,18 @@ class ReadingProgressFlowTest {
         var chapterListCalls = 0
         parsers[SOURCE_B] = parserStub((0 until 5).map { chapter(SOURCE_B, it) }) { chapterListCalls++ }
         val reader = BookReadViewModel(repository).apply {
-            bookShelf = BookShelfEntity(noteUrl = NOTE_URL, tag = SOURCE_B).copy(
-                chapterList = runBlocking { repository.getStoredChapters(NOTE_URL) },
+            // 停在末章：会话先判「是否在末章」，不在末章就换不到归属门这一步
+            session.adopt(
+                BookShelfEntity(noteUrl = NOTE_URL, tag = SOURCE_B, durChapter = 2).copy(
+                    chapterList = runBlocking { repository.getStoredChapters(NOTE_URL) },
+                )
             )
         }
 
-        assertNull(
+        assertEquals(
             "tag 与书架行不符，追更必须整次跳过",
-            reader.appendChaptersIfAny(),
+            ReaderAppendResult.Skipped,
+            reader.session.appendIfAtTail(),
         )
         assertEquals("归属不符时连目录页都不该翻", 0, chapterListCalls)
         val stored = runBlocking { repository.getStoredChapters(NOTE_URL) }
@@ -387,11 +397,18 @@ class ReadingProgressFlowTest {
         var chapterListCalls = 0
         parsers[SOURCE_A] = parserStub((0 until 5).map { chapter(SOURCE_A, it) }) { chapterListCalls++ }
         val reader = BookReadViewModel(repository).apply {
-            bookShelf = BookShelfEntity(noteUrl = NOTE_URL, tag = SOURCE_A)
-                .copy(chapterList = (0 until 3).map { chapter(SOURCE_A, it) })
+            // 停在末章：会话先判「是否在末章」，不在末章就换不到归属门这一步
+            session.adopt(
+                BookShelfEntity(noteUrl = NOTE_URL, tag = SOURCE_A, durChapter = 2)
+                    .copy(chapterList = (0 until 3).map { chapter(SOURCE_A, it) })
+            )
         }
 
-        assertNull("不在书架上的书追更必须整次跳过", reader.appendChaptersIfAny())
+        assertEquals(
+            "不在书架上的书追更必须整次跳过",
+            ReaderAppendResult.Skipped,
+            reader.session.appendIfAtTail(),
+        )
         assertEquals("跳过时连目录页都不该翻", 0, chapterListCalls)
         assertEquals(
             "chapter_list 里不该出现无书架行配对的孤行",

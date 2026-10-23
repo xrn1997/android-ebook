@@ -1,7 +1,7 @@
 package com.ebook.book.mvvm.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.ebook.common.analyze.source.BookSourceManager
+import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.domain.CommentKey
 import com.ebook.common.repository.BookRepository
 import com.ebook.db.entity.BookShelfEntity
@@ -29,7 +29,7 @@ import javax.inject.Inject
  * 状态流命名避开基类的 `uiState`（那是覆盖层专用），沿用「页面名 + State」的口径。
  *
  * ## 为什么候选不是一次拿全的数组
- * [BookSourceManager.searchAcross] 是**按书源分批到达**的增量流：每个第三方站点的快慢与死活都独立，
+ * [SourceResolver.searchAcross] 是**按书源分批到达**的增量流：每个第三方站点的快慢与死活都独立，
  * 等「全部源都返回」就把一条挂掉的源变成了整页的阻塞。本 VM 于是边收边并（[mergeCandidates]），
  * 进度经 [progress] 表达「已收到 X/Y 书源结果」。
  *
@@ -49,7 +49,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SourceSwitchViewModel @Inject constructor(
-    private val bookSourceManager: BookSourceManager,
+    private val sourceResolver: SourceResolver,
     private val bookRepository: BookRepository,
 ) : BaseViewModel<NoOpModel>(NoOpModel()) {
 
@@ -130,7 +130,7 @@ class SourceSwitchViewModel @Inject constructor(
         val skip = if (excludeSourceUrl.isBlank()) emptySet() else setOf(excludeSourceUrl)
         searchJob = viewModelScope.launch {
             try {
-                bookSourceManager.searchAcross(name, page = 1, skipSourceUrls = skip)
+                sourceResolver.searchAcross(name, page = 1, skipSourceUrls = skip)
                     .collect { onEvent(it, name, author) }
             } catch (e: CancellationException) {
                 // 取消来自新一轮搜索或 VM 销毁：既不是失败也不该收尾，原样上抛让本协程干净退出

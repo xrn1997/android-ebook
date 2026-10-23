@@ -226,8 +226,8 @@ private fun LoadingState() {
  *
  * 每章状态来自 [chapterDownloadStatus] 的三方合并（已缓存/待下载/下载中），**只作展示**：
  * 勾选语义保持不变——勾中任何章（含已缓存）都按 forceRefresh 重下。
- * 确认时剔除已在队列中的章（见 DownloadManageViewModel.confirmDownload），
- * 按当前勾选预演的跳过数写在书头胶囊行下面（挨着它所指的那枚主操作）。
+ * 本次勾选的有效数、跳过数、未缓存集与书头三态统一取自 [ChapterDownloadPlan]（由 [planChapterDownload] 算出），
+ * 与 ViewModel 确认下发读同一份结果（跳过数预演写在书头胶囊行下面，挨着主操作）；
  * 章节三态/软上限等语义沿用 ChapterSelection.kt。
  *
  * 版面自上而下：书头（封面 48x64 + 书名 + 「共 N 章 · 已选 M 章 · 下载中|排队中|已暂停」胶囊行
@@ -266,11 +266,10 @@ private fun BookChapterSelectContent(
         )
     }
 
-    // 未缓存且未排队索引集：「仅未缓存」工具的选择输入（队列中的章预勾只会被确认时跳过）
-    val uncachedIndices = remember(chapters, selection.cachedIndices, queuedIndices) {
-        chapters.indices.filterTo(mutableSetOf()) { i ->
-            i !in selection.cachedIndices && i !in queuedIndices
-        }
+    // 勾选口径统一由选章计划给出（未缓存集 / 有效数 / 跳过数 / 书头三态）：
+    // 与 ViewModel 确认下发读同一份结果，页面不再按 selected - queued 反算
+    val plan = remember(selection, selected) {
+        planChapterDownload(selection, selected)
     }
 
     val listState = rememberLazyListState()
@@ -282,22 +281,14 @@ private fun BookChapterSelectContent(
         if (focus in chapters.indices) listState.scrollToItem(focus)
     }
 
-    // 有效下发数（剔除已排队）与跳过统计，供主操作旁的预演小字
-    val effectiveCount = (selected - queuedIndices).size
-    val skippedCount = (selected intersect queuedIndices).size
     // 书级动作收在书头那一枚上（判定与置灰规则见 ChapterSelection.kt 的三态纯逻辑，JVM 单测锁住）
     val hasQueue = queuedIndices.isNotEmpty()
-    val bookAction = bookDownloadActionOf(
-        hasQueue = hasQueue,
-        paused = selection.paused,
-        effectiveCount = effectiveCount,
-    )
     // 预演只回答「按下去会发生什么」：有可下发的量才有跳过可言（勾中的全在队列时换那一句），
     // 两种情况各说各的，不并列
     val actionHint = when {
-        effectiveCount > 0 && skippedCount > 0 ->
-            stringResource(R.string.download_skip_queued_format, skippedCount)
-        effectiveCount == 0 && selected.isNotEmpty() ->
+        plan.effectiveCount > 0 && plan.skippedCount > 0 ->
+            stringResource(R.string.download_skip_queued_format, plan.skippedCount)
+        plan.effectiveCount == 0 && selected.isNotEmpty() ->
             stringResource(R.string.download_all_queued_hint)
         else -> null
     }
@@ -398,14 +389,14 @@ private fun BookChapterSelectContent(
             }
             Spacer(modifier = Modifier.width(10.dp))
             BookHeaderActions(
-                action = bookAction,
-                enabled = bookAction.isEnabledWith(effectiveCount),
+                action = plan.bookAction,
+                enabled = plan.bookAction.isEnabledWith(plan.effectiveCount),
                 cancelEnabled = hasQueue,
                 onAction = {
-                    when (bookAction) {
+                    when (plan.bookAction) {
                         // 超软上限只多一道确认，不改变下发口径
                         BookDownloadAction.Download ->
-                            if (exceedsSelectionCap(effectiveCount)) capConfirmVisible = true
+                            if (exceedsSelectionCap(plan.effectiveCount)) capConfirmVisible = true
                             else onConfirm(selected)
                         BookDownloadAction.Pause -> onPauseBook()
                         BookDownloadAction.Resume -> onResumeBook()
@@ -476,7 +467,7 @@ private fun BookChapterSelectContent(
                         panelHeight = with(density) { it.height.toDp() }
                     },
                     onSelectAll = { selected = chapters.indices.toSet() },
-                    onSelectUncached = { selected = uncachedIndices },
+                    onSelectUncached = { selected = plan.uncachedIndices },
                     onOpenRange = { rangeDialogVisible = true },
                     onClearSelection = { selected = emptySet() },
                 )
@@ -509,7 +500,7 @@ private fun BookChapterSelectContent(
             onDismissRequest = { capConfirmVisible = false },
             title = { Text(stringResource(R.string.download_bulk_confirm_title)) },
             text = {
-                Text(stringResource(R.string.download_bulk_confirm_message, effectiveCount))
+                Text(stringResource(R.string.download_bulk_confirm_message, plan.effectiveCount))
             },
             confirmButton = {
                 TextButton(
