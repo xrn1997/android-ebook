@@ -34,7 +34,7 @@ Status: accepted
 
 ## 下游影响
 
-- `lib_book_common`：`LocalBookImporter` 负责导入流水线；`SourceReader` 的两个实现（`TxtSourceReader`、`EpubSourceReader`）由 `ContentStoreModule` 装配；`BookStore` 管理章文件与封面；`TextNormalizer` 在读取侧规范化。
+- `lib_book_common`：`LocalBookImporter` 负责导入流水线；`SourceReader` 的两个实现（`TxtSourceReader`、`EpubSourceReader`）由 `ContentStoreModule` 装配；`BookStore` 管理章文件与封面；`TextNormalizer` 在读取侧规范化。（**事实更新 2026-10-24**：导入特性整体下沉到 `module_book` 的 `com.ebook.book.importer`，`LocalBookImporter` 与 `ImportScratch` 已迁出；导入专用的 `SourceReader` map 改用 `module_book` 的 `ImporterModule` 装配，`ContentStoreModule` 只保留正文读取用的 `Map<BookFormat, ChapterReader>`。）
 - `module_book`：扩展名白名单与外部打开 Intent 过滤器包含 `epub`；阅读器经 `Map<BookFormat, ChapterReader>` 取正文，不直接依赖 EPUB 解析类。
 - `lib_ebook_api`：无新依赖；jsoup 是书源解析的既有依赖。
 

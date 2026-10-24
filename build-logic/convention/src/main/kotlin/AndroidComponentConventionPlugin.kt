@@ -25,6 +25,10 @@ class AndroidComponentConventionPlugin : Plugin<Project> {
                         // java.srcDirs 不再被 Kotlin 编译任务拾取（KSP 仍可见，会导致
                         // KSP 生成代码而 Kotlin 未编译的错位）
                         kotlin.directories.add("src/main/test")
+                        // 五个独立宿主的共享实现（BaseTestApplication / MockNetworkModule /
+                        // DebugHostActivity / TestLoginInterceptor）只在这里并入；各模块
+                        // src/main/test/debug 只留自己的路由替换与首页入口配置。
+                        kotlin.directories.add(rootProject.file("debug-host/src").path)
                     } else {
                         manifest.srcFile("src/main/AndroidManifest.xml")
                     }

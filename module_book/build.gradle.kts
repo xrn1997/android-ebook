@@ -66,13 +66,17 @@ dependencies {
     // Dagger
     ksp(libs.dagger.compiler)
 
-    // Compose
-    implementation(libs.coil.kt.compose)
+    // Compose（Coil 经 lib_book_common 的 BookCover/Avatar 使用，本模块无直接 import）
     implementation(libs.androidx.compose.material.iconsExtended)
+    // 导入页的存储权限链直接使用 PermissionX；lib_book_common 不再替单一消费者暴露它
+    implementation(libs.permissionx)
     // Compose 页面 hiltViewModel()（替代 Fragment 的 viewModels() 注入路径）
     implementation(libs.androidx.hilt.navigation.compose)
 
     testImplementation(libs.junit)
+    // 导入测试下沉到本模块后复用 lib_book_common 的 Fake DAO / 书源假件；
+    // testFixtures 只在测试类路径，不进入任何产物。
+    testImplementation(testFixtures(project(":lib_book_common")))
     // Room 运行时：`ReadingProgressFlowTest` 要起内存库跑真 SQL（真仓库 + 真 DAO 的落库/回读互作，
     // 空库替身看不见）。room 在 lib_book_common 是 implementation、不传递到这里的编译类路径，
     // 而生产代码从不直接碰 Room（一律经 lib_ebook_db 的 DAO），所以只在测试类路径上补。

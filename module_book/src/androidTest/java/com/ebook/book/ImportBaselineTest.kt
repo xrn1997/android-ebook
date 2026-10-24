@@ -3,7 +3,7 @@ package com.ebook.book
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ebook.common.importer.LocalBookImporter
+import com.ebook.book.importer.LocalBookImporter
 import com.ebook.common.repository.BookRepository
 import com.ebook.db.dao.ChapterListDao
 import dagger.hilt.android.testing.HiltAndroidRule

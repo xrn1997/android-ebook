@@ -39,9 +39,6 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ebook.book.R
-import com.ebook.book.mvvm.viewmodel.CandidateProgress
-import com.ebook.book.mvvm.viewmodel.SourceSwitchOutcome
-import com.ebook.book.mvvm.viewmodel.SourceSwitchViewModel
 import com.ebook.common.ui.CommonItemCard
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
@@ -78,7 +75,7 @@ internal data class SourceSwitchCandidate(
  * - 换源闸门 `pendingUrl` 与面板内联的失败提示 `failureHint`（异步结果回来时才清/置）
  *
  * @param viewModel 候选与换源的 ViewModel（`hiltViewModel()` 在宿主处取得后传入，本组件不自己拿：
- *   与下载中心的 [com.ebook.book.reader.BookChapterSelectPage] 一样保持「纯展示 + 回调」的形态，方便宿主决定用哪个作用域的 VM）
+ *   与下载中心的 [com.ebook.book.download.BookChapterSelectPage] 一样保持「纯展示 + 回调」的形态，方便宿主决定用哪个作用域的 VM）
  * @param oldShelf 阅读器当前正在读的条目：书名/作者用作搜索词，`tag` 用于排除所属源
  * @param onDismiss 关闭弹层
  * @param onSwitched 换源成功：把 [SourceSwitchOutcome] 交给宿主，由它把阅读器整体切到新条目。
@@ -552,7 +549,7 @@ private fun SourceSwitchSheetUnknownBookPreview() {
 /**
  * 面板 body 的预览装配点：默认喂「三档匹配度的候选」，各档按需覆盖。
  *
- * 与 [com.ebook.book.ImportBookActivity] 的 `PreviewImportBookScreen` 同一口径：预览函数只声明
+ * 与 [com.ebook.book.importer.ImportBookActivity] 的 `PreviewImportBookScreen` 同一口径：预览函数只声明
  * 「哪一档被改了」，回调一律 no-op（这些回调背后是换源事务，设计期既没有 VM 也没有库）。
  */
 @Composable

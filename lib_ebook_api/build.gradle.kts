@@ -38,20 +38,19 @@ kotlin {
     }
 }
 dependencies {
-    api(libs.androidx.appcompat)
-    api(libs.material)
     api(libs.annotations)
 
     //network
-    api(libs.retrofit.converter.scalars)
+    implementation(libs.retrofit.converter.scalars)
     api(libs.retrofit.kotlin.serialization)
     api(libs.okhttp.logging)
 
     //json解析
     implementation(libs.kotlinx.serialization.json)
 
-    //HTML解析
-    api(libs.jsoup)
+    //HTML解析：Jsoup 只在本模块实现内使用（JsoupHelper 的返回值不是 org.jsoup 类型），
+    // 不再向调用方暴露编译面
+    implementation(libs.jsoup)
     implementation(libs.androidx.core.ktx)
     // common 库（composite build 直接引用 android-practice 的 lib_common 项目）
     // api 透出：RespDTO 等类型出现在本模块公开 API 签名中

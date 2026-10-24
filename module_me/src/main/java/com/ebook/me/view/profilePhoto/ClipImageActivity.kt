@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.BlendMode
 import androidx.lifecycle.lifecycleScope
+import com.ebook.common.R as CommonR
 import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
 import com.xrn1997.common.mvvm.compose.BaseActivity
@@ -204,7 +205,7 @@ private fun ClipImageScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(onClick = onCancel) {
-                Text(stringResource(R.string.common_cancel))
+                Text(stringResource(CommonR.string.cancel))
             }
             Button(
                 enabled = cropState != null,

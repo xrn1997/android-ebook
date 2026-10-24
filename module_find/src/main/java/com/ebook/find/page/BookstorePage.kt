@@ -442,10 +442,8 @@ private fun BookTypeChip(bookType: BookType, onClick: () -> Unit) {
  * 标题与正文——那正是「同一个 App 里空态有四五种写法」的来源。图标由业务模块给（`CloudOff`
  * 这类在 iconsExtended 里、共享库依赖不到），故两档各配一枚线性图标。
  *
- * **NoSource 档给「去导入书源」按钮，跨模块路由由独立模式占位承接**：这条路由属于 `module_me`，
- * 模块独立运行时（`isModule=true`）本模块没有这个路由；占位页 [KeyCode.Find.TEST_BOOK_SOURCE_PATH]
- * 与 `TestApplication` 的路径替换（`Me.BOOK_SOURCE_PATH` → 它）正是为此存在，所以按钮在两种
- * 运行形态下都点得动——集成态到真实书源管理页，独立态到桩页。
+ * **NoSource 档给「去导入书源」按钮**：书源管理页就住在 `module_find`，路由
+ * [KeyCode.Find.BOOK_SOURCE_PATH] 在集成态与独立运行态都存在，不再需要占位宿主或路径替换。
  *
  * **BrokenSource 档刻意不给按钮**：那一刻顶部切换器就在页面上（这个源是存在的、只是解不动），
  * 用户的动作是当场换源或在书源管理里重导，按钮把他支走反而离开了他真正要操作的地方。
@@ -476,7 +474,7 @@ private fun SourceGuidance(state: LibrarySourceState) {
     // 无源档才给入口：这是整页唯一一处「自己走不通、必须去别处操作」的处境，
     // 按钮把「去哪导入」这一步直接递到手上（文案已写全动作，按钮只是让它一键可达）
     val onAction: (() -> Unit)? = if (state == LibrarySourceState.NoSource) {
-        { TheRouter.build(KeyCode.Me.BOOK_SOURCE_PATH).navigation(context) }
+        { TheRouter.build(KeyCode.Find.BOOK_SOURCE_PATH).navigation(context) }
     } else {
         null
     }

@@ -55,7 +55,7 @@ bash scripts/check-docs.sh
 **两种运行形态**：
 
 - 集成构建（`isModule=false`）：`./gradlew :module_app:assembleRealDebug` 连接真实后端；`assembleMockDebug` 使用内存 mock 数据源（applicationId 为 `com.ebook.mock`）。mock/real 的 `NetworkModule` 分别位于 `module_app/src/mock/` 与 `src/real/`。
-- 独立模块（`isModule=true`）：约定插件（`AndroidComponentConventionPlugin`）只在该分支把 `src/main/test` 作为**额外 Kotlin 源码目录并入 `main` source set**，其下 `debug/` 里的 `MockNetworkModule` 等宿主件随之参与编译并绑定 mock（`debug/` 是目录命名约定，不是 source set 优先级——集成态根本不编译这个目录）。独立运行默认 mock，无需配置。
+- 独立模块（`isModule=true`）：约定插件（`AndroidComponentConventionPlugin`）只在该分支把 `src/main/test` 与共享目录 `debug-host/src` 作为**额外 Kotlin 源码目录并入 `main` source set**。共享目录提供 `BaseTestApplication`（路径替换/拦截扩展点）、`TestLoginInterceptor`、`MockNetworkModule`（User/Comment/Release 全绑 mock）与 `DebugHostActivity`（主题、edge-to-edge、状态栏、双击退出）；各模块 `src/main/test/debug` 只留自己的 `TestApplication` 路由配置、首页入口与模块内桩页。集成态根本不编译这两个目录，独立运行默认 mock，无需配置。
 
 **四条铁律**：
 

@@ -20,7 +20,7 @@ Status: accepted
 
 3. **默认源每次从 Room 现算，SP 只记「用户上次主动选了哪个」**。候选是**全部启用行、不筛格式**（脚本行同样有资格当默认源），选择规则为「SP 命中且启用 → 否则第一条启用行」，收在实现类唯一一处 `defaultFromRows(rows)`；`observeDefaultSource()` 是默认源对外的唯一出口。`currentSource` 同步属性删除、内存快照删除、`resolveSource` 的默认源快路径删除——默认源的 parser 此后与其它源同构，一样进 LRU、一样由写路径的 `evictParser` 失效，于是「覆盖当前默认源」只需一次缓存失效，不再需要「连定义带 parser 一起换」这套口令。`defaultUrlFlow` 降格为**本次会话的重推信号**（`setDefaultSource` 对一条已启用的源只写 SP、不写库，没有它订阅面看不到这次切换），它与 SP 的写入必须成对完成。理由：默认源的真值只有 Room 一处，任何内存镜像都要求在 seeding、导入覆盖、启用/禁用、删除每一处之后同步，漏一处就是「库里已改、解析仍用旧值」且全程零报错。
 
-4. **首帧没有同步初值，页面因此新增一个「还没有结论」档**。`LibrarySourceState` 增加 `Unknown`：书城页面组合的那一刻订阅还没回来，该档**整片留空**——既不画引导语，也不画半截切换器；Room 答复后才落进「有源 / 一条源都没有 / 源在但解析不出来」。理由是首帧的 null 与「没有源」是两件事：拿 `NoSource` 兜底，会让有源用户的每次冷启动都先闪一帧「请先导入书源」的误导文案与导入按钮。承接首装：书城零源空态新增「去导入书源」按钮，跨模块跳到书源管理页；模块独立运行时该路由不存在，由模块内的占位页经路径替换承接（独立模式下 TheRouter 找不到路由只记日志、不报错不闪退，不补占位就是一颗点了没反应的按钮）。
+4. **首帧没有同步初值，页面因此新增一个「还没有结论」档**。`LibrarySourceState` 增加 `Unknown`：书城页面组合的那一刻订阅还没回来，该档**整片留空**——既不画引导语，也不画半截切换器；Room 答复后才落进「有源 / 一条源都没有 / 源在但解析不出来」。理由是首帧的 null 与「没有源」是两件事：拿 `NoSource` 兜底，会让有源用户的每次冷启动都先闪一帧「请先导入书源」的误导文案与导入按钮。承接首装：书城零源空态新增「去导入书源」按钮，跳到同模块的书源管理页；页面与书城同住 `module_find`，集成态与独立态都直接可达，不再需要占位宿主（[ADR-0051](0051-book-source-management-lives-in-module-find.md)）。
 
 5. **书城的归属源经导航参数传入，不从全局默认源读**。分类列表页（`ChoiceBookViewModel`）的 `sourceUrl` 取自导航参数，请求一律带着它走。理由是书城顶部切换器本身就是「当前源是谁」的输入，页面自己再去读一次全局值，等于让同一次浏览有两个来源、且换源后旧页仍按旧源发请求。
 
@@ -44,8 +44,8 @@ Status: accepted
 
 - **`lib_ebook_db`**：`AppDatabase` version 6 → 7；`DatabaseModule` 追加 `MIGRATION_6_7`；`BookSourceEntity` 删 `isUserImported`；`BookSourceDao` 的 `deleteUserImported` → `deleteByUrl`、删 `getCount`；提交 Room 生成的 `7.json` schema；新增用裸 `SQLiteConnection` 驱动迁移的 `BookSourceMigration6To7Test`（测试依赖引入 `androidx.sqlite:sqlite-bundled-jvm`，即随包驱动的 JVM 变体）。
 - **`lib_book_common`**：删 assets `default_sources.json`；`BookSourceManager` 删同步属性 `currentSource` 并重写相关 KDoc（接口顶部现在明写「本接口不再有同步读面」）；`BookSourceManagerImpl` 删冷启动清单、seeding、默认源快照与默认源 parser 快路径；`BookSourceItem` 的存在理由改写为「承载管理面专属的出身位」；具名测试替身 `FakeBookSourceManager`（两份）与各处内联实现同步去掉被删成员。
-- **`module_find`**：`LibraryViewModel` 的 `sourceState` 增加 `Unknown` 档、`currentSource` 初值只能为 null；书城零源空态新增「去导入书源」按钮与跨模块路由；独立运行新增占位宿主与路径替换；`ChoiceBookViewModel` 的归属源改经导航参数传入。
-- **`module_me`**：书源管理页去掉「内置」标记与置灰删除项；导入落库不再写 `isUserImported`。
+- **`module_find`**：`LibraryViewModel` 的 `sourceState` 增加 `Unknown` 档、`currentSource` 初值只能为 null；书城零源空态新增「去导入书源」按钮，路由到本模块的书源管理页；`ChoiceBookViewModel` 的归属源改经导航参数传入。
+- **`module_me`**：书源管理页（当时仍在本模块）去掉「内置」标记与置灰删除项；导入落库不再写 `isUserImported`。该页面随后整体迁到 `module_find`（[ADR-0051](0051-book-source-management-lives-in-module-find.md)）。
 - **仓库资产**：`lib_book_source/src/test/resources/scripted_corpus/` 与 `.../book_source` 移出 git。
 
 ## 已知结果（不是回归）

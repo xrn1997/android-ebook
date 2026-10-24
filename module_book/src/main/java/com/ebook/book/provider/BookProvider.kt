@@ -1,7 +1,7 @@
 package com.ebook.book.provider
 
 import androidx.compose.runtime.Composable
-import com.ebook.book.page.BookShelfPage
+import com.ebook.book.shelf.BookShelfPage
 import com.ebook.common.provider.IBookProvider
 import com.therouter.inject.ServiceProvider
 

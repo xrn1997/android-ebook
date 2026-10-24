@@ -27,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import com.ebook.common.R as CommonR
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
@@ -96,7 +97,7 @@ fun ModifyNicknameScreen(
             Text(
                 text = stringResource(
                     R.string.modify_nickname_current,
-                    currentNickname.ifEmpty { stringResource(R.string.common_not_set) }
+                    currentNickname.ifEmpty { stringResource(CommonR.string.not_set) }
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -141,7 +142,7 @@ fun ModifyNicknameScreen(
 /**
  * 预览：修改昵称页的两种「当前昵称」。
  *
- * 参照行是 `currentNickname.ifEmpty { common_not_set }`——首启/资料没填过的用户进来看到的是
+ * 参照行是 `currentNickname.ifEmpty { not_set }`——首启/资料没填过的用户进来看到的是
  * 「当前昵称：未设置」。这一档不拍下来，只预览有昵称的那张图会一直以为那行有值，
  * 而 `profileState.nickname` 为空是登录链路里很常见的一态（服务端只存了邮箱、昵称留空）。
  *

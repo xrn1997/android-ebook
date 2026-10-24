@@ -1,13 +1,16 @@
 <resources>
     <!--
-        本文件只保留仍被引用的文案：app_name 供本模块与依赖方的 manifest 使用，
-        其余 10 条由 module_book 以 com.ebook.common.R.string.* 限定引用（导入书页/详情页/评论页/下载管理页）。
+        本文件只保留仍被引用的文案：app_name 供本模块与依赖方的 manifest 使用；
+        cancel / delete / not_set 是多模块共用的通用动作文案（module_book / module_me / module_find
+        各自以 com.ebook.common.R 限定或别名引用）；其余由 module_book 以
+        com.ebook.common.R.string.* 限定引用（导入书页/详情页/评论页/下载管理页）。
         View 时代（阅读器弹层、登录/个人资料表单）的文案已随 res/drawable、res/layout 的清理一并删除，
         新增文案请优先放到使用方模块内。
     -->
     <string name="app_name">lib_book_common</string>
     <string name="cancel">取消</string>
     <string name="delete">删除</string>
+    <string name="not_set">未设置</string>
     <string name="back">返回</string>
     <string name="scan">智能扫描</string>
     <string name="add_book">添加书籍</string>

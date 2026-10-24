@@ -40,7 +40,7 @@ import kotlin.math.roundToInt
  * 持久化共用同一个 `light`，对齐原 WindowLightPop），根组件只看它们的当前值。
  * 把状态一起挪进根组件，关闭时就得从组件外面把值捞回来——那才是第二个事实源。
  *
- * 调用点（[com.ebook.book.ReadBookActivity] 的面板分支）签名保持不变：
+ * 调用点（[com.ebook.book.reader.ReadBookActivity] 的面板分支）签名保持不变：
  * `LightPanel(activity = activity, onDismiss = ...)`。
  *
  * 面板的长相与联动判据见 [LightPanelContent]。

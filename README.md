@@ -90,8 +90,8 @@ git clone git@github.com:xrn1997/android-ebook.git
 ```
 module_app        → 应用入口，组装所有功能模块（real/mock 双 flavor）
 module_main       → 主页、启动页
-module_book       → 书籍阅读、管理、评论（含阅读器，全部 Compose）
-module_find       → 书城、搜索、书库浏览
+module_book       → 书籍阅读、管理、评论、本地书导入（含阅读器与下载，全部 Compose）
+module_find       → 书城、搜索、书库浏览、书源管理
 module_me         → 个人中心、头像、评论管理、版本更新检查
 module_login      → 登录/注册/密码
 lib_book_common   → ebook 域共享 UI 组件、Provider 接口、书源管理器（通用工具类/基类归 lib_common）

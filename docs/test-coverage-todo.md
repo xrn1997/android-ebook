@@ -49,7 +49,7 @@
   处置原语由 `BookRepositoryTest` 锁死：`absorbGroupKeys` 吸收含 secondary 且同名键不重复加行；
   `mergeTailChapters` 前缀对齐只补尾 / 序列分叉整笔放弃且不删新条目 / 索引有洞时接末位之后不覆写 /
   目标是网络书时拒绝。`LocalBookImporterTest` 补 `parseMetadata` 两例（解出书名作者、不写任何表）。
-  暂停门的语义由 `lib_book_common/src/test/.../importer/LocalImportCoordinatorTest.kt` 锁死（3 例，纯 JVM）：
+  暂停门的语义由 `module_book/src/test/.../importer/LocalImportCoordinatorTest.kt` 锁死（3 例，纯 JVM）：
   门住在 `LocalImportCoordinator`（不在 `BookImportViewModel`——导入循环与任何页面解耦，进程活着它就活着），
   判重命中即置门暂停整批、处置后两本都保留、`resolveCancel` 跳过且不留任何写入。
   **仍未覆盖**：`getAndSet(null)` 的连点幂等（第二次取到 null 无操作，不会把上一个文件的决策灌给下一个门）
@@ -70,7 +70,7 @@
   书架快照与「已加书架」标记的单点应用；原生取文由 `JsoupBookParserTest`（5 例）在纯 JVM 锁住。
   设备项：阅读器字号/纸张/点击与按键翻页/翻页方式即时生效，下载批次在暂停→继续后仍从队头续跑。
 - [x] 为下载中心的选章计划（`ChapterSelectionPlan`）添加回归测试（架构深化，2026-10-23）
-  —— `module_book/src/test/.../reader/ChapterSelectionPlanTest.kt`（10 例，纯 JVM）锁住计划轮廓：
+  —— `module_book/src/test/.../download/ChapterSelectionPlanTest.kt`（10 例，纯 JVM）锁住计划轮廓：
   预勾选取焦点章起 50 章并剔除已缓存/排队、无有效焦点章为空集、窗口封顶末章；未缓存集合同样排除排队；
   确认计划按序构造任务且 `forceRefresh = true`、书名/封面取自 `BookChapterSelection`（章节行无此字段）；
   越界勾选被丢弃、有效数取实际任务数、跳过数只数已在队列者；三态动作矩阵（有队列→暂停、有队列已暂停→继续、
@@ -87,7 +87,7 @@
   **仍未覆盖**：`BookCommentsViewModel` 的翻页状态机接线（游标推进、在途闸门、信号时序）
   ——需 Robolectric，与既有「VM 接线需 Robolectric + 假仓库」缺口一并处理
 - [ ] 为 Compose 页面添加 UI 测试
-  —— 首个样例已落地：`module_book/src/test/.../page/DownloadQueueActionRenderTest.kt`，
+  —— 首个样例已落地：`module_book/src/test/.../shelf/DownloadQueueActionRenderTest.kt`，
   锁住书架顶栏下载角标在 1/2/3/4 位剩余数下都被完整画出（回归的是 material3 1.4.0 起
   `IconButton` 容器自带 `.clip(shape)`、把悬浮在锚点之外的角标切成齐边口）。
   可复用的回路是 Robolectric `@GraphicsMode(NATIVE)` + `createAndroidComposeRule<ComponentActivity>`
@@ -121,11 +121,11 @@
   Hilt 四个窄面各 `@Binds @Singleton` 指向同一个 `BookSourceManagerImpl`（聚合绑定已删），
   绑定完整性由编译期 Hilt 图校验兜住。
 - [x] 导入扫描与处置可用性收进纯策略模块（架构深化，2026-10-23）
-  —— `lib_book_common/src/test/.../importer/ImportScannerTest.kt`（9 例，纯 JVM，临时目录）锁扫描资格：
+  —— `module_book/src/test/.../importer/ImportScannerTest.kt`（9 例，纯 JVM，临时目录）锁扫描资格：
   100KB 边界两侧（`small.txt` 恰 100KB 不入选、`big.txt` 多 1 字节入选）、EPUB 一律、其它扩展名不入选、
   嵌套目录入选、`Android/data` 与 `Android/obb` 整棵跳过、入口即取消返回空、中途取消返回已收集前缀、
   大写扩展名入选、空目录与不存在/不可读根返回空（`isFile` 门由实现审阅对齐，纯 JVM 临时目录造不出
-  非目录特殊条目）。`lib_book_common/src/test/.../importer/DispositionPolicyTest.kt`（4 例）锁处置可用集：
+  非目录特殊条目）。`module_book/src/test/.../importer/DispositionPolicyTest.kt`（4 例）锁处置可用集：
   无命中与仅网络书命中都不给 `MERGE`，本地书命中与混合命中给 `MERGE` 且 `canMerge` 同一判据。
   `LocalImportCoordinatorTest` 断言未改、原样通过；处置框交互（四个动作各点一遍）仍只能人工装机验证
   （见下方《人工装机验证清单（本地书导入与评论分页改造）》第 5 项）。
@@ -818,14 +818,14 @@ lib_ebook_api 37 / lib_ebook_db 35 / module_login 8 / module_main 4），手写�
    `CloudOff` 图标 + 「当前书源已失效」+ 引导语、**没有**按钮，且顶部书源切换器仍在页面上。
    重点看**字号换代**（标题 `titleSmall` → `titleMedium`、正文 `bodyMedium` → `bodySmall`、整体居中）
    是否让这一屏更"空态"、与书架空态是否同族；以及 `NoSource` 档按钮是否仍能到书源管理页
-   （`isModule = true` 独立运行时到占位桩页）。深浅色各看一遍。
+   （`isModule = true` 独立运行时同样直达真实书源管理页）。深浅色各看一遍。
 
 ## 归档前提取的补测项（2026-10-21）
 
 - [ ] 覆盖安装 v7→v8 迁移（按书暂停）：`paused_book` 新表 + `MIGRATION_7_8`，在真库上跑完并确认书架/队列旧数据完好、按书暂停状态跨重启保留。
 - [ ] `OkHttpScriptTransport` 响应协程取消：阻塞的 `Call.execute()` 未接 `call.cancel()`，取消后仍会跑满整轮重试；`JsCallbackProxy.await` 的 KDoc 已登记该缺口。
 - [ ] 下载中心 3000 章整本下发回归：启动 Intent 不携带任务列表，不触发 `TransactionTooLargeException`；运行中追加的章节由下一轮取篇。
-- [ ] 书源导入预览的 `ImportPreviewSheet` 仍嵌在 `BookSourceManageActivity` 中；`formatOf` 已在 `BookSourceViewModel`，但每条仍单独查一次 Room。剩余债务是把逐条查询合并成批量查询，并把 sheet 从 Activity 收进页面状态。
+- [ ] 书源导入预览的 `ImportPreviewSheet` 仍嵌在 `BookSourceManageActivity` 中；`formatOf` 已在 `SourceImportPlan`，但每条仍单独查一次 Room。剩余债务是把逐条查询合并成批量查询，并把 sheet 从 Activity 收进页面状态。
 
 ## 人工装机验证清单（架构深化：分页/导航/条目仓库/下载/取源收口，2026-10-22）
 
@@ -901,11 +901,11 @@ lib_ebook_api 37 / lib_ebook_db 35 / module_login 8 / module_main 4），手写�
   保护不了数据库。
 
 - [ ] 书源四窄面的测试替身共享载体（2026-10-24 评估，暂不做）
-  —— 现状：4 个具名替身（`lib_book_common` 与 `module_me` 各一份 `FakeBookSourceManager`，
+  —— 现状：4 个具名替身（`lib_book_common` 与 `module_find` 各一份 `FakeBookSourceManager`，
   `module_find` 的 `LibraryViewModelTest.FakeBookSourceManager` 与
   `BookSourceRepositoryLibraryCacheTest.FakeManager`）外加若干内联/匿名实现；精确数量以
   `grep -rln ': SourceResolver' */src/test` 现查为准。
   已过「≥4 个文件」的评估线，但 ADR-0047 决策 3 要求替身按测试实际调用面收窄，且拆面之后没有再出现
-  持续改动证据。共享载体只有两条路：`testFixtures`（AGP 9.2.1 支持，但本仓约定插件从未启用）
-  或新增 test-only 模块——两者都要动构建约定，需单独立项批准。
+  持续改动证据。共享载体只有两条路：`testFixtures`（已在 `lib_book_common` 启用，并供
+  `module_book` 复用 Fake DAO/书源假件）或新增 test-only 模块——把书源四面替身整体上提仍需单独立项批准。
   **重开触发条件**：再出现一次「改书源面就得集体改替身」的改动，或具名替身增至 6 份以上。

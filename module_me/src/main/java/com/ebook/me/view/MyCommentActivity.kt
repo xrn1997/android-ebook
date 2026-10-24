@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ebook.common.R as CommonR
 import com.ebook.common.domain.BookComment
 import com.ebook.common.domain.CommentTime
 import com.ebook.common.event.KeyCode
@@ -149,12 +150,12 @@ fun MyCommentScreen(
                     onDelete(comment)
                     showDeleteDialog = null
                 }) {
-                    Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(CommonR.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = null }) {
-                    Text(stringResource(R.string.common_cancel))
+                    Text(stringResource(CommonR.string.cancel))
                 }
             }
         )

@@ -52,6 +52,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ebook.book.R
+import com.ebook.book.download.displayPositionOf
+import com.ebook.book.download.originalIndexAt
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
 import com.ebook.db.entity.ChapterListEntity

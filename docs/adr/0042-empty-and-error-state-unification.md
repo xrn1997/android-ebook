@@ -47,8 +47,8 @@ Status: accepted
   同批把裸写的 `RoundedCornerShape(50)` 收成 `CommonUiTokens.pillShape`。
 - 消费方改造：`module_book` 的书架（新增空态）、下载管理（删私有 `EmptyState`）、
   章节下载弹层（私有 `CenteredState` 的"书不在架/失败"两态改用共享件）、书籍详情（行内失败态）；
-  `module_me` 的我的评论与书源管理（换掉 `NoDataView`）；`module_find` 书城的书源引导态
-  （无源/坏源两档，原为自绘的 `SectionTitle` + 正文 + `TextButton` 块）。
+  `module_me` 的我的评论（换掉 `NoDataView`；书源管理页后迁至 `module_find`，见 ADR-0051）；
+  `module_find` 书城的书源引导态（无源/坏源两档，原为自绘的 `SectionTitle` + 正文 + `TextButton` 块）。
 - **阅读器豁免**：阅读器的加载/失败块画在"纸面"上，配色必须由 `ReadBookControl` 的正文色按透明度派生，
   套 Material 语义色会与四色纸张主题打架，故不接入 `EmptyState`。
 - 加载态（无图标、只有转圈）不属于空态语义，不并入 `EmptyState`，留在各自调用点。

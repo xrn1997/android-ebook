@@ -27,7 +27,6 @@ kotlin {
     }
 }
 dependencies {
-    api(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     // BundledSQLiteDriver 的直接依赖：lib_ebook_db 直接使用 androidx.sqlite.driver.bundled，
     // 显式声明不依赖传递可用性（room3-runtime 的传递依赖可能随上游变更而失效）

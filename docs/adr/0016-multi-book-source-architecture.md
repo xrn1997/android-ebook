@@ -115,7 +115,7 @@ Status: accepted
 
 7. **书城：顶部书源切换器 + 缓存按源分区**
    - `LibraryViewModel` 的当前源是 `StateFlow<SourceDefinition?>`（订阅 `observeDefaultSource()`），切换器候选 `sources: StateFlow<List<BookSourceRule>>` 来自 `observeSources()` 的启用过滤——**不按格式过滤**：脚本行同样进得来、同样能被立为当前源。分类入口与书库两件事都由这一条当前源流驱动，页面不再自己 `triggerRefresh`。
-   - 页面「该说什么」的唯一判据是 `sourceState`：首帧 `Unknown`（默认源由 Room 现算，那一刻还没有结论 → **整片留空**，不画引导语也不画半截切换器），落定后是 `Ready` / `NoSource`（一条源都没启用 → 去启用或导入，不发任何请求）/ `BrokenSource`（源还在但这条解析不出来 → 换一个源或重导这条源）。后两档复用同一处引导区、各说一句话；**把后者并进前者是有害的误报**——用户会被指去启用**正是坏掉的那条源**。零源档另有「去导入书源」按钮（跨模块跳书源管理页，模块独立运行时由占位页承接）。
+   - 页面「该说什么」的唯一判据是 `sourceState`：首帧 `Unknown`（默认源由 Room 现算，那一刻还没有结论 → **整片留空**，不画引导语也不画半截切换器），落定后是 `Ready` / `NoSource`（一条源都没启用 → 去启用或导入，不发任何请求）/ `BrokenSource`（源还在但这条解析不出来 → 换一个源或重导这条源）。后两档复用同一处引导区、各说一句话；**把后者并进前者是有害的误报**——用户会被指去启用**正是坏掉的那条源**。零源档另有「去导入书源」按钮，路由到同模块的书源管理页（`KeyCode.Find.BOOK_SOURCE_PATH`），集成态与独立态同一落点（[ADR-0051](0051-book-source-management-lives-in-module-find.md)）。
    - **只有一条启用源时，顶部胶囊不是一颗「点了没反应」的按钮**：源名照常显示，但不画下拉箭头，`clickable` 传 `enabled = false`（收不到点击也不给涟漪，视觉与行为一致），而 `Role.Button` 保留——无障碍据此仍把它读成一颗禁用的按钮，而不是一段碰巧不能按的文字。这条形态刻意做「减法」，顺手给它补个箭头就等于把它退回成诱导点击。要找更多源是书源管理页的事，那里有入口。
    - 仓库（`module_find` 的 `BookSourceRepository`）的分类/书库方法**一律以 `sourceUrl` 为入参、不自己读全局默认源**——顶部切换器要浏览的恰恰可能不是默认源，仓库自己去读全局值等于把切换器的一半语义吞掉。
    - 书库缓存按源分区：key 生成唯一收在 `libraryCacheKey(sourceUrl)`，读写两侧都过它。理由是「各拼一次字符串只要有一点差别，结果就是写完永远读不到」——表现为每次进书城都在重拉网络，功能上却看不出任何毛病。载体是 `cacheDir/library_cache/` 下的文件缓存（文件名取该 key 的 MD5），缓存策略（TTL 过期、进页 stale-while-revalidate、下拉强刷）住在仓库层，解析器只负责「逐分类抓首页 + 拼装」、不碰缓存。
@@ -146,8 +146,8 @@ Status: accepted
    - 仓库侧两条守卫：换源目标与当前条目 `noteUrl` 相同时直接判失败，否则「先插新、后删旧」会把刚写进去的那行删掉，这本书就从书架上消失了；目标那条 `noteUrl` **本就是书架上另一个条目**时同样判失败（`BookAlreadyOnShelfException`）——放行不是「白换一次源」而是丢数据：`book_shelf` 主键是自然键 `note_url`，REPLACE 会抹掉那本书自己的阅读进度并把两本并成一册，而 `chapter_list` 按 `content_ref` 为主键、两个站的同一章互不覆盖，那一册里会混着两份目录。面板为这一档单出一句话（动作是「去读那一本」，不是「另选一本」）。
    - 换源失败的提示出口在面板、不在弹层自己的 ViewModel：`SourceSwitchViewModel` 是弹层用 `hiltViewModel()` 起的第二个 ViewModel，而命令通道只绑宿主的 `BookReadViewModel`——它的 `sendToast` 没有任何收集方，写了不报错也不响。失败一律经状态与 `Result` 交出去，由面板内联渲染一句。
 
-9. **书源设置页（`module_me`）**
-   - 新增 `BookSourceManageActivity`，路由 `/ebook/me/book_source`（`KeyCode.Me.BOOK_SOURCE_PATH`）。
+9. **书源设置页（`module_find`）**
+   - `BookSourceManageActivity`，路由 `/ebook/find/book_source`（`KeyCode.Find.BOOK_SOURCE_PATH`）；页面与书城同模块，模块独立运行也直接可达（[ADR-0051](0051-book-source-management-lives-in-module-find.md)）。
    - `SettingActivity` 通用组新增「书源管理」入口行（图标 + 当前书源数副标题）。
    - UI：卡片列表，每项含：书源名 / URL 副标题 / 启用 Switch / 「默认」`InfoChip` 标记。删除走「点或长按行 → 操作层 → 确认框」两跳（不做滑动删除：手势不可见，用户找不到）。
    - **删除没有任何保护**：应用不随包携带书源，清单里每一行都是用户自己导入的，因此没有「内置源」可供保护——任何一行都可删、可禁用、可设默认。`removeSource` 的失败只剩「这行本就不存在」一种，页面因此也没有置灰的删除项与配套解释文案。
@@ -198,9 +198,9 @@ Status: accepted
 - **`lib_book_common`**：`BookSourceManager` 接口重写（本接口现已无任何同步读面——`requireParser` / `currentParser` 与后来的同步属性 `currentSource` 都已删除）；`BookSourceManagerImpl` 以 Room 为唯一事实源（没有 assets 冷启动快照、也没有默认源内存快照，默认源每次从行现算）；`BookLocation` 加 `sourceUrl`；`BookRepository` 新增 `switchSource`；书库缓存分两处收口——key 的**形态**唯一由 `com.ebook.common.event` 的顶层函数 `libraryCacheKey(sourceUrl)` 决定，读写落在独立的 `LibraryDiskCache` 类（落盘文件名取该 key 的 MD5），刻意不同类：挪进缓存类等于把「谁都能自己拼一份」的旧格局换个地方长回来。
 - **`lib_book_source`**：解析器一族与 `AggregateSearchEvent`、`BookSourceNotFoundException` 住在这里（Manager 侧只留编排与持久化）。
 - **`lib_ebook_api`**：多书源落地本身无改动；该模块原有的书库缓存工具类 `ACache` 已删除（缓存整体换到 `lib_book_common` 的文件缓存，策略上收 `module_find` 的 `BookSourceRepository`）。
-- **`module_find`**：`SearchViewModel` 从单书源分页改为聚合搜索（消费 `searchAcross`；轮次与游标收在 `module_find` 的 `AggregationSession`）；`LibraryViewModel` 加 `currentSource` / `sources` / `sourceState` 与切换源的方法；搜索/书城 UI 加书源标签与顶部切换器。
+- **`module_find`**：`SearchViewModel` 从单书源分页改为聚合搜索（消费 `searchAcross`；轮次与游标收在 `module_find` 的 `AggregationSession`）；`LibraryViewModel` 加 `currentSource` / `sources` / `sourceState` 与切换源的方法；搜索/书城 UI 加书源标签与顶部切换器；书源管理页、ViewModel、校验器与导入/导出/覆盖确认等字符串资源住在 `booksource` 包。
 - **`module_book`**：`BookDetailViewModel` 按 `tag` 找 parser，`JsoupSourceReader` 按 `BookLocation.sourceUrl` 找 parser（`BookReadViewModel` / `DownloadService` 经它取正文，不直调）；`ReadBookActivity` 挂「换源」入口与 `SourceSwitchSheet`（面板 + `SourceSwitchViewModel`）。
-- **`module_me`**：`BookSourceManageActivity` + `BookSourceViewModel`；`SettingActivity` 加书源管理入口；`KeyCode.Me.BOOK_SOURCE_PATH`；导入/导出/校验失败/覆盖确认等字符串资源。
+- **`module_me`**：`SettingActivity` 保留只读书源数入口，经 TheRouter 跳 `module_find` 的书源管理页；本模块不再持有管理页、ViewModel 或书源面字符串。
 - **兼容性**：成稿时老用户升级后 `tag` 值天然指向内置默认源，书架/缓存/下载全部可用，零手工迁移；不存在「按全局默认源兜底」这条旧路径。（**事实更新 2026-09-11**：应用不再随包携带书源，该内置源已随 v6→v7 迁移从库里清掉——只在开发分支装过携带内置源版本的设备上，绑着它的书会显示「书源已失效」，重新导入该书源即恢复；发布基线从未建过这张表，正式用户不受影响。）
 
 ## 遗留

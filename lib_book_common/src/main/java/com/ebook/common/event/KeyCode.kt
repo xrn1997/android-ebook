@@ -76,8 +76,8 @@ interface KeyCode {
 
             const val TEST_DETAIL_PATH = BASE_PATH + "test_detail"
 
-            /** 独立运行时的书源管理占位页（替代 module_me 的 [Me.BOOK_SOURCE_PATH]） */
-            const val TEST_BOOK_SOURCE_PATH = BASE_PATH + "test_book_source"
+            /** 书源管理页（列表 / 导入导出 / 启用禁用 / 设为默认，见 BookSourceManageActivity） */
+            const val BOOK_SOURCE_PATH = BASE_PATH + "book_source"
         }
     }
 
@@ -101,9 +101,6 @@ interface KeyCode {
 
             /** 开源许可页 */
             const val LICENSES_PATH = BASE_PATH + "licenses"
-
-            /** 书源管理页（列表 / 导入导出 / 启用禁用 / 设为默认，见 BookSourceManageActivity） */
-            const val BOOK_SOURCE_PATH = BASE_PATH + "book_source"
 
             const val TEST_LOGIN_PATH = BASE_PATH + "test_login"
         }

@@ -48,6 +48,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.annotation.StringRes
+import com.ebook.common.R as CommonR
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.CommonCard
 import com.ebook.common.ui.CommonListDivider
@@ -267,12 +268,12 @@ fun CacheManageScreen(
                     showClearAllDialog = false
                     onClearAll()
                 }) {
-                    Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(CommonR.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearAllDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
+                    Text(stringResource(CommonR.string.cancel))
                 }
             }
         )

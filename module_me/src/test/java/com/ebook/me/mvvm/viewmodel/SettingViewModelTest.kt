@@ -178,7 +178,7 @@ class SettingViewModelTest {
     private fun newViewModel(
         stub: GatedStub,
         sessionManager: UserSessionManager = RecordingSessionManager(),
-        sourceCatalog: FakeBookSourceManager = FakeBookSourceManager(
+        sourceCatalog: FakeSourceCatalog = FakeSourceCatalog(
             initial = listOf(
                 BookSourceRule(name = "甲站", url = "https://a.example"),
                 BookSourceRule(name = "乙站", url = "https://b.example"),
@@ -242,7 +242,7 @@ class SettingViewModelTest {
             releaseRepository = ReleaseRepository(stub),
             releaseStateStore = store,
             themeModeManager = ThemeModeManager(app),
-            sourceCatalog = FakeBookSourceManager(),
+            sourceCatalog = FakeSourceCatalog(),
         )
         advanceUntilIdle()
         assertEquals(0, stub.requested.size)
@@ -415,7 +415,7 @@ class SettingViewModelTest {
     fun `书源入口行显示清单条数含禁用项`(): Unit = runTest(mainDispatcher) {
         val viewModel = newViewModel(
             stub = GatedStub { releaseResponse() },
-            sourceCatalog = FakeBookSourceManager(
+            sourceCatalog = FakeSourceCatalog(
                 initial = listOf(
                     BookSourceRule(name = "甲站", url = "https://a.example"),
                     // 禁用项也要数进去：这一行回答的是「手上有几个源」

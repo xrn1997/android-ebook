@@ -42,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ebook.common.R as CommonR
 import com.ebook.common.domain.AndroidUserSessionManager
 import com.ebook.common.domain.ThemeMode
 import com.ebook.common.event.KeyCode
@@ -58,6 +59,7 @@ import com.ebook.me.mvvm.viewmodel.UpdateState
 import com.ebook.me.util.normalizeVersionTag
 import com.therouter.TheRouter
 import com.therouter.router.Route
+import com.therouter.router.matchRouteMap
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import com.xrn1997.common.util.ToastUtil
 import dagger.hilt.android.AndroidEntryPoint
@@ -107,10 +109,16 @@ class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
         val hasUpdateAvailable by viewModel.hasUpdateAvailable.collectAsState()
         val themeMode by viewModel.themeMode.collectAsState()
         val sourcesCount by viewModel.sourcesCount.collectAsState()
+        // 书源管理页住在 module_find：集成态有这条路由，module_me 独立运行时没有。
+        // 不在独立态留一个点了没反应的入口（ADR-0026 的既有处置口径）。
+        val showBookSource = remember {
+            matchRouteMap(KeyCode.Find.BOOK_SOURCE_PATH) != null
+        }
 
         SettingScreen(
             cacheSize = cacheSize,
             sourcesCount = sourcesCount,
+            showBookSource = showBookSource,
             // 版本号经 VM 转发：与「是否有新版」的比较基准同源（ReleaseStateStore）
             appVersion = viewModel.appVersionName,
             isLoggedIn = isLoggedIn,
@@ -127,8 +135,7 @@ class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
                 TheRouter.build(KeyCode.Me.CACHE_PATH).navigation()
             },
             onOpenBookSource = {
-                // 书源管理的路由就在本模块名下（集成态与独立态都注册），不需要 matchRouteMap 探测
-                TheRouter.build(KeyCode.Me.BOOK_SOURCE_PATH).navigation()
+                TheRouter.build(KeyCode.Find.BOOK_SOURCE_PATH).navigation()
             },
             onOpenAbout = {
                 TheRouter.build(KeyCode.Me.ABOUT_PATH).navigation()
@@ -148,6 +155,9 @@ class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
 
 /**
  * 设置页内容：分组卡片 + 弹窗（检查更新/退出登录确认）。
+ *
+ * @param showBookSource false 时整行隐藏书源入口——module_me 独立运行没有 module_find 的路由，
+ *   不能留一个点了没反应的入口。
  */
 @Composable
 fun SettingScreen(
@@ -164,7 +174,8 @@ fun SettingScreen(
     onOpenBookSource: () -> Unit,
     onOpenAbout: () -> Unit,
     onThemeSelected: (ThemeMode) -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    showBookSource: Boolean = true,
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     // 跟随系统 = 当前模式为 SYSTEM；关闭后展开日间/夜间子菜单
@@ -262,16 +273,20 @@ fun SettingScreen(
                         iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         onClick = onOpenCacheManage
                     )
-                    CommonListDivider()
-                    // 书源管理：导航型条目（进书源页做导入/启用/删除），副标题给当前书源数
-                    CommonListItem(
-                        icon = Icons.Outlined.Source,
-                        title = stringResource(R.string.setting_book_source),
-                        trailingText = stringResource(R.string.setting_book_source_count, sourcesCount),
-                        iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        iconContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                        onClick = onOpenBookSource
-                    )
+                    // 书源管理：导航型条目（进书源页做导入/启用/删除），副标题给当前书源数。
+                    // 独立运行时 module_find 不在依赖图里、路由不存在，整行不渲染——
+                    // 留一个点了没反应的入口比不给更糟（ADR-0026）。
+                    if (showBookSource) {
+                        CommonListDivider()
+                        CommonListItem(
+                            icon = Icons.Outlined.Source,
+                            title = stringResource(R.string.setting_book_source),
+                            trailingText = stringResource(R.string.setting_book_source_count, sourcesCount),
+                            iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            iconContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                            onClick = onOpenBookSource
+                        )
+                    }
                 }
             }
 
@@ -421,7 +436,7 @@ fun SettingScreen(
                         // 无可下载附件时只剩一个关闭动作，用「确定」比「取消」贴切
                         Text(
                             stringResource(
-                                if (downloadUrl != null) R.string.common_cancel
+                                if (downloadUrl != null) CommonR.string.cancel
                                 else R.string.common_confirm
                             )
                         )
@@ -457,7 +472,7 @@ fun SettingScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
+                    Text(stringResource(CommonR.string.cancel))
                 }
             }
         )

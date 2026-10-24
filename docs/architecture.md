@@ -15,8 +15,8 @@
 ```
 module_app        → 应用入口（@HiltAndroidApp），组装所有功能模块
 module_main       → 主页、启动页
-module_book       → 书籍阅读、管理、评论（含阅读器，全部 Compose）
-module_find       → 书城、搜索、书库浏览
+module_book       → 书籍阅读、管理、评论、本地书导入（含阅读器与下载，全部 Compose）
+module_find       → 书城、搜索、书库浏览、书源管理
 module_me         → 个人中心、头像、评论管理、版本更新检查
 module_login      → 登录/注册/密码（Compose UI，Coroutines）
 lib_book_common   → 项目专属共享件：ebook 域共享 UI（com.ebook.common.ui）与 Provider 接口；
@@ -34,6 +34,8 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 - **约定插件**：`build-logic/convention/` 提供统一构建配置，插件 ID 以 `xrn1997.` 为前缀。`xrn1997.android.component` 支撑模块化开发：`gradle.properties` 的 `isModule=true` 时功能模块可独立运行，`false`（默认）时作为 library 被 `module_app` 依赖。
 - **`isModule` 三条铁律**：提交态必须是 `false`（`true` 时 `module_app` 不依赖任何功能模块，产出空壳 App）；临时单模块独立运行直接改 `gradle.properties`，调试完改回、不提交；不要用 `./gradlew -PisModule=true` 覆盖——命令行 `-P` 会渗进 `settings.gradle.kts` 的 `includeBuild`，让 lib_common 也被套上 application 插件、与它的 library 插件冲突而构建失败。
 - **功能模块**依赖 `lib_book_common`，互不依赖；跨模块导航使用 TheRouter，服务经 `provider/` 接口暴露。
+- **module_book 按特性分包**：`comments` / `detail` / `download` / `importer` / `reader` / `shelf`；每个特性的页面、ViewModel、计划/策略与对应测试同包（跨屏渲染冒烟仍住 `preview`）。跨特性只走 Intent、路由或明确的跨包调用，不再用根包平铺 + 注释指路。
+- **独立运行宿主只有一份实现**：`debug-host/src/debug` 收 `BaseTestApplication`（路径替换/拦截扩展点）、`MockNetworkModule`（User/Comment/Release 全绑 mock）与 `DebugHostActivity`（主题、edge-to-edge、状态栏、双击退出）；约定插件只在 `isModule=true` 时把该目录并入各模块 main source set。各模块 `src/main/test/debug` 只留自己的 `TestApplication` 路由配置、`MainActivity` 首页入口与模块内桩页（如详情桩页、模拟登录页）。
 - **跨模块页面**：主 Tab 页面（书架/书城/我的）由 Provider 接口暴露 `@Composable () -> Unit`（非 Fragment），由 module_main 的 NavHost 直接组合；Provider 由 TheRouter 创建（非 Hilt），页面依赖经页面级 `@HiltViewModel` 注入。页面需要宿主提供的能力时，用**可空参数向下传**（宿主知道 Tab 路由、模块内不知道，独立运行态传 null 即降级不渲染），实例是 `IBookProvider.mainBookPage` 的 `onGoBookstore`；不要用 `CompositionLocal` 或另开 TheRouter 路由表达「切 Tab」。
 - **MVVM**：ViewModel 继承 lib_common 的 `BaseViewModel`/`BaseRefreshViewModel`，经 Hilt 构造注入。
 - **响应式编程**：统一 Kotlin Coroutines + Flow（`viewModelScope.launch`、`suspend` 函数）；RxJava3 依赖与代码引用已全部移除，**禁止重新引入**。事件总线是 SharedFlow（`BookRepository.bookShelfEvents`，ADR-0004），已替代 RxBus。`initBaseViewObservable()` 是 lib_common 基类的历史钩子名（实现均为协程），与 RxJava 无关，新代码不要望文生义。
@@ -95,7 +97,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 `@Preview` 只标**无参** `@Composable`、设计期渲染不经 Hilt，故每个屏幕的 UI 收在「不可变状态 + 回调」的无状态根里，状态收集留在有状态外壳（`XxxPage(viewModel = hiltViewModel())` 或 `PageContent()`）；宿主提供的能力（切 Tab、改窗口亮度、FileProvider uri）按 ADR-0041 的口径作可空回调向下传，预览侧传 no-op。约定**向前生效**：新页面照此写，既有页面在它下次被改动时补齐，不一次性追溯改造。
 
 - 预览函数与组件**同文件就近**（`private` 组件因此无需放开可见性；先例是 `module_find` 的 `SearchActivity`）；外层套 `lib_book_common` 的 `ui/preview/AppPreview`。它 `dynamicColor = false`（图要可比）、`darkTheme` 跟随 `isSystemInDarkTheme()`，于是深浅档一律用官方 `@PreviewLightDark` 翻 `uiMode`；要看壁纸取色用 `@PreviewDynamicColors`。
-- 样例数据只从 `ui/preview/PreviewSamples` 取：条目那层「书架行 → `book_info` → 章节」的嵌套少填一层就画成半截，据此判断布局是错的；各模块的渲染冒烟测试吃**同一份**样例。多形态交给官方 `@PreviewParameter` + `PreviewParameterProvider`（书城 `LibrarySourceState` 四档一次出四张图）。
+- 样例数据只从 `ui/preview/PreviewSamples` 取（单消费者特性的夹具随特性下沉，见 §9 的 `ImportPreviewSamples`）：条目那层「书架行 → `book_info` → 章节」的嵌套少填一层就画成半截，据此判断布局是错的；各模块的渲染冒烟测试吃**同一份**样例。多形态交给官方 `@PreviewParameter` + `PreviewParameterProvider`（书城 `LibrarySourceState` 四档一次出四张图）。
 - **可见性允许时**（根为 `internal`/`public`）每个被预览的屏幕根配一个 Robolectric 渲染用例（配方见 `EmptyStateTest`：`@GraphicsMode(NATIVE)` + `@Config(sdk = [34], qualifiers = …)` + `createAndroidComposeRule<ComponentActivity>()`），锁「组合得出来」与「取值顺序对」——这两类错不崩、不报错，只在渲染时显形。`private` 根测试源集看不见，那一档由预览面板人工确认。
 - **阅读器的正文排版层不进预览**：翻页/滚屏正文要吃 `ReadBookActivity` 的窗口旗标与排版实测块高，硬凑可预览等于再造一套假排版器。预览范围止于控制器层（顶/底栏、目录抽屉、亮度/字体面板、各类弹层）。
 
@@ -149,9 +151,10 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - 搜索用 `SourceResolver.searchAcross(keyword, page, skipSourceUrls)`——「哪些源已到底」只有调用方知道，故由调用方每轮带进来（Manager 不持有搜索会话状态）。原生搜索的传输失败也**上抛**，由 `searchAcross` 收敛成该源的 `SourceFailed`（为什么不能吞成空列表，见规格 §12「失败要如实报」）。
 - 聚合搜索的**轮次协议住在 `module_find` 的 `AggregationSession`**：关键词、每源游标、已结束源集、已见 noteUrl 集（全局按 `noteUrl` 去重的唯一主人）、软 404 的「还有更多但零新增即到底」判据、本轮进度与「全部源失败」都只在那一处算。`searchAcross` 不持有任何搜索会话状态（[ADR-0016](adr/0016-multi-book-source-architecture.md) 决策 6）；`SearchViewModel` 不自持这些状态，只把聚合事件翻译成会话调用，并向页面给出列表、历史、书架标记与覆盖层状态。协议由 `AggregationSessionTest` 锁住，接线由 `SearchViewModelTest` 锁住（[ADR-0048](adr/0048-single-owner-derivation-extraction.md)）。
 - **搜索结果里的「已加书架」标记由 `BookShelfManager` 单点持有**：它维护书架快照（`shelves`）、幂等地应用 `BookShelfEvent`，并据此给结果列表打标记；页面只把事件应用到自己的列表（纯函数 `List<SearchBookEntity>.applying`，无关事件返回同一实例以跳过回写），不再各自维护一份书架副本。书架写路径仍归 `BookRepository`（§4.1），两者不是同一个主人。
-- **默认源的 parser 与其它源同构**（一样进 LRU）：覆盖规则只需一次 `evictParser`。书城页面判据是 `LibraryViewModel.sourceState` 四档：首帧是 `Unknown`（默认源由 Room 现算，页面那一刻还没有结论 → **整片留空**，既不画引导语也不画半截切换器），「一条源都没有」与「有源但当前源解析不出来」两句话各走各的——把后者并进前者会把用户支去启用那条本就坏掉的源。零源空态另有「去导入书源」入口（跨模块跳书源管理页，独立模式由占位宿主承接）。
+- **默认源的 parser 与其它源同构**（一样进 LRU）：覆盖规则只需一次 `evictParser`。书城页面判据是 `LibraryViewModel.sourceState` 四档：首帧是 `Unknown`（默认源由 Room 现算，页面那一刻还没有结论 → **整片留空**，既不画引导语也不画半截切换器），「一条源都没有」与「有源但当前源解析不出来」两句话各走各的——把后者并进前者会把用户支去启用那条本就坏掉的源。零源空态另有「去导入书源」入口，路由到 `module_find` 自己的书源管理页（`KeyCode.Find.BOOK_SOURCE_PATH`）；该页与书城同模块，独立运行同样可达，不再需要占位宿主。
 - **书源接口按调用方分四面**：`SourceResolver`（取 parser、聚合搜索、分类入口）、`SourceCatalog`（清单/默认源订阅、格式查询）、`SourceAdmin`（增删、启停、设默认）、`SourceCodec`（JSON 导入导出）。解析/搜索/分类路径只注入 `SourceResolver`，书城注入 `SourceCatalog` + `SourceAdmin`，设置页注入 `SourceCatalog`，书源管理页另加 `SourceAdmin`/`SourceCodec`；`BookSourceManager` 是四者的聚合类型，只留给需要整张面的测试，生产代码不注入它。Hilt 把四个窄面各自 `@Binds @Singleton` 到同一个 `BookSourceManagerImpl`，聚合类型没有注入绑定（[ADR-0047](adr/0047-book-source-surface-split.md)）。
-- 新增/改动书源面的成员要同步测试替身——具名替身 `FakeBookSourceManager` 在 `lib_book_common` 与 `module_me` 各一份，其余是 `module_find`/`module_book` 测试文件里的内联实现；替身只实现测试实际调用的那一面（或几面），未实现的成员照旧抛异常。改完接口把四个面的实现类型各搜一遍。
+- **书源管理面住在 `module_find`**：页面、ViewModel、结构校验器与测试同住 `com.ebook.find.booksource`，路由是 `KeyCode.Find.BOOK_SOURCE_PATH`；设置页经 TheRouter 进入，书城零源引导同模块直达。导入解析（切条目、判出身、解码、校验、覆盖判定）与落库（分流写面、统计成功/覆盖/失败）收在 `SourceImportPlan`，ViewModel 只持状态并转发语义提示（[ADR-0051](adr/0051-book-source-management-lives-in-module-find.md)）。`module_me` 独立运行时 `module_find` 不在依赖图里，设置页按 `matchRouteMap` 探测路由并整行不渲染书源入口——不留点了没反应的假入口。
+- 新增/改动书源面的成员要同步测试替身——具名替身 `FakeBookSourceManager` 在 `lib_book_common` 与 `module_find` 各一份，其余是 `module_find`/`module_book` 测试文件里的内联实现；替身只实现测试实际调用的那一面（或几面），未实现的成员照旧抛异常。改完接口把四个面的实现类型各搜一遍。
 
 ### 6.2 脚本书源与解析层
 
@@ -210,6 +213,8 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 ## 7. 下载与前台服务
 
+下载特性在文件树上同样是一个包：`module_book/download` 收选章 UI、选择计划、下载中心页面/ViewModel、`DownloadService` 与队列策略；阅读器只经 Intent/明确调用跨入，不再把选章面板与计划散落在 `reader` 包。
+
 `DownloadService` 声明为 `foregroundServiceType="dataSync"`，两参 `startForeground(id, notification)` 合法且足够（`MissingForegroundServiceTypeException` 只在 manifest 未声明类型时抛）——不存在「必须改成三参调用」的问题。targetSdk 35+ 的实践约束（dataSync 6 小时/24h 配额、配额用尽或应用后台时启动被拒）见 ADR-0018。
 
 - **拉起服务一律走 `DownloadService.start(context, intent)`**（返回 false 即需提示用户），禁止在页面/ViewModel 里直接调 `ContextCompat.startForegroundService`。
@@ -241,6 +246,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 ## 9. 本地书导入
 
+- **导入特性一个家**：扫描器、判重处置、导入器、进程级协调器、Hilt 装配、页面/ViewModel 与预览夹具（`ImportPreviewSamples`）全部住 `module_book` 的 `com.ebook.book.importer`；`lib_book_common` 不再携带导入的编排与页面，只保留导入链路仍要注入的能力：`analyze/local` 的正文读取端口、`BookRepository`/`BookStore` 与判重域类型（`DuplicateBookDetector` / `ParsedBookMeta`）。`module_book` 单测经 `testFixtures(project(":lib_book_common"))` 复用 Fake DAO/书源假件，共享库不再为单一消费者携带导入域代码（ADR-0015 决策 2）。
 - **扫描资格与处置可用性各只有一个主人**：`ImportScanner` 收扫描资格（EPUB 一律、TXT 严格 >100KB、按相对根路径整棵跳过 `Android/data|obb`、取消返回已收集前缀、根不存在或不可读返回空），`DispositionPolicy` 收四种处置的可用集（只有命中项含本地书才给 `MERGE`）；`BookImportViewModel` 只提供存储根、挂载判断与取消信号，`ImportBookActivity` 直接读 `Detected.available`，不再自己算 `canMerge`。导入顺序、合并/覆盖语义、判重口径、权限与 UI 文案不变；`ImportScannerTest` 与 `DispositionPolicyTest` 锁这两处判据（[ADR-0048](adr/0048-single-owner-derivation-extraction.md)）。
 - **导入判重**：口径是待导入文件的 `comment_key` 等于书架某条目的**当前主键**，不是比 `book_info.name` 书名——键含作者，只比书名会把同名不同作者的两本书判成一本并给出删除入口。
 - 处置四个动作（继续添加/智能合并/覆盖/取消——最后一个不导入本文件、批次里的其余文件照常走），非破坏的「继续添加」占主按钮位；顺序一律**先导入新条目、后处置旧条目**，覆盖删旧之前先 `absorbGroupKeys` 吸收旧条目的关联键。

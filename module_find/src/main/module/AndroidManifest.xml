@@ -35,7 +35,10 @@
             android:theme="@style/ToolbarTheme.BackBar"
             android:windowSoftInputMode="stateHidden|adjustResize" />
         <activity android:name="debug.TestDetailActivity" />
-        <activity android:name="debug.TestBookSourceActivity" />
+        <activity
+            android:name=".booksource.BookSourceManageActivity"
+            android:label="@string/book_source_title"
+            android:theme="@style/ToolbarTheme.BackBar" />
     </application>
 
 </manifest>

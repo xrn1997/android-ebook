@@ -37,15 +37,15 @@
         android:theme="@style/Theme.Common">
 
         <service
-            android:name=".service.DownloadService"
+            android:name=".download.DownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
         <activity
-            android:name=".BookCommentsActivity"
+            android:name=".comments.BookCommentsActivity"
             android:label="本章评论"
             android:theme="@style/ToolbarTheme.BackBar" />
         <activity
-            android:name="com.ebook.book.ReadBookActivity"
+            android:name="com.ebook.book.reader.ReadBookActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="portrait">
@@ -80,16 +80,16 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.ebook.book.ImportBookActivity"
+            android:name="com.ebook.book.importer.ImportBookActivity"
             android:theme="@style/ToolbarTheme.BackBar" />
         <activity
-            android:name="com.ebook.book.BookDetailActivity"
+            android:name="com.ebook.book.detail.BookDetailActivity"
             android:theme="@style/ToolbarTheme.BackBar" />
         <activity
-            android:name="com.ebook.book.DownloadManageActivity"
+            android:name="com.ebook.book.download.DownloadManageActivity"
             android:label="下载管理" />
         <activity
-            android:name=".EditBookMetaActivity"
+            android:name=".detail.EditBookMetaActivity"
             android:exported="false"
             android:label="编辑匹配信息"
             android:theme="@style/ToolbarTheme.BackBar" />

@@ -8,7 +8,7 @@ import org.junit.Test
 /**
  * [ReaderPageWindow] 的纯函数回归：切片边界、哨兵页码与结尾换行处置。
  *
- * 这些判定原先埋在 [com.ebook.book.ReadBookActivity.loadPage] 里，只有经过 Activity
+ * 这些判定原先埋在 [com.ebook.book.reader.ReadBookActivity.loadPage] 里，只有经过 Activity
  * 才能触发；提成值对象后可以在纯 JVM 下锁住「末页不越界」与「页首尾相接不丢字」。
  */
 class ReaderPageWindowTest {

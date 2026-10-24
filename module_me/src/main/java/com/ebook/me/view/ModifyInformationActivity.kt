@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.ebook.common.R as CommonR
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.Avatar
 import com.ebook.common.ui.CommonCard
@@ -219,7 +220,7 @@ fun ModifyInformationScreen(
                         title = stringResource(R.string.modify_nickname),
                         iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
                         iconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        trailingText = profileState.nickname.ifEmpty { stringResource(R.string.common_not_set) },
+                        trailingText = profileState.nickname.ifEmpty { stringResource(CommonR.string.not_set) },
                         onClick = onModifyNicknameClick
                     )
                     // 密码行：依赖 module_login，路由不可用（未集成）时隐藏；分割线随行一起，避免末尾孤立分隔线
@@ -270,7 +271,7 @@ private fun ModifyInformationScreenPreview() {
  * 预览：昵称未设置 + 没有头像 + 密码行整块隐藏。
  *
  * 三个降级点一次拍齐，各自都是一行代码写错就静默的形态：
- * - `trailingText` 走 `common_not_set` 占位（空串的话那一行右侧会一片空白，看不出是漏了还是设计）；
+ * - `trailingText` 走共享的 `not_set` 占位（空串的话那一行右侧会一片空白，看不出是漏了还是设计）；
  * - `avatarUrl` 为空串 → 默认头像；
  * - `showPassword = false` 是模块独立运行（module_login 未集成、`matchRouteMap` 探不到路由）那一档：
  *   **分隔线必须跟着行一起省**，否则卡片末尾会挂一条孤线——`if (showPassword)` 只包 CommonListItem

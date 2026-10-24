@@ -18,7 +18,7 @@ Status: accepted
 4. **「判不出结论就不算检查成功」**：远端 tag 解析不出版本、或本地版本读不到 → 主动检查弹 `UpdateState.CheckError`、静默检查无声忽略，两种场景都**不写成功时间戳**（`markCheckSuccess` 不被调用）。代码位置：`SettingViewModel.recordConclusion()` 返回可空，`null` 即「无法判定」。判不出结论时写成功时间戳会让假结论占住限频窗口，阻断后续有效检查。
 5. **版本比较用「数值段列表」而非固定三段**：`AppVersion(numbers: List<Int>, suffix: String)`，逐段比较、缺失段按 0 补齐；尾缀只允许挂在最后一段数字之后且该段必须以数字开头（`1.x`、`abc` 判解析失败）。`latest` 端点本身已排除 prerelease，不需要实现语义化版本的预发布序。
 6. **DTO 字段一律可空**，不在全局 `Json` 上开 `coerceInputValues`：两平台契约允许 `name`/`body`/`assets` 为 `null`，全局开关会把契约违规静默降级成默认值并波及 ebook-server 全部 DTO。
-7. **发布检查有自己的 mock 接缝**：`ReleaseNetworkTest` + 资产 `lib_ebook_api/src/main/assets/release_latest.json`（**平台原始 JSON 形态，无 `RespDTO` 信封**），在 `module_app/src/real`（真实）、`module_app/src/mock`、`module_me/src/main/test/debug/MockNetworkModule`（mock）三处分别绑定。mock 忽略 `endpoint` 入参，一份资产表达不了两个源，failover 由 `ReleaseRepositoryTest` 用假数据源锁住。
+7. **发布检查有自己的 mock 接缝**：`ReleaseNetworkTest` + 资产 `lib_ebook_api/src/main/assets/release_latest.json`（**平台原始 JSON 形态，无 `RespDTO` 信封**），在 `module_app/src/real`（真实）、`module_app/src/mock`、`debug-host/src/debug/MockNetworkModule.kt`（独立运行 mock，五模块共用）三处分别绑定。mock 忽略 `endpoint` 入参，一份资产表达不了两个源，failover 由 `ReleaseRepositoryTest` 用假数据源锁住。
 8. **发布位置硬编码** `xrn1997/android-ebook`（`ReleaseRepository` 的两个 internal 常量），不做可配置——发布位置是装机事实不是用户偏好。
 
 ## 权衡

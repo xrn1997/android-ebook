@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.ebook.common.domain.ThemeMode
 import com.ebook.common.ui.preview.AppPreview
+import com.ebook.me.R
 import com.ebook.me.mvvm.viewmodel.CacheManageViewModel
 import com.ebook.me.mvvm.viewmodel.MeUiState
 import com.ebook.me.mvvm.viewmodel.ReadingStats
@@ -111,6 +112,43 @@ class MeScreensRenderTest {
         }
 
         composeRule.onNodeWithText("1.4.0").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            composeRule.activity.getString(R.string.setting_book_source_count, 2)
+        ).assertIsDisplayed()
+    }
+
+    /**
+     * 独立运行（module_find 不在依赖图里）不渲染书源入口行。
+     *
+     * 这一档只有路由探测能判：页面拿不到 module_find 的管理页，留一个点了没反应的入口
+     * 比不显示更糟（ADR-0026 的既有处置口径）。
+     */
+    @Test
+    fun `独立运行时设置页不渲染书源入口行`() {
+        composeRule.setContent {
+            AppPreview {
+                SettingScreen(
+                    cacheSize = "",
+                    sourcesCount = 2,
+                    appVersion = "1.4.0",
+                    showBookSource = false,
+                    isLoggedIn = true,
+                    hasUpdateAvailable = false,
+                    updateState = UpdateState.Idle,
+                    themeMode = ThemeMode.SYSTEM,
+                    onCheckUpdate = {},
+                    onDismissUpdateDialog = {},
+                    onOpenCacheManage = {},
+                    onOpenBookSource = {},
+                    onOpenAbout = {},
+                    onThemeSelected = {},
+                    onLogout = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(composeRule.activity.getString(R.string.setting_book_source))
+            .assertDoesNotExist()
     }
 
     @Test
