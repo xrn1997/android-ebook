@@ -42,9 +42,9 @@ object ErrorAnalyzeContentManager {
     /**
      * 记录一个解析失败的章节 URL（明细 + 按站点去重）。
      *
-     * 调用方只有 [com.ebook.common.analyze.source.JsoupSourceReader] 抓正文的两条分支
-     * （原生 `fetchAndStoreNative` / 脚本 `fetchAndStoreScript`），两者都在自己的 `catch` 里调本函数
-     * 留下线索，然后各自处置：原生把原始异常重裹成「章节内容解析失败」重抛、脚本原样上抛类型化异常。
+     * 调用方只有 [com.ebook.common.analyze.source.JsoupSourceReader.fetchAndStore] 这一条取文路径：
+     * 它在抓取失败的 `catch` 里先调本函数留下线索，再把异常原样上抛——脚本的类型化异常保持原样，
+     * 原生在解析器一侧已裹成「章节内容解析失败」（ADR-0046/0050）。
      * 所以本函数不能往外抛——一抛就顶掉那次重抛，
      * 上层收到的变成一个与解析根因无关的落盘异常，正文抓取的降级处置（记线索 + 抛类型化异常）随之失真。
      * 何况本函数体跑在 [scope] 的即发即忘协程里，异常本来就回不到调用方，

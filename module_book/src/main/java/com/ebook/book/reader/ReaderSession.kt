@@ -62,7 +62,9 @@ internal sealed class ReaderAppendResult {
 /**
  * [ReaderSession] 的数据出口，由仓库适配器实现；测试用假件替换。
  *
- * 八个方法都是 suspend：正文读取、追更同步与落库都要进 IO，会话自身不持线程。
+ * 数据动作（正文读取、追更同步、落库与书架查询）都是 suspend：要进 IO，会话自身不持线程。
+ * [markReading] 例外地是同步的：它只写一条本地标记（SharedPreferences），
+ * 与这些 IO 动作没有先后依赖，也没有让会话为它变成 suspend 的理由。
  */
 internal interface ReaderSessionGateway {
     suspend fun getBookWithDetails(noteUrl: String): BookShelfEntity?
@@ -73,6 +75,15 @@ internal interface ReaderSessionGateway {
     suspend fun syncChapters(shelf: BookShelfEntity): ChapterSyncResult
     suspend fun getStoredChapters(noteUrl: String): List<ChapterListEntity>
     suspend fun addToShelf(shelf: BookShelfEntity)
+
+    /**
+     * 记下「阅读会话进行中」的书（见 `ReaderResumeStore`）。
+     *
+     * 归会话而不是页面：它与「收下了哪本书」是同一个事实。[ReaderSession.adopt] 与
+     * `adoptStored`（[ReaderSession.openFromStore] / [ReaderSession.adoptAfterSourceSwitch] 共用）
+     * 各写一次；页面漏写一处就会在异常关闭后恢复到上一本书。
+     */
+    fun markReading(noteUrl: String)
 }
 
 /**
@@ -106,6 +117,7 @@ internal class ReaderSession(private val gateway: ReaderSessionGateway) {
             chapterIndex = shelf.durChapter,
             pageIndex = shelf.durChapterPage,
         )
+        gateway.markReading(shelf.noteUrl)
     }
 
     /** 从存储重读一行并落定在架状态；取不到时返回 false 且不改动任何状态。 */
@@ -269,5 +281,7 @@ internal class ReaderSession(private val gateway: ReaderSessionGateway) {
             inShelf = true,
             shelfChecked = true,
         )
+        // 换源与冷启动恢复都走这里：换书即重记标记，页面不必各自补写（见 ReaderSessionGateway.markReading）
+        gateway.markReading(shelf.noteUrl)
     }
 }

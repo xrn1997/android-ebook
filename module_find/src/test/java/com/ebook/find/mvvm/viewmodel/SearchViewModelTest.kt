@@ -296,7 +296,7 @@ class SearchViewModelTest {
     /**
      * 轮询等到 [cond] 成立：交替推进测试调度器与真实时间。
      *
-     * **为什么需要它**：VM 的 init 里那趟 `loadBookShelves()` 走 `withContext(Dispatchers.IO)`，
+     * **为什么需要它**：VM 的 init 里那趟 `bookShelfManager.refresh()` 走 `withContext(Dispatchers.IO)`，
      * 跑在**真实 IO 线程**上、不受虚拟时钟控制，只推进调度器就会与之竞态
      * （同一写法见 module_book 的 `BookDetailViewModelSourceTest`）。
      */

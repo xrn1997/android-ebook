@@ -33,7 +33,7 @@ import javax.inject.Singleton
 @Singleton
 class ReleaseStateStore @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : ReleaseState {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -62,7 +62,7 @@ class ReleaseStateStore @Inject constructor(
     /**
      * 本地当前版本（[currentVersionName] 的解析形态，比较用；不可解析返回 null）。
      */
-    val currentVersion: AppVersion? by lazy { currentVersionName?.let(AppVersion::parse) }
+    override val currentVersion: AppVersion? by lazy { currentVersionName?.let(AppVersion::parse) }
 
     /**
      * 是否「已有可更新的新版本」：上次检查到的 tag 高于当前装机版本。
@@ -70,7 +70,7 @@ class ReleaseStateStore @Inject constructor(
      * 每次现场比较而非读缓存结论——升级安装后重进设置页，角标就该消失。
      * 三个输入任一缺失（从未检查成功 / 本地版本读不到 / tag 不可解析）都按「无更新」处理。
      */
-    val hasUpdateAvailable: Boolean
+    override val hasUpdateAvailable: Boolean
         get() {
             val remote = AppVersion.parse(lastCheckedTag) ?: return false
             val current = currentVersion ?: return false
@@ -80,11 +80,10 @@ class ReleaseStateStore @Inject constructor(
     /**
      * 距上次成功检查是否已超过 [AUTO_REFRESH_INTERVAL_MILLIS]（决定进设置页时是否静默刷新）。
      */
-    fun shouldAutoRefresh(nowMillis: Long = System.currentTimeMillis()): Boolean =
-        isRefreshDue(
-            lastSuccessMillis = prefs.getLong(KEY_LAST_SUCCESS_CHECK_TIME, 0L),
-            nowMillis = nowMillis,
-        )
+    override fun shouldAutoRefresh(): Boolean = isRefreshDue(
+        lastSuccessMillis = prefs.getLong(KEY_LAST_SUCCESS_CHECK_TIME, 0L),
+        nowMillis = System.currentTimeMillis(),
+    )
 
     /**
      * 记录一次成功检查到的远端 tag。
@@ -94,7 +93,7 @@ class ReleaseStateStore @Inject constructor(
      *
      * @param remoteTag 远端最新 tag，原样存（比较与展示各自归一化）
      */
-    fun markCheckSuccess(remoteTag: String) {
+    override fun markCheckSuccess(remoteTag: String) {
         prefs.edit {
             putString(KEY_LAST_CHECKED_TAG, remoteTag)
             putLong(KEY_LAST_SUCCESS_CHECK_TIME, System.currentTimeMillis())

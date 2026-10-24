@@ -25,7 +25,8 @@ interface ReaderTurnController {
  * 原先「当前是翻页还是滚屏」有两套编码（`turnModeIndex` 与「哪个控制器 ref 非空」），
  * 音量键、启动、换源、滑条各写一处分支；两个控制器还各接一份逐字相同的 `onProgress`。
  * 现在：
- * - 路由判据只有 [mode]（页面用 `turnModeIndex` 镜像驱动重组，切换时同步写入）；
+ * - 路由判据只有 [mode]（页面从设置快照的 `turnModeIndex` 取初始模式并驱动重组；切换回调里
+ *   先 [setMode] 同步判据，再由快照推进触发重组）；
  * - 调用方只调 [turnNext]/[turnPrev]/[setPosition]/[converge]，不关心当前挂的是哪个控制器；
  * - 两个控制器共用 [onProgress] 一个出口，进度交会话；标题/滑条由会话派生，追更由会话判定。
  *

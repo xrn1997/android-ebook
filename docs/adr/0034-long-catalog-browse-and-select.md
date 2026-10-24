@@ -43,4 +43,4 @@ Status: accepted
 - **二级选章列表形态**：装机观感不符合预期（任意数值分组「第 1-100 章」+ 折叠头信息过密），同日改为**平铺整列 + 顶部快捷选择 + 右侧细滚动条**（与阅读器目录同构）；「百章分组」一族纯逻辑（`chapterGroups`/`groupState`/`toggleGroup`/`rowIndexOfGroup`）随折叠组头一并移除，仅保留软上限判定与阅读器目录用的倒序索引换算。
 - **范围选择（2026-09-12 追加）**：平铺 + 快捷选择之外新增**范围选章**——起/止章号对话框（1-based，校验空/越界/起>止）确定后**替换**当前勾选并滚动到范围起点，不直接下发（用户要看跳过统计、可再微调），超 500 章仍走软上限二次确认。范围入口与其它选择工具同住二级页操作面板的「勾选」组（全选/仅未缓存/范围/清除），不再占据列表上方的常驻工具行。
 
-锚点：`module_book/src/main/java/com/ebook/book/reader/ChapterSelection.kt`；`module_book/src/main/java/com/ebook/book/reader/ChapterDownloadSheet.kt`；`ReaderPanels.kt`
+锚点：`module_book/src/main/java/com/ebook/book/reader/ChapterSelection.kt`；`module_book/src/main/java/com/ebook/book/reader/ChapterDownloadSheet.kt`；`module_book/src/main/java/com/ebook/book/reader/ChapterListDrawer.kt`

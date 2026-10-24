@@ -53,6 +53,8 @@ import com.ebook.book.reader.ReaderNavigation
 import com.ebook.book.reader.ReaderPager
 import com.ebook.book.reader.ReaderPagerController
 import com.ebook.book.reader.ReaderPagination
+import com.ebook.book.reader.ReaderPageLoader
+import com.ebook.book.reader.ReaderPageUi
 import com.ebook.book.reader.ReaderPanel
 import com.ebook.book.reader.ReaderScroll
 import com.ebook.book.reader.ReaderScrollController
@@ -63,7 +65,7 @@ import com.ebook.book.reader.ReaderTurnMode
 import com.ebook.book.reader.ReaderTypesetter
 import com.ebook.book.reader.SourceSwitchSheet
 import com.ebook.book.reader.SwitchFeedback
-import com.ebook.book.reader.applyReaderBrightness
+import com.ebook.book.reader.ReaderBrightness
 import com.ebook.book.reader.rememberReaderTypesetter
 import com.ebook.book.reader.switchFeedbackOf
 import com.ebook.book.repository.BookImportRepository
@@ -76,7 +78,6 @@ import com.ebook.common.store.ReaderResumeStore
 import com.ebook.common.util.reportFailure
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.event.DBCode
-import com.ebook.source.analyze.BookSourceNotFoundException
 import com.therouter.TheRouter
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
@@ -137,6 +138,22 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
      */
     internal val pagination = ReaderPagination()
 
+    /**
+     * 装页管线：组合与失败分档归它，本类只接线（见 [loadPage]）。
+     *
+     * `reportFailure` 走 ViewModel 的共享上报（会话过期只记日志、不重复提示由它收口），
+     * 文案取字符串资源而非 `e.message`（异常消息带内部 URL，不适合上屏）。
+     */
+    private val pageLoader: ReaderPageLoader by lazy {
+        ReaderPageLoader(
+            loadChapter = { viewModel.session.loadChapter(it) },
+            pagination = pagination,
+            reportFailure = { e ->
+                viewModel.reportFailure(e, getString(R.string.book_source_invalid))
+            },
+        )
+    }
+
     override fun enableToolbar(): Boolean = false
 
     override fun enableFitsSystemWindows(): Boolean = false
@@ -144,8 +161,8 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     override fun initData() {
         // 对齐原实现：进入即保存一次进度（防止异常退出丢失）
         viewModel.saveProgress()
-        // 恢复已持久化的手动亮度（窗口亮度不跨生命周期，见 applyReaderBrightness KDoc）
-        applyReaderBrightness(this)
+        // 恢复已持久化的手动亮度（窗口亮度不跨生命周期，见 ReaderBrightness.restore）
+        ReaderBrightness.restore(this)
     }
 
     /** 正文区尺寸测量回调：只更新分页状态机持有的视口 */
@@ -178,8 +195,6 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
             return
         }
         viewModel.session.adopt(bookShelf)
-        // 记下「阅读会话进行中」，供启动页在异常关闭后恢复（见 ReaderResumeStore）
-        ReaderResumeStore.markReading(bookShelf.noteUrl)
         viewModel.checkInShelf()
     }
 
@@ -196,8 +211,6 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
                     bookImportRepository.import(uri)
                 }
                 viewModel.session.adopt(result.bookShelf)
-                // 应用外导入后同样记标记：这一类会话被划掉时也该恢复到刚导入的这本书上
-                ReaderResumeStore.markReading(result.bookShelf.noteUrl)
                 onImporting(false)
                 viewModel.checkInShelf()
             } catch (e: Exception) {
@@ -234,8 +247,6 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
                 finish()
                 return@launch
             }
-            // 恢复进来后重新落一次标记：用户可能继续读很久再被划掉，标记必须仍是这本书
-            ReaderResumeStore.markReading(noteUrl)
         }
     }
 
@@ -294,57 +305,15 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     }
 
     /**
-     * 加载单页内容（原 loadContent 的 suspend 化）：
-     * 1. 经会话按索引取正文（本地书走章文件、网络书走 DB 缓存→网络，标题与 `contentRef` 随正文带回）
-     * → 2. 排版偏移缓存 → 3. 分页切片取原文子串。
+     * 装一页正文：组合归 [ReaderPageLoader]，本类只提供「按章索引取正文」与失败上报的接线。
      *
-     * 断行走 [ReaderPagination]（与页面渲染同一引擎、同一份样式）——见
-     * [ReaderTypesetter] 里「分页与渲染必须同源」的契约：两套引擎判定的行数不一致时，
-     * 多出来的行会被静默裁掉，表现为上一页和下一页内容接不上。
-     *
-     * 哨兵页码（DUR_PAGE_INDEX_BEGIN/END）在分页结果出来后解析；页码越界钳到末页。
-     * 返回 null 表示失败（控制器置为错误态）。
-     *
-     * 失败分两档处置：**书源已失效**（[BookSourceNotFoundException]）除错误态外还要经
-     * [reportFailure] 弹一条用户可见提示（ADR-0016 要求「书源已失效，请重新导入或换源」），
-     * 因为这条路径用户能自己处置（重导源/换源），静默等于让他对着一页空白摸不着根因；
-     * 其余异常（解析失败、排版未就绪等）保持既有的静默降级——只记日志 + 错误态重试按钮。
+     * 取正文 → 后台分页 → 哨兵页码解析 → 切片 → 失败分档都在 loader 里；失败分档的口径
+     * （书源失效开口、其余静默降级、取消原样上抛）见其 KDoc。断行仍走 [ReaderPagination]
+     * （与页面渲染同一引擎、同一份样式，见 [ReaderTypesetter] 的「分页与渲染必须同源」契约）。
+     * 返回 null 表示这一页没装成（控制器置为错误态）。
      */
-    suspend fun loadPage(chapterIndex: Int, pageIndex: Int): com.ebook.book.reader.ReaderPageUi.Loaded? {
-        return try {
-            // 取正文：会话按索引从书架快照里取章，本地书与网络书同一条仓库路径
-            val chapter = viewModel.session.loadChapter(chapterIndex) ?: return null
-
-            // 分页状态机负责排版缓存与切片；排版在 Default 线程跑整章 O(章长)
-            val window = withContext(Dispatchers.Default) {
-                pagination.paginate(chapter.text, chapter.contentRef)
-            } ?: return null
-            val resolved = window.resolvePageIndex(pageIndex)
-            com.ebook.book.reader.ReaderPageUi.Loaded(
-                title = chapter.title,
-                chapterIndex = chapterIndex,
-                durPageIndex = resolved,
-                pageAll = window.pageCount,
-                text = window.slice(resolved),
-            )
-        } catch (e: BookSourceNotFoundException) {
-            // 书源失效是**可展示的业务失败**，不能跟着下面的降级一起吞成 null：
-            // 那样只剩一行 ERROR 日志，用户侧既没有提示也没有错误态，正是本仓最忌讳的
-            // 「页面不闪退、数据永远加载不出来」形态。ADR-0016 明确要求这条路径提示用户
-            // 「书源已失效，请重新导入或换源」。
-            // 提示一律走共享的 reportFailure（会话过期只记日志、不重复提示由它收口）：
-            // 它是 BaseViewModel 的扩展函数，这里经 viewModel 调用，文案进基类的命令通道
-            // （MvvmBinder 在主线程消费），不在 Activity 里补 Toast。
-            // 文案取字符串资源而非 e.message：异常消息带内部 URL，不适合直接上屏。
-            viewModel.reportFailure(e, getString(R.string.book_source_invalid))
-            val tag = viewModel.readerState.value.shelf?.tag
-            Logger.e(TAG, "loadPage 书源已失效: $tag / ${viewModel.session.chapterAt(chapterIndex)?.contentRef}", e)
-            null
-        } catch (e: Exception) {
-            Logger.e(TAG, "loadPage error: ", e)
-            null
-        }
-    }
+    suspend fun loadPage(chapterIndex: Int, pageIndex: Int): ReaderPageUi.Loaded? =
+        pageLoader.load(chapterIndex, pageIndex)
 
     /**
      * 音量键按下拦截：系统在 key down 即触发音量调整，必须在此消费音量键事件，
@@ -455,17 +424,16 @@ private fun ReadBookScreen(
     val density = LocalDensity.current
 
     // ---------------- 阅读主题（ReadBookControl 原始色值，正文层豁免深浅色切换） ----------------
-    // 版本号仅用于触发重组以重读单例最新值（ReadBookControl 非 Compose 状态）
-    var textKindVersion by remember { mutableIntStateOf(0) }
-    var bgVersion by remember { mutableIntStateOf(0) }
-    val textColor = remember(bgVersion) { Color(ReadBookControl.textColor) }
-    val bgColor = remember(bgVersion) { Color(ReadBookControl.textBackground) }
-    val textSizeSp = remember(textKindVersion) { ReadBookControl.textSize.toFloat() }
+    // 设置是可观察快照：面板写入即重组，页面不再维护版本号镜像（见 ReadBookControl.settings）
+    val settings by ReadBookControl.settings.collectAsStateWithLifecycle()
+    val textColor = Color(settings.textColor)
+    val bgColor = Color(settings.textBackground)
+    val textSizeSp = settings.textSize.toFloat()
     // 行高 = 单行高度 + 段距（对齐原 lineSpacingExtra 语义）
-    val lineHeight: TextUnit = remember(textKindVersion) {
+    val lineHeight: TextUnit = remember(settings.textSize, settings.textExtra) {
         val paint = readerTextPaint(activity.resources)
         val textHeight = paint.descent() - paint.ascent()
-        with(density) { (textHeight + ReadBookControl.textExtra).toSp() }
+        with(density) { (textHeight + settings.textExtra).toSp() }
     }
     // 分页排版上下文：行数测算、切行、正文渲染三方共用的唯一样式来源（契约见 ReaderTypesetter）
     val typesetter = rememberReaderTypesetter(textSizeSp, lineHeight)
@@ -473,11 +441,8 @@ private fun ReadBookScreen(
     // ---------------- 页面级状态 ----------------
     var menuVisible by remember { mutableStateOf(false) }
     var panel by remember { mutableStateOf(ReaderPanel.NONE) }
-    // 点击翻页开关的页面级镜像：ReadBookControl.canClickTurn 是普通属性（非 Compose State），
-    // 写入不触发重组；此处镜像为 State 并经 MoreSettingPanel.onClickTurnChanged 即时同步，
-    // 避免"点击翻页是否生效"依赖 panel 变化恰好触发重组（隐式耦合）。
-    // 注意：canKeyTurn 不走此镜像——onKeyDown/onKeyUp 是 Activity 回调，运行时直读单例即最新值。
-    var clickTurnEnabled by remember { mutableStateOf(ReadBookControl.canClickTurn) }
+    // 点击翻页开关直接读 settings.canClickTurn：面板写入即推进快照，页面不再需要即时同步的镜像。
+    // canKeyTurn 同样不镜像——onKeyDown/onKeyUp 是 Activity 回调，运行时直读单例即最新值。
     // 章节标题与滑条都由会话状态派生，页面不再各自镜像：位置一变它们随 readerState 重组。
     // 占位文案走 stringResource：context.getString 的读取不随 Configuration 变化失效
     // （lint LocalContextGetResourceValueCall 判 Error）；本页未声明 android:configChanges，
@@ -548,9 +513,8 @@ private fun ReadBookScreen(
     }
 
     // ---------------- 翻页导航 ----------------
-    // 翻页方式的页面级镜像：ReadBookControl.turnModeIndex 不是 Compose State，写入不触发重组。
-    // 与 clickTurnEnabled 同一套理由（见其注释）——不能让「换模式是否生效」依赖面板恰好重组。
-    var turnModeIndex by remember { mutableIntStateOf(ReadBookControl.turnModeIndex) }
+    // 翻页方式直接读 settings：面板写入即推进快照，页面不再维护索引镜像。
+    val turnModeIndex = settings.turnModeIndex
 
     // navigation 与两个控制器都只 remember 一次；直接捕获 syncAtTailChapter 会把首次组合的
     // typesetter 钉死，改字号后末章追更仍按旧样式重分页（切行与渲染两套样式）。
@@ -620,11 +584,11 @@ private fun ReadBookScreen(
     // chrome 两处（顶栏 surfaceContainer / 抽屉 surfaceContainerLow）在任一调板里都落在
     // 阈值同一侧，取一处即够；其余面板是底部弹层，其遮罩按亮度叠在纸张上、不改判据方向。
     val chromeSurface = MaterialTheme.colorScheme.surfaceContainer
-    LaunchedEffect(bgVersion, menuVisible, panel, chromeSurface) {
+    LaunchedEffect(settings.textBackground, menuVisible, panel, chromeSurface) {
         val colorUnderStatusBar = if (menuVisible || panel == ReaderPanel.CHAPTER) {
             chromeSurface.toArgb()
         } else {
-            ReadBookControl.textBackground
+            settings.textBackground
         }
         activity.setStatusBarColor(colorUnderStatusBar.detectColor())
     }
@@ -659,8 +623,8 @@ private fun ReadBookScreen(
     }
 
     // 排版上下文换实例（字号/段距变化，或密度变化）→ 按新行高重分页并停在当前页。
-    // 由 typesetter 驱动而不是面板回调：面板里改完 ReadBookControl 只是自增版本号，
-    // 新样式要等这次重组才生效，直接在回调里重分页就会拿旧样式去量新字号的行数。
+    // 由 typesetter 驱动而不是面板回调：面板写入后 settings 快照推进、本次重组才带上新样式，
+    // 直接在回调里重分页就会拿旧样式去量新字号的行数。
     LaunchedEffect(typesetter) {
         if (pagerStarted) activity.rePaginate(typesetter, startFromCurrent = true)
     }
@@ -736,7 +700,7 @@ private fun ReadBookScreen(
                 bgColor = bgColor,
                 textSizeSp = textSizeSp,
                 lineHeight = lineHeight,
-                canClickTurn = clickTurnEnabled,
+                canClickTurn = settings.canClickTurn,
                 onCenterTap = { menuVisible = !menuVisible },
                 onBodySizeChanged = { w, h ->
                     activity.onBodyMeasured(w, h)
@@ -753,7 +717,7 @@ private fun ReadBookScreen(
                 textSizeSp = textSizeSp,
                 lineHeight = lineHeight,
                 blockHeightPx = activity.pagination.blockHeightPx,
-                canClickTurn = clickTurnEnabled,
+                canClickTurn = settings.canClickTurn,
                 onCenterTap = { menuVisible = !menuVisible },
                 // 滚屏的视口尺寸不比翻页模式：块内没有标题行、也没有块内页码行，
                 // 所以视口更高、每屏行数更多——这正是两模式 pageLineCount 不同、
@@ -915,19 +879,10 @@ private fun ReadBookScreen(
         ReaderPanel.CHAPTER -> Unit
         ReaderPanel.LIGHT -> LightPanel(activity = activity, onDismiss = { panel = ReaderPanel.NONE })
         ReaderPanel.FONT -> FontPanel(
-            onTextChange = {
-                // 只推版本号：新样式要等下一次重组才成形，重分页由上方 LaunchedEffect(typesetter) 接力
-                textKindVersion++
-            },
-            onBgChange = {
-                bgVersion++
-                // setStatusBarColor 由上方 LaunchedEffect(bgVersion) 统一处理
-            },
             onDismiss = { panel = ReaderPanel.NONE }
         )
         ReaderPanel.SETTING -> MoreSettingPanel(
             onDismiss = { panel = ReaderPanel.NONE },
-            onClickTurnChanged = { clickTurnEnabled = it },
             onTurnModeChanged = { index ->
                 if (index != turnModeIndex) {
                     // 先快照旧模式的行数：效应跑之前若又有一次 rePaginate，现读就拿到新值了
@@ -935,7 +890,6 @@ private fun ReadBookScreen(
                     // 同步改导航判据：pendingTurnModeSwitch 的效应可能在同帧内就调用 setPosition，
                     // 若等 LaunchedEffect 再改 mode，那一次定位会落到旧模式的控制器上
                     navigation.setMode(turnModeOf(index))
-                    turnModeIndex = index
                     pendingTurnModeSwitch = true
                 }
             }
@@ -966,9 +920,6 @@ private fun ReadBookScreen(
                     // 换源写的就是书架行本身，故会话同时把 inShelf/shelfChecked 落定为真，
                     // 不会再残留「未加入书架」的旧判定而弹一次无意义的加架确认。
                     viewModel.session.adoptAfterSourceSwitch(outcome.newShelf)
-                    // 换源即换 noteUrl，恢复标记必须跟着换：旧条目的行已被换源事务删掉，
-                    // 下次按旧 noteUrl 恢复只会查不到实体、白跑一趟恢复流程
-                    ReaderResumeStore.markReading(outcome.newShelf.noteUrl)
                     // 目录长度已变、页级进度不跨源（仓库把 durChapterPage 复位为「第一页」）：
                     // 按当前样式重分页后从目标章第一页起排，与首屏同一条启动路径
                     activity.rePaginate(typesetter, startFromCurrent = false)

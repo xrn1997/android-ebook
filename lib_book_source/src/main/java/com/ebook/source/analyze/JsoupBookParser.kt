@@ -14,6 +14,7 @@ import com.ebook.db.entity.LibraryEntity
 import com.ebook.db.entity.LibraryKindBookListEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.db.entity.WebChapterEntity
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -21,19 +22,22 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.net.URLEncoder
 
+/** 原生正文单章最多跟进的页数：防规则配错时无限翻页。 */
+private const val MAX_CONTENT_PAGES = 50
+
 /**
  * 基于 JSON 规则的书源解析器
  * 根据 BookSourceRule 动态解析 HTML，支持通用书源配置
  */
 class JsoupBookParser(
     /**
-     * 书源规则。可见性为 public（不是 internal）：正文读取器（`lib_book_common` 的
-     * `JsoupSourceReader`）按规则拼网络请求与清理规则，故规则对本层外部可见；
-     * 迁移前两者同模块，internal 足够，拆模块后跨模块访问 internal 直接编译不过。
+     * 书源规则。**public**：正文抓取已不再读它（取文走 [fetchChapterText] 接缝），但
+     * `lib_book_common` 的测试要据此断言「规则覆盖/禁用后 parser 缓存确实换成了新行」；
+     * 依赖方的 test source set 不是 friend module，internal 在这些用例里编译不过。
      */
     val rule: BookSourceRule,
     okHttpClient: OkHttpClient
-) : BookParser {
+) : BookParser, BookContentParser {
     private val logTag = "JsoupBookParser[${rule.name}]"
     private val network = BookSourceNetwork(rule, okHttpClient)
 
@@ -242,6 +246,65 @@ class JsoupBookParser(
         result
     }
     // endregion
+
+    /**
+     * 抓取一章正文（原生路径的取文接缝，见 [BookContentParser]）。
+     *
+     * 多页拼接 + 同章分页判定 + 清理规则跑在拼接后的整章串上；返回**未规范化**文本
+     * （缩进与空白折叠归读取层）。空正文返回空串、不抛——选择器失配时站点常回 200 空壳页，
+     * 写下去就得到一个「看着已缓存」的空章文件，故由调用方判失败。
+     *
+     * 失败裹成「章节内容解析失败」：与「书源已失效」是两回事（重导源不会好，重试可能好）；
+     * 取消原样上抛，取消不是失败。
+     */
+    override suspend fun fetchChapterText(contentRef: String): String = withContext(Dispatchers.IO) {
+        try {
+            val contentRule = rule.ruleContent
+            // 章节分页基准 = 目录页给出的原始章节 URL（不对入口剥后缀）；判定只此一份，不得复刻
+            val chapterBaseUrl = contentRef
+            val pages = PageWalker<String, Document>(maxPages = MAX_CONTENT_PAGES).walk(
+                entryUrl = contentRef,
+                fetch = { url -> WalkPage(url, Jsoup.parse(network.getPage(url.replace(rule.url, "")))) },
+                items = { page ->
+                    val contentElement = page.payload.selectFirst(contentRule.content)
+                    if (contentElement == null) {
+                        emptySequence()
+                    } else {
+                        // 提取正文文本：优先 p 标签，否则 wholeText。不补缩进——缩进是表现层
+                        val paragraphs = contentElement.select("p")
+                        val text = if (paragraphs.isNotEmpty()) {
+                            paragraphs.map { it.text().trim() }
+                                .filter { it.isNotEmpty() }
+                                .joinToString("\n")
+                        } else {
+                            contentElement.wholeText()
+                                .replace("&nbsp;", "　")
+                                .trim()
+                        }
+                        if (text.isEmpty()) emptySequence() else sequenceOf(text)
+                    }
+                },
+                next = { page ->
+                    if (contentRule.nextPage.isEmpty()) {
+                        null
+                    } else {
+                        JsoupHelper.parseUrl(
+                            rule.url,
+                            JsoupHelper.selectAttr(page.payload, contentRule.nextPage),
+                        ).takeIf { it.isNotEmpty() && ChapterPageMatcher.isSameChapterPage(it, chapterBaseUrl) }
+                    }
+                },
+            )
+            val content = pages.items.joinToString("\n")
+            // 清理规则跑在拼接后的整章串上（规则可能跨段）
+            JsoupHelper.applyReplaceRules(content, contentRule.replaceRules.filter { it.enabled })
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.e(logTag, "fetchChapterText: ", e)
+            throw IllegalStateException("章节内容解析失败: $contentRef", e)
+        }
+    }
 }
 
 /**

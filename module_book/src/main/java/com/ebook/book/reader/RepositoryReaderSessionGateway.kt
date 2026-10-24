@@ -3,6 +3,7 @@ package com.ebook.book.reader
 import com.ebook.common.analyze.local.ChapterContent
 import com.ebook.common.repository.BookRepository
 import com.ebook.common.repository.ChapterSyncResult
+import com.ebook.common.store.ReaderResumeStore
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.ChapterListEntity
 
@@ -49,5 +50,9 @@ internal class RepositoryReaderSessionGateway(
 
     override suspend fun addToShelf(shelf: BookShelfEntity) {
         bookRepository.addToShelf(shelf)
+    }
+
+    override fun markReading(noteUrl: String) {
+        ReaderResumeStore.markReading(noteUrl)
     }
 }

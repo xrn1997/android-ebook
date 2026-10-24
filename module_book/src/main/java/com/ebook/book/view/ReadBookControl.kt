@@ -1,10 +1,34 @@
 package com.ebook.book.view
 
+import androidx.compose.runtime.Immutable
 import androidx.core.graphics.toColorInt
 import com.ebook.book.R
 import com.ebook.common.util.SPUtil
 import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.util.DisplayUtil
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+/**
+ * 阅读设置的不可变快照。
+ *
+ * `ReadBookControl` 的属性是普通 `var`（非 Compose State），页面读它不会随写入重组。
+ * 快照是把「设置」变成一个可观察值的唯一出口：页面收集 [ReadBookControl.settings]，
+ * 面板改设置后正文的纸张色、字号、点击翻页开关即时生效，不需要页面再各存一份镜像。
+ */
+@Immutable
+data class ReaderSettings(
+    val textKindIndex: Int,
+    val textSize: Int,
+    val textExtra: Int,
+    val textDrawableIndex: Int,
+    val textColor: Int,
+    val textBackground: Int,
+    val canClickTurn: Boolean,
+    val canKeyTurn: Boolean,
+    val turnModeIndex: Int,
+)
 
 /**
  * ReadBookControl
@@ -27,7 +51,7 @@ object ReadBookControl {
      * 背景主题
      *
      * @param labelRes 主题展示名的字符串资源——配色值本身无法向读者表达"这是哪一档"，
-     * 字体面板的色卡需要这个名字把「所见」与「所选」对上（见 reader/ReaderPanels.kt）
+     * 字体面板的色卡需要这个名字把「所见」与「所选」对上（见 reader/FontPanel.kt）
      */
     data class TextDrawable(val textColor: Int, val textBackground: Int, val labelRes: Int)
 
@@ -102,6 +126,29 @@ object ReadBookControl {
     }
 
     // ----------------------------
+    // 可观察快照
+    // ----------------------------
+    private val _settings = MutableStateFlow(snapshot())
+    val settings: StateFlow<ReaderSettings> = _settings.asStateFlow()
+
+    private fun snapshot() = ReaderSettings(
+        textKindIndex = textKindIndex,
+        textSize = textSize,
+        textExtra = textExtra,
+        textDrawableIndex = textDrawableIndex,
+        textColor = textColor,
+        textBackground = textBackground,
+        canClickTurn = canClickTurn,
+        canKeyTurn = canKeyTurn,
+        turnModeIndex = turnModeIndex,
+    )
+
+    /** 每次写入后推一份新快照；越界被忽略时属性没变，不必推。 */
+    private fun publish() {
+        _settings.value = snapshot()
+    }
+
+    // ----------------------------
     // 更新方法（避免 setter 与属性名冲突）
     // ----------------------------
 
@@ -111,6 +158,7 @@ object ReadBookControl {
         textSize = textKindList[index].textSize
         textExtra = textKindList[index].textExtra
         SPUtil.put("textKindIndex", index, SP_NAME)
+        publish()
     }
 
     fun updateTextDrawableIndex(index: Int) {
@@ -119,22 +167,26 @@ object ReadBookControl {
         textColor = textDrawableList[index].textColor
         textBackground = textDrawableList[index].textBackground
         SPUtil.put("textDrawableIndex", index, SP_NAME)
+        publish()
     }
 
     fun setCanClickTurn(enable: Boolean) {
         canClickTurn = enable
         SPUtil.put("canClickTurn", enable, SP_NAME)
+        publish()
     }
 
     fun setCanKeyTurn(enable: Boolean) {
         canKeyTurn = enable
         SPUtil.put("canKeyTurn", enable, SP_NAME)
+        publish()
     }
 
     fun updateTurnModeIndex(index: Int) {
         if (index !in 0 until TURN_MODE_COUNT) return
         turnModeIndex = index
         SPUtil.put("turnModeIndex", index, SP_NAME)
+        publish()
     }
 
     // ----------------------------

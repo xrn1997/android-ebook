@@ -5,16 +5,19 @@ import com.ebook.common.analyze.local.ChapterReader
 import com.ebook.common.analyze.source.FakeBookSourceManager
 import com.ebook.common.analyze.source.RecordingBookParser
 import com.ebook.common.repository.BookRepository
+import com.ebook.common.repository.BookShelfEvent
 import com.ebook.common.repository.DirectTransactionRunner
 import com.ebook.common.repository.FakeDaos
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
+import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.source.analyze.BookParser
 import com.ebook.source.analyze.BookSourceNotFoundException
 import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -113,6 +116,70 @@ class BookShelfManagerTest {
         assertEquals("没有归属的书不该进书架", 0, daos.shelf.getAllBooks().size)
         assertEquals("更不该退回默认源去解析", 0, parserA.bookInfoCalls.size + parserA.chapterListCalls.size)
     }
+
+    // region 书架快照（书架标记列表的唯一主人）
+
+    @Test
+    fun `refresh 从仓库装载书架快照`(): Unit = runTest {
+        val f = fixture(emptyMap())
+        daos.shelf.insert(BookShelfEntity().apply { noteUrl = "u1"; finalDate = 2L })
+        daos.shelf.insert(BookShelfEntity().apply { noteUrl = "u2"; finalDate = 1L })
+
+        f.bookShelfManager.refresh()
+
+        assertEquals(
+            "快照按仓库返回的顺序整体装载",
+            listOf("u1", "u2"),
+            f.bookShelfManager.shelves.value.map { it.noteUrl },
+        )
+    }
+
+    @Test
+    fun `同一本书的 Added 事件应用两次不产生重复行`(): Unit = runTest {
+        val f = fixture(emptyMap())
+        val shelf = BookShelfEntity().apply { noteUrl = "u1" }
+
+        f.bookShelfManager.applyEvent(BookShelfEvent.Added(shelf))
+        f.bookShelfManager.applyEvent(BookShelfEvent.Added(shelf))
+
+        assertEquals("书架事件可能重放，快照必须幂等", 1, f.bookShelfManager.shelves.value.size)
+    }
+
+    @Test
+    fun `Removed 事件按 noteUrl 移除快照行`(): Unit = runTest {
+        val f = fixture(emptyMap())
+        f.bookShelfManager.applyEvent(BookShelfEvent.Added(BookShelfEntity().apply { noteUrl = "u1" }))
+        f.bookShelfManager.applyEvent(BookShelfEvent.Added(BookShelfEntity().apply { noteUrl = "u2" }))
+
+        f.bookShelfManager.applyEvent(BookShelfEvent.Removed(BookShelfEntity().apply { noteUrl = "u1" }))
+
+        assertEquals(listOf("u2"), f.bookShelfManager.shelves.value.map { it.noteUrl })
+    }
+
+    @Test
+    fun `markShelfStatus 读 manager 自己的快照`(): Unit = runTest {
+        val f = fixture(emptyMap())
+        daos.shelf.insert(BookShelfEntity().apply { noteUrl = "u1" })
+        f.bookShelfManager.refresh()
+        val results = listOf(SearchBookEntity(noteUrl = "u1"), SearchBookEntity(noteUrl = "u2"))
+
+        f.bookShelfManager.markShelfStatus(results)
+
+        assertTrue("在架的那本应被标记", results[0].add)
+        assertFalse("不在架的那本不该被标记", results[1].add)
+    }
+
+    @Test
+    fun `与书架无关的事件不改变快照`(): Unit = runTest {
+        val f = fixture(emptyMap())
+        f.bookShelfManager.applyEvent(BookShelfEvent.Added(BookShelfEntity().apply { noteUrl = "u1" }))
+
+        f.bookShelfManager.applyEvent(BookShelfEvent.ProgressUpdated(BookShelfEntity().apply { noteUrl = "u9" }))
+
+        assertEquals(listOf("u1"), f.bookShelfManager.shelves.value.map { it.noteUrl })
+    }
+
+    // endregion
 
     private companion object {
         const val SOURCE_A = "https://a.example"

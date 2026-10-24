@@ -45,10 +45,10 @@ Status: accepted
 
 - **目录载体是全高左侧滑入抽屉（`ChapterListDrawer`），不是底部弹层**：上千条目的目录在半屏 `ModalBottomSheet` 里浏览体验差，全高侧栏才容得下快速滚动条与长章名；它是自绘覆盖层，返回键处置统一收在 `ReadBookScreen` 的 BackHandler。
 - **阅读器关掉基类的 insets 处理**（`enableFitsSystemWindows() = false`）：正文背景要一直铺到系统栏底下，因此顶/底栏与目录抽屉自行避让系统栏，且避让 padding 写在 `background` 的内层——写反了就会背景不延伸或内容被系统栏遮挡。
-- **每次进入阅读器都重新应用已持久化的手动亮度**（`applyReaderBrightness`）：窗口亮度不跨 Activity 生命周期，不重应用就是"设置里存着 30%，进阅读器又变回满亮"。
+- **每次进入阅读器都重新应用已持久化的手动亮度**（`ReaderBrightness.restore`）：窗口亮度不跨 Activity 生命周期，不重应用就是"设置里存着 30%，进阅读器又变回满亮"。
 - **顶栏返回箭头与硬件返回键语义不同**：箭头 = 退出阅读器（未加入书架时先弹确认），硬件返回键 = 走 BackHandler 处置链（菜单可见时先收菜单）。两者曾共用同一路径，结果是箭头被"关菜单"分支吃掉，只隐藏控制界面不退出。
 - **章节/亮度滑条是自绘 `ReaderSlider`，不用 Material3 `Slider`**：M3 新版滑条的竖条手柄在这两条紧凑行里过重、与同行文字图标抢视线，且取值停在最小端时轨道另一端会露出端点圆点，读起来像控件坏了。手势语义与替换前一致（按下即定位、拖动实时回调、抬手取整跳章）；触点→数值映射固定以静止态旋钮尺寸为基准，否则按下放大瞬间数值会抖。
 - **字号档位走点选胶囊，不走滑条**：每次改字号都要重排全文分页，拖动产生的连续回调代价不可接受。阅读背景主题的色卡需要展示主题名，故 `ReadBookControl.TextDrawable` 携带 `labelRes`——配色值本身表达不了"这是哪一档"。
-- **目录列表清理的收益未量化**：目录抽屉的两处列表清理（`ReaderPanels.kt` 的 `ChapterListDrawer`/`ChapterRow`；`ChapterSelection` 只是纯逻辑）是否有效没有实测；卡顿排查用 `adb shell dumpsys gfxinfo <pkg> framestats` 看掉帧分布，据此决定是否再投入，不要凭感觉加缓存或预计算。
+- **目录列表清理的收益未量化**：目录抽屉的两处列表清理（`ChapterListDrawer.kt` 的 `ChapterListDrawer`/`ChapterRow`；`ChapterSelection` 只是纯逻辑）是否有效没有实测；卡顿排查用 `adb shell dumpsys gfxinfo <pkg> framestats` 看掉帧分布，据此决定是否再投入，不要凭感觉加缓存或预计算。
 
 锚点：`MaterialTheme.colorScheme`；`ReadBookControl`；`ReadBookActivity.PageContent`

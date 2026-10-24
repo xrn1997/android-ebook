@@ -3,10 +3,9 @@ package com.ebook.find.mvvm.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.ebook.common.manager.BookShelfManager
+import com.ebook.common.manager.applying
 import com.ebook.common.repository.BookRepository
-import com.ebook.common.repository.BookShelfEvent
 import com.ebook.common.util.reportFailure
-import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.find.R
 import com.ebook.find.repository.BookSourceRepository
@@ -16,6 +15,7 @@ import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel
 import com.xrn1997.common.mvvm.viewmodel.Overlay
 import com.xrn1997.common.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -57,25 +57,13 @@ class ChoiceBookViewModel @Inject constructor(
     /** 当前分页（加载更多递增，刷新时归 1） */
     private var page = 1
 
-    /** 当前书架快照（用于给列表项标记"已加书架"状态），仅 VM 内部维护 */
-    private val bookShelves = mutableListOf<BookShelfEntity>()
-
     init {
-        // 书架事件同步：书架增删时更新快照与列表项状态，替代原 Activity 侧的重复收集逻辑
+        // 书架事件同步：快照由 BookShelfManager 单点应用，本页只把结果列表的标记对齐
         viewModelScope.launch {
             bookRepository.bookShelfEvents.collect { event ->
-                when (event) {
-                    is BookShelfEvent.Added -> {
-                        bookShelves.add(event.bookShelf)
-                        updateBookAddState(event.bookShelf, true)
-                    }
-                    is BookShelfEvent.Removed -> {
-                        bookShelves.remove(event.bookShelf)
-                        updateBookAddState(event.bookShelf, false)
-                    }
-                    is BookShelfEvent.ProgressUpdated -> Unit // 阅读进度与列表页无关
-                    is BookShelfEvent.ChaptersUpdated -> Unit // 目录变长与「选哪本」列表无关
-                }
+                bookShelfManager.applyEvent(event)
+                val next = list.value.applying(event)
+                if (next !== list.value) updateList(next)
             }
         }
 
@@ -85,10 +73,12 @@ class ChoiceBookViewModel @Inject constructor(
         if (url.isNotEmpty()) {
             viewModelScope.launch {
                 try {
-                    bookShelves.addAll(bookShelfManager.loadBookShelves())
+                    bookShelfManager.refresh()
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     // 书架加载失败不阻断列表加载，只是"已加书架"标记可能不准
-                    Logger.e(TAG, "loadBookShelves onError: ", e)
+                    Logger.e(TAG, "refresh shelves onError: ", e)
                 }
                 page = 1
                 triggerAutoRefresh()
@@ -109,7 +99,7 @@ class ChoiceBookViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val value = bookSourceRepository.getKindBook(sourceUrl, url, page)
-                bookShelfManager.markShelfStatus(value, bookShelves)
+                bookShelfManager.markShelfStatus(value)
                 if (page == 1) {
                     // 首屏按 noteUrl 去重：列表以 noteUrl 作 item key，重复 key 直接抛异常
                     updateList(value.distinctBy { it.noteUrl })
@@ -147,19 +137,6 @@ class ChoiceBookViewModel @Inject constructor(
             bookShelfManager.addFromSearch(searchBook)
                 .onFailure { e -> reportAddBookFailure(e) }
             updateOverlay(Overlay.None)
-        }
-    }
-
-    /**
-     * 书架事件同步：更新列表中对应书籍的"是否已加入书架"状态。
-     */
-    private fun updateBookAddState(bookShelf: BookShelfEntity, isAdd: Boolean) {
-        val currentList = list.value.toMutableList()
-        val index = currentList.indexOfFirst { it.noteUrl == bookShelf.noteUrl }
-        if (index != -1) {
-            val updatedBook = currentList[index].copy(add = isAdd)
-            currentList[index] = updatedBook
-            updateList(currentList)
         }
     }
 

@@ -34,6 +34,13 @@ class ReaderSessionTest {
         var syncCalls = 0
         var loadCalls = 0
 
+        /** 阅读会话标记的写入记录：顺序即调用顺序。 */
+        val markedNoteUrls = mutableListOf<String>()
+
+        override fun markReading(noteUrl: String) {
+            markedNoteUrls += noteUrl
+        }
+
         override suspend fun getBookWithDetails(noteUrl: String) = detailShelf
         override suspend fun getBookByUrl(noteUrl: String): BookShelfEntity? {
             lookupGate?.await()
@@ -99,6 +106,67 @@ class ReaderSessionTest {
         assertEquals(2f, state.sliderValue)
         assertFalse(state.inShelf)
         assertFalse(state.shelfChecked)
+    }
+
+    @Test
+    fun `adopt 写下阅读会话标记`() {
+        val gateway = FakeGateway()
+        val session = ReaderSession(gateway)
+
+        session.adopt(shelf(chapter(0)))
+
+        assertEquals(
+            "收下哪本书就记哪本，页面不再各自补记",
+            listOf("a.example/book/1.html"),
+            gateway.markedNoteUrls,
+        )
+    }
+
+    @Test
+    fun `openFromStore 取不到书架行时不写标记`() = runTest {
+        val gateway = FakeGateway().apply { detailShelf = null }
+        val session = ReaderSession(gateway)
+
+        assertFalse(session.openFromStore("a.example/book/1.html"))
+
+        assertTrue("没打开任何书，标记不该被写", gateway.markedNoteUrls.isEmpty())
+    }
+
+    @Test
+    fun `openFromStore 成功时写下标记`() = runTest {
+        val gateway = FakeGateway().apply { detailShelf = shelf(chapter(0)) }
+        val session = ReaderSession(gateway)
+
+        assertTrue(session.openFromStore("a.example/book/1.html"))
+
+        assertEquals(listOf("a.example/book/1.html"), gateway.markedNoteUrls)
+    }
+
+    @Test
+    fun `换源收下新条目后标记改成新书的 noteUrl`() {
+        val gateway = FakeGateway()
+        val session = ReaderSession(gateway)
+        session.adopt(shelf(chapter(0), noteUrl = "a.example/book/1.html"))
+
+        session.adoptAfterSourceSwitch(shelf(chapter(0), noteUrl = "b.example/book/2.html"))
+
+        assertEquals(
+            "换书必须重记标记，旧书标记留在残留状态",
+            listOf("a.example/book/1.html", "b.example/book/2.html"),
+            gateway.markedNoteUrls,
+        )
+    }
+
+    @Test
+    fun `saveProgress 不触碰阅读会话标记`() = runTest {
+        val gateway = FakeGateway()
+        val session = ReaderSession(gateway)
+        session.adopt(shelf(chapter(0)))
+        gateway.markedNoteUrls.clear()
+
+        session.saveProgress()
+
+        assertTrue("进度落库与「要不要恢复」是两件事", gateway.markedNoteUrls.isEmpty())
     }
 
     @Test

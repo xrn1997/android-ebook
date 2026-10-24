@@ -14,7 +14,7 @@ import com.ebook.db.entity.WebChapterEntity
 import com.ebook.source.analyze.BookParser
 import com.ebook.source.analyze.BookSourceNotFoundException
 import com.ebook.source.analyze.JsoupBookParser
-import com.ebook.source.analyze.ScriptContentParser
+import com.ebook.source.analyze.BookContentParser
 import com.ebook.source.script.JsEvaluationPendingException
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
@@ -69,7 +69,7 @@ class JsoupSourceReaderTest {
     }
 
     private fun readerWith(manager: SourceResolver) =
-        JsoupSourceReader(store, manager, context, OkHttpClient())
+        JsoupSourceReader(store, manager, context)
 
     private fun rule(sourceUrl: String) = BookSourceRule(name = "源<$sourceUrl>", url = sourceUrl)
 
@@ -115,9 +115,7 @@ class JsoupSourceReaderTest {
         val parser = reader.resolveParser(BookLocation("net-book", BookFormat.NETWORK, bound.url))
 
         assertSame("必须是这本书自己那源的 parser 实例", boundParser, parser)
-        val native = parser as? JsoupBookParser
-        assertNotNull("原生行的 parser 必须仍是 JsoupBookParser（正文抓取要它的 rule）", native)
-        assertEquals(bound.url, native?.rule?.url)
+        assertNotNull("原生行的 parser 必须能抓正文（BookContentParser）", parser as? BookContentParser)
         // 假件的 parser 表里只有这一条源，且本方法只被问过一次：解正文没有第二条取源路径
         // （全局默认源那个兜底出口已随同步读面一并删除，不再是可替代的解析入口）
         assertEquals("取源只该问一次，问的就是 location 里的归属", listOf(bound.url), manager.parserForCalls)
@@ -197,14 +195,14 @@ class JsoupSourceReaderTest {
     /**
      * 「取到的 parser 不支持抓正文」→ 编程错误。
      *
-     * 2d 起这条判据不在 `resolveParser` 里（它只负责「按书找到源」，返回类型放宽成 [BookParser]），
-     * 而在 [JsoupSourceReader] 按类型分岔的那一步：既不是原生 `JsoupBookParser` 也不是脚本
-     * `ScriptContentParser` 的 parser 没有抓正文的能力，只能报编程错误。因此本例改走 `readChapter`，
-     * 顺带锁住「这个分支不会被误报成书源已失效」。
+     * 2d 起这条判据不在 `resolveParser` 里（它只负责「按书找到源」，返回类型是 `BookParser`），
+     * 而在 [JsoupSourceReader] 取文前的那次转型：`BookParser` 是发现面，只有实现
+     * `BookContentParser` 的 parser 才有抓正文的能力，否则只能报编程错误。因此本例改走
+     * `readChapter`，顺带锁住「这个分支不会被误报成书源已失效」。
      */
     @Test
     fun `取到的 parser 不支持抓正文时报编程错误而非书源失效`(): Unit = runTest {
-        // 假 parser：resolveSource 命中了，但它既不是 JsoupBookParser 也不是 ScriptContentParser
+        // 假 parser：resolveSource 命中了，但它只实现 BookParser、不实现 BookContentParser
         val manager = FakeBookSourceManager(
             parsersBySourceUrl = mapOf("https://other.example" to RecordingBookParser("https://other.example"))
         )
@@ -223,11 +221,11 @@ class JsoupSourceReaderTest {
 
     /* ---------- 脚本分支（2d） ---------- */
 
-    /** 脚本正文假件：实现 public 接缝 [ScriptContentParser] */
-    private class FakeScriptContentParser(
+    /** 脚本正文假件：实现 public 接缝 [BookContentParser] */
+    private class FakeBookContentParser(
         private val text: String,
         private val error: Exception? = null,
-    ) : BookParser, ScriptContentParser {
+    ) : BookParser, BookContentParser {
         val contentRefCalls = mutableListOf<String>()
 
         override suspend fun searchBook(content: String, page: Int): List<SearchBookEntity> = emptyList()
@@ -257,7 +255,7 @@ class JsoupSourceReaderTest {
 
     @Test
     fun `脚本源正文抓取后落盘并按行切段`(): Unit = runTest {
-        val parser = FakeScriptContentParser("第一段\n第二段")
+        val parser = FakeBookContentParser("第一段\n第二段")
         val reader = readerWithParser(parser)
 
         val content = reader.readChapter(
@@ -281,7 +279,7 @@ class JsoupSourceReaderTest {
      */
     @Test
     fun `脚本源空正文不落盘返回空段落`(): Unit = runTest {
-        val reader = readerWithParser(FakeScriptContentParser("   "))
+        val reader = readerWithParser(FakeBookContentParser("   "))
         val location = scriptLocation()
 
         val content = reader.readChapter(
@@ -307,7 +305,7 @@ class JsoupSourceReaderTest {
         // 用真实类型而不是自造同形 RuntimeException：层级已 public（ADR-0046），
         // 这条用例同时锁住「lib_book_common 的测试源集能直接引用该类型」
         val typed = JsEvaluationPendingException("text.1@@js:xxx")
-        val reader = readerWithParser(FakeScriptContentParser("", typed))
+        val reader = readerWithParser(FakeBookContentParser("", typed))
 
         val failure = runCatching {
             reader.readChapter(

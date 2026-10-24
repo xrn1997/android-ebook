@@ -90,7 +90,7 @@
     <string name="download_finished_with_skipped_format">下载结束，%1$d 章抓取失败已跳过，重新发起下载可再试</string>
     <string name="download_start_restricted">系统已限制后台下载时长，任务已保留，稍后回到下载管理页可继续</string>
 
-    <!-- 阅读器控制界面（chrome 层美化改造新增，见 reader/ReaderPanels.kt） -->
+    <!-- 阅读器控制界面（chrome 层美化改造新增，见 reader/ 包顶底栏与各面板文件） -->
     <string name="reader_chapter_progress_format">第 %1$d 章 · 共 %2$d 章</string>
     <string name="reader_chapter_slider">章节进度</string>
     <string name="reader_current_brightness">当前亮度</string>

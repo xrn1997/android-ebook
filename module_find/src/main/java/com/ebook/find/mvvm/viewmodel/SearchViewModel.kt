@@ -3,10 +3,9 @@ package com.ebook.find.mvvm.viewmodel
 import androidx.lifecycle.viewModelScope
 import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.manager.BookShelfManager
+import com.ebook.common.manager.applying
 import com.ebook.common.repository.BookRepository
-import com.ebook.common.repository.BookShelfEvent
 import com.ebook.common.util.reportFailure
-import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.db.entity.SearchHistoryEntity
 import com.ebook.find.repository.SearchHistoryRepository
@@ -40,7 +39,7 @@ import javax.inject.Inject
  * 「几时算一轮」「哪条源还能翻」这类状态因此只有一处主人。
  *
  * - "输入框是否有内容/是否已搜索"等纯 View 状态由 Activity 自持，不进 VM
- * - 书架快照与书架事件同步收敛在 VM 内部，View 只消费 [list] 与 [successEvent]
+ * - 书架快照与书架事件的应用收在 `BookShelfManager`，本页只把自己的结果列表按事件对齐
  *
  * ## 翻页：每源独立游标，只对未结束的源继续翻
  *
@@ -64,9 +63,6 @@ class SearchViewModel @Inject constructor(
     private val bookShelfManager: BookShelfManager,
     bookRepository: BookRepository
 ) : BaseRefreshViewModel<SearchBookEntity, SearchHistoryRepository>(searchHistoryRepository) {
-
-    /** 当前书架快照（用于给搜索结果标记"已加书架"状态），仅 VM 内部维护 */
-    private val bookShelves = mutableListOf<BookShelfEntity>()
 
     /**
      * 聚合搜索的全部簿记（关键词、每源游标、结束集、已见条目、单轮进度与成败）的唯一主人。
@@ -104,26 +100,19 @@ class SearchViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             try {
-                bookShelves.addAll(bookShelfManager.loadBookShelves())
+                bookShelfManager.refresh()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Throwable) {
-                Logger.e(TAG, "loadBookShelves onError: ", e)
+                Logger.e(TAG, "refresh shelves onError: ", e)
             }
         }
-        // 书架事件同步：书架增删时更新快照与列表项状态，替代原 Activity 侧的重复收集逻辑
+        // 书架事件同步：快照由 BookShelfManager 单点应用，本页只把结果列表的标记对齐
         viewModelScope.launch {
             bookRepository.bookShelfEvents.collect { event ->
-                when (event) {
-                    is BookShelfEvent.Added -> {
-                        bookShelves.add(event.bookShelf)
-                        updateBookAddState(event.bookShelf, true)
-                    }
-                    is BookShelfEvent.Removed -> {
-                        bookShelves.remove(event.bookShelf)
-                        updateBookAddState(event.bookShelf, false)
-                    }
-                    is BookShelfEvent.ProgressUpdated -> Unit // 阅读进度与搜索页无关
-                    is BookShelfEvent.ChaptersUpdated -> Unit // 目录变长与搜索结果列表无关
-                }
+                bookShelfManager.applyEvent(event)
+                val next = list.value.applying(event)
+                if (next !== list.value) updateList(next)
             }
         }
     }
@@ -242,19 +231,6 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 书架事件同步：更新列表中对应书籍的"是否已加入书架"状态。
-     */
-    private fun updateBookAddState(bookShelf: BookShelfEntity, isAdd: Boolean) {
-        val currentList = list.value.toMutableList()
-        val index = currentList.indexOfFirst { it.noteUrl == bookShelf.noteUrl }
-        if (index != -1) {
-            val updatedBook = currentList[index].copy(add = isAdd)
-            currentList[index] = updatedBook
-            updateList(currentList)
-        }
-    }
-
     // region 聚合搜索的一轮
 
     /**
@@ -320,7 +296,7 @@ class SearchViewModel @Inject constructor(
      */
     private fun mergeFresh(fresh: List<SearchBookEntity>) {
         if (fresh.isEmpty()) return
-        bookShelfManager.markShelfStatus(fresh, bookShelves)
+        bookShelfManager.markShelfStatus(fresh)
         updateList(list.value + fresh)
         // 第一条结果到手就别再用整屏加载态盖住：让用户看着结果一条条长出来，进度由进度条表达
         if (uiState.value.overlay == Overlay.Loading) updateOverlay(Overlay.None)

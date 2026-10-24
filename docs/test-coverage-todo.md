@@ -58,8 +58,17 @@
   —— 已由 `DownloadRunnerTest` 覆盖：缓存命中、空正文重试耗尽后出队、暂停中断不出队、强刷删旧章
   并失效缓存、取源失败走同一失败通道、成功抓取后出队失败停在暂停态且不重抓；`DownloadBatchTest`
   覆盖候选域、按书暂停跳过、孤儿清理与队列计数。`DownloadService` 只剩前台生命周期、通知、
-  跳过计数与下一章调度，其生命周期与通知——含收到 `Paused` 时「`pauseDownload()` 置 false
+  Intent 分派与按结局收尾，批次循环与终态判定已收进 `DownloadBatchLoop`（ADR-0049，
+  `DownloadBatchLoopTest` 8 例）；其生命周期与通知——含收到 `Paused` 时「`pauseDownload()` 置 false
   并改写通知 + `isPause()`」两步——仍按人工装机验证（见本文件末『架构深化』清单第 3 条）。
+- [x] 下载批次循环、装页组合、亮度口径、设置快照、版本检查编排与书架标记收窄宿主（架构深化，2026-10-24）
+  —— `DownloadBatchLoopTest`（8 例）锁空队列/只剩暂停书/runner 暂停/跳过计数/打断与孤儿清理顺序；
+  `ReaderPageLoaderTest`（7 例）锁装页组合与失败分档（书源失效开口、其余静默、取消上抛）；
+  `ReaderBrightnessTest`（5 例，Robolectric）锁 SP 口径与窗口亮度恢复；`ReadBookControlTest`（7 例）
+  锁设置快照每次写入推进、越界不推；`ReleaseCheckControllerTest`（8 例）锁单飞、静默→弹窗升级、
+  关窗取消与「判不出不落盘」；`SearchBookMarkTest`（6 例）与 `BookShelfManagerTest` 新增 5 例锁
+  书架快照与「已加书架」标记的单点应用；原生取文由 `JsoupBookParserTest`（5 例）在纯 JVM 锁住。
+  设备项：阅读器字号/纸张/点击与按键翻页/翻页方式即时生效，下载批次在暂停→继续后仍从队头续跑。
 - [x] 为下载中心的选章计划（`ChapterSelectionPlan`）添加回归测试（架构深化，2026-10-23）
   —— `module_book/src/test/.../reader/ChapterSelectionPlanTest.kt`（10 例，纯 JVM）锁住计划轮廓：
   预勾选取焦点章起 50 章并剔除已缓存/排队、无有效焦点章为空集、窗口封顶末章；未缓存集合同样排除排队；
@@ -88,10 +97,11 @@
   按此回路逐页补
 - [ ] `AuthInterceptor` 测试归属 lib_common（android-practice 仓库，随认证体系对齐后不再在本仓库维护）
 - [x] 阅读器位置收进单一会话（`ReaderSession`）后的回归
-  —— `module_book/src/test/.../reader/ReaderSessionTest.kt`（32 例，纯 JVM，假网关）锁位置所有权：
+  —— `module_book/src/test/.../reader/ReaderSessionTest.kt`（37 例，纯 JVM，假网关）锁位置所有权：
   书架快照与实时章页分离、`saveProgress` 把实时位置合并进副本（未 adopt 为 no-op）、标题/章数/滑条派生与封顶、
   在架查询命中/未命中；加架（含挂起期间换书不标记新书、追更换目录实例不误判换书）；追更收口：末章判定、`tag` 归属门、单飞、回读目录整体替换、
-  回读期间换书即作废；换源 `adoptAfterSourceSwitch` 整行收下并把位置复位到新条目。
+  回读期间换书即作废；换源 `adoptAfterSourceSwitch` 整行收下并把位置复位到新条目；三个收书入口写阅读会话标记
+  （`openFromStore` 取不到行时不写、`saveProgress` 不碰它）。
   `ReadingProgressFlowTest`（6 例，Robolectric）改为经会话读写，仍是真 ViewModel + 真仓库 + Room 内存库跑真 SQL 的端到端。
 - [x] 聚合搜索的轮次协议收进单一会话（`AggregationSession`）后的回归
   —— `module_find/src/test/.../search/AggregationSessionTest.kt`（16 例，纯 JVM）锁协议：
@@ -393,7 +403,7 @@ push 到设备后供第 2 项的 EPUB 入口使用。
 ## 人工装机验证清单（脚本书源阶段二，2026-09-09）
 
 解释器四段（2a 词法 / 2b HTML 求值 / 2c JSONPath 与取文 / 2d 装配与接线）已全线落地：`ScriptBookParser`
-实现 `BookParser` 五面与 `ScriptContentParser` 正文接缝，桩解析器与桩异常删除，聚合搜索候选含脚本行。
+实现 `BookParser` 五面与 `BookContentParser`（原名 `ScriptContentParser`，ADR-0050）正文接缝，桩解析器与桩异常删除，聚合搜索候选含脚本行。
 上述行为由 `:lib_book_source`（330 例，含 `ScriptSourceEndToEndTest` 的三型合成源全链）与
 `lib_book_common` 的 `JsoupSourceReaderTest`（脚本分支 3 例）、`BookSourceManagerImplTest`（工厂换真
 解析器 + 脚本行为候选）锁住。**真实源语义的金标准已就位**：`ScriptRealSourceGoldenTest` +
@@ -890,3 +900,12 @@ lib_ebook_api 37 / lib_ebook_db 35 / module_login 8 / module_main 4），手写�
   两者之间时会留下孤儿 `chapter_list` 行。会话的回读守卫保护的是会话（不把旧书目录装进新书），
   保护不了数据库。
 
+- [ ] 书源四窄面的测试替身共享载体（2026-10-24 评估，暂不做）
+  —— 现状：4 个具名替身（`lib_book_common` 与 `module_me` 各一份 `FakeBookSourceManager`，
+  `module_find` 的 `LibraryViewModelTest.FakeBookSourceManager` 与
+  `BookSourceRepositoryLibraryCacheTest.FakeManager`）外加若干内联/匿名实现；精确数量以
+  `grep -rln ': SourceResolver' */src/test` 现查为准。
+  已过「≥4 个文件」的评估线，但 ADR-0047 决策 3 要求替身按测试实际调用面收窄，且拆面之后没有再出现
+  持续改动证据。共享载体只有两条路：`testFixtures`（AGP 9.2.1 支持，但本仓约定插件从未启用）
+  或新增 test-only 模块——两者都要动构建约定，需单独立项批准。
+  **重开触发条件**：再出现一次「改书源面就得集体改替身」的改动，或具名替身增至 6 份以上。

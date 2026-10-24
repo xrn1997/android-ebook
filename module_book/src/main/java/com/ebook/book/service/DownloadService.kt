@@ -73,6 +73,22 @@ class DownloadService : Service() {
             invalidateBook = contentCache::invalidateBook,
         )
     }
+
+    /**
+     * 批次循环：取篇、跑章、跳过计数、章间隔与终态判定都归它。
+     *
+     * 同样 by lazy：Hilt 字段注入发生在 onStartCommand 之前，这里读到的是已注入的仓库与执行器。
+     */
+    private val downloadBatchLoop by lazy {
+        DownloadBatchLoop(
+            // 空 noteUrl 是脏行：旧路径按「取不到任务」处置，不把它当可跑任务
+            nextTask = { downloadRepository.getNextDownloadTask()?.takeIf { it.noteUrl.isNotEmpty() } },
+            runChapter = { task, isRunning -> downloadRunner.run(task, isRunning) },
+            deleteOrphans = downloadRepository::deleteTasksOutsideShelf,
+            countTasks = downloadRepository::countTasks,
+            chapterIntervalMs = CHAPTER_INTERVAL_MS,
+        )
+    }
     private lateinit var notifyManager: NotificationManager
     private var isStartDownload = false
     private var isInit = false
@@ -85,20 +101,10 @@ class DownloadService : Service() {
      */
     private var fgUnavailable = false
     private var isDownloading = false
-
-    /**
-     * 本批下载中「重试耗尽被跳过」的章数。
-     *
-     * 失败章只出队不入库（见 [downloading]），若不计数，收尾提示会一律说「全部下载完成」，
-     * 用户以为失败章也下好了。收尾（[finishDownload]）与取消（[cancelDownload]）时归零。
-     */
-    private var skippedCount = 0
-    private val myHandler = Handler(Looper.getMainLooper())
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onDestroy() {
         super.onDestroy()
-        myHandler.removeCallbacksAndMessages(null)  // 清理所有待执行的回调
         serviceScope.cancel()
         isInit = false
     }
@@ -114,7 +120,7 @@ class DownloadService : Service() {
      * 现象就是"下载跑到后段整个应用闪退"。
      *
      * 所以方法体内只做"数秒内必定完成"的收尾，禁止任何挂起/IO 操作：
-     * - 关掉 [isStartDownload]/[isDownloading] 并清空待执行回调，让按章推进的循环就地停住；
+     * - 关掉 [isStartDownload]/[isDownloading]，让按章推进的循环在下一个检查点就地停住；
      * - 不动 `download_chapter` 队列：表里本就只存未完成任务，用户把应用切回前台（这会重置 24h 配额）
      *   后从下载管理页或通知「继续」即可续跑；
      * - 状态改走 [DownloadRepository.tryEmitState] 同步写入 replay 缓冲：收尾路径不依赖协程
@@ -127,7 +133,6 @@ class DownloadService : Service() {
         Logger.w(TAG, "前台服务时长配额用尽（fgsType=$fgsType, startId=$startId），停止下载并保留任务")
         isStartDownload = false
         isDownloading = false
-        myHandler.removeCallbacksAndMessages(null)
         downloadRepository.tryEmitState(DownloadState.Paused)
         postAttentionNotification(getString(R.string.notification_fgs_timeout_text))
         stopSelf()
@@ -199,7 +204,7 @@ class DownloadService : Service() {
             }
             serviceScope.launch {
                 try {
-                    val next = findNextDownloadChapter()
+                    val next = downloadRepository.getNextDownloadTask()
                     if (next != null && next.noteUrl.isNotEmpty()) {
                         isStartDownload = true
                         toDownload()
@@ -219,97 +224,53 @@ class DownloadService : Service() {
         return null
     }
 
+    /**
+     * 驱动一批下载：循环与终态判定归 [DownloadBatchLoop]，本类只按结局做收尾。
+     *
+     * 三种结局的收尾动作不同（见 [BatchEnd]）：跑空发完成通知并停服；只剩暂停书的任务时
+     * 转入暂停态并静默停服（不发「全部下载完成」，暂停书的任务没下完，那是误报）；被用户
+     * 暂停或 runner 打断则保持服务常驻、改写通知，等 ACTION_RESUME 续跑。
+     * 停服路径不赌协程调度：tryEmitState 同步落 replay（与 onTimeout 同写法）。
+     */
     private fun toDownload() {
         isDownloading = true
-        if (isStartDownload) {
-            serviceScope.launch {
-                try {
-                    val nextChapter = findNextDownloadChapter()
-                    if (nextChapter != null && nextChapter.noteUrl.isNotEmpty()) {
-                        downloading(nextChapter)
-                    } else {
-                        isDownloading = false
-                        // 取不到下一章 **≠ 队列跑空**（见 ADR-0036）：取篇跳过暂停书后，表里可能还有
-                        // 两类行——暂停书的任务（必须保留，暂停语义就是留着待续跑）与孤儿行（书已
-                        // 不在架，清掉——承接原「跑空时 clearAll」的清理职责，但不能无脑 clearAll，
-                        // 那会把暂停书的任务整批删掉）。
-                        downloadRepository.deleteTasksOutsideShelf()
-                        if (downloadRepository.countTasks() > 0) {
-                            // 剩余任务全部处于暂停书：转入暂停态并**静默停服**——
-                            // 不发 finishDownload 的「全部下载完成」（暂停书的任务没下完，那是误报）；
-                            // 也不保持前台空转（dataSync 24h/6h 配额白烧），继续由用户从下载管理页
-                            // 或通知触发，RESUME Intent 经 getForegroundService 死了也能拉起。
-                            // 停服路径不赌协程调度：tryEmitState 同步落 replay（与 onTimeout 同写法）
-                            downloadRepository.tryEmitState(DownloadState.Paused)
-                            stopService(Intent(application, DownloadService::class.java))
-                        } else {
-                            finishDownload()
-                        }
-                    }
-                } catch (e: Throwable) {
-                    Logger.e(TAG, "onError: ", e)
-                    isDownloading = false
-                }
-            }
-        } else {
-            isPause()
-        }
-    }
-
-    /**
-     * 查找下一个待下载章节
-     */
-    private suspend fun findNextDownloadChapter(): DownloadChapterEntity? {
-        return downloadRepository.getNextDownloadTask()
-    }
-
-    /**
-     * 驱动单章下载：重试、空正文校验、强刷失效与失败出队已收进 [DownloadRunner]。
-     *
-     * 本方法只负责进度通知、跳过计数、暂停收尾与下一章调度。暂停时 runner 返回
-     * [DownloadOutcome.Paused] 且不出队；失败重试耗尽返回 [DownloadOutcome.Skipped] 并已出队，
-     * 这里只累计跳过章数。
-     */
-    private fun downloading(data: DownloadChapterEntity) {
         if (!isStartDownload) {
             isPause()
             return
         }
-        isProgress(data)
         serviceScope.launch {
-            val outcome = try {
-                downloadRunner.run(data) { isStartDownload }
+            try {
+                val end = downloadBatchLoop.run(
+                    isRunning = { isStartDownload },
+                    onChapterStart = ::isProgress,
+                )
+                isDownloading = false
+                when (end) {
+                    BatchEnd.Finished -> finishDownload()
+
+                    BatchEnd.PausedRemaining -> {
+                        downloadRepository.tryEmitState(DownloadState.Paused)
+                        stopService(Intent(application, DownloadService::class.java))
+                    }
+
+                    BatchEnd.Interrupted -> {
+                        // 可能是队列写失败导致的停摆（此时 isStartDownload 仍为 true）；
+                        // pauseDownload() 置 false 并改写通知，才能让 ACTION_RESUME 重新拉起，
+                        // 而不是留下一条「正在下载」却不再有下一章调度的常驻通知
+                        pauseDownload()
+                        isPause()
+                    }
+                }
             } catch (e: CancellationException) {
                 // 服务销毁/作用域取消：原样上抛，不能记成一次失败
                 throw e
             } catch (e: Throwable) {
-                // runner 内部已收口预期失败；能逃到这里的是编程/系统错误。删任务会把「没抓成」
-                // 静默成「跳过」，停在暂停态保留任务，用户可续跑或取消。
-                Logger.e(TAG, "下载执行异常，停在暂停态: ${data.durChapterUrl}", e)
-                DownloadOutcome.Paused
-            }
-            when (outcome) {
-                DownloadOutcome.Completed -> Unit
-                DownloadOutcome.Skipped -> skippedCount++
-                DownloadOutcome.Paused -> {
-                    // 可能是队列写失败导致的停摆（此时 isStartDownload 仍为 true）；
-                    // pauseDownload() 置 false 并改写通知，才能让 ACTION_RESUME 重新拉起，
-                    // 而不是留下一条「正在下载」却不再有下一章调度的常驻通知
-                    pauseDownload()
-                    isPause()
-                    return@launch
-                }
-            }
-            // 继续下载下一个
-            if (isStartDownload) {
-                myHandler.postDelayed({
-                    if (isStartDownload) {
-                        toDownload()
-                    } else {
-                        isPause()
-                    }
-                }, CHAPTER_INTERVAL_MS)
-            } else {
+                // 循环/依赖里逃出的意外异常：不能只记日志就撒手——isStartDownload 仍为 true 时
+                // 通知会停在「正在下载」而再也没有下一章调度（流水线静默死亡）。按旧 downloading
+                // 的处置停在暂停态：保留任务，用户可续跑或取消。
+                Logger.e(TAG, "下载循环异常，停在暂停态: ", e)
+                isDownloading = false
+                pauseDownload()
                 isPause()
             }
         }
@@ -335,7 +296,6 @@ class DownloadService : Service() {
     /** 清空队列并收尾退出，供 [ACTION_CANCEL] 分支调用 */
     private fun cancelDownload() {
         isStartDownload = false
-        skippedCount = 0
         // 终态走 tryEmitState 同步落 replay（与 finishDownload、前台态不可用分支同一写法）：
         // 不依赖协程调度，界面立刻收 Finished、通知即刻撤下，不用等 DB 清队耗时
         downloadRepository.tryEmitState(DownloadState.Finished)
@@ -357,22 +317,20 @@ class DownloadService : Service() {
         }
     }
 
+    /**
+     * 暂停收尾：只判当前队列状态并广播，不停服（用户还会继续）。
+     *
+     * 终态判定归 [DownloadBatchLoop.terminalState]：取不到可跑任务但表里仍有任务时是
+     * 「已暂停」而不是「已完成」（ADR-0036）。
+     */
     private fun isPause() {
         isDownloading = false
         serviceScope.launch {
             try {
-                val nextChapter = findNextDownloadChapter()
-                if (nextChapter != null && nextChapter.noteUrl.isNotEmpty()) {
-                    downloadRepository.emitState(DownloadState.Paused)
-                } else {
-                    // 队头取不到 ≠ 完成（见 ADR-0036）：表内可能只剩暂停书的任务（或孤儿行）。
-                    // 按表内计数分流——有任务却停着，对用户是「已暂停」而非「已完成」
-                    if (downloadRepository.countTasks() > 0) {
-                        downloadRepository.emitState(DownloadState.Paused)
-                    } else {
-                        downloadRepository.emitState(DownloadState.Finished)
-                    }
-                }
+                val end = downloadBatchLoop.terminalState()
+                downloadRepository.emitState(
+                    if (end == BatchEnd.Finished) DownloadState.Finished else DownloadState.Paused
+                )
             } catch (e: Throwable) {
                 Logger.e(TAG, "onError: ", e)
             }
@@ -382,8 +340,8 @@ class DownloadService : Service() {
     /**
      * 每章开抓时推进度：回传 UI 状态 + 刷新常驻通知。
      *
-     * 两者都不得抛回调用链：[downloading] 是同步调用本方法的，原实现里通知异常会
-     * 沿 downloading → toDownload 的 catch 吞掉并置 isDownloading=false，
+     * 两者都不得抛回调用链：[isProgress] 由 [DownloadBatchLoop.run] 的 `onChapterStart` 同步调用，
+     * 原实现里通知异常会沿 downloading → toDownload 的 catch 吞掉并置 isDownloading=false，
      * **整条下载流水线静默死亡**（后续章节不下载、也不再发 Progress）；
      * 现收敛到 [updateOngoingNotification] 内部整体兜底。
      */
@@ -489,7 +447,7 @@ class DownloadService : Service() {
     /**
      * 发送"下载完成"通知（可点、可划走；失败不影响服务收尾）。
      *
-     * [skipped] > 0 时换文案：失败章是被跳过的（见 [downloading]），继续说"全部已入库"
+     * [skipped] > 0 时换文案：失败章是被跳过的（见 [DownloadBatchLoop.run]），继续说"全部已入库"
      * 会让用户误以为离线能读到那几章。
      */
     private fun postCompletedNotification(skipped: Int) {
@@ -578,11 +536,11 @@ class DownloadService : Service() {
     /**
      * 队列跑空：发完成态 + 完成通知 + Toast，然后停服务。
      *
-     * 有跳过章时换带章数的文案（[skippedCount]）：一律说"全部下载完成"会让用户
+     * 有跳过章时换带章数的文案（[DownloadBatchLoop.skippedCount]）：一律说"全部下载完成"会让用户
      * 以为重试耗尽被跳过的章节也下好了。
      */
     private fun finishDownload() {
-        val skipped = skippedCount
+        val skipped = downloadBatchLoop.skippedCount
         // 终态走 tryEmitState 同步落 replay（与 onTimeout、前台态不可用分支同一写法）：
         // 不起协程就不赌调度顺序，避免紧随的 stopService → onDestroy 取消 serviceScope 把它吞掉，
         // 那会让界面停在"正在下载"（同下方通知"必须同步发送"的理由）
@@ -598,7 +556,6 @@ class DownloadService : Service() {
                 getString(R.string.download_all_complete)
             }
             ToastUtil.showShort(applicationContext, message)
-            skippedCount = 0
             stopService(Intent(application, DownloadService::class.java))
         }
     }

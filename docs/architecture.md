@@ -65,6 +65,8 @@ BaseActivity (Compose)
 
 其余场景禁止硬编码颜色；Compose 页面遵循 Material Theme 语义色（`MaterialTheme.colorScheme`）。
 
+**阅读设置只有一个可观察出口**：字号、纸张、点击/按键翻页开关与翻页方式都落在 `ReadBookControl.settings`（`StateFlow<ReaderSettings>`）里；面板写入即推进快照，正文与各面板收集同一份，页面不再维护版本号计数器或镜像 state（「改了设置但不重组」这类静默失效因此没有生长空间），`ReadBookControlTest` 锁住「每次写入推进快照、越界不推」。按键回调与导航判据仍直读单例属性（与快照同源，Activity 回调不必再引一层订阅）；面板需要宿主配合的只剩翻页方式切换（要快照旧行数并同步导航判据，见 §8）。
+
 ### 3.3 Hilt 与 Application
 
 ```kotlin
@@ -146,6 +148,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - 书城与「新加的书绑哪个源」都由 `SourceCatalog.observeDefaultSource()` 给出（默认源每次由 `defaultFromRows(Room 行)` 现算，SP 只记「用户上次主动选了哪个」；载体是格式中立的 `SourceDefinition`，脚本行同样可成为默认源；无启用源时发 null，页面进引导态）。**同步读面已无任何出口**，别为了「首帧不空白」重新修一条。
 - 搜索用 `SourceResolver.searchAcross(keyword, page, skipSourceUrls)`——「哪些源已到底」只有调用方知道，故由调用方每轮带进来（Manager 不持有搜索会话状态）。原生搜索的传输失败也**上抛**，由 `searchAcross` 收敛成该源的 `SourceFailed`（为什么不能吞成空列表，见规格 §12「失败要如实报」）。
 - 聚合搜索的**轮次协议住在 `module_find` 的 `AggregationSession`**：关键词、每源游标、已结束源集、已见 noteUrl 集（全局按 `noteUrl` 去重的唯一主人）、软 404 的「还有更多但零新增即到底」判据、本轮进度与「全部源失败」都只在那一处算。`searchAcross` 不持有任何搜索会话状态（[ADR-0016](adr/0016-multi-book-source-architecture.md) 决策 6）；`SearchViewModel` 不自持这些状态，只把聚合事件翻译成会话调用，并向页面给出列表、历史、书架标记与覆盖层状态。协议由 `AggregationSessionTest` 锁住，接线由 `SearchViewModelTest` 锁住（[ADR-0048](adr/0048-single-owner-derivation-extraction.md)）。
+- **搜索结果里的「已加书架」标记由 `BookShelfManager` 单点持有**：它维护书架快照（`shelves`）、幂等地应用 `BookShelfEvent`，并据此给结果列表打标记；页面只把事件应用到自己的列表（纯函数 `List<SearchBookEntity>.applying`，无关事件返回同一实例以跳过回写），不再各自维护一份书架副本。书架写路径仍归 `BookRepository`（§4.1），两者不是同一个主人。
 - **默认源的 parser 与其它源同构**（一样进 LRU）：覆盖规则只需一次 `evictParser`。书城页面判据是 `LibraryViewModel.sourceState` 四档：首帧是 `Unknown`（默认源由 Room 现算，页面那一刻还没有结论 → **整片留空**，既不画引导语也不画半截切换器），「一条源都没有」与「有源但当前源解析不出来」两句话各走各的——把后者并进前者会把用户支去启用那条本就坏掉的源。零源空态另有「去导入书源」入口（跨模块跳书源管理页，独立模式由占位宿主承接）。
 - **书源接口按调用方分四面**：`SourceResolver`（取 parser、聚合搜索、分类入口）、`SourceCatalog`（清单/默认源订阅、格式查询）、`SourceAdmin`（增删、启停、设默认）、`SourceCodec`（JSON 导入导出）。解析/搜索/分类路径只注入 `SourceResolver`，书城注入 `SourceCatalog` + `SourceAdmin`，设置页注入 `SourceCatalog`，书源管理页另加 `SourceAdmin`/`SourceCodec`；`BookSourceManager` 是四者的聚合类型，只留给需要整张面的测试，生产代码不注入它。Hilt 把四个窄面各自 `@Binds @Singleton` 到同一个 `BookSourceManagerImpl`，聚合类型没有注入绑定（[ADR-0047](adr/0047-book-source-surface-split.md)）。
 - 新增/改动书源面的成员要同步测试替身——具名替身 `FakeBookSourceManager` 在 `lib_book_common` 与 `module_me` 各一份，其余是 `module_find`/`module_book` 测试文件里的内联实现；替身只实现测试实际调用的那一面（或几面），未实现的成员照旧抛异常。改完接口把四个面的实现类型各搜一遍。
@@ -155,9 +158,10 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - `book_source.format` 列值是小写 `native`/`script`，读写一律取 `SourceFormat.raw`——拿枚举 `name` 当列值不报错也不闪退，只会让脚本行静默按原生规则解。
 - 两种格式同表共存时，各读面按 `book_source.format` 分路：规则类型化读面 `getAllSources` 经 `toRule` 只认原生行；默认源回落走 `defaultFromRows`（`toItem` 选行、`toDefinition` 构造），不经过 `toRule` 的格式门，两种出身都可承载——脚本行同样可被立为默认源（`toDefinition` 的 native 分支内部仍复用 `toRule` 解码）；`observeSources()` 则必须继续带出脚本行（管理页要看得见、能禁用、能删）——三处口径本就不同，不要「统一」。
 - `resolveSource` 对脚本行**永不返回 Missing/Broken、也不在取 parser 时抛**（`ScriptRuleSet.load` 惰性到首次求值才跑，坏 JSON 在那里抛类型化 `ScriptRuleParseException`）；`Missing`（没有这行）与 `Broken`（原生坏行）在 UI 上可给同一句提示，但日志必须分开。脚本失败层级已 public（ADR-0046），`lib_book_common` 可按类型处置（正文路径当前仍原样上抛）；**不得**把「这条规则解不动」折叠成「这条源已失效」。构造期抛则会在缓存锁内炸出未预期异常。
-- 跨模块可见性：Kotlin `internal` 只在同模块（含同模块测试源集）可见，依赖方的 test source set 不是 friend module，故 `JsoupBookParser.rule`、`ChapterPageMatcher` 与 `ScriptBookParser` 的生产构造都是 public——上浮解析器时不要顺手收窄，且解析器测试必须与实现放在同一模块。
-- `JsoupSourceReader` 住在 `lib_book_common`、**不随解析器迁走**：它依赖 `BookStore`/`ChapterReader`/`SourceResolver`，搬去 `lib_book_source` 就是一个 Gradle 环。
-- 声明式求值链路全线接页面：`ScriptBookParser` 实现 `BookParser` 五面（搜索/详情/目录/发现分类/书库首屏）与 `ScriptContentParser` 正文接缝——聚合搜索候选含脚本行、正文读取按 `ScriptContentParser` 分岔、脚本源可搜索可加书架可全链路阅读。
+- 跨模块可见性：Kotlin `internal` 只在同模块（含同模块测试源集）可见，依赖方的 test source set 不是 friend module，故 `JsoupBookParser.rule`、`ChapterPageMatcher` 与 `ScriptBookParser` 的生产构造都是 public——上浮解析器时不要顺手收窄，且解析器测试必须与实现放在同一模块。`rule` 的 public 现在只为「依赖方测试断言缓存换新行」服务，正文抓取已不读它（见下条）。
+- `JsoupSourceReader` 住在 `lib_book_common`、**不随解析器迁走**：它依赖 `BookStore`/`ChapterReader`/`SourceResolver`，搬去 `lib_book_source` 就是一个 Gradle 环。它也不再需要 `OkHttpClient`：抓取在解析器一侧完成。
+- **取文接缝 `BookContentParser` 由两种出身共用**：原生 `JsoupBookParser.fetchChapterText`（PageWalker + 同章分页判定 + 清理规则）与脚本解析器都实现它；`JsoupSourceReader` 只认这一面，把「取到文本之后」的存储策略（空正文不落盘、`\n` 切段、缩进归 `TextNormalizer`）写一份。error mode **不合并**（[ADR-0046](adr/0046-script-failure-hierarchy-public.md)）：原生把抓取失败裹成「章节内容解析失败」，脚本把类型化异常原样上抛。原生取文由 `JsoupBookParserTest` 用带拦截器的 OkHttpClient 在纯 JVM 下锁住（[ADR-0050](adr/0050-content-parser-seam-parity.md)）。
+- 声明式求值链路全线接页面：`ScriptBookParser` 实现 `BookParser` 五面（搜索/详情/目录/发现分类/书库首屏）与 `BookContentParser` 取文接缝——聚合搜索候选含脚本行、正文读取走同一取文接缝、脚本源可搜索可加书架可全链路阅读。
 - 脚本 URL 的关键词 `{{key}}` 按表单百分号编码；目录/正文翻页判据（零新增/回环/上限）与原生同套，但**不移植** `ChapterPageMatcher`。
 - **书城接线**：默认源载体是密封 `SourceDefinition`（Native 带规则、Script 带原文+实体列展示信息），两种出身都可承载；现算与写路径收敛共用 `defaultFromRows` 一处（条目面、不筛格式），`observeDefaultSource()` 是唯一出口；`LibraryViewModel.sources` 放开 format 过滤（切换器候选 = 启用行）；分类入口经 `SourceResolver.getExploreEntries`（原生 kinds / 脚本 exploreUrl 条目，url 承载规则串，`ScriptExplore` 是唯一公开门面）。
 - `SourceDefinition.Script` 的 name/url 生产填充点只有 `toDefinition`，不要解 `rule_json` 取展示信息；`getAllSources` 仍只含原生行（保留语义，不是漏改）。
@@ -212,18 +216,20 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - **发起下载先入库再拉服务**（统一经 `DownloadRepository.startDownload`），否则启动被拒时只躲在 Intent 里的任务会丢。下载任务以 `download_chapter` 表为唯一队列事实源，启动 Intent 只带控制信号、不携带任务列表。
 - **`onTimeout` 内只做数秒可完成的收尾**，不得查库/发网络请求/起协程。
 - **队列策略收在 `DownloadBatch`**：候选域（书架顺序、跳过暂停书）、暂停标记、孤儿清理与队列计数只写一处；`DownloadRepository` 的队列策略面（取队头/队尾、暂停/继续、孤儿清理、计数）委托它，页面展示用的 `getPausedBooks`/`observeRemainingCount`/`getAllTasks` 仍直读 DAO，不参与策略判定。服务按「取不到可跑任务 + 表内仍有任务」判暂停而非完成（ADR-0036）。
-- **单章执行收在 `DownloadRunner`**：缓存命中、强刷删章、空正文判失败、重试耗尽出队与暂停中断不出队都在这里；`DownloadService` 只保留前台生命周期、通知、跳过计数、暂停收尾与下一章调度。runner 之外逃出的意外异常也停在暂停态、不删任务（不把「没抓成」静默成跳过）。`DownloadRunnerTest` 锁住「失败耗尽出队、暂停不出队」，`DownloadBatchTest` 锁候选域、暂停跳过与孤儿清理。
+- **批次循环与终态判定收在 `DownloadBatchLoop`**：取篇、跑章、跳过计数、章间隔与「跑空 / 只剩暂停书 / 被用户打断」三分只在那一处；`skippedCount` 是循环侧的事实，Service 收尾时只读它。`DownloadBatchLoopTest` 锁空队列、只剩暂停书、runner 暂停、跳过计数、打断与孤儿清理顺序（[ADR-0049](adr/0049-download-batch-loop-ownership.md)）。
+- **单章执行收在 `DownloadRunner`**：缓存命中、强刷删章、空正文判失败、重试耗尽出队与暂停中断不出队都在这里；`DownloadService` 只保留前台生命周期、通知、Intent 分派与按结局收尾。runner 之外逃出的意外异常也停在暂停态、不删任务（不把「没抓成」静默成跳过）。`DownloadRunnerTest` 锁住「失败耗尽出队、暂停不出队」，`DownloadBatchTest` 锁候选域、暂停跳过与孤儿清理。
 - **下载中心的选章计划收在 `ChapterSelectionPlan.kt`**：预勾选窗口由 `initialChapterSelection` 给出；未缓存集、确认任务、跳过数与书头三态动作由 `planChapterDownload` 一处算出；`DownloadManageViewModel` 与 `ChapterDownloadSheet` 消费同一份结果，`DownloadBatch` 仍是队列策略的唯一主人。`ChapterSelectionPlanTest` 锁计划本身，`ChapterSelectionTest` 锁三态与区间的纯逻辑（[ADR-0048](adr/0048-single-owner-derivation-extraction.md)）。
 
 下载中心的当前交互（一级按书任务列表、二级选章、按书暂停/继续）与目录定位解耦见 ADR-0034/0035/0036；实现细节以对应页面代码与 KDoc 为准。
 
 ## 8. 阅读器
 
-- **阅读位置只有一个主人：`ReaderSession`**（由 `BookReadViewModel` 持有，页面经 `readerState` 读）。它持有打开时的书架快照、实时 `(chapterIndex, pageIndex)`，并派生章名、章数、滑条值，同时落定 `inShelf`/`shelfChecked`；追更（末章判定、`tag` 归属门、单飞、回读目录整体替换）与换源后的整行收下（`adoptAfterSourceSwitch`）都在会话里完成，书与目录不在页面另存第二份。`ReadBookActivity` 只收集 `readerState` 并组合、接线各控制器，控制器把新位置写回会话。`ReaderSessionTest` 锁会话的位置所有权、保存内容（未 adopt 空转）、追更门与换源收下，`ReadingProgressFlowTest` 走真 Room 保住端到端口径（[ADR-0048](adr/0048-single-owner-derivation-extraction.md)）。
+- **阅读位置只有一个主人：`ReaderSession`**（由 `BookReadViewModel` 持有，页面经 `readerState` 读）。它持有打开时的书架快照、实时 `(chapterIndex, pageIndex)`，并派生章名、章数、滑条值，同时落定 `inShelf`/`shelfChecked`；追更（末章判定、`tag` 归属门、单飞、回读目录整体替换）与换源后的整行收下（`adoptAfterSourceSwitch`）都在会话里完成，书与目录不在页面另存第二份。**阅读会话标记（「上次死在读哪本书」）的写入也在会话内**：三个收书入口经 `ReaderSessionGateway.markReading` 写 `ReaderResumeStore`，页面只在正常退出时清标记，不再各自补记——漏写一处的症状是异常关闭后恢复到上一本书。`ReadBookActivity` 只收集 `readerState` 并组合、接线各控制器，控制器把新位置写回会话。`ReaderSessionTest` 锁会话的位置所有权、保存内容（未 adopt 空转）、追更门、换源收下与标记写入，`ReadingProgressFlowTest` 走真 Room 保住端到端口径（[ADR-0048](adr/0048-single-owner-derivation-extraction.md)）。
 - **分页与导航是会话之上的适配层**：`ReaderPagination` 仍是视口测量、整章排版缓存与页切片的唯一状态机，`ReaderNavigation` 仍是模式路由与单进度出口，两个 `ReaderTurnController` 仍是它们的适配器；三者都不持有书架快照、也不各自持久化进度——控制器只保留渲染几何（当前页键 / 锚点），交互位置的变化由控制器发起、经同一 `onProgress` 交回会话，会话才是持久化的主人，下文列出的不变量不变。
 - **翻页方式有两种且共用分块链**（左右翻页 / 上下滚屏，导航判据 `ReaderTurnMode`、持久化索引 `turnModeIndex`）：两者都由同一条排版分块链给出「第 N 屏的正文」，差别只在容器（三页窗口 + 横向拖拽 / **跨章连续**的竖向列表，章界只有一个标题项、没有「上一章/下一章」链接），故进度口径同为「章内第几屏」、`dur_chapter_page` 语义不变。
-- **分页状态机收在 `ReaderPagination`**：视口测量、整章排版缓存、页切片与按行换算都在这一处；`ReadBookActivity` 只把 Compose 测到的视口交进来，`loadPage` 用 `ReaderPageWindow` 切片后把 `ReaderPageUi.Loaded` 交给控制器。`ReaderPaginationTest` 锁状态与切片边界。
-- **导航控制面收在 `ReaderNavigation`**：路由判据只有 `ReaderTurnMode`（页面用 `turnModeIndex` 镜像驱动重组，切换时同步写入），两个控制器都实现 `ReaderTurnController` 并退化为它的适配器；`gotoPage`（内部委托 `setPosition`）、音量键、换源后的换算都走 `setPosition`/`turnNext`/`turnPrev`，**只驱动当前模式的控制器**；冷启动与重分页另走 `converge`，把另一侧的落点一并预热上（`reportProgress = false`）——另一侧不预热就带着「章号 0」的初值躺着，换模式后新容器成形的那一帧落点是错的，而让它报进度会用另一种模式的屏号盖掉当前进度。两个控制器共用同一份 `onProgress`。`ReaderNavigationTest` 锁模式路由、两档定位与单进度出口。
+- **分页状态机收在 `ReaderPagination`**：视口测量、整章排版缓存、页切片与按行换算都在这一处；`ReadBookActivity` 只把 Compose 测到的视口交进来。**装页组合收在 `ReaderPageLoader`**：取正文、后台分页、哨兵页码解析、切片与失败分档（书源失效经 `reportFailure` 开口、其余静默降级、取消原样上抛）只在那一处，`loadPage` 只委托它。`ReaderPaginationTest` 锁状态与切片边界，`ReaderPageLoaderTest` 锁失败分档。
+- **亮度口径收在 `ReaderBrightness`**：SP 键、系统亮度兜底、0..255 → 窗口 0f..1f 换算与「跟随系统即 OVERRIDE_NONE」只在那一处；亮度面板只负责滑条与开关的长相，进入阅读器时由 `restore` 恢复手动亮度（窗口亮度不跨 Activity 生命周期）。`ReaderBrightnessTest` 锁这两条用户可见行为。
+- **导航控制面收在 `ReaderNavigation`**：路由判据只有 `ReaderTurnMode`（页面从设置快照读 `turnModeIndex` 作初始模式并驱动重组；切换回调里先 `setMode` 同步判据，再由快照推进触发重组），两个控制器都实现 `ReaderTurnController` 并退化为它的适配器；`gotoPage`（内部委托 `setPosition`）、音量键、换源后的换算都走 `setPosition`/`turnNext`/`turnPrev`，**只驱动当前模式的控制器**；冷启动与重分页另走 `converge`，把另一侧的落点一并预热上（`reportProgress = false`）——另一侧不预热就带着「章号 0」的初值躺着，换模式后新容器成形的那一帧落点是错的，而让它报进度会用另一种模式的屏号盖掉当前进度。两个控制器共用同一份 `onProgress`。`ReaderNavigationTest` 锁模式路由、两档定位与单进度出口。
 - **预热侧不补报，当前模式先报可解释的落点**：预热侧（`reportProgress = false`）的探测块加载完成也不得补报；滚屏侧在块数未知时先报目标页码（BEGIN 归一为 0、END 暂报哨兵），块数落定后补报真实块号；翻页侧按页键报目标页码/哨兵，不在加载完成时补报。否则未显示侧会回写旧页，慢加载中退出会把解析不出的 0 落库。`ReaderScrollControllerTest` 锁「预热加载完成不报进度」与「块数未知不报 0」。
 - **换模式的旧行数在点击时快照**：效应要等新容器的视口回报才跑，中间可能已经过一次 `rePaginate`（末章追加/字号变化）；现读 `pageLineCount` 会拿到新模式的值，换算退化成同页号。快照位住页面状态，不放进分页状态机。
 - **块高一律取排版实测值**（`ReaderTypesetter.measureBlock`），不得用「行数 × 行高」心算；两种模式的正文视口高度不同（滚屏块内不含标题行），故 `pageLineCount` 不同，切换时按**行号**换算落点（`ReaderPagination.convertPageIndex`）。页面上的跳转一律走 `gotoPage`（内部按当前方式路由到对应控制器）——直接调某一个控制器在另一种方式下不报错、只静默失效。
@@ -263,7 +269,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 ### 12.2 版本更新检查
 
-发布源顺序/failover/`.apk` 过滤等**策略**在 `module_me` 的 `ReleaseRepository`，HTTP 与接缝在 `lib_ebook_api/service/release`，**不得**把仓库层写回 `lib_ebook_api`；该请求走专属 `@Named("release")` 纯净客户端（不带 token、不套解 `RespDTO` 信封的 `CoroutineAdapter`）。两条不变量：**判不出结论就不算检查成功**（远端 tag 解析不出版本、本地版本号读不到 → 按检查失败处置且不写限频时间戳）；**「是否有新版」是派生态**（由上次检查到的 tag 与装机版本现场比较，不落地成布尔量）。
+发布源顺序/failover/`.apk` 过滤等**策略**在 `module_me` 的 `ReleaseRepository`，HTTP 与接缝在 `lib_ebook_api/service/release`，**不得**把仓库层写回 `lib_ebook_api`；该请求走专属 `@Named("release")` 纯净客户端（不带 token、不套解 `RespDTO` 信封的 `CoroutineAdapter`）。两条不变量：**判不出结论就不算检查成功**（远端 tag 解析不出版本、本地版本号读不到 → 按检查失败处置且不写限频时间戳）；**「是否有新版」是派生态**（由上次检查到的 tag 与装机版本现场比较，不落地成布尔量）。**单飞、静默→弹窗升级、关窗取消与结论落盘的编排收在 `ReleaseCheckController`**：环境面（限频判定、成功落盘、角标派生）以 `ReleaseState` 注入，判据在纯 JVM 下由 `ReleaseCheckControllerTest` 锁住，`SettingViewModel` 只转发。
 
 ### 12.3 权限
 

@@ -61,7 +61,7 @@ class ScriptBookParser internal constructor(
     private val jsHost: JsSandboxHost? = null,
     /** 测试构造里让沙箱外呼也打到假 transport（假件不接 DNS，字符串层的白名单判定照样测得到） */
     private val sandboxTransportOverride: ScriptTransport? = null,
-) : BookParser, ScriptContentParser {
+) : BookParser, BookContentParser {
 
     constructor(rawJson: String, okHttpClient: OkHttpClient?, jsHost: JsSandboxHost? = null) : this(
         rawJson,

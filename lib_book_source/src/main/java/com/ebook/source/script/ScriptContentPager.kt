@@ -26,7 +26,7 @@ internal class ScriptContentPager(
     private val fetchPage: suspend (String) -> ScriptPage,
 ) {
     companion object {
-        /** 单章正文页数上限，与 `JsoupSourceReader.MAX_CONTENT_PAGES` 同值同理由 */
+        /** 单章正文页数上限，与原生取文（`JsoupBookParser`）同值同理由；两模块各自持常量，不互相引用 */
         const val MAX_CONTENT_PAGES = 50
     }
 
