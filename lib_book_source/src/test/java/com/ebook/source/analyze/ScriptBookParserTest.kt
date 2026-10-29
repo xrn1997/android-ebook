@@ -1,5 +1,6 @@
 package com.ebook.source.analyze
 
+import com.ebook.db.entity.BookInfoEntity
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.source.script.ScriptRuleParseException
 import com.ebook.source.script.ScriptRequest
@@ -21,6 +22,8 @@ import org.junit.Test
  * 未配 exploreUrl 的配置形态与单分类失败容忍（口径对齐原生 `JsoupBookParser`）。
  * 详情面锁 ruleBookInfo 逐字段求值、init 的 AllInOne 条目上下文（组引用）、
  * tocUrl 相对落位与为空回落详情页地址（口径对齐原生 `JsoupBookParser.getBookInfo`）。
+ * 目录面只锁「入口从哪来」：`bookInfo.chapterUrl` 为空串时回详情页（口径对齐原生
+ * `JsoupBookParser.getChapterList`），逐页终止判据与上限由 `ScriptTocPagerTest` 负责。
  */
 class ScriptBookParserTest {
 
@@ -199,6 +202,24 @@ class ScriptBookParserTest {
         assertNull(entity.kindBooks)
     }
 
+    /**
+     * `enabledExplore=false` 关闭的是发现入口，不是整条源：书城首屏与 `getExploreEntries`
+     * 的分类胶囊是同一份发现数据的两个读面，必须一起收口，不能只让胶囊为空、首屏照样抓分类页。
+     */
+    @Test
+    fun `enabledExplore=false 时书城首屏给空实体`() = runTest {
+        val source = """
+            {"bookSourceUrl":"https://www.example.com","bookSourceName":"发现关闭",
+             "enabledExplore":false,
+             "exploreUrl":"男生书库::/shuku/0_1_0_0_0_{{page}}_0_0",
+             "ruleExplore":{"bookList":"class.bookbox","name":"tag.h4@text","bookUrl":"tag.a@href"}}
+        """.trimIndent()
+
+        val entity = ScriptBookParser(source, RecordingTransport()).fetchLibraryData()
+
+        assertNull("关闭发现入口后不该产出分类区块", entity.kindBooks)
+    }
+
     @Test
     fun `详情字段逐条求值并完成 tocUrl 相对落位`() = runTest {
         val source = """{"bookSourceUrl":"https://www.example.com",
@@ -228,8 +249,8 @@ class ScriptBookParserTest {
         val parser = ScriptBookParser(source, RecordingTransport("https://www.example.com/book/123.html" to "<h1>x</h1>"))
         val result = parser.getBookInfo(BookShelfEntity().apply { noteUrl = "https://www.example.com/book/123.html" })
         assertEquals("https://www.example.com/book/123.html", result.bookInfo!!.chapterUrl)
-        // coverUrl 未配置时给空串而不是拼出 baseUrl 假地址（fieldUrl 的判空守卫）：
-        // 空 raw 走落位会把「没取到值」伪装成一个看似合法的地址
+        // coverUrl 未配置时给空串而不是一个看似合法的地址（fieldUrl 的判空守卫）：
+        // 「没取到值」不进相对落位
         assertEquals("", result.bookInfo!!.coverUrl)
     }
 
@@ -263,5 +284,37 @@ class ScriptBookParserTest {
         val info = parser.getBookInfo(BookShelfEntity().apply { noteUrl = "https://www.example.com/b.html" }).bookInfo!!
         assertEquals("书名凡人修仙传", info.name)
         assertEquals("作者忘语", info.author)
+    }
+
+    /**
+     * `bookInfo.chapterUrl` 为空串时，目录入口必须回详情页——与原生
+     * `JsoupBookParser.getChapterList` 同口径。
+     *
+     * 空串不是「没有入口」而是「一个空地址」：真客户端上 `getPage("")` 会落到源根首页，
+     * 再按目录选择器解出一批无关链接，症状是目录整本错乱而不是报错。空串的来源有两条——
+     * 详情页 `tocUrl` 只解出选项尾段（`resolveUrl` 判空后给空串），或 `book_info` 从库里
+     * 读回时 `chapter_url` 本就是空串（列默认值）。
+     */
+    @Test
+    fun `chapterUrl 为空串时目录入口回详情页`() = runTest {
+        val source = """{"bookSourceUrl":"https://www.example.com",
+            "ruleToc":{"chapterList":"tag.li","chapterName":"tag.a@text","chapterUrl":"tag.a@href"}}"""
+        val detailHtml = """<ul><li><a href="/ch/1.html">第一章</a></li></ul>"""
+        val transport = RecordingTransport("https://www.example.com/book/123.html" to detailHtml)
+        val shelf = BookShelfEntity().apply {
+            noteUrl = "https://www.example.com/book/123.html"
+            bookInfo = BookInfoEntity(noteUrl = noteUrl).apply { chapterUrl = "" }
+        }
+
+        val chapters = ScriptBookParser(source, transport).getChapterList(shelf).data.chapterList
+
+        assertEquals(
+            "目录请求必须发详情页地址，不能拿空串当入口",
+            "https://www.example.com/book/123.html",
+            transport.requests.single().url,
+        )
+        assertEquals("详情页上的目录要照常解出来", 1, chapters.size)
+        assertEquals("https://www.example.com/ch/1.html", chapters.single().contentRef)
+        assertEquals("第一章", chapters.single().durChapterName)
     }
 }

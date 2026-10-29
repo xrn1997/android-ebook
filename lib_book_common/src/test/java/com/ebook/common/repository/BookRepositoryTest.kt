@@ -10,6 +10,7 @@ import com.ebook.common.domain.CommentKey
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
 import com.ebook.common.store.WriteTransactionRunner
+import com.ebook.db.dao.BookShelfDao
 import com.ebook.db.entity.BookGroupEntity
 import com.ebook.db.entity.BookInfoEntity
 import com.ebook.db.entity.BookShelfEntity
@@ -264,6 +265,98 @@ class BookRepositoryTest {
         assertTrue(events.any { it is BookShelfEvent.ProgressUpdated })
     }
 
+    /**
+     * 书架行在、`chapter_list` 为零时不钳：零行没有「最后一行」，钳成 0 会把
+     * 「加书架时目录没抓到、之后靠追更补齐」的进度抹回第一章。这类行仍可更新进度，
+     * 等章节补齐后再按行数钳。
+     */
+    @Test
+    fun `saveProgress 在书架行存在但章节为零时保留原进度`() : Unit = runTest {
+        val shelf = BookShelfEntity(noteUrl = "http://no-chapters", durChapter = 42)
+        daos.shelf.insert(shelf)
+
+        repository.saveProgress(shelf)
+
+        assertEquals(
+            "零章时没有可钳的上界，进度必须原样保留",
+            42,
+            daos.shelf.getBookByUrl(shelf.noteUrl)?.durChapter,
+        )
+    }
+
+    /**
+     * 未加书架先读时，进度不能写出「有 book_shelf、没有 book_info」的半行：
+     * 书架行是「在架」的证据，半行会被 `BookShelfManager`/详情页当成已加书架，
+     * 随后又被 `getAllBooksWithDetails` 当孤儿清掉，留下 `chapter_list` 孤儿。
+     * 进度的持久化入口只更新已在架的行；用户点加书架时由 `ReaderSession.addToShelf`
+     * 用实时位置整笔写入。
+     */
+    @Test
+    fun `saveProgress 在 book_shelf 没有对应行时不写半行`() : Unit = runTest {
+        val notOnShelf = BookShelfEntity(noteUrl = "http://not-on-shelf", durChapter = 3)
+        val events = mutableListOf<BookShelfEvent>()
+        backgroundScope.launch { repository.bookShelfEvents.toList(events) }
+        runCurrent()
+
+        repository.saveProgress(notOnShelf)
+        runCurrent()
+
+        assertNull(
+            "未加书架先读不进库：半行会被当成在架证据，随后只剩孤儿章节",
+            daos.shelf.getBookByUrl(notOnShelf.noteUrl),
+        )
+        assertTrue(
+            "没有落库就不该发 ProgressUpdated",
+            events.none { it is BookShelfEvent.ProgressUpdated },
+        )
+    }
+
+    /**
+     * 「先查后写」之间仍可能被并发移出书架：写回必须用 `@Update`（主键不匹配即 no-op），
+     * 不能是 REPLACE——后者会把刚删掉的行重新插一条「有 `book_shelf`、无 `book_info`」的半行。
+     * 这里让假 DAO 在存在性检查那一刻删行，锁住写回操作本身不会 upsert。
+     */
+    @Test
+    fun `saveProgress 在检查后行被删时不重建半行`() : Unit = runTest {
+        val shelf = BookShelfEntity(noteUrl = "http://deleted-after-check", durChapter = 3)
+        daos.shelf.insert(shelf)
+        val deletingShelfDao = object : BookShelfDao by daos.shelf {
+            override suspend fun getBookByUrl(noteUrl: String): BookShelfEntity? {
+                val row = daos.shelf.getBookByUrl(noteUrl)
+                // 模拟检查与写回之间的并发移出：本次调用拿到的快照仍然有效
+                daos.shelf.deleteByUrl(noteUrl)
+                return row
+            }
+        }
+        val racingRepository = BookRepository(
+            bookShelfDao = deletingShelfDao,
+            bookInfoDao = daos.info,
+            chapterListDao = daos.chapter,
+            bookGroupDao = daos.group,
+            downloadChapterDao = daos.download,
+            chapterReaders = mapOf(BookFormat.NETWORK to FakeChapterReader()),
+            sourceResolver = FakeBookSourceManager(),
+            bookStore = store,
+            contentCache = ChapterContentCache(),
+            transactions = DirectTransactionRunner,
+        )
+        val events = mutableListOf<BookShelfEvent>()
+        backgroundScope.launch { racingRepository.bookShelfEvents.toList(events) }
+        runCurrent()
+
+        racingRepository.saveProgress(shelf)
+        runCurrent()
+
+        assertNull(
+            "写回必须是不存在的行就 no-op；REPLACE 会把它重新插成半行",
+            daos.shelf.getBookByUrl(shelf.noteUrl),
+        )
+        assertTrue(
+            "行已不在，update 返回 0，不能再声称进度更新成功",
+            events.none { it is BookShelfEvent.ProgressUpdated },
+        )
+    }
+
     // ===== 关联查询与孤立记录清理 =====
 
     @Test
@@ -291,6 +384,68 @@ class BookRepositoryTest {
         assertEquals("http://ok", result[0].noteUrl)
         assertEquals(listOf("c0", "c1", "c2"), result[0].chapterList.map { it.contentRef })
         assertTrue(orphanShelf.noteUrl in daos.shelf.deletedUrls)
+    }
+
+    /**
+     * 孤立条目的清理必须删四表，而不是只删 `book_shelf`。
+     *
+     * 库里没有外键级联；只删书架行会把 `chapter_list`/`book_info`/`book_group`
+     * 留成永久孤儿（`BookRepository` 的换源 KDoc 已承认反向孤儿没有清理路径）。
+     * 这个用例同时守住「半行进库后的回收」和「历史遗留孤立数据」两个来源。
+     */
+    @Test
+    fun `getAllBooksWithDetails 清理孤立条目时连章节与关联行一起删`() : Unit = runTest {
+        val orphan = BookShelfEntity(noteUrl = "http://orphan-all-tables")
+        daos.shelf.fullInfoSeed.add(BookShelfFullInfo(bookShelf = orphan, info = null, chapters = emptyList()))
+        daos.chapter.insertAll(
+            listOf(ChapterListEntity(noteUrl = orphan.noteUrl, contentRef = "orphan-c1", durChapterIndex = 0))
+        )
+        daos.group.insert(
+            BookGroupEntity(
+                commentKey = CommentKey.compute("孤儿书", ""),
+                noteUrl = orphan.noteUrl,
+                isPrimary = true,
+            )
+        )
+
+        repository.getAllBooksWithDetails()
+
+        assertTrue(
+            "章节行必须随孤立条目一起清掉，否则永久躺在库里",
+            daos.chapter.getChaptersForBook(orphan.noteUrl).isEmpty(),
+        )
+        assertTrue(
+            "关联行同理",
+            daos.group.getAllForNoteUrl(orphan.noteUrl).isEmpty(),
+        )
+        assertTrue(orphan.noteUrl in daos.shelf.deletedUrls)
+    }
+
+    /**
+     * 对账的读面判它孤立之后、删除之前，加书架可能刚把 `book_info` 补齐：清理必须在事务内
+     * 复核仍是孤立，否则会把刚落库的整条目连书带目录一起删掉。这里用「读面说孤立、库里已有
+     * `book_info`」复现这个时间窗，不靠时序。
+     */
+    @Test
+    fun `getAllBooksWithDetails 不删刚补齐 book_info 的条目`() : Unit = runTest {
+        val raced = BookShelfEntity(noteUrl = "http://raced-in")
+        // 读面（fullInfoSeed）仍按孤立返回，但库里这一刻已经有了 book_info——竞态收口后的现场
+        daos.shelf.fullInfoSeed.add(BookShelfFullInfo(bookShelf = raced, info = null, chapters = emptyList()))
+        daos.info.insert(BookInfoEntity(noteUrl = raced.noteUrl, name = "斗破苍穹"))
+        daos.chapter.insertAll(
+            listOf(ChapterListEntity(noteUrl = raced.noteUrl, contentRef = "raced-c1", durChapterIndex = 0))
+        )
+
+        repository.getAllBooksWithDetails()
+
+        assertTrue(
+            "book_info 已在的条目不是孤立条目，章节行不能被清掉",
+            daos.chapter.getChaptersForBook(raced.noteUrl).isNotEmpty(),
+        )
+        assertTrue(
+            "书架行同理，整条目要留在库里",
+            raced.noteUrl !in daos.shelf.deletedUrls,
+        )
     }
 
     @Test

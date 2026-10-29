@@ -325,9 +325,8 @@ class ScriptBookParser internal constructor(
                 else -> evaluator.evaluate(rules.rule(RuleObjectKind.BOOK_INFO, name).orEmpty(), input).firstText()
             }
 
-            // URL 类字段的判空口径与列表侧 fieldUrl（Task 2）同形：空串直接给空串、不进落位——
-            // 空 raw 走 TocPageUrl.join 的「目录相对」分支会拼出 baseUrl 自身，把「没取到值」
-            // 伪装成一个看似合法的地址
+            // URL 类字段的判空口径与列表侧 fieldUrl（Task 2）同形：空串直接给空串、不进落位。
+            // 「没取到值」不该进入尾段解析与相对落位，也不该被下游当成一个可请求的地址
             fun fieldUrl(name: String): String {
                 val raw = field(name)
                 return if (raw.isBlank()) "" else extractor.resolveUrl(raw, ctx.baseUrl)
@@ -355,16 +354,20 @@ class ScriptBookParser internal constructor(
      * `TocPager` 同一套（§12：contentRef 跨页去重、零新增即到底、回环即停、触顶截断），
      * 驱动方式换成 `nextTocUrl` 的字符串规则/URL 数组（经 `ScriptTocPager`/`ScriptPageChain`）。
      *
-     * 章节索引入口 = 详情页解出的 tocUrl（`bookInfo.chapterUrl`，含选项尾段），未配置时
-     * 回落详情页地址——「目录就在详情页」的站点不配 tocUrl，与原生同形。翻页循环里
+     * 章节索引入口 = 详情页解出的 tocUrl（`bookInfo.chapterUrl`，含选项尾段），未配置或解成
+     * 空串时回落详情页地址——「目录就在详情页」的站点不配 tocUrl，与原生同形。翻页循环里
      * `ctx.baseUrl` 逐页推进到当前页，让下一页字段与章节链接的相对落位都按
      * 「写在哪页、就相对哪页」走（§6.5）。
      */
     override suspend fun getChapterList(bookShelf: BookShelfEntity): WebChapterEntity<BookShelfEntity> =
         withContext(Dispatchers.IO) {
             bookShelf.tag = rules.sourceUrl
-            // 章节索引入口 = 详情页解出的 tocUrl（含选项尾段），无则详情页地址——与原生同形
-            val entryUrl = bookShelf.bookInfo?.chapterUrl ?: bookShelf.noteUrl
+            // 章节索引入口 = 详情页解出的 tocUrl（含选项尾段），无则详情页地址——与原生同形。
+            // 空串同样回落：`chapterUrl` 可能是「tocUrl 只解出选项尾段」被 resolveUrl 判空后的产物，
+            // 也可能是库里 `book_info.chapter_url` 的列默认值。把空串当 entryUrl 会请求一个空地址
+            // （真客户端上落到源根首页），再按目录选择器解出一批无关链接——与原生
+            // `JsoupBookParser.getChapterList` 的 `takeIf { isNotBlank() }` 是同一道门。
+            val entryUrl = bookShelf.bookInfo?.chapterUrl?.takeIf { it.isNotBlank() } ?: bookShelf.noteUrl
             // 目录在详情之后跑，`bookShelf.bookInfo` 已在：把书实体灌进 JS 绑定
             val ctx = newContext(stripTail(entryUrl), bindings = bookBindings(bookShelf))
             val evaluator = ScriptRuleEvaluator(ctx)
@@ -408,13 +411,18 @@ class ScriptBookParser internal constructor(
      * 的分工同一条。
      *
      * 三个口径（均对齐原生）：
-     * - 未配 `exploreUrl` 返回空实体（`kindBooks` 为 null）：配置形态而非错误，页面按「书库无数据」处理；
+     * - 未配 `exploreUrl` 或 `enabledExplore=false` 返回空实体（`kindBooks` 为 null）：配置形态而非错误，
+     *   页面按「书城无数据」处理；后者是作者关闭发现入口（不是整条源），书城首屏与
+     *   `ScriptExplore.entries` 的分类胶囊一起收口；
      * - 单个分类抓取失败按**空区块**计入而不中断整批：书城少一个分类仍是可用页面，整批失败会连
      *   别的分类一起丢；代价是「网络全挂」体现为「区块在、书全空」，由调用方（仓库）以
      *   「全部分类都没书」为信号拒绝回写缓存；
      * - 取消（[CancellationException]）原样上抛，不吞成空区块。
      */
     override suspend fun fetchLibraryData(): LibraryEntity = withContext(Dispatchers.IO) {
+        // 作者关闭发现入口：书城首屏与分类胶囊是同一份发现数据的两个读面，必须一起收口，
+        // 不能只让 getExploreEntries 返回空、这里照样抓分类页。
+        if (!rules.enabledExplore) return@withContext LibraryEntity()
         val exploreUrl = rules.exploreUrl ?: return@withContext LibraryEntity()  // 未配发现 = 配置形态非错误（对齐原生 kinds 为空）
         val entries = ExploreUrlFormat.split(exploreUrl)
         if (entries.isEmpty()) return@withContext LibraryEntity()

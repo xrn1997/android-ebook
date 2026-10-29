@@ -111,7 +111,13 @@ class BookRepository @Inject constructor(
             }
         }
 
-    /** 获取所有书籍（含书籍信息和章节列表） */
+    /**
+     * 获取所有书籍（含书籍信息和章节列表）。
+     *
+     * **孤立条目按「一个条目」清理，不只删 `book_shelf`**：库无外键级联，
+     * 只删书架行会把 `chapter_list`/`book_info`/`book_group` 留成永久孤儿。
+     * 清理统一委托 [ShelfEntryStore.deleteOrphan]，与加书架/移出书架共用同一份四表口径。
+     */
     suspend fun getAllBooksWithDetails(): List<BookShelfEntity> = withContext(Dispatchers.IO) {
         val result = mutableListOf<BookShelfEntity>()
         val toDelete = mutableListOf<String>()
@@ -131,9 +137,9 @@ class BookRepository @Inject constructor(
             }
         }
 
-        // 清理孤立记录
+        // 清理孤立记录：四表一起删，否则只留下永久孤儿（见方法 KDoc）
         toDelete.forEach { noteUrl ->
-            bookShelfDao.deleteByUrl(noteUrl)
+            shelfEntryStore.deleteOrphan(noteUrl)
         }
 
         result
@@ -170,6 +176,15 @@ class BookRepository @Inject constructor(
     /**
      * 保存阅读进度（`dur_chapter` 是**列表位置**，不是章序号）。
      *
+     * **只更新已在书架的行**：`book_shelf` 没有这一行时直接返回——未加书架先读不写库。
+     * 这里若 insert，会造出「有 `book_shelf`、没有 `book_info`」的半行；书架读面拿裸行当
+     * 「在架」证据（`BookShelfManager.refresh`、详情页 `shelfRow`），随后
+     * [getAllBooksWithDetails] 又把它当孤立记录清掉，`chapter_list` 只剩孤儿。
+     * 用户随后**在阅读器里**点加书架时，`ReaderSession.addToShelf` 会用实时位置整笔写入，进度不丢。
+     *
+     * **写回用 `@Update` 而不是 REPLACE**：存在性检查与写回之间行仍可能被并发移出书架，
+     * REPLACE 会把刚删掉的行重新插成半行；`@Update` 返回 0 时直接返回、不发事件。
+     *
      * **落点必须钳到库内行数以内**：调用方（阅读器）持有的 `chapterList` 是别人交进来的
      * 那份内存目录，而 `book_shelf` 的落点将由书架按 `chapterList.getOrNull(durChapter)`
      * 读回（`BookShelfPage` 的「读至」与阅读器入口都用这一个式子）。两边行数不等时写回的
@@ -185,12 +200,13 @@ class BookRepository @Inject constructor(
      * `ReaderSession.saveProgress`），钳制不回写它的实时章页——实时位置由会话持有，
      * 越界只说明调用方目录比库长，不该借此把读者挪到另一章。
      *
-     * **库里一行都没有时不钳**：0 行没有「最后一行」可钳，钳与不钳书架都解析不出那一章，
-     * 而钳了会误伤一条正常路径 —— 从搜索直接开读（还没加书架）时 `chapter_list` 是空的，
-     * 用户读到第 100 章点「加入书架」，`addToShelf` 会连带把那份目录整本写进库，
-     * 那个位置当场变成有效的；提前钳成 0 就等于把他的进度抹回第一章。
+     * **书架行在但 `chapter_list` 为零时不钳**：0 行没有「最后一行」可钳，钳成 0 会把进度
+     * 抹回第一章；这类行仍可更新进度，等章节补齐后再按行数钳。
      */
     suspend fun saveProgress(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
+        // 认在架先于认目录：没有书架行就不是一次进度更新，而是一次「未加书架先读」。
+        // 插半行会让 getAllBooks 的多个读面把它当成已加书架（见方法 KDoc）。
+        if (bookShelfDao.getBookByUrl(bookShelf.noteUrl) == null) return@withContext
         val storedChapters = chapterListDao.countForBook(bookShelf.noteUrl)
         if (storedChapters > 0) {
             val clamped = bookShelf.durChapter.coerceIn(0, storedChapters - 1)
@@ -206,7 +222,13 @@ class BookRepository @Inject constructor(
             }
         }
         bookShelf.finalDate = System.currentTimeMillis()
-        bookShelfDao.insert(bookShelf)
+        // 用 @Update 而不是 REPLACE：上面那次存在性检查与写入之间，行仍可能被并发移出书架；
+        // REPLACE 会把刚删掉的行重新插成半行。返回 0 = 行已不在，这次进度更新不再是事实。
+        // 这条不是正常路径（只有并发移出会走到），留一句线索：否则真机上「进度没落库」无从查
+        if (bookShelfDao.update(bookShelf) == 0) {
+            Logger.w(TAG, "阅读进度未落库：书架行已在检查之后消失（并发移出书架）: ${bookShelf.noteUrl}")
+            return@withContext
+        }
         _bookShelfEvents.emit(BookShelfEvent.ProgressUpdated(bookShelf))
     }
 

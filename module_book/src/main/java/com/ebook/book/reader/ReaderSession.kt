@@ -142,7 +142,13 @@ internal class ReaderSession(private val gateway: ReaderSessionGateway) {
         mutableState.update { it.copy(chapterIndex = chapterIndex, pageIndex = pageIndex) }
     }
 
-    /** 把当前位置合并进书架副本后落库；章页钳制仍由仓库负责。 */
+    /**
+     * 把当前位置合并进书架副本后落库；章页钳制仍由仓库负责。
+     *
+     * 仓库只在 `book_shelf` 已有这一行时才写（见 `BookRepository.saveProgress`）：
+     * 未加书架先读时本调用空转，不造半行；用户点加书架后由 [addToShelf] 用实时位置
+     * 整笔写入，进度不会丢。
+     */
     suspend fun saveProgress() {
         val shelf = withLivePosition(mutableState.value) ?: return
         gateway.saveProgress(shelf)

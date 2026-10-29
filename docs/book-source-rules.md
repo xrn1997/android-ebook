@@ -65,6 +65,7 @@
   "name": "示例书源",
   "url": "https://example.com",
   "enabled": true,
+  "enabledExplore": true,
   "group": "小说",
   "weight": 0,
   "charset": "utf-8",
@@ -138,6 +139,7 @@
 | `name` | string | 是 | 书源名称，显示在书源列表 |
 | `url` | string | 是 | 书源站点 URL（唯一标识，主键） |
 | `enabled` | boolean | 否 | 是否启用，默认 `true` |
+| `enabledExplore` | boolean | 否 | 是否在书城展示发现入口，默认 `true`；关闭后搜索/详情/阅读不受影响，书城不显示分类胶囊与首屏区块 |
 | `group` | string | 否 | 分组名，默认 `"小说"` |
 | `weight` | int | 否 | 排序权重，数字越小越靠前，默认 `0` |
 | `charset` | string | 否 | 字符编码，默认 `"utf-8"` |

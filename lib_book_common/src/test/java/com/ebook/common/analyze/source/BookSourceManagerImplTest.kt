@@ -965,8 +965,9 @@ class BookSourceManagerImplTest {
     private fun scriptSourceWithExplore(
         name: String = "脚本源A",
         url: String = SCRIPT_URL,
+        enabledExplore: Boolean = true,
         exploreUrl: String = """[{"title":"玄幻","url":"/xuanhuan/{{page}}"},{"title":"","url":"/ghost"}]""",
-    ) = """{"bookSourceName":"$name","bookSourceUrl":"$url","exploreUrl":"${exploreUrl.replace("\"", "\\\"")}"}"""
+    ) = """{"bookSourceName":"$name","bookSourceUrl":"$url","enabledExplore":$enabledExplore,"exploreUrl":"${exploreUrl.replace("\"", "\\\"")}"}"""
 
     @Test
     fun `addScriptSource 原样入库且 getFormatByUrl 返回 script`(): Unit = runTest {
@@ -1159,6 +1160,30 @@ class BookSourceManagerImplTest {
 
         assertTrue(manager.getExploreEntries("").isEmpty())
         assertTrue(manager.getExploreEntries("https://no.where").isEmpty())
+    }
+
+    /**
+     * `enabledExplore=false` 的源在书城不展示发现入口——原生行由 `ruleFind.kinds` 承载分类，
+     * 脚本行由 `exploreUrl` 承载；两条格式都必须在这里收口，否则一条源关了发现仍会全出胶囊。
+     */
+    @Test
+    fun `getExploreEntries 对 enabledExplore=false 的原生行给空列表`(): Unit = runTest {
+        val native = rule("https://native.explore-off").copy(
+            enabledExplore = false,
+            ruleFind = FindRule(kinds = listOf(KindItem("科幻", "/kehuan"), KindItem("都市", "/dushi"))),
+        )
+        dao.seed(entityOf(native, addedAt = 1L))
+        val manager = newManager()
+
+        assertTrue(manager.getExploreEntries(native.url).isEmpty())
+    }
+
+    @Test
+    fun `getExploreEntries 对 enabledExplore=false 的脚本行给空列表`(): Unit = runTest {
+        seedScriptRow(ruleJson = scriptSourceWithExplore(enabledExplore = false))
+        val manager = newManager()
+
+        assertTrue(manager.getExploreEntries(SCRIPT_URL).isEmpty())
     }
 
     // endregion

@@ -24,6 +24,17 @@ class ScriptFieldExtractorTest {
         assertEquals("https://other.com/x", extractor.resolveUrl("https://other.com/x", "https://root.com/dir/page.html"))
     }
 
+    /**
+     * 地址部分没取到值（只剩选项尾段）时给空串：尾段是下次取文的选项、不是一个地址，
+     * 孤零零回附会让 `,{...}` 被下游当成可请求的落点（§3.3「未取到值」不进落位）。
+     */
+    @Test
+    fun `地址部分没取到值时给空串而不是只剩选项尾段`() {
+        val extractor = ScriptFieldExtractor(ScriptRuleEvaluator(EvalContext()), "https://root.com")
+
+        assertEquals("", extractor.resolveUrl(",{\"charset\":\"gbk\"}", "https://root.com/dir/page.html"))
+    }
+
     @Test
     fun `listItems 把四类列表结果各分成条目上下文`() {
         val extractor = ScriptFieldExtractor(ScriptRuleEvaluator(EvalContext()), "https://root.com")

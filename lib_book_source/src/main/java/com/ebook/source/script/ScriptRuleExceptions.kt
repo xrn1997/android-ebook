@@ -14,7 +14,9 @@ import com.ebook.source.sandbox.JsStatus
  * 一条本来好的源。消息面向用户文案，禁止出现生态项目名。
  *
  * 每一种都**不得折叠成空结果**：返回空等于说「这个源没有这条信息」，而真相是「这条规则我解不动」，
- * 两者在页面上是同一种表现、在排查上是完全不同的两件事。
+ * 两者在页面上是同一种表现、在排查上是完全不同的两件事。唯一的窄回落口是后位 `@js:` 解引用
+ * 桥接层未提供绑定时的 `Miss`（规格 §9），它只把「这页没有该字段」交回 `||`，不是通用的
+ * 「失败可折叠」口径。
  */
 sealed class ScriptRuleException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
@@ -84,5 +86,12 @@ class SandboxUnavailableException(reason: String, cause: Throwable? = null) : Sc
  */
 class JsExecutionFailedException(
     val status: JsStatus,
-    detail: String,
+    /**
+     * 失败原文（沙箱内核报错、或就地构造的原因句）。
+     *
+     * 判据读这一份，**不读 [message]**：消息是面向用户的拼装文案、且按 120 字截断
+     * （ADR-0046「消息只做用户文案，不做跨模块判据」），拿它做匹配会在长属性名上把
+     * 尾部的 `of undefined` 切掉，让该回落的回落不了。
+     */
+    val detail: String,
 ) : ScriptRuleException("脚本执行失败（${status.name}）：${detail.take(120)}")

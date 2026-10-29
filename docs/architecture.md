@@ -112,6 +112,8 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 **写「一个书架条目」的四张表一律收在同一笔写事务里**（由 `ShelfEntryStore` 的 `add`/`replaceRows`/`appendTailAndRemove` 经 `WriteTransactionRunner` 落地；`BookRepository` 的加书架、换源、导入与智能合并都委托它，事件在事务返回后才发）：逐张提交会留出窗口，让并发读方 `getAllBooksWithDetails` 看到「书架行已在、章节还没写完」的半截条目，而它把「取不到 `book_info`」的行当孤立记录**删掉**——半截状态不只被读到，还会被写实。该不变量由 `ShelfEntryStoreTest` 与 `BookRepositoryTest` 的 `addToShelf 把整个条目收进一次写事务并在提交后才发事件` 在纯 JVM 侧锁住。
 
+- **阅读进度不是新条目**：`saveProgress` 只更新已存在的 `book_shelf` 行；未加书架先读不写库（否则会造出没有 `book_info` 的半行，被书架读面带成「在架」并留下孤儿），在阅读器里点加书架时由 `ReaderSession` 用实时位置整笔写入。孤立条目的对账由 `ShelfEntryStore.deleteOrphan` 删四表，不只删 `book_shelf`。
+
 ### 4.2 Schema 演进
 
 改实体必须接迁移链：version +1、在链上追加紧邻的 `MIGRATION_n_n+1`（不跳版、不删旧迁移）、提交 Room 生成的新 schema JSON；禁止启用 `fallbackToDestructiveMigration`。
@@ -126,7 +128,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - **远端行自带的序号不可沿用**：那是 parser 按位置写的 `chapters.size`，有洞时直接沿用会让两行撞同一个 index 而不报错（主键是 `content_ref`）。
 - **撞主键一律整笔放弃**——`ChapterTocDiff` 会检查算出的 tail：与本地既有 `content_ref` 重合、或 tail 内部自撞即判 `Diverged`，因为整行 REPLACE 撞键不报错、只把既有那一行搬到表尾（序号静默错位），而详情页现在也会落库。
 - 追加成功时**不需要失效任何缓存**（既有章的 index 与 contentRef 逐字不变，与 `refreshChapter`／`mergeTailChapters` 的处置不同）。
-- **`book_shelf.dur_chapter` 是列表位置**，不是目录的存储形态；`saveProgress` 写库前按行数钳住落点是**第二道**防线，兜今后新长出来的自拼目录（库里零行时它**不出手**——零行没有「最后一行」可钳，提前钳成 0 会把「未加书架先读、中途点加书架」的进度抹回第一章）。
+- **`book_shelf.dur_chapter` 是列表位置**，不是目录的存储形态；`saveProgress` 写库前按行数钳住落点是**第二道**防线，兜今后新长出来的自拼目录（书架行在但 `chapter_list` 为零时它**不出手**——零行没有「最后一行」可钳，提前钳成 0 会把「加书架时目录没抓到、之后靠追更补齐」的进度抹回第一章）。
 - **落库前先认归属**：比较书架行的 `tag == 本次解析用的 tag`，跨源浏览同一 `noteUrl` 时手上那份是别家的目录。**这道门有两个入口**：详情页在落库前比（不符跳过落库但仍回读库里那份），阅读器在 `ReaderSession.appendIfAtTail` 追更前比（书架行不存在或 tag 不同即静默跳过，不发网络）。
 - **追加的判定与落库收在同一写事务里**（`appendRemoteChapters` 内读-判-写不拆开）：事务外读快照、事务内写的话，并发落进的另一批追更会让 diff 基于旧快照，撞 `content_ref` 的整行 REPLACE 把既有行静默搬到表尾。
 - 限频落在 `book_info.final_refresh_data`（`isTocCheckDue` + `BookShelfEntity.REFRESH_TIME`）：**得出结论就写时间戳**（`UpToDate`／`Diverged` 都写，分叉重试无意义），失败一律不写（那是暂时性故障）；写它必须走 `BookInfoDao.setFinalRefreshData` 那条定向 UPDATE，读回整行再 `insert` 是整行 REPLACE，漏填字段会把书名封面静默抹掉。
@@ -166,7 +168,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - **取文接缝 `BookContentParser` 由两种出身共用**：原生 `JsoupBookParser.fetchChapterText`（PageWalker + 同章分页判定 + 清理规则）与脚本解析器都实现它；`JsoupSourceReader` 只认这一面，把「取到文本之后」的存储策略（空正文不落盘、`\n` 切段、缩进归 `TextNormalizer`）写一份。error mode **不合并**（[ADR-0046](adr/0046-script-failure-hierarchy-public.md)）：原生把抓取失败裹成「章节内容解析失败」，脚本把类型化异常原样上抛。原生取文由 `JsoupBookParserTest` 用带拦截器的 OkHttpClient 在纯 JVM 下锁住（[ADR-0050](adr/0050-content-parser-seam-parity.md)）。
 - 声明式求值链路全线接页面：`ScriptBookParser` 实现 `BookParser` 五面（搜索/详情/目录/发现分类/书库首屏）与 `BookContentParser` 取文接缝——聚合搜索候选含脚本行、正文读取走同一取文接缝、脚本源可搜索可加书架可全链路阅读。
 - 脚本 URL 的关键词 `{{key}}` 按表单百分号编码；目录/正文翻页判据（零新增/回环/上限）与原生同套，但**不移植** `ChapterPageMatcher`。
-- **书城接线**：默认源载体是密封 `SourceDefinition`（Native 带规则、Script 带原文+实体列展示信息），两种出身都可承载；现算与写路径收敛共用 `defaultFromRows` 一处（条目面、不筛格式），`observeDefaultSource()` 是唯一出口；`LibraryViewModel.sources` 放开 format 过滤（切换器候选 = 启用行）；分类入口经 `SourceResolver.getExploreEntries`（原生 kinds / 脚本 exploreUrl 条目，url 承载规则串，`ScriptExplore` 是唯一公开门面）。
+- **书城接线**：默认源载体是密封 `SourceDefinition`（Native 带规则、Script 带原文+实体列展示信息），两种出身都可承载；现算与写路径收敛共用 `defaultFromRows` 一处（条目面、不筛格式），`observeDefaultSource()` 是唯一出口；`LibraryViewModel.sources` 放开 format 过滤（切换器候选 = 启用行）；分类入口经 `SourceResolver.getExploreEntries`（原生 kinds / 脚本 exploreUrl 条目，url 承载规则串，`ScriptExplore` 是唯一公开门面）；书城首屏（`fetchLibraryData`）与分类入口是同一份发现数据的两个读面——**两条都先看 `enabledExplore`**，关闭时给空清单/空实体且不发发现请求。分类页取数（`getKindBook`）**不**在解析器内重复判这一位：入口不渲染就是收口，若将来出现绕过胶囊的深链或重试面，得在那条链路上补判。
 - `SourceDefinition.Script` 的 name/url 生产填充点只有 `toDefinition`，不要解 `rule_json` 取展示信息；`getAllSources` 仍只含原生行（保留语义，不是漏改）。
 - `ScriptRuleSet.unsupported` 是装载期登记的能力缺失集合，**尚未上 UI**：要出逐项警示就从这份数据接，别在解析器里另判一次。
 
@@ -187,7 +189,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 **JSONPath 与 URL 语义、取文层**：`JsonPathBackend` 三形态进 JSONPath；`ScriptUrlResolver`+`ScriptPageFetcher` 串起「URL 规则串 → 请求 → 响应文本」；发现页条目切分 `ExploreUrlFormat`。`{{}}` 里的算术表达式按 JS 待执行抛出，取文层不得绕过它自己算页码。三条口径：
 
 - 取文按选项 charset **显式字节解码**（`bytes()` 取回再 `String(bytes, charset)`）；走 `body.string()` 会吃掉 `@Named("source")` 客户端 `EncodingInterceptor` 强改的 UTF-8，让 gbk 站全部乱码。
-- 相对落位复用 `TocPageUrl.join` 三形态语义；`ListPageUrl` 的首页裁剪**绝不**用于脚本 URL——对算好的 URL 再裁一次会裁掉真实页码段。
+- 相对落位复用 `TocPageUrl.join` 三形态语义（空白不落位；基准查询串/片段先剥掉再算目录；`http(s)://` 大小写都认；**不做点段折叠**）；`ListPageUrl` 的首页裁剪**绝不**用于脚本 URL——对算好的 URL 再裁一次会裁掉真实页码段。
 - JSONPath 切片是标准半开方言（end 排他），与链式索引的闭区间分属两个语法域，不得互推；过滤器 `[?(…)]` 按不支持拒绝。
 
 ### 6.4 JS 沙箱
@@ -195,7 +197,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 沙箱执行器是本仓首个 C++ 模块：`third_party/quickjs/` vendored + `lib_book_source/src/main/cpp/`，经 build-logic 的 `xrn1997.android.native` 约定插件编译。含 JS 的规则段（`@js:`/`<js>`/`js`/`bodyJs`/`init` 的 JS 分支）交沙箱执行器求值；只有**没装配执行器**的路径仍抛 `JsEvaluationPendingException`。
 
 - **永不在主线程调沙箱**——脚本回调要回主进程，主线程调过去就是等自己；执行器客户端有主线程守卫。改它之前先想清楚回调线程模型（`HostHandler.handle` 同步、transport 是 suspend，靠 binder 线程池上 `runBlocking` 接起来）。
-- **未装配执行器与执行失败是两件事**：`ctx.js == null` 抛 `JsEvaluationPendingException`（消息片段「需脚本沙箱执行器」被 `SandboxScriptJsTest` 断言，改消息会红它；`JsoupSourceReader` 侧只把类型化异常原样透出、不解析这句话）；真跑了而失败抛 `JsExecutionFailedException` 带内核原文。把两者合并成「该源已失效」会把用户支去重导一条好源。
+- **未装配执行器与执行失败是两件事**：`ctx.js == null` 抛 `JsEvaluationPendingException`（消息片段「需脚本沙箱执行器」被 `SandboxScriptJsTest` 断言，改消息会红它；`JsoupSourceReader` 侧只把类型化异常原样透出、不解析这句话）；真跑了而失败抛 `JsExecutionFailedException` 带内核原文（唯一回落口是后位 `@js:` 解引用未提供绑定时的窄例外，见规格 §9）。把两者合并成「该源已失效」会把用户支去重导一条好源。
 - 沙箱外呼只用 `GuardedNetwork` 派生的守门客户端，host 白名单由 `SourceHostAllowlist` 从源规则原文导出——自己 new 一个 OkHttpClient 就等于绕过私网拒绝与白名单。守门目前只覆盖脚本自己发起的外呼；URL 选项 `js` 改写出的地址仍由取文层按原路径发出（不带凭证，但也不查白名单与私网）。
 - Hilt 装配在 `lib_book_common`（`lib_book_source` 无 Hilt/KSP），`JsSandboxHost`/`HostCallbackRouter` 为此上浮 public：`provideJsSandboxHost` 里转子必须**先建、再传进客户端**，两边不是同一个对象时每条回调都报「主进程没有正在进行的脚本任务」；这一条 JVM 测锁不住、只有装机能验。
 
@@ -204,12 +206,15 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - **逐页走**的机制收在 `PageWalker`（回环守卫、页数/条目上限、可选「零新增即停」）；四条链路只注入「下一页怎么算、何时停」。原生正文仍用 `ChapterPageMatcher`、脚本仍用 `ScriptPageChain`，判定函数**不合并**（规格 §7.3/§12），`PageWalkerTest` 锁机制，各链测试锁语义。
 - 正文分页跟进（多页拼接）的判定基准是**目录页给出的原始章节 URL**（不对入口剥后缀），只对「下一页」候选链接剥一次分页后缀再比。对入口也剥离会让「章节号写在连字符后」的站点剥后同形而**串章**（一路跟进后续章节直到页数上限，正文错乱 + 数十次冗余请求）；「第 1 页也带后缀」的站点与此结构同形、无法靠 URL 区分，取舍是**宁漏页不串章**。边界形态由 `ChapterPageMatcherTest` 锁死。
 - 列表分页（分类页/搜索页 URL 模板）的模板**必须带 `{{page}}`**，否则「加载更多」每页都在请求同一个首页；页码换算与渲染统一走 `JsoupBookParser` 的 `ListPageUrl`（它把以 `/{{page}}` 结尾的模板在首页裁掉页码段——裸路径首页 `/xuanhuan/1` 是 404），取首页也必须经它。判「到底」不能只看空页：**越界页会以 HTTP 200 重复返回首页书目**（软 404），追加页一律按 `noteUrl` 去重、无新条目即置 `hasMore=false`——列表页以 `noteUrl` 作 item key，重复条目直接抛异常。形态由 `ListPageUrlTest` 与 `BookPageMergeTest` 锁死。
+- **页内相对链接一律按当前页落位**：原生五面（搜索结果页、分类列表页含「加载更多」、详情页、目录页、正文章页）都以**本次请求的那一页**为基准，语义的事实源是规格 §6.5；基准为何归当前页、以及存量条目 `content_ref` 从此对不上而停更的后果见 [ADR-0027](adr/0027-source-pagination-boundary.md)。URL **规则串**（`searchUrl`/`discoverUrl`）此刻没有「当前页」，非绝对形态按源根拼（`BookSourceNetwork.absoluteUrl`），但形态判据与 join 前三条对齐。**点段折叠不做**：`../x.html` 按拼接原样保留，请求侧 `HttpUrl` 归一化后页面取得到，代价是 `content_ref` 存未归一串——补折叠会让当前正常追更的存量条目按新键重解析、多出一批停更，故不做（ADR-0027 权衡末条）。由 `JsoupBookParserTest`（搜索/分类含「加载更多」、详情、正文下一页）与 `TocPagerTest`（章节链接、查询串基准、空白、无路径与点段形态）锁住。
 
 ### 6.6 书库缓存
 
 书库缓存是 cacheDir 文件版：key 只能由 `libraryCacheKey(sourceUrl)` 生成、文件名取其 MD5，读与写都收在 `lib_book_common` 的 `LibraryDiskCache` 一处——各处各拼一次字符串稍有差别就变成「写完永远读不到」，表现为每次进书城都在重拉网络而功能上看不出毛病。
 
 **缓存策略（TTL 6 小时、进页 SWR、下拉强刷 `LibraryLoadPolicy`）住 `module_find` 的 `BookSourceRepository`，解析器不碰缓存**（`BookParser.fetchLibraryData()` 纯网络解析）——把策略写回解析器是旧病根，那会让「下拉刷新」再被缓存命中吞掉。
+
+**无发现入口时缓存不是有效加速件**：`getLibraryData` 在发缓存前用 `getExploreEntries` 预检，为空（`enabledExplore=false` 或未配置分类）就删缓存并发空实体；网络结果 `kindBooks == null` 时也删缓存。`LibraryViewModel` 把空实体当成功形态清空列表，否则用户重新导入一条关闭发现的源后会留下「分类胶囊已消失、旧区块还在」的半关状态。预检本身失败（如脚本 JSON 坏）不冒充「无入口」，仍按原缓存/解析器路径处置。`BookSourceRepositoryLibraryCacheTest`、`LibraryViewModelTest` 与 `LibraryDiskCacheTest` 锁这三处。
 
 ## 7. 下载与前台服务
 
@@ -242,7 +247,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
   - **item 必须带稳定且全局唯一的 key，且 key 只由 `(章, 块)` 构成、不含扁平序号**（LazyColumn 靠 key 在「锚点上方插入 item」时保住画面，而扁平序号会随插入整体平移；重复 key 会锚到另一项、位置静默跳变）。
   - **锚点存 `(章, 块)` 语义值而不是 item 序号**（存序号等于相邻章段一展开就把进度写偏一屏）。
   - **单次上方插入不超过约 100 项**（平台的 key→index 映射只索引锚点附近一个窗口，超窗即锚定失败且不自愈）。
-- 阅读进度只在 `onPause` 落库（`initData` 那次会话尚未收下书架，空转）；前台 force-stop 与崩溃时 `onPause`/`onDestroy` 都不执行——所以「异常关闭后恢复」的判据只能是**标记残留**，不能靠进度本身。
+- 阅读进度只在 `onPause` 落库（`initData` 那次会话尚未收下书架，空转），且只更新已在架的行（未加书架先读不写库，见 §4.1）；前台 force-stop 与崩溃时 `onPause`/`onDestroy` 都不执行——所以「异常关闭后恢复」的判据只能是**标记残留**，不能靠进度本身。
 
 ## 9. 本地书导入
 

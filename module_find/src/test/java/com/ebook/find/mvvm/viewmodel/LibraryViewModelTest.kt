@@ -174,7 +174,13 @@ class LibraryViewModelTest {
     ) : SourceResolver, SourceCatalog, SourceAdmin {
         val setDefaultCalls = mutableListOf<String>()
         val parserForCalls = mutableListOf<String>()
-        val urlByQueryCalls = mutableListOf<String>()
+        val exploreCalls = mutableListOf<String>()
+
+        /**
+         * 下一次读到这个源时抛一次（模拟 rule_json 坏行等一次性读取失败）。
+         * 只失败一次：用例随后切走再切回，验证分类流没有被 `catch` 终止。
+         */
+        var failExploreOnce: String? = null
 
         private val defaultSource = MutableStateFlow(items.defaultDefinition(defaultUrl))
 
@@ -211,7 +217,11 @@ class LibraryViewModelTest {
 
         /** 分类条目读面照真实现建模：条目壳 rule 的 ruleFind.kinds 对脚本行是默认空表，映射结果自然为空 */
         override suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry> {
-            urlByQueryCalls += sourceUrl
+            exploreCalls += sourceUrl
+            if (sourceUrl.isNotBlank() && sourceUrl == failExploreOnce) {
+                failExploreOnce = null
+                throw IllegalStateException("模拟分类入口读取失败: $sourceUrl")
+            }
             if (sourceUrl.isBlank()) return emptyList()
             return items.firstOrNull { it.rule.url == sourceUrl }
                 ?.rule?.ruleFind?.kinds?.map { SourceExploreEntry(it.title, it.url) }
@@ -241,12 +251,16 @@ class LibraryViewModelTest {
      *
      * [failNextCall] 让下一次 fetch 抛异常：模拟强刷时的网络故障。真解析器对网络故障不抛
      * （按空区块兜底），但仓库层对「fetch 抛异常」的分支（强刷失败保留旧列表）仍要有人能触发。
+     *
+     * [emptyNextCall] 让下一次 fetch 回空实体：模拟源已无发现入口（`enabledExplore=false`
+     * 或未配置分类）的合法空结果——它不是故障，页面必须把上一屏清掉，不能继续显示旧区块。
      */
     private class FakeLibraryParser(val sourceUrl: String) : BookParser {
         val libraryCalls = mutableListOf<String>()
 
         private var gate: CompletableDeferred<Unit>? = null
         private var failNext = false
+        private var emptyNext = false
 
         fun blockNextCall() {
             gate = CompletableDeferred()
@@ -260,6 +274,10 @@ class LibraryViewModelTest {
             failNext = true
         }
 
+        fun emptyNextCall() {
+            emptyNext = true
+        }
+
         override suspend fun fetchLibraryData(): LibraryEntity {
             libraryCalls += sourceUrl
             if (failNext) {
@@ -267,6 +285,10 @@ class LibraryViewModelTest {
                 throw IllegalStateException("模拟网络故障: $sourceUrl")
             }
             gate?.await()
+            if (emptyNext) {
+                emptyNext = false
+                return LibraryEntity()
+            }
             return libraryOf(sourceUrl)
         }
 
@@ -296,15 +318,19 @@ class LibraryViewModelTest {
      *   真机上就是「行还在但 `rule_json` 读不出」或「清单变化与本次请求之间那行被删了」，
      *   仓库侧因此抛 [com.ebook.source.analyze.BookSourceNotFoundException]。
      *   这正是 [LibrarySourceState.BrokenSource] 与 [LibrarySourceState.NoSource] 必须分开的现场。
+     * @param failExploreOnce 这个源的分类条目**第一次**读取时抛异常；用于验证分类流不会
+     *   被一次失败终止（`catch` 放在 `map` 之外会让上游 complete，切源也不再重算）。
      */
     private fun fixture(
         items: List<BookSourceItem>,
         defaultUrl: String?,
         brokenUrls: Set<String> = emptySet(),
+        failExploreOnce: String? = null,
     ): Fixture {
         val parsers = items.filter { it.rule.url !in brokenUrls }
             .associate { it.rule.url to FakeLibraryParser(it.rule.url) }
         val manager = FakeBookSourceManager(items, defaultUrl, parsers)
+        manager.failExploreOnce = failExploreOnce
         // 每测独立的真文件缓存：SWR 的命中/未命中参与本组断言（见类 KDoc），目录必须每测全新，
         // 否则上一个用例写下的新鲜缓存会让本用例的 parser 不被调用、断言偶发失败
         val repository = BookSourceRepository(
@@ -497,7 +523,7 @@ class LibraryViewModelTest {
         )
         assertTrue(
             "一条请求都不该发：没有源可解析，发出去就是拿不相干的站去填页面",
-            f.manager.parserForCalls.isEmpty() && f.manager.urlByQueryCalls.isEmpty()
+            f.manager.parserForCalls.isEmpty() && f.manager.exploreCalls.isEmpty()
         )
 
         // 用户在这个状态下手动下拉刷新：仍然不该有任何源被解析（引导态由 currentSource 决定，
@@ -605,6 +631,45 @@ class LibraryViewModelTest {
         )
     }
 
+    /**
+     * 分类入口读取失败不能把流终止。
+     *
+     * 旧写法 `currentSource.map { ... }.catch { emit(emptyList()) }` 的 `catch` 捕获后
+     * **上游已 complete**：一次失败之后无论用户怎么切源，`bookTypeList` 都停在空列表，
+     * 直到 VM 重建。把异常收进 `map` 内部才能让后续源继续重算。
+     */
+    @Test
+    fun `分类入口一次读取失败后切源仍会重新计算`(): Unit = runVmTest {
+        val f = fixture(
+            items = listOf(item(ruleA()), item(ruleB())),
+            defaultUrl = URL_A,
+            failExploreOnce = URL_A,
+        )
+        advanceUntilIdle()
+        assertTrue("前置条件：A 源的分类读取确实失败过一次", URL_A in f.manager.exploreCalls)
+        assertTrue("失败后列表为空", f.viewModel.bookTypeList.value.isEmpty())
+
+        f.viewModel.switchSource(URL_B)
+        awaitUntil("切到 B 源后分类入口仍能重算") {
+            f.viewModel.bookTypeList.value == listOf(BookType("科幻", "/kehuan"))
+        }
+
+        f.viewModel.switchSource(URL_A)
+        awaitUntil("再切回 A 源时重新读取") {
+            f.viewModel.bookTypeList.value ==
+                listOf(BookType("玄幻", "/xuanhuan"), BookType("都市", "/dushi"))
+        }
+
+        // 只锁分类流的前三次读取：仓库在缓存命中时也会用同一读面预检发现入口
+        // （BookSourceRepository.exploreEntriesConfirmedAbsent），是否发生取决于首屏缓存有没有
+        // 在切源前落盘；把它算进总数会让这条用例随调度偶发变红，而它并不是分类流的重算。
+        assertEquals(
+            "前三次分类读取：A 失败一次、B 成功一次、回到 A 再成功一次",
+            listOf(URL_A, URL_B, URL_A),
+            f.manager.exploreCalls.take(3),
+        )
+    }
+
     @Test
     fun `同源下拉刷新保留列表而换源先清空`(): Unit = runVmTest {
         val f = fixture(listOf(item(ruleA()), item(ruleB())), defaultUrl = URL_A)
@@ -698,5 +763,24 @@ class LibraryViewModelTest {
             LibrarySourceState.Ready,
             f.viewModel.sourceState.value,
         )
+    }
+
+    /**
+     * 源已无发现入口时，空结果是**成功形态**而不是故障：列表必须清空。
+     *
+     * 旧口径「空结果不清列表」只在「同一源从未有过数据」时成立；一旦用户重新导入一条
+     * 关闭发现（或删掉分类配置）的源，旧屏继续挂着就会与已经消失的分类胶囊自相矛盾。
+     * 仓库对无发现入口的源发空实体（kindBooks == null），页面据此清屏。
+     */
+    @Test
+    fun `同源刷新得到空书库时清空列表`(): Unit = runVmTest {
+        val f = fixture(listOf(item(ruleA())), defaultUrl = URL_A)
+        awaitUntil("A 源的书库已到手") { f.viewModel.list.value.isNotEmpty() }
+
+        f.parsers.getValue(URL_A).emptyNextCall()
+        f.viewModel.refreshData()
+
+        awaitUntil("空书库已清空列表") { f.viewModel.list.value.isEmpty() }
+        assertEquals(LibrarySourceState.Ready, f.viewModel.sourceState.value)
     }
 }

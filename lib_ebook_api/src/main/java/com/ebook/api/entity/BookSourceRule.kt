@@ -15,6 +15,14 @@ data class BookSourceRule(
     val url: String = "",
     /** 是否启用 */
     val enabled: Boolean = true,
+    /**
+     * 是否启用发现页（规格 §1.1/§8.2 的 `enabledExplore`）。
+     *
+     * 与 [enabled] 分开：源可以正常搜索/阅读，但作者选择不展示发现入口。
+     * 缺失按 true；`getExploreEntries` 与 `fetchLibraryData` 都据此收口——书城不画分类胶囊、
+     * 首屏也不抓发现分类。这是 `rule_json` 里的字段，不另设数据库列。
+     */
+    val enabledExplore: Boolean = true,
     /** 书源分组（如：小说、漫画） */
     val group: String = "小说",
     /** 书源排序权重（数字越小越靠前） */

@@ -236,8 +236,8 @@ class BookDetailViewModel @Inject constructor(
                     )
                 } else {
                     // 未加书架：库里没有这本书的任何目录行，源上这份就是唯一可渲染、可阅读的一份
-                    // （它的进度也就无从持久化 —— saveProgress 写出的书架行没有 book_info 配对，
-                    // 会被 getAllBooksWithDetails 当孤立记录清掉，这是加书架前阅读的一贯行为）
+                    // （它的进度也无处持久化——saveProgress 只更新已在架的行，不会造半行；
+                    // 在阅读器里点加书架时由 ReaderSession.addToShelf 用实时位置整笔写入）
                     bookShelfWebChapter
                 }
                 _detailState.update {

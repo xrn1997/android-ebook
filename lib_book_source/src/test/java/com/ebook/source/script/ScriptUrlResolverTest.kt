@@ -120,6 +120,21 @@ class ScriptUrlResolverTest {
             "https://root.com/dir/index_2.html",
             resolve("index_2.html", EvalContext(baseUrl = "https://root.com/dir/page.html")).url,
         )
+        // 大写 scheme 也是绝对地址：落进相对分支会得到 `https://root.com/HTTPS://x.com/a`
+        assertEquals(
+            "HTTPS://x.com/a",
+            resolve("HTTPS://x.com/a", EvalContext(baseUrl = "https://root.com/dir/page.html")).url,
+        )
+    }
+
+    @Test
+    fun `空白 URL 原样交下去而不是落成源根或当前目录`() {
+        // §6.5「空白串不落位」在请求层的同一口径：展开成空或整串空白时解析层不猜落点，
+        // 交给传输层把非法 URL 兜成类型化错误（那一步由 ScriptHttpTest 锁住）
+        val ctx = EvalContext(baseUrl = "https://root.com/dir/page.html")
+        ctx.variables["p"] = ""
+        assertEquals("", resolve("{{p}}", ctx).url)
+        assertEquals("", resolve("   ").url)
     }
 
     // ── 整条写成 JS 的 URL 规则（§6.1「复杂 URL 可整条写成 JS」）──────────────────────────

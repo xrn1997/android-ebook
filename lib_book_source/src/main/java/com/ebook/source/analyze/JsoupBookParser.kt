@@ -65,14 +65,11 @@ class JsoupBookParser(
             .replace("{{page}}", ListPageUrl.actualPage(page, pageParam).toString())
 
         Logger.d(logTag, "searchBook: url=$url, method=$method")
-        val html = network.getPage(url, method, body)
-        val results = parseSearchBook(html)
+        val pageUrl = network.absoluteUrl(url)
+        val html = network.getPage(pageUrl, method, body)
+        val results = parseSearchBookWithRule(html, rule.ruleSearch, pageUrl)
         Logger.d(logTag, "searchBook: parsed ${results.size} results")
         results
-    }
-
-    private fun parseSearchBook(html: String): List<SearchBookEntity> {
-        return parseSearchBookWithRule(html, rule.ruleSearch)
     }
 
     /**
@@ -82,8 +79,15 @@ class JsoupBookParser(
      * （`searchBook` 走 `ruleSearch`，`fetchLibraryData` 走 `ruleFind.ruleSearch` 回落 `ruleSearch`），
      * 对它的直接断言一次锁住两个入口的字段口径，不必为测一行赋值而假造网络层。
      * 同模块测试源可见 `internal`，跨模块不可见（见 docs/architecture.md「脚本书源与解析层」的跨模块可见性口径）。
+     *
+     * [pageUrl] 是本次真正请求的列表页绝对地址（含查询串也可）：相对书目/封面按它落位，
+     * 不能拿源根代替——那会丢掉列表页所在目录。
      */
-    internal fun parseSearchBookWithRule(html: String, searchRule: SearchRule): List<SearchBookEntity> {
+    internal fun parseSearchBookWithRule(
+        html: String,
+        searchRule: SearchRule,
+        pageUrl: String,
+    ): List<SearchBookEntity> {
         val doc = Jsoup.parse(html)
         val elements = JsoupHelper.selectElements(doc, searchRule.list)
         val books = mutableListOf<SearchBookEntity>()
@@ -91,8 +95,10 @@ class JsoupBookParser(
             val book = SearchBookEntity()
             book.name = JsoupHelper.selectText(el, searchRule.name)
             book.author = JsoupHelper.selectText(el, searchRule.author)
-            book.noteUrl = JsoupHelper.parseUrl(rule.url, JsoupHelper.selectAttr(el, searchRule.bookUrl))
-            book.coverUrl = JsoupHelper.parseUrl(rule.url, JsoupHelper.selectAttr(el, searchRule.coverUrl))
+            // 搜索/分类页的相对书目与封面按「链接写在哪页、就相对哪页」落位；
+            // 用源根拼会丢掉当前列表页目录，带查询串的页还会把参数当成路径段
+            book.noteUrl = TocPageUrl.join(pageUrl, JsoupHelper.selectAttr(el, searchRule.bookUrl), rule.url)
+            book.coverUrl = TocPageUrl.join(pageUrl, JsoupHelper.selectAttr(el, searchRule.coverUrl), rule.url)
             book.lastChapter = JsoupHelper.selectText(el, searchRule.lastChapter)
             book.kind = JsoupHelper.selectText(el, searchRule.kind)
             // 原生侧此前漏读 `SearchRule.intro`：规则字段与文档都在，只是这里少一行赋值，
@@ -136,9 +142,19 @@ class JsoupBookParser(
         if (bookInfo.introduce.isEmpty()) {
             bookInfo.introduce = "暂无简介"
         }
-        bookInfo.coverUrl = JsoupHelper.parseUrl(rule.url, JsoupHelper.selectAttr(doc, ruleBookInfo.coverUrl))
+        // 相对地址按「链接写在哪页、就相对那页」落位：详情页目录相对、协议相对（//cdn…）
+        // 都不能用相对源根的 JsoupHelper.parseUrl（落位规则见 TocPageUrl.join）。
+        bookInfo.coverUrl = TocPageUrl.join(
+            bookShelf.noteUrl,
+            JsoupHelper.selectAttr(doc, ruleBookInfo.coverUrl),
+            rule.url,
+        )
         bookInfo.chapterUrl = if (ruleBookInfo.tocUrl.isNotEmpty()) {
-            JsoupHelper.parseUrl(rule.url, JsoupHelper.selectAttr(doc, ruleBookInfo.tocUrl))
+            TocPageUrl.join(
+                bookShelf.noteUrl,
+                JsoupHelper.selectAttr(doc, ruleBookInfo.tocUrl),
+                rule.url,
+            )
         } else {
             bookShelf.noteUrl
         }
@@ -151,8 +167,9 @@ class JsoupBookParser(
     // region 章节列表
     override suspend fun getChapterList(bookShelf: BookShelfEntity): WebChapterEntity<BookShelfEntity> = withContext(Dispatchers.IO) {
         bookShelf.tag = rule.url
-        // 优先使用 bookInfo.chapterUrl（章节索引页 URL），如果不存在则使用 noteUrl
-        val chapterUrl = bookShelf.bookInfo?.chapterUrl ?: bookShelf.noteUrl
+        // 优先使用 bookInfo.chapterUrl（章节索引页 URL）；没配 tocUrl 或选择器失配（空串）都回详情页。
+        // 不能把空串当 entryUrl 交给 TocPager：getPage("") 会落到源根首页，按目录选择器解出一堆无关链接。
+        val chapterUrl = bookShelf.bookInfo?.chapterUrl?.takeIf { it.isNotBlank() } ?: bookShelf.noteUrl
         val chapters = TocPager.collect(
             entryUrl = chapterUrl,
             tocRule = rule.ruleToc,
@@ -189,10 +206,11 @@ class JsoupBookParser(
                 rule.searchPage,
             )
 
-            val html = network.getPage(kindUrl)
+            val pageUrl = network.absoluteUrl(kindUrl)
+            val html = network.getPage(pageUrl)
             // 使用发现规则的搜索规则，如果没有则使用通用搜索规则
             val searchRule = if (findRule.ruleSearch.list.isNotEmpty()) findRule.ruleSearch else rule.ruleSearch
-            parseSearchBookWithRule(html, searchRule)
+            parseSearchBookWithRule(html, searchRule, pageUrl)
         } catch (e: Exception) {
             Logger.e(logTag, "getKindBook: ", e)
             emptyList()
@@ -212,12 +230,14 @@ class JsoupBookParser(
      * 会连别的分类一起丢。代价是「网络全挂」不体现为异常，而是「区块在、书全空」的实体——
      * 调用方（仓库）以「全部分类都没书」为信号拒绝回写缓存，避免把坏页冻一个 TTL。
      *
-     * 该源没配 `ruleFind.kinds` 时返回空实体（`kindBooks` 为 null）：这是配置形态而非错误，
-     * 页面按「书库无数据」处理。
+     * 该源没配 `ruleFind.kinds`、或 `enabledExplore=false`（作者关闭发现入口，不是整条源）时
+     * 返回空实体（`kindBooks` 为 null）：这是配置形态而非错误，页面按「书城无数据」处理。
      */
     override suspend fun fetchLibraryData(): LibraryEntity = withContext(Dispatchers.IO) {
         val findRule = rule.ruleFind
-        if (findRule.kinds.isEmpty()) {
+        // 书城首屏与分类胶囊是同一份发现入口的两个读面，必须一起收口；
+        // 只挡 getExploreEntries 会让页面仍显示各分类区块，等于只关了一半。
+        if (!rule.enabledExplore || findRule.kinds.isEmpty()) {
             return@withContext LibraryEntity()
         }
 
@@ -231,9 +251,10 @@ class JsoupBookParser(
                     1,
                     rule.searchPage,
                 )
-                val html = network.getPage(kindUrl)
+                val pageUrl = network.absoluteUrl(kindUrl)
+                val html = network.getPage(pageUrl)
                 val searchRule = if (findRule.ruleSearch.list.isNotEmpty()) findRule.ruleSearch else rule.ruleSearch
-                val books = parseSearchBookWithRule(html, searchRule)
+                val books = parseSearchBookWithRule(html, searchRule, pageUrl)
                 kindBooksList.add(LibraryKindBookListEntity(title, url, books))
             } catch (e: Exception) {
                 Logger.e(logTag, "加载分类 $title 失败", e)
@@ -288,10 +309,11 @@ class JsoupBookParser(
                     if (contentRule.nextPage.isEmpty()) {
                         null
                     } else {
-                        JsoupHelper.parseUrl(
-                            rule.url,
-                            JsoupHelper.selectAttr(page.payload, contentRule.nextPage),
-                        ).takeIf { it.isNotEmpty() && ChapterPageMatcher.isSameChapterPage(it, chapterBaseUrl) }
+                        val raw = JsoupHelper.selectAttr(page.payload, contentRule.nextPage)
+                        // 相对链接相对**当前页目录**落位，与目录翻页共用 TocPageUrl.join；
+                        // 空链接返回空串（不落成目录自身），交给 takeIf 终止。
+                        TocPageUrl.join(page.url, raw, rule.url)
+                            .takeIf { it.isNotEmpty() && ChapterPageMatcher.isSameChapterPage(it, chapterBaseUrl) }
                     }
                 },
             )
@@ -376,10 +398,16 @@ internal object TocPageUrl {
         join(entryUrl, ListPageUrl.build(template, page, pageParam), sourceRoot)
 
     /**
-     * 把页面上的地址按浏览器相对地址语义落成绝对地址，四种形态基准不同：
-     * - `http(s)://` 开头：已是绝对地址，原样；
-     * - `//host/path` 开头：**协议相对**——沿用基准的 scheme（网页通用惯用法：站点同时服务
-     *   http/https 时 meta 与 href 都这么写，`og:novel:read_url` 是重灾区）；
+     * 把页面上的地址按浏览器**路径**相对语义落成绝对地址（点段折叠除外，见下），落位形态如下：
+     * - 空白：选择器无匹配/字段为空，原样返回空串（调用方据此终止，不落成当前目录或源根）；
+     * - `?`/`#` 开头的裸片段不按浏览器「同资源换查询/片段」语义处理，而按普通相对路径直接拼接
+     *   （既有书源兼容口径，不随路径落位一起改）：章节/翻页取的是资源地址，不把片段当下一页；
+     * - `http(s)://` 开头：已是绝对地址，原样（大小写不敏感——`HTTP://host/x` 也是绝对地址，
+     *   落进相对分支会得到 `https://host/HTTP://host/x`）；
+     * - `//host/path` 开头：**协议相对**——沿用**源根**的 scheme（与 `/` 形态同源；网页通用惯用法：
+     *   站点同时服务 http/https 时 meta 与 href 都这么写，`og:novel:read_url` 是重灾区）；
+     * - 基准自身的查询串/片段不参与目录计算：它们是当前资源的参数，不是路径段
+     *   （`https://host/search?q=x` 的目录是 `https://host/`，不是 `.../search?q=x/`）；
      * - `/` 开头：源根相对（`https://host` + 路径）；
      * - 其余（如 `index_3.html`）：**[currentUrl] 所在目录**相对——当前页 `/book/1/`
      *   （目录式，带尾斜杠）+ `index_2.html` → `/book/1/index_2.html`；当前页
@@ -389,11 +417,20 @@ internal object TocPageUrl {
      * 协议相对形态必须排在 `/` 形态**之前**判定：`//host/x` 同样以 `/` 开头，
      * 顺序反了会落成 `https://host//host/x`（真语料「小说屋」的 tocUrl 当场炸出，2026-09-11）。
      *
+     * **不做 RFC 3986 的点段折叠**：`../x.html`、`./x.html` 按拼接原样保留（浏览器会把
+     * `/a/b/../x.html` 折成 `/a/x.html`）。请求侧 OkHttp 的 `HttpUrl` 会归一化，页面取得到；
+     * 代价是落库的 `content_ref` 存未归一串，同一章的两种拼法不互认。这里**不**补折叠——
+     * 归一化会让当前正常追更的存量条目按新键重解析、凭空多出一次停更，与 ADR-0027
+     * 「存量章地址不迁移」是同一取舍；形态由 `TocPagerTest` 锁住。
+     *
      * 模板推算与「下一页」选择器候选共用本函数：前者的相对形态相对索引页目录，
      * 后者的相对形态相对**当前页**目录——两者都是「链接写在哪页、就相对那页」。
      */
     fun join(currentUrl: String, raw: String, sourceRoot: String): String = when {
-        raw.startsWith("http://") || raw.startsWith("https://") -> raw
+        // 空/空白 = 选择器无匹配，没有下一页。不能落成当前目录：
+        // 调用方用 takeIf { isNotEmpty() } 判终止，目录自身会被当成下一页再请求一遍。
+        raw.isBlank() -> ""
+        raw.startsWith("http://", ignoreCase = true) || raw.startsWith("https://", ignoreCase = true) -> raw
         raw.startsWith("//") -> {
             // scheme 取源根（与相邻的 `/` 形态同源）；源根没有 scheme 时按网页惯例回落 https
             val scheme = sourceRoot.substringBefore("://", "").ifEmpty { "https" }
@@ -401,9 +438,26 @@ internal object TocPageUrl {
         }
         raw.startsWith("/") -> JsoupHelper.parseUrl(sourceRoot, raw)
         else -> {
-            val dir = if (currentUrl.endsWith("/")) currentUrl else currentUrl.substringBeforeLast('/') + "/"
+            // 基准不带尾斜杠时末段视为文件、只替换最后一段；但基准可能只有 scheme 的
+            // 两个斜杠（`https://host`，详情页就是源根首页），那不是路径分隔符——直接截到那里
+            // 会拼出 `https://toc.html`。这种形态把基准本身当目录（补 `/`）。
+            // 查询串/片段属于当前资源的参数，不是路径，先剥掉再算目录。
+            val pathUrl = pathPartOf(currentUrl)
+            val pathStart = pathUrl.indexOf("://").let { if (it >= 0) it + 3 else 0 }
+            val lastSlash = pathUrl.lastIndexOf('/')
+            val dir = when {
+                pathUrl.endsWith("/") -> pathUrl
+                lastSlash < pathStart -> "$pathUrl/"
+                else -> pathUrl.substring(0, lastSlash + 1)
+            }
             dir + raw
         }
+    }
+
+    /** 当前地址的路径部分：剥掉查询串与片段，二者不是目录基准 */
+    private fun pathPartOf(url: String): String {
+        val cut = url.indexOfFirst { it == '?' || it == '#' }
+        return if (cut >= 0) url.substring(0, cut) else url
     }
 }
 
@@ -466,7 +520,9 @@ internal object TocPager {
             fetch = { url -> WalkPage(url, Jsoup.parse(fetch(url))) },
             items = { page ->
                 JsoupHelper.selectElements(page.payload, tocRule.list).asSequence().mapNotNull { el ->
-                    val contentRef = JsoupHelper.parseUrl(sourceRoot, JsoupHelper.selectAttr(el, tocRule.url))
+                    // 章链接同样按「写在哪页、就相对哪页」落位：相对源根会丢掉目录页所在目录
+                    val raw = JsoupHelper.selectAttr(el, tocRule.url)
+                    val contentRef = TocPageUrl.join(page.url, raw, sourceRoot)
                     if (contentRef.isEmpty()) {
                         null
                     } else {
@@ -491,9 +547,11 @@ internal object TocPager {
                             JsoupHelper.selectAttr(page.payload, tocRule.nextPage),
                             sourceRoot,
                         ).takeIf { it.isNotEmpty() }
-                    // 模板模式：本页有新增才推下一页，页码自 2 起
+                    // 模板模式：本页有新增才推下一页，页码自 2 起。模板渲染出空串（规则只有
+                    // 页码段、或整串是空白）与选择器无匹配是同一件事——没有下一页，不能拿去 fetch
                     tocRule.pageUrl.isNotEmpty() ->
                         TocPageUrl.resolve(entryUrl, tocRule.pageUrl, ++pageNo, pageParam, sourceRoot)
+                            .takeIf { it.isNotEmpty() }
                     else -> null
                 }
             },

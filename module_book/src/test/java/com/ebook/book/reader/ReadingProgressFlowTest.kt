@@ -287,9 +287,11 @@ class ReadingProgressFlowTest {
 
     @Test
     fun `未加书架时中途加书架，进度不该被落点钳制抹掉`(): Unit = runTest(mainDispatcher) {
-        // 从搜索直接开读（库里一行都没有），读到第 100 章时点「加入书架」
-        // 未加书架时，阅读器那份实体来自详情页的 fetchBookInfo（带 bookInfo，加书架才写得出
-        // book_info 行；不带的话 getAllBooksWithDetails 会把它当孤立记录删掉）
+        // 从搜索直接开读（库里一行都没有），读到第 100 章时点「加入书架」。
+        // 未加书架时 saveProgress 只更新已在架的行，不写库——半行会被书架读面当成
+        // 「已加书架」，清理时又只剩 chapter_list 孤儿。加书架那一刻由会话用实时位置
+        // 整笔写入四表；阅读器那份实体来自详情页的 fetchBookInfo（带 bookInfo，加书架才
+        // 写得出 book_info 行；不带的话 getAllBooksWithDetails 会把它当孤立记录删掉）。
         val carrier = BookShelfEntity(noteUrl = NOTE_URL, tag = SOURCE_A).apply {
             bookInfo = BookInfoEntity(noteUrl = NOTE_URL, name = "斗破苍穹", origin = SOURCE_A)
         }
@@ -298,7 +300,7 @@ class ReadingProgressFlowTest {
         }
         reader.session.updateProgress(99, 0)
         reader.session.saveProgress()
-        awaitUntil("进度行已写过一次（此时还没有 book_info，是条孤立记录）") { shelfRow() != null }
+        assertNull("未加书架不写半行：进度行不能先于 book_info 出现在库里", shelfRow())
 
         reader.session.addToShelf()
         // 等的是「整个条目到位」，不是「书架上先长出一行」：生产的 `addToShelf` 把四张表收进一笔

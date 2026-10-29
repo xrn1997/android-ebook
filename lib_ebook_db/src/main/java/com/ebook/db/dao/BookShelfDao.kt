@@ -67,13 +67,16 @@ interface BookShelfDao {
     suspend fun getBooksByUrls(noteUrls: List<String>): List<BookShelfEntity>
 
     /**
-     * 写入书架行：主键是自然键 `note_url`，REPLACE 即「按 URL upsert」，存在则整行替换，
-     * 因此保存进度这类更新也直接用它，不必先查后写。
+     * 写入书架行：主键是自然键 `note_url`，REPLACE 即「按 URL upsert」，存在则整行替换。
+     *
+     * 只用于「这条书目应当出现在书架上」的写入（加书架/换源/导入）。**保存进度不走这里**：
+     * 进度只更新已在架的行（`BookRepository.saveProgress` 先认行、再用 [update] 写回），
+     * 对不存在的 noteUrl 调本方法会造出「有 `book_shelf`、无 `book_info`」的半行。
      *
      * 两点约束：
      * - 只作用于 book_shelf 一张表——实体的 `@Ignore` bookInfo/chapterList 不落库，
-     *   加入书架时三张表要分别写，且必须收在同一笔写事务里（见 BookRepository.addToShelf）；
-     * - 整行替换意味着未赋值字段会按实体默认值一起写回，调用方必须传完整对象。
+     *   book_info / chapter_list / book_group 要分别写，且必须收在同一笔写事务里（见 BookRepository.addToShelf）；
+     * - 整行替换意味着未赋值字段会按实体默认值一起写回，调用方必须传完整对象，且会换掉 rowid。
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(bookShelf: BookShelfEntity)
@@ -84,10 +87,12 @@ interface BookShelfDao {
 
     /**
      * 按主键（`note_url`）原地 UPDATE 整行：与 [insert] 的 REPLACE 相比不动 rowid，
-     * 但主键不匹配时静默不写任何数据（无返回值可判），故调用方需先确认记录存在。
+     * 主键不匹配时静默不写。**返回受影响行数**（0 = 这行已被并发删掉），调用方据此决定
+     * 要不要继续发事件——`BookRepository.saveProgress` 正是这样挡住「检查后被移出书架」
+     * 的窗口，不把刚删掉的行重新插成「有 `book_shelf`、无 `book_info`」的半行。
      */
     @Update
-    suspend fun update(bookShelf: BookShelfEntity)
+    suspend fun update(bookShelf: BookShelfEntity): Int
 
     /** 删除传入实体对应的书架行（`@Delete` 按主键匹配，忽略实体上的其他字段值） */
     @Delete

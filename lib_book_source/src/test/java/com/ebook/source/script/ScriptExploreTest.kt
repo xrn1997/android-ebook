@@ -44,6 +44,42 @@ class ScriptExploreTest {
         assertTrue(entries.isEmpty())
     }
 
+    /**
+     * `enabledExplore=false` 是「有发现配置但作者关掉了发现入口」，不是「没配」。
+     * 规格 §8.2 要求它决定是否展示；书城分类胶囊必须跟它走，否则脚本源关掉发现后仍全出。
+     */
+    @Test
+    fun `enabledExplore 为 false 时不给分类条目`() {
+        val raw = """
+            {"bookSourceName":"脚本站","bookSourceUrl":"https://s.example",
+             "enabledExplore":false,
+             "exploreUrl":"玄幻::/xuanhuan/{{page}}"}
+        """.trimIndent()
+
+        assertTrue(
+            "enabledExplore=false 时即使配了 exploreUrl 也不能给分类入口",
+            ScriptExplore.entries(raw).isEmpty(),
+        )
+    }
+
+    /**
+     * 手写配置里 `"False"` 是常见拼法：字符串形态按大小写不敏感解析才算「作者声明为 false」，
+     * 严格小写会静默落回默认 true——正是本仓反复禁止的「声明了但不生效」。
+     */
+    @Test
+    fun `enabledExplore 的字符串形态大小写不敏感`() {
+        val raw = """
+            {"bookSourceName":"脚本站","bookSourceUrl":"https://s.example",
+             "enabledExplore":"False",
+             "exploreUrl":"玄幻::/xuanhuan/{{page}}"}
+        """.trimIndent()
+
+        assertTrue(
+            "字符串 \"False\" 也必须按关闭处理",
+            ScriptExplore.entries(raw).isEmpty(),
+        )
+    }
+
     @Test
     fun `脚本程序形态的 exploreUrl 给空列表而不是把源码当条目`() {
         // 书城分类胶囊读面同一条口径：这条源只是「少一份发现入口」，不是「整条源解不动」，

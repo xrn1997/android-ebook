@@ -11,7 +11,7 @@ Status: accepted
 ## 决策
 
 1. **基类与全部子类 public**：`ScriptRuleException`、`ScriptRuleParseException`、`RuleSyntaxException`、`JsEvaluationPendingException`、`UnsupportedRuleFeatureException`、`SandboxProtocolException`、`SandboxUnavailableException`、`JsExecutionFailedException` 全部公开。只公开基类不够——调用方需要区分「能力缺失」与「这次执行失败」才能决定是提示重导源还是重试。
-2. **消息只做用户文案，不做跨模块判据**：跨模块代码需要分流时按类型分支；类型化失败仍原样上抛，不折叠成空结果。
+2. **消息只做用户文案，不做跨模块判据**：跨模块代码需要分流时按类型分支；类型化失败仍原样上抛，不折叠成空结果。唯一窄例外留在求值器内部：后位 `@js:` 解引用桥接层从不提供的 `src`/`title` 时按「这页没有该字段」回落 `Miss`，把结果交回 `||` 链——判据、残余窗口与收紧方向的家在规格 §9，它不是「失败可折叠」的通用口径。
 3. **不与取源结果合并**：`SourceBinding.Broken` 只表示原生坏行（ADR-0045）；脚本的「规则解不动」始终是求值期异常，不得折叠成 `Broken` 或 `Missing`。
 
 ## 被拒方案

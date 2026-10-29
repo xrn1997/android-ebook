@@ -17,7 +17,11 @@ import kotlinx.serialization.json.JsonObject
  *    的同一口径），取舍完成后才回填。页码 1 整段（含分隔符）不进 URL，其余页输出
  *    「分隔符 + 内容」。没有 `,` 结构的 `<...>` 不是页码段，原样保留——
  *    本仓不得自行发明 `<...>` 的其它用法。
- * 4. 相对落位复用 `TocPageUrl.join` 三形态语义（§6.5/§12：不另立口径）。
+ * 4. 相对落位复用 `TocPageUrl.join` 三形态语义，空白不落位（§6.5/§12：不另立口径）。
+ *    空白 URL 就此交给 transport，不在本层另抛一种「没给出地址」：`OkHttpScriptTransport`
+ *    把 OkHttp 的非法 URL `IllegalArgumentException` 换成类型化的 [RuleSyntaxException]
+ *    （§12「失败要如实报」），类型化契约没有缺口；而这里能看到的成因（规则展开后没留下任何
+ *    地址文本）在 transport 侧只剩一句 `GET `，反过来说明判据不该上移到 transport。
  *    **绝不复用 `ListPageUrl.build` 的首页裁剪**：脚本 URL 由作者写全形态，
  *    对已算好的 URL 再裁一次会裁掉真实页码段（§6.4 明令）。
  * 5. **例外，且在 1 之前**：整条写成 JS 的规则（§6.1「复杂 URL 可整条写成 JS」）先求值再走 2–4，
@@ -72,8 +76,10 @@ internal object ScriptUrlResolver {
         sourceRoot: String,
         evaluateInner: (String) -> RuleResult,
     ): ResolvedScriptUrl {
-        // 空产出不能一路走到 join：那会把请求落在源首页，拿回来的正是
-        // 「看着正常、实则错到底」的内容（§9 末段禁止的回退），故就地按执行失败报
+        // 空产出就地按执行失败报：不能把它交给落位层当成一个可请求的地址
+        // （§9 末段禁止「看着正常、实则错到底」的回退）。就地抛买的是**成因可读**：
+        // 放任空 URL 走到 transport 也会被兜成类型化错误（见类 KDoc 第 4 步），但消息里
+        // 只剩「GET 」，看不出是 JS 没给出地址；JS 路径的成因只有这里知道。
         val produced = evaluateInner(rule).firstText().trim()
         if (produced.isEmpty()) {
             throw JsExecutionFailedException(JsStatus.RUNTIME, "URL 的 JS 规则没有给出地址：${rule.take(80)}")

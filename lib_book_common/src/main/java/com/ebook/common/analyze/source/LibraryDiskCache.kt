@@ -72,11 +72,11 @@ class LibraryDiskCache(private val dir: File) {
      */
     fun write(sourceUrl: String, entity: LibraryEntity, savedAtMillis: Long = System.currentTimeMillis()) {
         val target = fileFor(sourceUrl)
-        // 临时文件用**确定名**（目标名 + .tmp），不用 createTempFile 的随机后缀：随机名下每在
+        // 临时文件用**确定名**（命名规则见 [tmpFileOf]），不用 createTempFile 的随机后缀：随机名下每在
         // move 前被杀就泄漏一个永不回收的文件——read 只匹配 `<md5>.json`，谁也不会再去读它，
         // cacheDir 又只在系统回收/用户清理时才被动。确定名让残骸天然自限为一源一份，
         // 且下次写同一条目时被 move 直接消费掉
-        val tmp = File(dir, "${target.name}.tmp")
+        val tmp = tmpFileOf(target)
         try {
             dir.mkdirs()
             // 先写同目录临时文件再原子覆盖：写一半被杀（进程崩溃/系统回收）不会留下截断的
@@ -90,6 +90,43 @@ class LibraryDiskCache(private val dir: File) {
             // 它就是一笔无人认领的占用
             runCatching { tmp.delete() }
             Logger.w(TAG, "书库缓存写入失败（不影响本次加载）: sourceUrl=$sourceUrl", e)
+        }
+    }
+
+    /**
+     * 删除 [sourceUrl] 的缓存文件（含确定名 `.tmp` 残骸）。
+     *
+     * 用于「这条源已经没有发现入口」：旧数据不再是有效加速件，留着只会在下一次
+     * SWR 里把已经下线的分类区块再发上屏。删除失败只记日志——缓存是加速件，
+     * 删不掉也不该让一次书库加载失败。
+     */
+    fun remove(sourceUrl: String) {
+        val target = fileFor(sourceUrl)
+        deleteIfPresent(target)
+        deleteIfPresent(tmpFileOf(target))
+    }
+
+    /**
+     * 写入用的同目录临时文件：确定名（目标名 + `.tmp`）。
+     *
+     * 命名规则只有这一处主人——`write` 用它写、`remove` 用它清残骸，两边各拼一次字符串
+     * 就会在改后缀时漏掉一处，让残骸永远躺在 cacheDir 里没人认领。
+     */
+    private fun tmpFileOf(target: File): File = File(dir, "${target.name}.tmp")
+
+    private fun deleteIfPresent(file: File) {
+        if (!file.exists()) return
+        // File.delete() 失败多是返回 false 而不是抛异常；真抛（如 SecurityException）时
+        // 带异常记一条即返回，不再落到下面那条无异常的——同一次失败记两条日志会误导排查。
+        // 只捕 Exception 而不是 runCatching：后者连 Error（如 OOM）也一并吞掉
+        val deleted = try {
+            file.delete()
+        } catch (e: Exception) {
+            Logger.w(TAG, "书库缓存删除失败: ${file.name}", e)
+            return
+        }
+        if (!deleted) {
+            Logger.w(TAG, "书库缓存删除失败: ${file.name}")
         }
     }
 

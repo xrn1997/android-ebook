@@ -82,6 +82,9 @@ interface SourceResolver {
      *   **URL 规则串**（可含 `{{page}}`），由脚本解析器按脚本 URL 语义渲染——消费方对两种出身
      *   拿到的是同一个形状。
      *
+     * 两种出身都先看 `enabledExplore`：声明为 false 的源返回空列表——作者关掉的是发现入口，
+     * 不是整条源，搜索/详情/目录/正文照常可用。
+     *
      * 空白 [sourceUrl]、库里没有该行、原生行 `rule_json` 解不出（脏行），都返回空列表；
      * 脚本行的 `rule_json` 坏掉时抛类型化 `ScriptRuleParseException`（消息含「脚本书源 JSON 无法解析」），
      * 调用方（书城 VM）按「加载失败给空列表」兜底。**纯解析零网络**：分类胶囊不能因为渲染就发请求。

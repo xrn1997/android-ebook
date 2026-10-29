@@ -1,5 +1,7 @@
 package com.ebook.source.script
 
+import com.ebook.source.sandbox.JsStatus
+import com.xrn1997.common.util.Logger
 import kotlinx.serialization.json.JsonElement
 
 /**
@@ -229,6 +231,27 @@ internal class ScriptRuleEvaluator(private val ctx: EvalContext) {
      *
      * 反序标志辖整条规则的最终产物（与 [evaluateJsLeaf] 同口径）：前段不反序，
      * JS 完成值再交给后段（如果有后链的话——后位 `@js:` 已是末尾，不存在后链）。
+     *
+     * **前段没取到值才回落 Miss，JS 真跑失败按类型上抛**：前者是「这页没有该字段」，
+     * 后者是「这条规则解不动」（规格 §9：运行失败不得回退或静默截断）。
+     *
+     * **唯一窄例外**：桥接层从不提供的两个绑定（`src`/`title` 恒为 null，见
+     * `SandboxScriptJs.bindingsOf`）落成 `undefined`，脚本按 `src.match(...)` 用法取成员时
+     * QuickJS 报 `cannot read property ... of undefined`；存量源的目录 `nextTocUrl` 有正是这一
+     * 形态的写法，直接上抛会让整本目录解析失败（回落形态与两条判据由
+     * `ScriptRuleEvaluatorInlineJsTest` 钉住）。回落要**同时**满足两件事：报错形态是
+     * 「在 undefined/null 上取属性」，且这段 JS 真的以 `src.`/`title.` 的**成员访问**形态用了这两个
+     * 名字——只按文案判会把「页面改版导致脚本自己取到 undefined」也吞成 Miss，那是 §9 禁止的
+     * 静默截断；把「引用」放宽到「文本里出现过」则会连 `attr("src")` 这类字面量一起命中，
+     * 同样吞掉真失败。
+     *
+     * **残余窗口如实记下**（§9 同条）：第二条只证明这段 JS 以该形态**引用过**这两个名字，
+     * **不**证明被解引用的那个 `undefined` 就是桥接绑定——QuickJS 的报错原文不含对象名，
+     * 判据本质上到不了 identity。脚本自己写 `var src = …; src.match(…)` 而取到 `undefined`
+     * 时两条判据同样命中、真失败仍折成 Miss（留 `Logger.w` 一条）。要收紧的方向是让沙箱垫片
+     * 对这两个绑定抛专属文案，而不是继续叠启发式。
+     *
+     * 语法/超时/内存/其它运行时失败（含普通 null 值或错误文案里恰好带 null 字样）仍原样上抛。
      */
     private fun runJsPostfix(
         node: RuleNode.Leaf,
@@ -246,20 +269,27 @@ internal class ScriptRuleEvaluator(private val ctx: EvalContext) {
             RuleMode.CSS -> ElementBackends.evaluateCss(prefixBody, input, reverse = false, expansion = expansion)
             else -> ElementBackends.evaluateChain(prefixBody, input, reverse = false, expansion = expansion, tail = tail)
         }
-        // 前段没取到值 → JS 拿到 undefined 必然炸（`result.match(...)` 之类），
-        // 而 `JsExecutionFailedException` 不被 `firstOf` 捕获——会穿透整条 `||` 链。
-        // 前段空结果（Miss / 空 Texts / 空 Nodes）都落成 `Texts(emptyList())`，
-        // 直接回落让 `||` 试下一支——这类 `@js:` 后位的用法（翻页 URL 计算等）
-        // 本就挂在 `||` 链里，前段没值意味着「这页没有该字段」
+        // 前段空结果（Miss / 空 Texts / 空 Nodes）都落成 `Texts(emptyList())`，直接回落让
+        // `||` 试下一支——这类 `@js:` 后位的用法（翻页 URL 计算等）本就挂在 `||` 链里，
+        // 前段没值意味着「这页没有该字段」。JS 真正跑起来后的失败不在此列，必须上抛。
         val seed = prefixResult.toSeed()
         if (seed is RuleValue.Texts && seed.values.isEmpty()) return RuleResult.Miss
-        // JS 可能用到桥接层尚未提供的绑定（如 `src` = 页面原文，当前为 null）：
-        // 这类 `@js:` 在旧解析器里是死代码（链式后端不认识 `@js:` 分隔符），
-        // 现在真正跑起来会因 `src.match(...)` 之类的调用抛运行时异常。
-        // 捕获后回落 Miss，让 `||` 链照常短路到下一支——与旧行为等价
         val out = try {
             bridge.runSegment(jsCode, seed)
-        } catch (_: JsExecutionFailedException) {
+        } catch (e: JsExecutionFailedException) {
+            // 判据读 detail（内核原文），不读 message：后者是按 120 字截断的用户文案，
+            // 长属性名会把尾部的 `of undefined` 切掉。文案判据只回答「错的是不是取属性」，
+            // 解引用判据才回答「成因是不是缺绑定」：少了后一半，页面改版让脚本自己取到
+            // undefined 也会被折成 Miss（§9 禁止的静默截断）
+            val detail = e.detail
+            val missingBinding = e.status == JsStatus.RUNTIME &&
+                NEVER_PROVIDED_BINDING_ACCESS.containsMatchIn(jsCode) &&
+                MISSING_BINDING_ACCESS.containsMatchIn(detail)
+            if (!missingBinding) throw e
+            Logger.w(
+                TAG,
+                "后位 JS 解引用了桥接层从不提供的绑定（src/title），按未取到值回落（规格 §9 窄例外）: $detail",
+            )
             return RuleResult.Miss
         }
         return if (node.reverse) out.reversedResult() else out
@@ -363,5 +393,31 @@ internal class ScriptRuleEvaluator(private val ctx: EvalContext) {
         is RuleResult.Matches -> RuleResult.Matches(items.reversed())
         is RuleResult.Jsons -> RuleResult.Jsons(items.reversed())
         RuleResult.Miss -> this
+    }
+
+    private companion object {
+        const val TAG = "ScriptRuleEvaluator"
+
+        /**
+         * QuickJS 在 undefined/null 上取属性的原文（`quickjs.c` 的 `cannot read property '%s' of ...`）。
+         *
+         * **只认这一形态**：早期实现按「消息含 undefined/null」回落，会把脚本自己抛的
+         * `Error("null")` 一并吞成 Miss，正是规格 §9 禁止的静默截断。
+         */
+        val MISSING_BINDING_ACCESS = Regex(
+            """cannot read propert(?:y|ies).*\bof (?:null|undefined)\b""",
+            RegexOption.IGNORE_CASE,
+        )
+
+        /**
+         * 桥接层**从不**提供的绑定（`SandboxScriptJs.bindingsOf` 里 `src`/`title` 恒给 null，
+         * 脚本侧读到 `undefined`）被**解引用**的形态。
+         *
+         * 回落必须同时要求这一形态：单看报错文案分不出「缺绑定」与「页面改版让脚本自己取到
+         * undefined」，后者被吞成 Miss 就是规格 §9 禁止的静默截断。判据只到「成员访问」，不放宽到
+         * 「这两个名字在文本里出现过」——否则 `attr("src")`、`@src` 这类字面量也命中，真失败照样被吞。
+         * 负向后行断言 `(?<![.\w$])` 挡掉 `result.src` 这种把 `src` 当别人家字段的写法。
+         */
+        val NEVER_PROVIDED_BINDING_ACCESS = Regex("""(?<![.\w$])(?:src|title)\s*\.""")
     }
 }

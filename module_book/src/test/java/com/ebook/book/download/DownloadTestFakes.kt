@@ -31,8 +31,10 @@ internal class FakeShelfDao : BookShelfDao {
         books[bookShelf.noteUrl] = bookShelf
     }
     override suspend fun insertAll(books: List<BookShelfEntity>) = books.forEach { insert(it) }
-    override suspend fun update(bookShelf: BookShelfEntity) {
+    override suspend fun update(bookShelf: BookShelfEntity): Int {
+        if (bookShelf.noteUrl !in books) return 0
         books[bookShelf.noteUrl] = bookShelf
+        return 1
     }
     override suspend fun delete(bookShelf: BookShelfEntity) {
         books.remove(bookShelf.noteUrl)

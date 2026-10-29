@@ -66,6 +66,23 @@ internal class ShelfEntryStore(
     }
 
     /**
+     * 清理一条「有 `book_shelf`、没有 `book_info`」的孤立条目。
+     *
+     * 与 [remove] 一样删四表，但**不发事件**：这条记录从未作为有效条目出现在书架上，
+     * 书架读面本来就会把它过滤掉；发 `Removed` 反而会让监听方以为用户删了一本书。
+     * 由 [com.ebook.common.repository.BookRepository.getAllBooksWithDetails] 的对账调用。
+     *
+     * **删之前在事务内复核仍是孤立**：对账的读面（`getAllBooksFullInfo`）与这次删除之间，
+     * 加书架可能刚把四表补齐——不复核就会把刚落库的整条目连书带目录一起删掉。
+     */
+    suspend fun deleteOrphan(noteUrl: String) {
+        transactions.run {
+            if (bookInfoDao.getBookInfoByUrl(noteUrl) != null) return@run
+            deleteEntryRows(noteUrl)
+        }
+    }
+
+    /**
      * 智能合并收尾：把补进旧书的尾部章节与新条目的四表删除收在同一笔事务里。
      *
      * 章文件已由调用方先写好（先文件、后库，见 [BookRepository.mergeTailChapters]）；

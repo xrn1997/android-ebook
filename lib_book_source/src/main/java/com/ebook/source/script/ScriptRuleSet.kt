@@ -218,7 +218,9 @@ internal data class ScriptRuleSet(
                 // 布尔键缺失按 true（§1.1 默认列）；用 stringOrNull 而不是 jsonPrimitive，
                 // 是为了让「配成了对象/数组」这种坏形态落到默认值上而不是抛序列化异常
                 enabled = obj.stringOrNull("enabled")?.toBooleanStrictOrNull() ?: true,
-                enabledExplore = obj.stringOrNull("enabledExplore")?.toBooleanStrictOrNull() ?: true,
+                // 这一位大小写不敏感：手写配置里 `"False"` 是常见拼法，严格小写会让它静默落回默认
+                // true（作者想关、实际开着）。`enabled` 仍是严格小写——存量行的接受集不在本处改
+                enabledExplore = obj.stringOrNull("enabledExplore")?.lowercase()?.toBooleanStrictOrNull() ?: true,
                 searchUrl = urls["searchUrl"]?.ifBlank { null },
                 exploreUrl = urls["exploreUrl"]?.ifBlank { null },
                 // 源级字段一律「缺失即空串」：这些键在 §1.1 的默认列里就是 ""，

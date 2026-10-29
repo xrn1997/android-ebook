@@ -639,12 +639,22 @@ class BookSourceManagerImpl internal constructor(
     override suspend fun getFormatByUrl(url: String): SourceFormat? =
         dao.getByUrl(url)?.let { SourceFormat.fromRaw(it.format) }
 
+    /**
+     * 发现页分类入口：按 `book_source.format` 分路，原生行读 `ruleFind.kinds`、脚本行切 `exploreUrl`。
+     *
+     * **两种出身都先看 `enabledExplore`**（规格 §1.1 字段表与 §8.2 可见性判据）：作者关掉的是发现入口，不是整条源；
+     * 返回空列表让书城不画分类胶囊，搜索/详情/目录/正文照常可用。脚本侧的同口径判断
+     * 收在 [ScriptExplore.entries]，本方法不再复制一次。
+     */
     override suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry> {
         if (sourceUrl.isBlank()) return emptyList()
         val entity = dao.getByUrl(sourceUrl) ?: return emptyList()
         return when (SourceFormat.fromRaw(entity.format)) {
-            SourceFormat.NATIVE ->
-                toItem(entity)?.rule?.ruleFind?.kinds?.map { SourceExploreEntry(it.title, it.url) } ?: emptyList()
+            SourceFormat.NATIVE -> {
+                val item = toItem(entity) ?: return emptyList()
+                if (!item.rule.enabledExplore) return emptyList()
+                item.rule.ruleFind.kinds.map { SourceExploreEntry(it.title, it.url) }
+            }
 
             SourceFormat.SCRIPT ->
                 ScriptExplore.entries(entity.ruleJson).map { SourceExploreEntry(it.title, it.urlRule) }

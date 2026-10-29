@@ -410,8 +410,9 @@ https://www.baidu.com,{"charset":"gbk","method":"POST","body":"bid=10086","heade
   - **产出文本再走同一套尾段切分与三形态落位**（§6.5）：上面那句 `"https://host," + JSON.stringify(option)`
     正是要求选项在 JS 拼完之后才被识别。产出侧**不**再做 §6.4 的 `<分隔符,内容>` 取舍——
     JS 的输出是数据，里面的 `<,2>` 不是作者写的页码段。
-  - **空产出按「脚本执行失败」报**，不落到 `join`：空地址经落位会请求源首页，拿回的是
-    「看着正常、实则错到底」的内容（§9 末段明令禁止的回退）。
+  - **空产出按「脚本执行失败」报**，不落到 `join`：空地址不是一个可请求的落点，
+    静默接受会把「没取到值」伪装成正常结果（§9 末段明令禁止的回退）；就地抛类型化失败，
+    不给下游一句未类型化的非法 URL 错误。
   - 串首 `<js>` 且**无闭合**按「整条规则写成 JS」的标记处置（代码取到串尾、无后链，与 `@js:` 同义）；
     「有前链又缺闭合」仍是语法错误——那条规则里的前链文本注定解不了（§2.1）。
   - 未接线时的症状值得留档：脚本原文被当相对地址拼到源根后**真的发出去**，回放日志里满屏
@@ -455,7 +456,11 @@ https://www.baidu.com,{"charset":"gbk","method":"POST","body":"bid=10086","heade
 
 ### 6.5 相对地址与多值串接
 
-- 搜索 URL 与发现 URL **支持相对 URL**〔语法文档〕；落位语义与本仓 `TocPageUrl.join` 相同（`http(s)` 原样、`//host/path` 沿用基准 scheme、`/` 相对源根、其余相对当前页目录）。协议相对是网页通用惯用法〔语料〕：站点双协议服务时 meta/href 常这么写（真语料「小说屋」的 `og:novel:read_url` 即此形态），公开规则说明未见明文——2026-09-11 按语料补齐，须排在 `/` 形态之前判定（`//x` 同样以 `/` 开头）。
+- 搜索 URL 与发现 URL **支持相对 URL**〔语法文档〕；落位语义与本仓 `TocPageUrl.join` 相同（`http(s)` 原样、`//host/path` 沿用源根 scheme、`/` 相对源根、其余相对当前页目录）。基准自身的查询串/片段先剥掉再算目录（它们是当前资源的参数，不是路径段）。协议相对是网页通用惯用法〔语料〕：站点双协议服务时 meta/href 常这么写（真语料「小说屋」的 `og:novel:read_url` 即此形态），公开规则说明未见明文——2026-09-11 按语料补齐，须排在 `/` 形态之前判定（`//x` 同样以 `/` 开头）。
+- **两个基准不是一回事**：URL **规则串**本身（`searchUrl`/`discoverUrl`）在这一刻还没有「当前页」——非绝对形态按**源根**拼接（`BookSourceNetwork.absoluteUrl`），从页面**解出的**相对链接才按当前页目录落位（`TocPageUrl.join`）。两者共用前三条形态判定，且 `http(s)://` 的大小写都认（`HTTP://host/x` 是绝对地址，落进相对分支会得到 `https://host/HTTP://host/x`）；但 `/` 形态的**落点不同**：`absoluteUrl` 按整条 `rule.url` 拼（`https://host/books` + `/x` → `https://host/books/x`，取文层旧口径），`join` 只取 `rule.url` 的 `scheme://host[:port]`（→ `https://host/x`，浏览器根相对语义）——`bookSourceUrl` 带路径时两者分叉，两侧各由 `BookSourceNetworkTest` 与 `TocPagerTest` 锁住；脚本侧的 URL 规则串不经 `absoluteUrl`，走 `ScriptUrlResolver`→`join`（基准是补了尾斜杠的 `bookSourceUrl`），`/` 形态与 `join` 同。
+- **不做 RFC 3986 的点段折叠**：`../x.html`、`./x.html` 按拼接原样保留（浏览器会把 `/a/b/../x.html` 折成 `/a/x.html`）。请求侧 `HttpUrl` 会归一化、页面取得到，代价是落库的 `content_ref` 存的是未归一串——同一章的两种拼法不互认。这里**不**补折叠：归一化会让当前正常追更的存量条目按新键重解析、凭空多出一次停更，与 [ADR-0027](../adr/0027-source-pagination-boundary.md)「存量章地址不迁移」是同一取舍；形态由 `TocPagerTest` 锁住。
+- **原生列表页、详情页与目录页同一条落位语义**：搜索结果与分类列表（含「加载更多」那一页）的书目与封面、详情页的封面/目录链接、目录页的章链接与正文下一页，分别以**当前请求的那一页**为基准（`TocPageUrl.join(pageUrl, ...)`）；证据见 `JsoupBookParserTest` 与 `TocPagerTest`。
+- **空白串不落位**：选择器无匹配或字段为空时，`TocPageUrl.join` 原样返回空串（§3.3「未取到值」/§7.1「空即停止」），不得落成当前页目录或源根——那会让翻页循环把目录自身再请求一遍，或把空字段伪装成一个看似合法的地址。脚本 URL 规则产出空白（展开后为空或整串空白）时同样原样交给 transport，由 `OkHttpScriptTransport` 把非法 URL 的 `IllegalArgumentException` 换成类型化 `RuleSyntaxException`（§12「失败要如实报」，用例：`ScriptHttpTest`）；只有整条写成 JS 的路径在解析层就地抛 `JsExecutionFailedException`——只有那一层知道成因是「JS 没给出地址」，等到 transport 只剩一句看不出根因的 `GET `。
 - 字段结果里出现「规则 + 逗号 + 选项」时按 §6.1 处理；`kind` 字段用 `,` 串接两个 `{{}}` 插值时，逗号是**结果文本**的一部分，不是分隔符（语料：`"kind": "{{$.type_name}},{{$.catalog_name}}"`）。
 
 ## 7. 目录与正文的翻页链
@@ -512,7 +517,7 @@ https://www.baidu.com,{"charset":"gbk","method":"POST","body":"bid=10086","heade
 
 ### 8.2 与 `bookSourceGroup` 的关系
 
-**没有关系，两个层次**：`bookSourceGroup` 是「这一整个书源属于哪一组」（源管理页筛选用），发现页顶部分类一律来自 `exploreUrl`。应用侧的可见性判据：`exploreUrl` 非空 = 有发现，`enabledExplore` 决定是否展示（书源列表页用绿点/红点/无标志三态表示「有发现且已启用 / 有发现未启用 / 无发现」〔官方文档〕）。
+**没有关系，两个层次**：`bookSourceGroup` 是「这一整个书源属于哪一组」（源管理页筛选用），发现页顶部分类一律来自 `exploreUrl`。应用侧的可见性判据：`exploreUrl` 非空 = 有发现，`enabledExplore` 决定是否展示（书源列表页用绿点/红点/无标志三态表示「有发现且已启用 / 有发现未启用 / 无发现」〔官方文档〕）。本仓书城怎么把这一位落到实处（哪些读面一起收口）见 [docs/architecture.md](../architecture.md) 的「书城接线」。
 
 ### 8.3 花括号与分隔符的坑（Plan 2 必须处理）
 
@@ -539,6 +544,27 @@ https://www.baidu.com,{"charset":"gbk","method":"POST","body":"bid=10086","heade
  · @js: / <js> → 交执行器（零权限隔离进程）；未装配执行器时抛类型化「需脚本沙箱执行器」，
    装配了而运行失败抛「脚本执行失败（状态）」并带内核原文——两者不得合并成一句提示，
    且一律不得回退成「返回原值」或静默截断（否则产出的是看起来正常、实则错到底的内容）
+   · **窄例外（仅 `@js:` 后位）**：桥接层恒为 `undefined` 的两个绑定（`src`/`title`）被脚本
+     **解引用**时触发 `RUNTIME` 的「在 `undefined`/`null` 上取属性」错误，按「这页没有该字段」
+     回落 `Miss` 并记日志，让 `||` 继续兜底；存量源里有目录规则写成 `src.match(...)`，
+     直接上抛会让整本目录失败（证据：`ScriptRuleEvaluatorInlineJsTest`）。
+     回落要**两条同时成立**：报错是那一形态（判据读 `JsExecutionFailedException.detail` 的
+     内核原文，**不读**拼装后的用户消息——那句按 120 字截断，长属性名会把尾部的
+     `of undefined` 切掉），**且这段 JS 以成员访问形态（`src.`/`title.`）用了
+     这两个名字**——只按文案判定会把「页面改版让脚本自己取到 undefined」也吞成 `Miss`；把判据
+     放宽到「文本里出现过这两个名字」则会连 `attr("src")` 这类字面量一起命中。两种放宽都是
+     本条禁止的静默截断。
+     **残余窗口要如实记下**：第二条只证明这段 JS 以该形态**引用过**这两个名字，**不**证明被
+     解引用的那个 `undefined` 就是桥接绑定——QuickJS 的报错原文不含对象名，判据到不了 identity。
+     脚本自己写 `var src = …; src.match(…)` 而取到 `undefined` 时两条判据同样命中、真失败仍折成
+     `Miss`（留一条 `Logger.w`）。这是本条例外接受的代价，不是实现走样；要收紧的方向是让沙箱
+     垫片对这两个绑定抛**专属文案**、判据据此认定，而不是继续叠启发式。
+     反方向的窗口同样是代价：`src["match"]`、`(src).x` 这类解引用形态，以及 `src?.x` 短路之后
+     由下一处取属性报出的同一句错，都不在判据内、照常上抛——用这些写法的源从「回落 `Miss`
+     能跑」变「整条规则报错」。这里**不**再放宽判据补它们：每放宽一次就多吞一种真失败，
+     与上面那条代价此消彼长，一起留给垫片专属文案那一版收口。
+     语法/超时/内存/其它运行时失败（含脚本自己抛的带 null 字样的错误）仍上抛，
+     纯 `@js:` 叶与 `<js>` 分隔链不回退。
  · {{…}} 的 JS 分支：标量按文本回填、undefined/null 展开成空串（同「未取到值」，见 §5.1）、
    对象/数组按「脚本执行失败」报——不回 null，也不把 JSON 文本冒充成 URL 片段
  · webJs / jsLib / XPath → 能力缺口，不是还没接线：XPath 段求值时抛类型化「本项目不支持」；
@@ -665,7 +691,7 @@ https://www.baidu.com,{"charset":"gbk","method":"POST","body":"bid=10086","heade
 
 - **列表分页「到底」判据**：越界页会以 HTTP 200 重复返回首页书目（软 404）→ 追加页按 `noteUrl` 去重、无新条目即 `hasMore=false`；列表页以 `noteUrl` 作 item key（`BookPageMergeTest`、`ListPageUrlTest`）。脚本路径同样适用：搜索/发现的每一页解出的条目并入时走同一去重与终止判据。
 - **章节索引的终止与防御上限**：`contentRef` 跨页去重、零新增即到底、回环即停、`MAX_TOC_CHAPTERS` 触顶按截断记日志不抛（`TocPager`）。脚本路径用 §7.1 的 `nextTocUrl` 驱动，但**终止判据与上限策略复用这一套**。
-- **相对地址落位**：`TocPageUrl.join` 的三形态语义（绝对原样 / `/` 相对源根 / 其余相对当前页目录）。
+- **相对地址落位**：`TocPageUrl.join` 的三形态语义（绝对原样 / `/` 相对源根 / 其余相对当前页目录；基准查询串/片段先剥掉再算目录；**不做点段折叠**，见 §6.5）。
 - **正文分页的「宁漏页不串章」取舍**：属原生链路的推断式判定（§7.3 已说明脚本链路为何不同，但**不推翻**原生链路的既有口径）。
 - **解析器不碰缓存**：书库/分页缓存策略住在仓库层（`module_find` 的 `BookSourceRepository` + `LibraryDiskCache`），脚本解释器同样只做网络解析。
 - **多书源归属**：每本书按 `tag`（= 书源 URL）绑源、经 `sourceResolver.resolveSource(url)` 得到 `SourceBinding` 四档（Local / Found / Missing / Broken，见 ADR-0045）；只要解析器就经 `parserOrThrow` 统一翻译一次（正文入口的本地/空白短路见 [ADR-0045](../adr/0045-source-binding-typed-result.md)「边界」）。不存在全局默认源去解别人的书。

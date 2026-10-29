@@ -167,6 +167,20 @@ class LibraryDiskCacheTest {
         assertNotNull("消费完残骸后照常读得回", cache.read(URL_A))
     }
 
+    @Test
+    fun `remove 只删除目标书源的缓存且读回 miss`() {
+        val (cache, dir) = tempCacheWithDir()
+        cache.write(URL_A, libraryOf(URL_A))
+        cache.write(URL_B, libraryOf(URL_B))
+        val fileA = File(dir, md5HexOf(libraryCacheKey(URL_A)) + ".json")
+
+        cache.remove(URL_A)
+
+        assertFalse("目标源的缓存文件要被删掉，不能继续占盘", fileA.exists())
+        assertNull("删掉后读回必须是 miss，而不是拿到旧数据", cache.read(URL_A))
+        assertNotNull("别的源不受影响", cache.read(URL_B))
+    }
+
     /** 与实现同算法的 MD5 十六进制：测试里独立持有，实现漂移（如换哈希）时用例能给红 */
     private fun md5HexOf(key: String): String =
         MessageDigest.getInstance("MD5").digest(key.toByteArray())

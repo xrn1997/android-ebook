@@ -1,6 +1,7 @@
 package com.ebook.source.script
 
 import kotlinx.coroutines.test.runTest
+import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -50,6 +51,20 @@ class ScriptHttpTest {
             fetcher(RecordingTransport()).fetch("""https://x.com,{"webView":true}""", EvalContext()) { RuleResult.Miss }
         }.exceptionOrNull()
         assertTrue(e is UnsupportedRuleFeatureException)
+    }
+
+    /**
+     * 空白 URL 不在解析层另立一种错误（见 `ScriptUrlResolver` 类 KDoc 第 4 步与规格 §6.5）：
+     * OkHttp 在构造请求时抛未类型化的 `IllegalArgumentException`，传输层把它换成类型化的
+     * [RuleSyntaxException] 才算「失败如实报」：回退成裸 IAE，上层只能按未知错误处置，
+     * 而 `ScriptRuleFailureVisibilityTest` 锁的正是这一族失败不许被折叠成空结果。
+     */
+    @Test
+    fun `空白 URL 由传输层兜成类型化错误而不是裸 IllegalArgumentException`() = runTest {
+        val e = runCatching {
+            OkHttpScriptTransport(OkHttpClient()).execute(ScriptRequest(url = ""))
+        }.exceptionOrNull()
+        assertTrue("实际：${e?.let { it::class.simpleName }}", e is RuleSyntaxException)
     }
 
     @Test

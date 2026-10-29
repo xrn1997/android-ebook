@@ -99,9 +99,19 @@ class BookSourceRepositoryLibraryCacheTest {
             unsupported("getKindBook")
     }
 
-    /** 只回答「这个源有没有 parser」的最小假件：`resolveSource` 的空白短路返回 Missing，缺项即「源坏了」 */
+    /**
+     * 只回答「这个源有没有 parser / 发现入口」的最小假件：`resolveSource` 的空白短路返回 Missing，
+     * 缺项即「源坏了」；[exploreEntriesByUrl] 缺项即该源没有发现入口（关闭或未配置）。
+     */
     private class FakeManager(private val parsers: Map<String, BookParser>) : SourceResolver {
         val parserForCalls = mutableListOf<String>()
+
+        /** 每个有 parser 的源默认有发现入口；用例可改成空表模拟 `enabledExplore=false` */
+        val exploreEntriesByUrl: MutableMap<String, List<SourceExploreEntry>> =
+            parsers.keys.associateWith { listOf(SourceExploreEntry("分类", "/kind")) }.toMutableMap()
+
+        /** 置位后分类入口读取直接抛异常：模拟 `rule_json` 坏行等「预检失败」形态 */
+        var failExplore = false
 
         override suspend fun resolveSource(sourceUrl: String): SourceBinding {
             parserForCalls += sourceUrl
@@ -117,8 +127,10 @@ class BookSourceRepositoryLibraryCacheTest {
         override fun searchAcross(keyword: String, page: Int, skipSourceUrls: Set<String>) =
             unsupported("searchAcross")
 
-        override suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry> =
-            unsupported("getExploreEntries")
+        override suspend fun getExploreEntries(sourceUrl: String): List<SourceExploreEntry> {
+            if (failExplore) throw IllegalStateException("模拟分类入口读取失败: $sourceUrl")
+            return exploreEntriesByUrl[sourceUrl].orEmpty()
+        }
     }
 
     private class Fixture(
@@ -174,6 +186,47 @@ class BookSourceRepositoryLibraryCacheTest {
             0,
             f.parsers.getValue(SOURCE_A).calls,
         )
+    }
+
+    /**
+     * `enabledExplore=false`（或源没有发现入口）时，旧缓存不许再上屏：分类胶囊已经不画了，
+     * 首屏却继续显示上一次的分类区块，等于只关了一半。缓存命中路径必须在发缓存前预检，
+     * 预检为空就删掉缓存并发空实体（不是旧屏）。
+     */
+    @Test
+    fun `缓存命中但源已无发现入口时删缓存并发空实体`() {
+        val f = fixture(SOURCE_A)
+        f.cache.write(SOURCE_A, libraryOf("旧屏"))
+        f.manager.exploreEntriesByUrl[SOURCE_A] = emptyList()
+
+        val emissions = runBlocking {
+            f.repository.getLibraryData(SOURCE_A, LibraryLoadPolicy.StaleWhileRevalidate).toList()
+        }
+
+        assertEquals("无发现入口只发一次空结果，不拿缓存充数", 1, emissions.size)
+        assertNull("旧分类区块不能再上屏", emissions.single().kindBooks)
+        assertEquals("预检命中后不该再发发现请求", 0, f.parsers.getValue(SOURCE_A).calls)
+        assertNull("旧缓存必须删除，否则下次仍会被读到", f.cache.read(SOURCE_A))
+    }
+
+    /**
+     * 预检失败（如脚本 `rule_json` 坏）不能冒充「无发现入口」：那会把一条读不出的源
+     * 说成「没有发现」，并删掉仍有效的缓存。失败按未知处置，继续走原缓存/解析器路径。
+     */
+    @Test
+    fun `发现入口预检失败时保留缓存并按原路径发射`() {
+        val f = fixture(SOURCE_A)
+        val cached = libraryOf("缓存")
+        f.cache.write(SOURCE_A, cached)
+        f.manager.failExplore = true
+
+        val emissions = runBlocking {
+            f.repository.getLibraryData(SOURCE_A, LibraryLoadPolicy.StaleWhileRevalidate).toList()
+        }
+
+        assertEquals("新鲜缓存仍然只发一次", 1, emissions.size)
+        assertEquals(cached.kindBooks, emissions.single().kindBooks)
+        assertNotNull("预检失败不是「无入口」，缓存不能删", f.cache.read(SOURCE_A))
     }
 
     @Test
@@ -284,6 +337,26 @@ class BookSourceRepositoryLibraryCacheTest {
             fresh.kindBooks,
             f.cache.read(SOURCE_A)?.data?.kindBooks,
         )
+    }
+
+    /**
+     * 强制网络拿到 `kindBooks == null`（无发现入口的实体形态）时，旧缓存也必须一并清掉：
+     * 否则下一次 SWR 还会先把旧屏发出来。缓存是「当前源可发现数据」的加速件，
+     * 源已经声明没有发现入口时它不再是有效加速件。
+     */
+    @Test
+    fun `强制网络得到无发现结果时清掉旧缓存`() {
+        val f = fixture(SOURCE_A)
+        f.cache.write(SOURCE_A, libraryOf("旧屏"))
+        f.parsers.getValue(SOURCE_A).result = LibraryEntity()
+
+        val emissions = runBlocking {
+            f.repository.getLibraryData(SOURCE_A, LibraryLoadPolicy.ForceNetwork).toList()
+        }
+
+        assertEquals("强刷只发网络那一次", 1, emissions.size)
+        assertNull("无发现入口的实体原样上抛，由页面清空", emissions.single().kindBooks)
+        assertNull("旧缓存不能留：下一次进页不该再看到旧屏", f.cache.read(SOURCE_A))
     }
 
     @Test

@@ -85,6 +85,11 @@ class BookSourceRepository @Inject constructor(
      * 该异常**直接抛、不先发缓存**：书城页在非 Ready 档位整片换引导语、不渲染列表，
      * 先发缓存既不可见、还会让档位先闪 Ready 再落回失效。
      *
+     * **缓存命中也要先认发现入口**：源可能在上次缓存之后被重新导入为 `enabledExplore=false`
+     * 或删掉了分类配置；这时旧屏已不是当前源的事实。预检为空就删缓存并发空实体（不是旧屏），
+     * 让页面把上次的分类区块一起收掉——分类胶囊已经按当前规则不画了，首屏不能只关一半。
+     * 预检本身失败（如脚本 JSON 坏）不冒充「无发现入口」，仍按原缓存/解析器路径处置。
+     *
      * @throws BookSourceNotFoundException 有源但取不到 parser（源被删或规则解码失败），
      *   与「无源」（[sourceUrl] 空白，发空实体）分开处置。判据与 [parserFor] 同，但这里**不复用**
      *   它：无源那侧要的是「发一个空实体后正常结束」，[parserFor] 给的是空值，套过来只会多一层绕
@@ -100,12 +105,17 @@ class BookSourceRepository @Inject constructor(
             LibraryLoadPolicy.ForceNetwork -> {
                 val fresh = parser.fetchLibraryData()
                 emit(fresh)
-                writeToCacheIfWorthCaching(sourceUrl, fresh)
+                updateCacheAfterFetch(sourceUrl, fresh)
             }
 
             LibraryLoadPolicy.StaleWhileRevalidate -> {
                 val cached = libraryDiskCache.read(sourceUrl)
                 if (cached != null) {
+                    if (exploreEntriesConfirmedAbsent(sourceUrl) == true) {
+                        libraryDiskCache.remove(sourceUrl)
+                        emit(LibraryEntity())
+                        return@flow
+                    }
                     emit(cached.data)
                     if (System.currentTimeMillis() - cached.savedAtMillis < LIBRARY_CACHE_TTL_MILLIS) {
                         return@flow
@@ -114,7 +124,7 @@ class BookSourceRepository @Inject constructor(
                 try {
                     val fresh = parser.fetchLibraryData()
                     emit(fresh)
-                    writeToCacheIfWorthCaching(sourceUrl, fresh)
+                    updateCacheAfterFetch(sourceUrl, fresh)
                 } catch (e: CancellationException) {
                     // 换源/页面销毁取消收集：必须原样上抛。吞进下面的「保留旧屏」分支会让这次
                     // 收集以「正常结束」收场，调用方分不开「重抓失败、旧屏兜住了」与「已被取消」
@@ -130,15 +140,39 @@ class BookSourceRepository @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     /**
-     * 回写守卫：**至少一个分类有书**才值得缓存。
+     * 缓存命中前的发现入口预检：true 确定没有入口，null 表示预检失败。
      *
-     * 解析器对网络故障不抛异常（单个分类失败按空区块计入，见 `fetchLibraryData` 的接口契约），
-     * 「区块在、书全空」就是站点挂了/规则失效的可见形态——这种结果一旦落缓存，坏页会被
-     * TTL 冻住一个周期，期间每次进页都秒开一个空书城，比白屏更难懂。放行不缓存，
-     * 下次进页自然重试。`ruleFind.kinds` 未配置（kindBooks 为 null）同样不缓存。
+     * 命名带 `Confirmed` 是为了让调用点的 `== true` 说实话：`null` 既不是「有入口」也不是
+     * 「没入口」，读成非空谓词就会把预检失败当成其中一档。
+     *
+     * 预检失败不能折成 false（无入口）——那会把一条脚本 JSON 坏掉的源说成「没有发现」，
+     * 掩盖真正的类型化错误；也不能折成 true，故用 null 让调用方沿用原有缓存/解析器路径。
      */
-    private fun writeToCacheIfWorthCaching(sourceUrl: String, entity: LibraryEntity) {
-        val kindBooks = entity.kindBooks ?: return
+    private suspend fun exploreEntriesConfirmedAbsent(sourceUrl: String): Boolean? =
+        try {
+            sourceResolver.getExploreEntries(sourceUrl).isEmpty()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.w(TAG, "发现入口预检失败，继续按缓存/解析器路径处置: sourceUrl=$sourceUrl", e)
+            null
+        }
+
+    /**
+     * 网络结果之后的缓存维护（不再只负责「写」）。
+     *
+     * - `kindBooks == null`：源没有发现入口（`enabledExplore=false` 或未配置分类）——
+     *   **删除旧缓存**，否则下一次 SWR 还会把旧屏先发出来；
+     * - 至少一个分类有书：回写，供下次秒开；
+     * - 「区块在、书全空」：不写。解析器对网络故障不抛异常，这种结果是坏页的可见形态，
+     *   一旦落缓存会被 TTL 冻住一个周期，比白屏更难懂；保留旧缓存让用户还能看到上一屏。
+     */
+    private fun updateCacheAfterFetch(sourceUrl: String, entity: LibraryEntity) {
+        val kindBooks = entity.kindBooks
+        if (kindBooks == null) {
+            libraryDiskCache.remove(sourceUrl)
+            return
+        }
         if (kindBooks.any { it.books.isNotEmpty() }) {
             libraryDiskCache.write(sourceUrl, entity)
         }

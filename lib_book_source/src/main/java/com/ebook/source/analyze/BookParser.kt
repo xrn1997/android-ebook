@@ -18,8 +18,9 @@ interface BookParser {
     /**
      * 拉取本源的书库数据（书城首屏各分类书目）——**纯网络解析，不碰缓存**。
      *
-     * 按 `ruleFind.kinds` 逐分类抓首页并拼装；该源没配 kinds 时返回空实体（`kindBooks` 为 null），
-     * 由调用方按「书库无数据」处理。缓存读什么、何时过期、要不要回写，全部是编排层
+     * 按 `ruleFind.kinds`（脚本源为 `exploreUrl`）逐分类抓首页并拼装；该源没配发现入口、
+     * 或 `enabledExplore=false`（作者关闭发现，不是整条源失效）时返回空实体（`kindBooks` 为 null），
+     * 由调用方按「书城无数据」处理。缓存读什么、何时过期、要不要回写，全部是编排层
      * （`module_find` 的 `BookSourceRepository`）的策略——解析器不知道缓存的存在，也就不可能出现
      * 「下拉刷新被缓存吞掉」这类刷新语义在两层之间说不清的问题。
      *

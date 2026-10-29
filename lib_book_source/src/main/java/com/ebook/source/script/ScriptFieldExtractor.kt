@@ -63,13 +63,15 @@ internal class ScriptFieldExtractor(
     }
 
     /**
-     * URL 字段落位（§6.5）：先剥选项尾段 → `TocPageUrl.join` 三形态落位 → 回附尾段。
-     * 尾段是**下一次取文输入**的一部分（gbk/POST 选项跟 URL 走），字段落位只处理地址部分；
-     * 不剥就落位会把 `,{...}` 当成路径段拼出 404。
+     * URL 字段落位（§6.5）：先剥选项尾段 → `TocPageUrl.join` 三形态落位（空白原样返回空串）
+     * → 回附尾段。尾段是**下一次取文输入**的一部分（gbk/POST 选项跟 URL 走），字段落位只处理
+     * 地址部分；不剥就落位会把 `,{...}` 当成路径段拼出 404。
      */
     fun resolveUrl(raw: String, baseUrl: String): String {
         val (url, tail) = ScriptUrlOption.splitTail(raw) ?: (raw to null)
         val absolute = com.ebook.source.analyze.TocPageUrl.join(baseUrl, url, sourceRoot)
+        // 地址部分没取到值时尾段不孤零零回附：",{...}" 是下次取文的选项，不是一个地址
+        if (absolute.isEmpty()) return ""
         return if (tail == null) absolute else absolute + tail
     }
 

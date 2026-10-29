@@ -29,10 +29,14 @@ class JsoupBookParserSearchTest {
         </div>
     """.trimIndent()
 
-    private fun parse(html: String, searchRule: SearchRule) = JsoupBookParser(
+    private fun parse(
+        html: String,
+        searchRule: SearchRule,
+        pageUrl: String = "https://www.example.com/search/index.html",
+    ) = JsoupBookParser(
         BookSourceRule(name = "示例源", url = "https://www.example.com", ruleSearch = searchRule),
         OkHttpClient(),
-    ).parseSearchBookWithRule(html, searchRule)
+    ).parseSearchBookWithRule(html, searchRule, pageUrl)
 
     private val baseRule = SearchRule(
         list = ".bookbox",

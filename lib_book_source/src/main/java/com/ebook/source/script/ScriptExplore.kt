@@ -8,6 +8,9 @@ package com.ebook.source.script
  * （与求值链路同一句话术），调用方按「这条源解不动」处置；未配 `exploreUrl` 返回空列表
  * （配置形态而非错误，与 `ScriptBookParser.fetchLibraryData` 同口径）。
  *
+ * **`enabledExplore=false` 同样返回空列表**：作者关掉的是发现入口，不是整条源；
+ * 搜索/详情/目录/正文照常可用。规格 §8.2 要求发现入口的可见性由这一位决定。
+ *
  * 为什么要这一层：[ExploreUrlFormat] 与 [ScriptRuleSet] 都是 internal，跨模块
  * （lib_book_common 的 Manager 要做「按格式路由的分类条目」读面）够不着——这里只递出
  * 「条目清单」这一件事，不暴露任何求值内部。别为了省这一层把求值内部改成 public。
@@ -17,7 +20,9 @@ data class ScriptExploreEntry(val title: String, val urlRule: String)
 object ScriptExplore {
 
     fun entries(rawJson: String): List<ScriptExploreEntry> {
-        val exploreUrl = ScriptRuleSet.load(rawJson).exploreUrl ?: return emptyList()
+        val rules = ScriptRuleSet.load(rawJson)
+        if (!rules.enabledExplore) return emptyList()
+        val exploreUrl = rules.exploreUrl ?: return emptyList()
         return ExploreUrlFormat.split(exploreUrl).map { ScriptExploreEntry(it.title, it.urlRule) }
     }
 }

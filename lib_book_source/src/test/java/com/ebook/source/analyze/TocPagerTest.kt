@@ -445,7 +445,7 @@ class TocPagerTest {
     }
 
     @Test
-    fun `协议相对地址沿用基准 scheme 且优先于源根相对形态`() {
+    fun `协议相对地址沿用源根 scheme 且优先于源根相对形态`() {
         // 真语料「小说屋」：og:novel:read_url 的 meta 产出 //host/path（站点双协议服务的网页惯用法）
         assertEquals(
             "https://cdn.test.com/toc/2.html",
@@ -456,11 +456,105 @@ class TocPagerTest {
             "http://cdn.test.com/toc/2.html",
             TocPageUrl.join("http://www.test.com/book/1/", "//cdn.test.com/toc/2.html", "http://www.test.com"),
         )
+        // 源根连 scheme 都没有（书源 url 少写了 `https://`）：按网页惯例回落 https，
+        // 不能拼出 `www.test.com://cdn.test.com/...` 这种看着像地址的东西
+        assertEquals(
+            "https://cdn.test.com/toc/2.html",
+            TocPageUrl.join("$sourceRoot/book/1/", "//cdn.test.com/toc/2.html", "www.test.com"),
+        )
         // 必须排在 / 形态之前：顺序反了会落成 https://www.test.com//cdn.test.com/toc/2.html
         assertTrue(
             TocPageUrl.join("$sourceRoot/book/1/", "//cdn.test.com/toc/2.html", sourceRoot)
                 .startsWith("https://cdn.test.com"),
         )
+    }
+
+    @Test
+    fun `大写 scheme 也算绝对地址不因大小写掉进相对分支`() {
+        assertEquals(
+            "HTTP://cdn.test.com/toc/2.html",
+            TocPageUrl.join("$sourceRoot/book/1/", "HTTP://cdn.test.com/toc/2.html", sourceRoot),
+        )
+        assertEquals(
+            "HTTPS://cdn.test.com/toc/2.html",
+            TocPageUrl.join("$sourceRoot/book/1/", "HTTPS://cdn.test.com/toc/2.html", sourceRoot),
+        )
+    }
+
+    @Test
+    fun `点段不折叠：斜杠点形态按拼接原样保留`() {
+        // 浏览器会把 /a/b/../x.html 折成 /a/x.html，本仓**不**做这一步：请求侧 HttpUrl 会归一化、
+        // 页面取得到，而补折叠会让存量条目的 content_ref 按新键重解析、凭空多出一批停更
+        // （ADR-0027 权衡末条、规格 §6.5）。这条用例锁的是「不折叠」这个决定本身。
+        assertEquals(
+            "$sourceRoot/book/1/../2/index.html",
+            TocPageUrl.join("$sourceRoot/book/1/index.html", "../2/index.html", sourceRoot),
+        )
+        assertEquals(
+            "$sourceRoot/book/1/./index_2.html",
+            TocPageUrl.join("$sourceRoot/book/1/index.html", "./index_2.html", sourceRoot),
+        )
+    }
+
+    @Test
+    fun `章节链接的相对地址按当前目录页落位`() = runBlocking {
+        // 目录页可能是 /book/1/index.html：章链接写 ch/1.html 时必须落在同目录，
+        // 相对源根会拼成 /ch/1.html，点进去是错的章节
+        val site = FakeSite(
+            mapOf("$sourceRoot/book/1/index.html" to tocPage("第一章" to "ch/1.html"))
+        )
+
+        val chapters = TocPager.collect(
+            entryUrl = "$sourceRoot/book/1/index.html",
+            tocRule = tocRule(),
+            pageParam = PageRule(),
+            sourceRoot = sourceRoot,
+            noteUrl = noteUrl,
+            tag = sourceRoot,
+            fetch = site.fetch,
+        )
+
+        assertEquals("$sourceRoot/book/1/ch/1.html", chapters.single().contentRef)
+    }
+
+    @Test
+    fun `带查询串的基准按路径目录落位`() {
+        // 搜索/分类页常带查询串；相对链接应相对路径目录，而不是把查询串当路径段
+        assertEquals(
+            "https://host/search/books/1.html",
+            TocPageUrl.join("https://host/search/list?q=x", "books/1.html", "https://host"),
+        )
+        assertEquals(
+            "https://host/books/1.html",
+            TocPageUrl.join("https://host/search?q=x", "books/1.html", "https://host"),
+        )
+    }
+
+    @Test
+    fun `空链接返回空串而不是当前目录`() {
+        // selectAttr 无匹配时给空串：落位层必须保持「没有下一页」，不能让调用方去请求目录本身
+        assertEquals("", TocPageUrl.join("$sourceRoot/book/1/", "", sourceRoot))
+        assertEquals("", TocPageUrl.join("$sourceRoot/book/1/index.html", "   ", sourceRoot))
+    }
+
+    @Test
+    fun `斜杠开头的相对地址按站点根落位不带书源路径`() {
+        // 与 `BookSourceNetwork.absoluteUrl` 的 `/` 形态**不**是同一个落点：那边按整条 `rule.url`
+        // 拼（`https://host/books` + `/x` → `https://host/books/x`，取文层旧口径），这边按浏览器
+        // 根相对语义只取 `scheme://host[:port]`。`bookSourceUrl` 带路径时两者分叉，各按各的口径
+        // 锁住（规格 §6.5「两个基准不是一回事」）
+        assertEquals(
+            "https://host/toc.html",
+            TocPageUrl.join("https://host/books/1/index.html", "/toc.html", "https://host/books"),
+        )
+    }
+
+    @Test
+    fun `源根没有路径时相对链接按源根目录落位`() {
+        // `https://host` 的最后两个斜杠属于 scheme，不是可替换的路径段；
+        // 直接按 substringBeforeLast 会拼出 `https:/toc.html` 或 `https://toc.html`
+        assertEquals("https://host/toc.html", TocPageUrl.join("https://host", "toc.html", "https://host"))
+        assertEquals("https://host/book/1.html", TocPageUrl.join("https://host/", "book/1.html", "https://host"))
     }
 
     @Test

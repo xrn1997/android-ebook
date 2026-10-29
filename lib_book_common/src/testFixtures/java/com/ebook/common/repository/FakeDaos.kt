@@ -61,8 +61,12 @@ class FakeBookShelfDao : BookShelfDao {
     }
 
     override suspend fun insertAll(books: List<BookShelfEntity>) = books.forEach { insert(it) }
-    override suspend fun update(bookShelf: BookShelfEntity) {
+
+    /** 与真 DAO 的 `@Update` 同语义：行不存在时静默不写并返回 0；upsert 只归 [insert]/[insertAll] */
+    override suspend fun update(bookShelf: BookShelfEntity): Int {
+        if (bookShelf.noteUrl !in shelfByNoteUrl) return 0
         shelfByNoteUrl[bookShelf.noteUrl] = bookShelf
+        return 1
     }
 
     override suspend fun delete(bookShelf: BookShelfEntity) {

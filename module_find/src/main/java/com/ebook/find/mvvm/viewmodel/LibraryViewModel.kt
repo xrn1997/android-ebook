@@ -18,7 +18,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -174,12 +173,25 @@ class LibraryViewModel @Inject constructor(
      * 读的是 Room 里那一行的规则（见 [BookSourceRepository.getBookTypeList]）。
      * 读失败只记日志并给空列表：书城少一排分类胶囊仍是可用的页面，异常抛进 viewModelScope
      * 就是整个主 Tab 崩掉。
+     *
+     * **异常必须收在 `map` 内，不能写在链尾 `.catch`**：`catch` 捕获后上游就 complete，
+     * 一次读取失败会让 `bookTypeList` 永久停在空列表，用户切源也不再重算。这里按源隔离失败，
+     * `currentSource` 的后续变化照常进入新的一轮。
      */
     val bookTypeList: StateFlow<List<BookType>> = currentSource
-        .map { source -> if (source == null) emptyList() else bookSourceRepository.getBookTypeList(source.sourceUrl) }
-        .catch { e ->
-            Logger.e(TAG, "分类入口加载失败: ", e)
-            emit(emptyList())
+        .map { source ->
+            if (source == null) {
+                emptyList()
+            } else {
+                try {
+                    bookSourceRepository.getBookTypeList(source.sourceUrl)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Logger.e(TAG, "分类入口加载失败: ", e)
+                    emptyList()
+                }
+            }
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -263,11 +275,10 @@ class LibraryViewModel @Inject constructor(
                     // 能问到数据（哪怕是空）就说明这个源解得开：清掉可能残留的失效标记。
                     // SWR 双发射时这行会跑两遍，重复清零无害
                     _sourceUnusable.value = false
-                    value.kindBooks
-                        // 空结果不清列表（换源清空只发生在方法开头）：该源没配 ruleFind.kinds
-                        // 属成功形态，收掉刷新即可，把列表清了反而像加载失败
-                        ?.takeIf { it.isNotEmpty() }
-                        ?.let { updateList(it) }
+                    // 空实体 = 源没有发现入口（enabledExplore=false / 未配置分类），是**成功**形态；
+                    // 清空列表是它的事实，不是加载失败。保留旧屏会让「胶囊已消失、区块还在」
+                    // 这种半关状态一直挂着（仓库已在缓存命中前做过同样的收口）。
+                    updateList(value.kindBooks.orEmpty())
                     updateStopRefresh()
                 }
             } catch (e: CancellationException) {
