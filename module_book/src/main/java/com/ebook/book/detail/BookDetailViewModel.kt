@@ -1,27 +1,60 @@
 package com.ebook.book.detail
 
-import com.ebook.book.R
 import com.xrn1997.common.util.Logger
 import androidx.lifecycle.viewModelScope
 import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.analyze.source.parserOrThrow
-import com.ebook.common.repository.BookRepository
 import com.ebook.common.repository.BookShelfEvent
 import com.ebook.common.repository.ChapterSyncResult
-import com.ebook.common.util.reportFailure
+import com.ebook.common.repository.ChapterTocSync
+import com.ebook.common.repository.ShelfRepository
+import com.ebook.common.util.SingleNoticeSlot
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.source.analyze.BookSourceNotFoundException
-import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Collections
 import javax.inject.Inject
+
+/**
+ * 详情页的一次性**语义结论**：只带语义与数字，句子归 [BookDetailActivity]（ADR-0061）。
+ *
+ * 本页的提示分两类出口，都在页面里按分支分流（映射表不带 `else`，新增一档编译不过）：
+ * - [SourceInvalid] 是**失败**，页面仍走共享的 `reportFailure(cause, 文案)`——
+ *   「A0230 会话过期已由网络层全局处置、这里只记日志不重复提示」那条不变量由它收口；
+ * - 其余三档是「做完了什么」的回显/固定失败文案，页面走基类的 `sendToast` 命令通道，
+ *   与改动前的出口一致。
+ *
+ * 结论走状态流而不是直接把文案塞 `sendToast`：基类命令通道在测试里观测不到，而
+ * 「哪一类失败说哪一句话」这件事必须可断言（承载机制见 [SingleNoticeSlot]）。
+ */
+sealed interface BookDetailNotice {
+
+    /** 目录重抓追加了新章：[count] 是本次追加的章数（`chapters_appended` 的带参占位） */
+    data class ChaptersAppended(val count: Int) : BookDetailNotice
+
+    /** 加入书架写库失败 */
+    data object AddShelfFailed : BookDetailNotice
+
+    /** 移出书架写库失败 */
+    data object RemoveShelfFailed : BookDetailNotice
+
+    /**
+     * 这本书绑定的源已不在清单里（或那一行规则读不出）。
+     *
+     * 带 [cause] 而不是只发一句话：页面要拿它去 `reportFailure`，判会话过期那条不变量
+     * 只在异常还在时才有意义。它的 message 形如「书源已失效：<URL>」，直接把 message
+     * 上屏等于把内部标识甩给用户，所以页面取的是资源文案。
+     */
+    data class SourceInvalid(val cause: Throwable) : BookDetailNotice
+}
 
 /**
  * 详情页 UI 状态（可观察，驱动 Compose 重组）。
@@ -52,14 +85,24 @@ data class BookDetailUiState(
 
 @HiltViewModel
 class BookDetailViewModel @Inject constructor(
-    private val bookRepository: BookRepository,
-    private val sourceResolver: SourceResolver
-) : BaseViewModel<BookRepository>(bookRepository) {
+    private val bookShelfRepository: ShelfRepository,
+    private val sourceResolver: SourceResolver,
+    private val chapterTocSync: ChapterTocSync,
+) : BaseViewModel<ShelfRepository>(bookShelfRepository) {
     val bookShelfList: MutableList<BookShelfEntity> =
         Collections.synchronizedList(ArrayList())
     var searchBook: SearchBookEntity? = null
 
     private val _detailState = MutableStateFlow(BookDetailUiState())
+
+    /** 详情页的一次性结论（文案与出口在 [BookDetailActivity]，见 [BookDetailNotice]） */
+    private val notices = SingleNoticeSlot<BookDetailNotice>()
+
+    /** 待页面消费的结论；页面展示后经 [consumeNotice] 清零 */
+    val notice: StateFlow<BookDetailNotice?> = notices.notice
+
+    /** 结论已被页面取走并展示 */
+    fun consumeNotice() = notices.consume()
 
     /**
      * 详情页可观察状态（Compose 侧经 collectAsState 订阅）。
@@ -78,7 +121,7 @@ class BookDetailViewModel @Inject constructor(
         // 原 Activity onCreate 的 lifecycleScope 收集在旋转时会对同一个 VM 的 bookShelfList
         // 重复 add，导致列表元素重复——移入 VM init 后每 VM 只收集一次，天然幂等。
         viewModelScope.launch {
-            bookRepository.bookShelfEvents.collect { event ->
+            bookShelfRepository.bookShelfEvents.collect { event ->
                 when (event) {
                     is BookShelfEvent.Added -> {
                         synchronized(bookShelfList) { bookShelfList.add(event.bookShelf) }
@@ -122,19 +165,19 @@ class BookDetailViewModel @Inject constructor(
      */
     private fun syncChaptersQuietly(shelf: BookShelfEntity) {
         viewModelScope.launch {
-            when (val result = bookRepository.syncChaptersFromSource(shelf)) {
+            when (val result = chapterTocSync.syncChaptersFromSource(shelf)) {
                 is ChapterSyncResult.Appended -> {
                     // 必须 copy 出新实体经 update 提交：BookShelfEntity 装在 StateFlow 里，
                     // 就地改它的 chapterList 不改变对象引用，StateFlow 判等后不会重发，
                     // 页面目录就停在旧长度。
                     // 目录取库里那份，不用「旧 + appended」拼：拼出来的基数是页面自己那份目录，
                     // 不保证等于库内行数，而阅读器据它写回的 dur_chapter 是列表位置（见 getStoredChapters）
-                    val stored = bookRepository.getStoredChapters(shelf.noteUrl)
+                    val stored = chapterTocSync.getStoredChapters(shelf.noteUrl)
                     _detailState.update { state ->
                         val current = state.bookShelf ?: return@update state
                         state.copy(bookShelf = current.copy(chapterList = stored))
                     }
-                    sendToast(context.getString(R.string.chapters_appended, result.appended.size))
+                    notices.emit(BookDetailNotice.ChaptersAppended(result.appended.size))
                 }
 
                 is ChapterSyncResult.Diverged ->
@@ -169,7 +212,7 @@ class BookDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _detailState.update { it.copy(loading = true, loadError = false) }
             try {
-                val bookShelves = bookRepository.getAllBooks()
+                val bookShelves = bookShelfRepository.getAllBooks()
                 synchronized(bookShelfList) {
                     bookShelfList.clear()
                     bookShelfList.addAll(bookShelves)
@@ -204,12 +247,12 @@ class BookDetailViewModel @Inject constructor(
                     // 书架再按 getOrNull(durChapter) 读就落空（读至空白 + 点进去提示加载失败）。
                     // 判定与序号重排都在仓库那半截里，这里不为落库再翻一遍目录页。
                     if (shelfRow.tag == bookShelf.tag) {
-                        when (val result = bookRepository.appendRemoteChapters(
+                        when (val result = chapterTocSync.appendRemoteChapters(
                             bookShelf,
                             bookShelfWebChapter.chapterList,
                         )) {
                             is ChapterSyncResult.Appended ->
-                                sendToast(context.getString(R.string.chapters_appended, result.appended.size))
+                                notices.emit(BookDetailNotice.ChaptersAppended(result.appended.size))
 
                             // 分叉：库里那份追不上远端，更不能把库里没有的章交给阅读器 ——
                             // 落到下面的回读，页面显示的就是实际可读的那些章，另给一条常驻提示
@@ -232,7 +275,7 @@ class BookDetailViewModel @Inject constructor(
                     // `final_refresh_data` 并弹一条本地目录已失效的提示条 ——
                     // 那是**另一条源**的目录与这本书的本地目录在比，不是这本书的事实。
                     bookShelfWebChapter.copy(
-                        chapterList = bookRepository.getStoredChapters(bookShelf.noteUrl),
+                        chapterList = chapterTocSync.getStoredChapters(bookShelf.noteUrl),
                     )
                 } else {
                     // 未加书架：库里没有这本书的任何目录行，源上这份就是唯一可渲染、可阅读的一份
@@ -254,13 +297,13 @@ class BookDetailViewModel @Inject constructor(
         mBookShelf?.let { shelf ->
             viewModelScope.launch {
                 try {
-                    bookRepository.addToShelf(shelf)
+                    bookShelfRepository.addToShelf(shelf)
                     Logger.d(TAG, "addToBookShelf: ${shelf.noteUrl}")
                 } catch (e: Exception) {
                     Logger.e(TAG, "addToBookShelf failed: ${shelf.noteUrl}", e)
-                    // 一次性命令通道（sendToast）而非直调 Toast：MvvmBinder 在主线程消费，
-                    // 文案走字符串资源（对齐 lib_common ViewModelNoDirectToastTest 门禁约定）
-                    sendToast(context.getString(R.string.import_add_failed))
+                    // 结论进状态流、文案在页面拼（ADR-0061）；出口仍是基类的一次性命令通道
+                    // （由 MvvmBinder 在主线程消费），与改动前同一条 Toast 路径
+                    notices.emit(BookDetailNotice.AddShelfFailed)
                 }
             }
         }
@@ -270,10 +313,10 @@ class BookDetailViewModel @Inject constructor(
         mBookShelf?.let { shelf ->
             viewModelScope.launch {
                 try {
-                    bookRepository.removeFromShelf(shelf)
+                    bookShelfRepository.removeFromShelf(shelf)
                 } catch (e: Exception) {
                     Logger.e(TAG, "removeFromBookShelf failed: ${shelf.noteUrl}", e)
-                    sendToast(context.getString(R.string.remove_shelf_failed))
+                    notices.emit(BookDetailNotice.RemoveShelfFailed)
                 }
             }
         }
@@ -284,7 +327,8 @@ class BookDetailViewModel @Inject constructor(
      *
      * 解析器按 `searchBook.tag`（书源归属）取，不按「当前默认源」取（见 ADR-0016）：详情页展示的这本
      * 书来自哪个站，就必须用那个站的规则解它的 `noteUrl`。归属查不到时抛
-     * [BookSourceNotFoundException]，这里经 [reportFailure] 提示后返回 null——
+     * [BookSourceNotFoundException]，这里发 [BookDetailNotice.SourceInvalid]（页面据此提示并
+     * 走 `reportFailure` 的共享上报口径）后返回 null——
      * 调用方据此收掉 loading 并进 [BookDetailUiState.loadError]，绝不让覆盖层永远转下去。
      */
     private suspend fun fetchBookInfo(searchBook: SearchBookEntity): BookShelfEntity? {
@@ -302,7 +346,7 @@ class BookDetailViewModel @Inject constructor(
             // 取消不是「拉不到详情」：吞掉会让销毁中的页面渲染成错误态
             throw e
         } catch (e: BookSourceNotFoundException) {
-            reportFailure(e, context.getString(R.string.book_source_invalid))
+            notices.emit(BookDetailNotice.SourceInvalid(e))
             Logger.e(TAG, "fetchBookInfo 书源已失效: ${searchBook.tag} / ${searchBook.noteUrl}", e)
             null
         } catch (e: Exception) {
@@ -327,7 +371,7 @@ class BookDetailViewModel @Inject constructor(
             // 取消不是"取不到章节"：吞掉会让调用方把销毁中的页面渲染成空目录
             throw e
         } catch (e: BookSourceNotFoundException) {
-            reportFailure(e, context.getString(R.string.book_source_invalid))
+            notices.emit(BookDetailNotice.SourceInvalid(e))
             Logger.e(TAG, "fetchChapterList 书源已失效: ${bookShelf.tag} / ${bookShelf.noteUrl}", e)
             null
         } catch (e: Exception) {

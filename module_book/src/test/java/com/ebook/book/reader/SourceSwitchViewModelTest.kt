@@ -1,6 +1,5 @@
 package com.ebook.book.reader
 
-import androidx.test.core.app.ApplicationProvider
 import com.ebook.common.analyze.source.SourceBinding
 import com.ebook.common.analyze.source.SourceExploreEntry
 import com.ebook.common.analyze.source.SourceResolver
@@ -22,7 +21,6 @@ import com.ebook.db.entity.WebChapterEntity
 import com.ebook.source.analyze.AggregateSearchEvent
 import com.ebook.source.analyze.BookParser
 import com.ebook.source.analyze.BookSourceNotFoundException
-import com.xrn1997.common.BaseApplication
 import java.io.File
 import java.lang.reflect.Proxy
 import kotlinx.coroutines.Dispatchers
@@ -42,12 +40,9 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 
 /**
- * [SourceSwitchViewModel] 的单元测试（Robolectric + 测试调度器）。
+ * [SourceSwitchViewModel] 的单元测试（纯 JVM + 测试调度器）。
  *
  * 锁七件事：
  * 1. **匹配度打分五档**（100/80/50/20/0）与各档的边界（空作者不算「作者相同」、带《》仍算同名）；
@@ -60,14 +55,12 @@ import org.robolectric.annotation.Config
  * 7. **整条聚合流出问题**时加载态照收、进度按已登记的源收满，失败原因留在 `searchFailure` 里
  *    供面板内联渲染（本 VM 的命令通道无人收集，不进状态就等于什么也没说）。
  *
- * Robolectric 只承担一件事：setUp 要把真的 `Application` 注入 `BaseApplication.context`
- * （纯 JVM 下 `android.*` 是抛「Stub!」的桩）。**本 VM 已不取字符串资源**——失败提示的出口在面板，
- * 见 [SourceSwitchViewModel] 的类 KDoc。
+ * 纯 JVM：本 VM 不取字符串资源——失败提示的出口在面板，见 [SourceSwitchViewModel] 的类 KDoc；
+ * 换源结果以 `Result<SourceSwitchOutcome>` 原样交回调用方，路径上不碰 `BaseApplication.context`，
+ * 故不需要 Robolectric 提供 Android 运行时。
  * 仓库用真 [BookRepository] 配白名单 DAO 替身：本组用例锁 VM 的编排与交回，
  * 换源事务本身的落库范围由 `BookRepositorySwitchSourceTest` 锁，不在这里重做。
  */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class SourceSwitchViewModelTest {
 
     private companion object {
@@ -84,7 +77,6 @@ class SourceSwitchViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(mainDispatcher)
-        BaseApplication.context = ApplicationProvider.getApplicationContext()
     }
 
     @After

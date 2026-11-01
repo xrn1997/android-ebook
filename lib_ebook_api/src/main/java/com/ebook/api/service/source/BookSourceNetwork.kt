@@ -53,6 +53,4 @@ class BookSourceNetwork(
 
         return responseBody.use { BookSourceService.decode(it.bytes(), rule.charset) }
     }
-
-    override fun getCurrentRule(): BookSourceRule = rule
 }

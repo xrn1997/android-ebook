@@ -99,7 +99,7 @@ class HostCallbackRouter : HostHandler {
  * 可见性：`internal` 够用。装配点（Task 10 的 `SandboxModule`）确实落在 `lib_book_common`，
  * 但跨过模块边界的只有 public 的 [HostCallbackRouter] 与 `JsSandboxHost`；本类的实例由同模块的
  * `SandboxScriptJs` 造出并直接交给转子（`JsSandboxHost.bridgeFor` 是 internal 成员，签名上出现
- * internal 类型合法），因此 `JsCallbackProxy`、`HeadStatusProbe`、`GuardedNetwork`、
+ * internal 类型合法），因此 `JsCallbackProxy`、`HeadStatusProbe`、`SourceNetworkExit`、
  * `SandboxScriptJs`、`JsNetworkGuard`、`SourceHostAllowlist` 一律留在 internal——
  * 上浮面越小，将来改回调协议时被牵住的调用点越少。
  */
@@ -478,30 +478,4 @@ internal class HeadStatusProbe(private val client: OkHttpClient) {
         val request = Request.Builder().url(url).method("HEAD", null).build()
         client.newCall(request).execute().use { response -> response.code }
     }
-}
-
-/**
- * 主进程侧「带守门的网络」的唯一构造点。
- *
- * `newBuilder()` 共享连接池与线程池、只换 DNS 与 cookie 罐。取体与探测**必须用同一份派生客户端**：Task 5 把
- * 地址判定挂在 OkHttp 真正解析的那一次上（不留 DNS 重绑窗口），若两条路径各建各的客户端，
- * 就会出现「探测放行、取体被拒」这种半截防线。
- *
- * `cookies` 参数是同一份理由的 cookie 版本：脚本外呼要能自动攒下会话（否则 `cookie.getCookie` 永远读到空串），
- * 而攒下的那一份必须就是脚本显式读写的那一份——由调用方（`ScriptBookParser`）持罐、在这里挂进客户端。
- * 不传即维持「不带 cookie」的原状：调用点只有 `sandboxGateway` 与 `HeadStatusProbe` 两处，
- * 两处漏一处就长成「会话在取体那侧有、在探测那侧没有」。
- *
- * 传入的 `base` 必须是 `@Named("source")` 那个纯净客户端——第三方站点永远拿不到用户 token。
- */
-internal object GuardedNetwork {
-
-    fun clientFor(
-        base: OkHttpClient,
-        guard: JsNetworkGuard,
-        cookies: SourceCookieJar? = null,
-    ): OkHttpClient = base.newBuilder()
-        .dns(GuardedDns(guard))
-        .apply { cookies?.let { cookieJar(it) } }
-        .build()
 }

@@ -2,8 +2,9 @@ package com.ebook.book.importer
 
 import com.ebook.common.domain.DuplicateBookDetector
 import com.ebook.common.domain.ParsedBookMeta
-import com.ebook.common.repository.BookRepository
+import com.ebook.common.repository.CommentKeys
 import com.ebook.common.repository.ImportMergeResult
+import com.ebook.common.repository.ShelfRepository
 import com.ebook.db.entity.LocBookShelfEntity
 import com.xrn1997.common.util.Logger
 import kotlinx.coroutines.CompletableDeferred
@@ -97,7 +98,8 @@ sealed interface ImportNotice {
 class LocalImportCoordinator @Inject constructor(
     private val importer: LocalBookImporter,
     private val duplicateBookDetector: DuplicateBookDetector,
-    private val bookRepository: BookRepository,
+    private val bookShelfRepository: ShelfRepository,
+    private val commentKeys: CommentKeys,
 ) {
     /** 自有作用域：批量导入的生命周期与任何页面解耦（进程活着它就活着） */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -243,7 +245,7 @@ class LocalImportCoordinator @Inject constructor(
     ) {
         if (!imported.new) return
         val target = matches.firstOrNull { it.isLocal } ?: return
-        when (val outcome = bookRepository.mergeTailChapters(imported.bookShelf.noteUrl, target.noteUrl)) {
+        when (val outcome = bookShelfRepository.mergeTailChapters(imported.bookShelf.noteUrl, target.noteUrl)) {
             is ImportMergeResult.Merged ->
                 notices.tryEmit(
                     if (outcome.appendedChapters > 0) ImportNotice.MergeAppended(outcome.appendedChapters)
@@ -258,7 +260,7 @@ class LocalImportCoordinator @Inject constructor(
     /**
      * 覆盖：新条目替换掉命中的旧条目。
      *
-     * 删每一本之前先把它的 `book_group` 行吸收进新条目（[BookRepository.absorbGroupKeys]）——
+     * 删每一本之前先把它的 `book_group` 行吸收进新条目（[CommentKeys.absorbGroupKeys]）——
      * 旧条目身上可能挂着它自己历次合并攒下的 secondary 键，`book_group` 随书删，不先吸收就
      * 连读并集一起丢了。
      *
@@ -271,8 +273,8 @@ class LocalImportCoordinator @Inject constructor(
     ) {
         val newNoteUrl = imported.bookShelf.noteUrl
         matches.filter { it.noteUrl != newNoteUrl }.forEach { old ->
-            bookRepository.absorbGroupKeys(newNoteUrl, old.noteUrl)
-            bookRepository.getBookByUrl(old.noteUrl)?.let { bookRepository.removeFromShelf(it) }
+            commentKeys.absorbGroupKeys(newNoteUrl, old.noteUrl)
+            bookShelfRepository.getBookByUrl(old.noteUrl)?.let { bookShelfRepository.removeFromShelf(it) }
         }
     }
 

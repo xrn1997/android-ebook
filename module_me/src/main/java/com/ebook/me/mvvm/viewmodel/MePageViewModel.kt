@@ -4,8 +4,8 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.common.domain.ThemeMode
 import com.ebook.common.domain.ThemeModeManager
 import com.ebook.common.domain.UserSessionManager
-import com.ebook.common.repository.BookRepository
 import com.ebook.common.repository.ProfileRepository
+import com.ebook.common.repository.ShelfRepository
 import com.xrn1997.common.mvvm.model.NoOpModel
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -59,7 +59,7 @@ data class ReadingStats(
  * - [meState]：登录态（[UserSessionManager]）+ 资料（[ProfileRepository]）合并，
  *   页面只收集一个状态流，避免在 Composable 里散落多条 collectAsState 与回退判断
  *   （命名避开基类的 uiState，后者专驱加载/错误覆盖层，与 BookDetailViewModel/CacheManageViewModel 同约定）
- * - [readingStats]：书架本地数据（[BookRepository.observeBookShelf]），Room 失效追踪自动推送，
+ * - [readingStats]：书架本地数据（[ShelfRepository.observeBookShelf]），Room 失效追踪自动推送，
  *   阅读 App 的「我的」页核心内容，无后端也真实可读
  * - [themeMode]：当前外观主题模式，转发 [ThemeModeManager.themeMode]（与 `SettingViewModel.themeMode`
  *   同一个来源），供头部渐变按深浅色适配
@@ -70,7 +70,7 @@ data class ReadingStats(
 class MePageViewModel @Inject constructor(
     profileRepository: ProfileRepository,
     userSessionManager: UserSessionManager,
-    bookRepository: BookRepository,
+    bookShelfRepository: ShelfRepository,
     themeModeManager: ThemeModeManager,
 ) : BaseViewModel<NoOpModel>(NoOpModel()) {
 
@@ -93,7 +93,7 @@ class MePageViewModel @Inject constructor(
     )
 
     /** 书架统计：observeBookShelf 按 finalDate 倒序，first 即最近在读 */
-    val readingStats: StateFlow<ReadingStats> = bookRepository.observeBookShelf()
+    val readingStats: StateFlow<ReadingStats> = bookShelfRepository.observeBookShelf()
         .map { books ->
             ReadingStats(
                 shelfCount = books.size,

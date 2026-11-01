@@ -1,7 +1,7 @@
 package com.ebook.api.utils
 
 import android.content.Context
-import com.ebook.api.BuildConfig
+import com.ebook.api.config.ServerAddressStore
 import com.ebook.api.intercepter.EncodingInterceptor
 import com.xrn1997.common.di.AuthAllowedHosts
 import dagger.Module
@@ -33,13 +33,17 @@ object NetworkModule {
     ): TestAssetManager = TestAssetManager(context.assets::open)
 
     /**
-     * 认证客户端不再自建：统一注入 lib_common 共享 Call.Factory（AuthInterceptor + 白名单 +
-     * debug 脱敏日志，30s 超时），见 ADR-0014。此处只保留白名单绑定与书源纯净客户端。
+     * 认证 token 白名单与 Retrofit 基址同源（ServerAddressStore），且同源到**同一档**：都读
+     * [ServerAddressStore.effective]——store 构造时冻结的进程快照。于是谁先被注入、中间有没有
+     * 保存过地址都不影响结果，不会出现「请求打到新地址、白名单还是旧主机」的错配。
+     * 未配置时为**空集**：没有任何 host 能拿到 token（应用不带默认地址，ADR-0053）。
+     * 改地址后要指向新主机，只能重启进程（ADR-0052）。
      */
     @Provides
     @Singleton
     @AuthAllowedHosts
-    fun provideAuthAllowedHosts(): Set<String> = setOf(BuildConfig.EBOOK_SERVER_HOST)
+    fun provideAuthAllowedHosts(store: ServerAddressStore): Set<String> =
+        store.effective()?.host?.let { setOf(it) } ?: emptySet()
 
     /**
      * 书源请求客户端：纯净 OkHttpClient，不携带登录凭证（Authorization 头），

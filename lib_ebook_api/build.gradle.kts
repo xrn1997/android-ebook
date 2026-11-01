@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.util.Properties
 
 plugins {
     alias(libs.plugins.xrn1997.android.library)
@@ -9,23 +8,19 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// 开发期服务端地址：从机器私有的 local.properties 读 ebook.server.host（不进版本库），
-// 缺省 10.0.2.2（模拟器映射宿主机 localhost，适配「本机跑 ebook-server + 模拟器调试」形态）；
-// 真机局域网联调时在本机 local.properties 写 ebook.server.host=<局域网 IP> 即可，无需改代码。
-val localProps = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.exists()) file.inputStream().use { load(it) }
-}
-val ebookServerHost = localProps.getProperty("ebook.server.host", "10.0.2.2")
+// 本模块不内置服务器地址（ADR-0053）：ebook-server 基址由用户在「设置 → 服务器地址」
+// 自行配置（ServerAddressStore 持久化），构建期不注入任何主机值——发版包里没有可提取的
+// 默认地址，开发机也走同一形态（App 内手填一次，SP 记住），debug/release 零差异。
 
 android {
     namespace = "com.ebook.api"
     defaultConfig {
-        buildConfigField("String", "EBOOK_SERVER_HOST", "\"$ebookServerHost\"")
         consumerProguardFiles("consumer-rules.pro")
     }
-    buildFeatures {
-        buildConfig = true
+    // SP 测试假件（FakeSharedPreferences）经 testFixtures 给 lib_book_common / module_me
+    // 的测试共用：三处都要制造「commit 写盘失败」，各留一份必然漂移
+    testFixtures {
+        enable = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -58,6 +53,9 @@ dependencies {
     testImplementation(libs.junit)
     // mock 数据源（CommentNetworkTest 等）的资产契约测试需要 runTest 驱动 suspend 方法
     testImplementation(libs.kotlinx.coroutines.test)
+    // ServerAddressStore 需要真实 SharedPreferences 与 Application 上下文（Robolectric JVM）
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 }

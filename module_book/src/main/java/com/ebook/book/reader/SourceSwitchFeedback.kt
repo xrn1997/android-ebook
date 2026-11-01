@@ -11,9 +11,10 @@ import com.ebook.source.analyze.BookSourceNotFoundException
  * 报成「已跳到第 N 章」等于把坏消息藏起来）。它们全是纯函数，直接 JVM 单测即可锁住，
  * 不必为几条 if 去写 Compose UI 测试（本仓 Compose 页面不做装机级单测，见 docs/development.md「测试」）。
  *
- * 返回值刻意用枚举而不是 `@StringRes` 整型 id：id 要在 Robolectric 下才取到（`SourceSwitchViewModelTest`
- * 即为取资源文案而挂 Robolectric），枚举在纯 JVM 就能断言；枚举与文案的配对由 UI 里
- * **穷尽 when** 保证——漏一档编译不过，所以配对不会被测漏。
+ * 返回值刻意用枚举而不是 `@StringRes` 整型 id：资源 id 只有在 Android 运行时才解析得出，
+ * 断言它就得把用例挂上 Robolectric（`SourceSwitchViewModelTest` 已是纯 JVM，不再为取资源付这笔账），
+ * 枚举在纯 JVM 就能断言；枚举与文案的配对由 UI 里 **穷尽 when** 保证——漏一档编译不过，
+ * 所以配对不会被测漏。
  */
 
 /** 候选与当前书的匹配度标签档，依据 `SourceSwitchViewModel.matchScore` 的五档分数。 */
@@ -99,7 +100,7 @@ enum class SwitchFailureHint {
  * 为什么面板要自己显示失败而不是靠 ViewModel 的 `reportFailure`：后者经基类的一次性命令通道
  * （`sendToast`）出口，而该通道只有**被 `MvvmBinder` 绑定的那个 ViewModel** 会被收集
  * （本宿主绑的是 `BookReadViewModel`，`SourceSwitchViewModel` 不在其中）——它的命令只会堆在
- * Channel 里随 VM 销毁丢弃，即 `DownloadManageViewModel` 注释里点过的同一条陷阱。
+ * Channel 里随 VM 销毁丢弃（不报错、不闪退，只是永远不响）。
  * **面板内联因此是本条链路上唯一的提示出口**：`SourceSwitchViewModel` 里那条 `reportFailure`
  * 已于 2026-09-08 删除（写了等于没写），失败原因一律经 VM 状态与 `Result` 交到这里。
  * 另：`SearchFailed` 不走本函数——它由「候选那一轮出了失败状态」这一事实直接给出，

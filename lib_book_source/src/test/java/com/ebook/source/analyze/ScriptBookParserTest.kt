@@ -2,6 +2,11 @@ package com.ebook.source.analyze
 
 import com.ebook.db.entity.BookInfoEntity
 import com.ebook.db.entity.BookShelfEntity
+import com.ebook.source.script.EvalContext
+import com.ebook.source.script.JsRewrittenUrl
+import com.ebook.source.script.RuleResult
+import com.ebook.source.script.RuleValue
+import com.ebook.source.script.ScriptJsBridge
 import com.ebook.source.script.ScriptRuleParseException
 import com.ebook.source.script.ScriptRequest
 import com.ebook.source.script.ScriptTransport
@@ -140,6 +145,44 @@ class ScriptBookParserTest {
     fun `未配 searchUrl 的源搜索返回空列表而不是报错`() = runTest {
         val source = """{"bookSourceUrl":"https://www.example.com","bookSourceName":"无搜索"}"""
         assertTrue(ScriptBookParser(source, RecordingTransport()).searchBook("凡人", 1).isEmpty())
+    }
+
+    /** 只答 `js` URL 选项一问的假桥：把地址改写成 [rewritten]，其余入口一律不该被走到 */
+    private class UrlJsBridge(private val rewritten: String) : ScriptJsBridge {
+        override fun runUrlJs(script: String, url: String, headers: Map<String, String>): JsRewrittenUrl =
+            JsRewrittenUrl(rewritten, headers)
+
+        override fun runSegment(source: String, input: RuleValue): RuleResult = error("取文层不该跑 @js: 段")
+        override fun runExpression(expr: String): String = error("取文层不该跑表达式")
+        override fun runBodyJs(script: String, url: String, body: String): String = error("不该跑 bodyJs")
+        override fun runInit(script: String, input: RuleValue): Map<String, String> = error("不该跑 init")
+    }
+
+    /**
+     * ADR-0058 的接线锁：URL 选项 `js` 改写出的地址**也从取文出口发出**——与声明式 URL 同一只
+     * transport（生产即 `SourceNetworkExit.contentClientFor` 派生出的客户端），不另辟路径。
+     * 沙箱那一路发不发、发去哪由 `sandboxGateway`/`JsCallbackProxyTest` 负责，两路口径不得混同。
+     * 桥按 `ScriptHttpTest` 同法直接装在 ctx 上：本用例锁的是解析器取文面的 transport 归属，
+     * 不依赖真内核（QuickJsNative 缺席也必须跑）。
+     */
+    @Test
+    fun `URL 选项 js 改写后的地址也从取文出口发出`() = runTest {
+        val transport = RecordingTransport("https://www.example.com/real" to "<html>ok</html>")
+        val parser = ScriptBookParser(htmlSource, transport)
+        val ctx = EvalContext(baseUrl = "https://www.example.com/")
+        ctx.js = UrlJsBridge("https://www.example.com/real")
+
+        val page = parser.fetcher.fetchPage(
+            """https://www.example.com/orig,{"js":"url = url + '?x=1'"}""",
+            ctx,
+        ) { RuleResult.Miss }
+
+        assertEquals(
+            "js 改写后的地址必须经解析器的取文 transport 发出",
+            listOf("https://www.example.com/real"),
+            transport.requests.map { it.url },
+        )
+        assertEquals("落点地址回传的也是改写后的那个", "https://www.example.com/real", page.url)
     }
 
     /** 发现链路夹具：exploreUrl 两个文本条目（`名称::URL`），ruleExplore 语料与 ruleSearch 同构 */

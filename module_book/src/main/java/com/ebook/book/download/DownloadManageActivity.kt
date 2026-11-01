@@ -51,6 +51,7 @@ import com.ebook.common.ui.preview.AppPreview
 import com.ebook.common.ui.preview.SAMPLE_COVER_URL
 import com.ebook.common.ui.preview.SAMPLE_SOURCE_URL
 import com.ebook.common.ui.preview.sampleDownloadChapter
+import com.ebook.common.util.reportFailure
 import com.permissionx.guolindev.PermissionX
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
@@ -136,6 +137,17 @@ class DownloadManageActivity : BaseMvvmActivity<DownloadManageViewModel>() {
             .permissions(PermissionX.permission.POST_NOTIFICATIONS)
             .request { _: Boolean, _: List<String?>?, _: List<String?>? -> onResult() }
     }
+}
+
+/**
+ * 下载中心结论 → 文案：**本页唯一的句子来源**（ADR-0061）。
+ *
+ * `when` 不带 `else`：新增一档结论时这里编译不过，而不是运行时静默少弹一条。
+ */
+@Composable
+private fun downloadNoticeText(notice: DownloadCenterNotice): String = when (notice) {
+    DownloadCenterNotice.StartRestricted -> stringResource(R.string.download_start_restricted)
+    is DownloadCenterNotice.LoadFailed -> stringResource(R.string.download_center_load_failed)
 }
 
 /**
@@ -255,27 +267,31 @@ private fun DownloadCenterScreen(
     val groups by viewModel.groups.collectAsState()
     // 二级当前书的装载结果（null = 还没有结论，根组件按「加载中」渲染）
     val bookSheet by viewModel.bookSheet.collectAsState()
+    val notice by viewModel.notice.collectAsState()
+
+    // 结论 → 文案在这一层做：VM 只发 [DownloadCenterNotice]（ADR-0061）。
+    // 文案先在组合期解析好再交给一次性上报——LaunchedEffect 不是 Composable 上下文。
+    val pendingNotice = notice?.let { it to downloadNoticeText(it) }
+    LaunchedEffect(pendingNotice) {
+        val (conclusion, text) = pendingNotice ?: return@LaunchedEffect
+        // 分支不带 else：新增一档结论时这里编译不过，不会静默少弹一条。
+        // 装载失败仍是「失败」：会话过期只记日志、不重复提示那条不变量由 reportFailure 收口。
+        // 启动受限不是失败（无异常、无会话过期语义），按一次性提示展示即可。
+        when (conclusion) {
+            DownloadCenterNotice.StartRestricted -> viewModel.sendToast(text)
+            is DownloadCenterNotice.LoadFailed -> viewModel.reportFailure(conclusion.cause, text)
+        }
+        viewModel.consumeNotice()
+    }
 
     // 状态驱动刷新：进度每推进一章，一级分组与（若在二级）该书状态标签同步刷新；
-    // 打开页面时若队列有任务则自动续跑（对齐原弹窗 initWait，见 resumeIfPending）
+    // 打开页面时若队列有任务则自动续跑（对齐原弹窗 initWait，见 resumeIfPending）。
+    // 「结局→该刷哪一面」的编排不在这层——collect 直接把结局交给 ViewModel，
+    // 由 DownloadCenterSession 推进下载态并返回刷新路由（见 ViewModel.onDownloadState，ADR-0060）。
     LaunchedEffect(Unit) {
         viewModel.loadGroups()
         viewModel.resumeIfPending()
-        viewModel.downloadState.collect { s ->
-            viewModel.onDownloadState(s)
-            when (s) {
-                is DownloadState.Progress -> {
-                    viewModel.refreshSelection()
-                    viewModel.loadGroups()
-                }
-                DownloadState.Paused, DownloadState.Finished -> {
-                    // 暂停/收尾也刷新二级状态：isDownloading 已在 onDownloadState 置 false，
-                    // activeChapterIndex 收起，二级「下载中」徽章与一级卡片同口径不再误显
-                    viewModel.refreshSelection()
-                    viewModel.loadGroups()
-                }
-            }
-        }
+        viewModel.downloadState.collect(viewModel::onDownloadState)
     }
 
     DownloadCenterContent(

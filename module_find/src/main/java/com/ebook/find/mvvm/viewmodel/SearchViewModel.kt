@@ -4,7 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.manager.BookShelfManager
 import com.ebook.common.manager.applying
-import com.ebook.common.repository.BookRepository
+import com.ebook.common.repository.ShelfRepository
 import com.ebook.common.util.reportFailure
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.db.entity.SearchHistoryEntity
@@ -61,7 +61,7 @@ class SearchViewModel @Inject constructor(
     private val searchHistoryRepository: SearchHistoryRepository,
     private val sourceResolver: SourceResolver,
     private val bookShelfManager: BookShelfManager,
-    bookRepository: BookRepository
+    bookShelfRepository: ShelfRepository
 ) : BaseRefreshViewModel<SearchBookEntity, SearchHistoryRepository>(searchHistoryRepository) {
 
     /**
@@ -97,6 +97,15 @@ class SearchViewModel @Inject constructor(
     private val _successEvent = MutableSharedFlow<List<SearchHistoryEntity>>(extraBufferCapacity = 1)
     val successEvent: SharedFlow<List<SearchHistoryEntity>> = _successEvent.asSharedFlow()
 
+    /** 加书架失败的一次性结论（分类口径与分类页共用 [FindNoticeSlot]，文案归 `SearchActivity`） */
+    private val findNotices = FindNoticeSlot()
+
+    /** 待页面消费的结论；页面展示后经 [consumeFindNotice] 清零 */
+    internal val findNotice: StateFlow<FindNotice?> = findNotices.notice
+
+    /** 结论已被页面取走并展示 */
+    fun consumeFindNotice() = findNotices.consume()
+
     init {
         viewModelScope.launch {
             try {
@@ -109,7 +118,7 @@ class SearchViewModel @Inject constructor(
         }
         // 书架事件同步：快照由 BookShelfManager 单点应用，本页只把结果列表的标记对齐
         viewModelScope.launch {
-            bookRepository.bookShelfEvents.collect { event ->
+            bookShelfRepository.bookShelfEvents.collect { event ->
                 bookShelfManager.applyEvent(event)
                 val next = list.value.applying(event)
                 if (next !== list.value) updateList(next)
@@ -214,10 +223,11 @@ class SearchViewModel @Inject constructor(
     }
 
     /**
-     * 将搜索结果中的书籍加入书架，失败时提示。
+     * 将搜索结果中的书籍加入书架，失败时发结论、不选文案。
      *
-     * 失败一律经 [reportAddBookFailure] 上报（共享的 `reportFailure` 收口「会话过期只记日志、
-     * 不重复提示」，书源失效换资源文案的理由见它）。
+     * 失败经共享槽 [findNotices] 分类成 [FindNotice]（分类口径与 `ChoiceBookViewModel` 同一处，
+     * 见 [FindNoticeSlot]）；**文案与上报出口都在页面**：`SearchActivity` 取走结论后仍走
+     * `reportFailure`，所以「会话过期只记日志、不重复提示」那条不变量没被这次改动换掉。
      *
      * **传进去的是列表里那条书本身**：它的 `tag` 是**该书所属书源**的 URL（解析器写入），
      * 不是当前默认源——聚合结果混着多个站的条目，加错源会让这本书从此解析不出内容。
@@ -226,7 +236,7 @@ class SearchViewModel @Inject constructor(
         updateOverlay(Overlay.Loading)
         viewModelScope.launch {
             bookShelfManager.addFromSearch(searchBook)
-                .onFailure { e -> reportAddBookFailure(e) }
+                .onFailure { e -> findNotices.reportAddBookFailure(e) }
             updateOverlay(Overlay.None)
         }
     }

@@ -2,17 +2,21 @@ package com.ebook.common.domain
 
 import android.app.Application
 import android.content.Context
+import androidx.core.content.edit
 import com.ebook.common.event.KeyCode
 import com.ebook.common.repository.ProfileRepository
 import com.ebook.common.util.SPUtil
 import com.xrn1997.common.di.TokenHolder
 import com.xrn1997.common.mvvm.model.BaseModel
+import com.xrn1997.common.util.Logger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import androidx.core.content.edit
 
 /**
  * UserSessionManager 的 Android 实现
@@ -107,29 +111,59 @@ class AndroidUserSessionManager @Inject constructor(
      *   （漏清的症状：会话已过期、token 已清，但「我的」页仍显示上一个身份）
      *
      * 调用方不得再自行补调 [ProfileRepository] 的清理方法。
+     *
+     * 两处 SP 写一律 `commit`（不是 `apply`）：改服务器地址的保存流程在清会话后可能
+     * **立刻强制退出进程**，异步写会在退出时丢掉，旧 refresh token 就会活到下次启动
+     * 并被发往新地址——安全债不能押在「进程还有时间 flush」上（ADR-0052）。
+     *
+     * **线程契约**：`commit` 是同步磁盘写，调用方不得让它落在主线程——保存/清除配置/登出/
+     * 改密/会话过期各调用点都把本方法包进 `Dispatchers.IO + NonCancellable`：清会话是安全
+     * 收尾，页面在切换线程/提交期间被销毁不得把它取消掉。唯一例外是启动兜底
+     * （`BookApplication.applyPendingAddressSessionReset`）：它必须赶在首个请求之前完成，
+     * 同步留在主线程是已声明的取舍。
+     *
+     * @return 两处 SP 的 `commit()` 均成功、内存镜像已复位时为 true。false 表示磁盘上可能
+     *   仍留着旧 refresh token，调用方必须保留/不消费启动补清标记，下次启动重试。
      */
-    override fun clearSession() {
+    override fun clearSession(): Boolean {
         _currentUser.value = null
         _isLoggedIn.value = false
         tokenHolder.clear()
 
-        // 清除 user_session 文件
-        sp.edit {
-            remove(KEY_IS_LOGGED_IN)
-                .remove(KEY_TOKEN)
-                .remove(KEY_REFRESH_TOKEN)
-                .remove(KEY_USER_ID)
-                .remove(KEY_USERNAME)
-                .remove(KEY_NICKNAME)
-                .remove(KEY_AVATAR)
-        }
+        // 清除 user_session 文件；commit 保证落盘（见上方 KDOC：随后可能强制退出）
+        val sessionFlushed = sp.edit()
+            .remove(KEY_IS_LOGGED_IN)
+            .remove(KEY_TOKEN)
+            .remove(KEY_REFRESH_TOKEN)
+            .remove(KEY_USER_ID)
+            .remove(KEY_USERNAME)
+            .remove(KEY_NICKNAME)
+            .remove(KEY_AVATAR)
+            .commit()
 
-        // 兼容 LoginInterceptor：同时清除 spUtils 文件
-        SPUtil.clearAuthData()
+        // 兼容 LoginInterceptor：同时清除 spUtils 文件；同样必须同步落盘
+        val compatFlushed = SPUtil.clearAuthData(isCommit = true)
 
         // 镜像③：ProfileRepository 的 StateFlow 只在构造时读过一次 SP，
         // 上一步清了 SP 也不会反映到已存在的单例实例上，必须显式复位
         profileRepository.resetProfileState()
+
+        return sessionFlushed && compatFlushed
+    }
+
+    /**
+     * 挂起出口：三条契约（IO 派发 / NonCancellable / false 只记日志）见接口 KDoc。
+     *
+     * 实现只是包一层 [clearSession]——清会话的唯一实现仍是 [clearSession]，本方法不新增
+     * 任何清理动作，只把「同步 commit 不落主线程、收尾不可取消、失败不中断调用方」
+     * 三条调用纪律从各调用点的复制粘贴收进会话模块一处。
+     */
+    override suspend fun endSession() {
+        withContext(Dispatchers.IO + NonCancellable) {
+            if (!clearSession()) {
+                Logger.w(TAG, "本地会话未确认清干净：旧 refresh token 可能残留，待下次启动补清")
+            }
+        }
     }
 
     private fun loadSessionFromSp(): UserSession? {
@@ -146,6 +180,7 @@ class AndroidUserSessionManager @Inject constructor(
     }
 
     companion object {
+        private const val TAG = "AndroidUserSessionManager"
         private const val PREFS_NAME = "user_session"
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
         private const val KEY_TOKEN = "token"

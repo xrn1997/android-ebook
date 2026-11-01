@@ -13,14 +13,9 @@ import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import com.xrn1997.common.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * 密码管理 ViewModel：承载双路径（已登录改密 / 忘记密码重置）。
@@ -38,8 +33,8 @@ class ModifyPwdViewModel @Inject constructor(
     private val userSessionManager: UserSessionManager
 ) : BaseViewModel<UserRepository>(userRepository) {
 
-    /** 发码倒计时内部状态，对外只暴露只读 [codeCountdown] */
-    private val _codeCountdown = MutableStateFlow(0)
+    /** 发码倒计时的共享实现（60 秒频控口径见 [CodeResendCountdown]） */
+    private val codeResendCountdown = CodeResendCountdown()
 
     /**
      * 发码倒计时秒数（0 = 可再次发码）。
@@ -47,10 +42,7 @@ class ModifyPwdViewModel @Inject constructor(
      * 与服务端发码端点的 60 秒频控对齐：倒计时期间禁用「获取验证码」，
      * 避免客户端连点触发 A0241（尝试超限）报错。
      */
-    val codeCountdown: StateFlow<Int> = _codeCountdown.asStateFlow()
-
-    /** 倒计时任务句柄：重发/页面销毁时取消，避免旧任务覆写新状态 */
-    private var countdownJob: Job? = null
+    val codeCountdown: StateFlow<Int> = codeResendCountdown.seconds
 
     /**
      * 忘记密码发码：纯邮箱入参，服务端发 6 位验证码邮件（频控命中返回 A0241）。
@@ -76,16 +68,7 @@ class ModifyPwdViewModel @Inject constructor(
      * 启动 60 秒重发倒计时（秒级递减，归零后按钮恢复可点）。
      * 倒计时驻留 ViewModel 而非 Compose 局部状态：配置变更（旋转）不丢倒计时进度。
      */
-    private fun startResendCountdown() {
-        countdownJob?.cancel()
-        countdownJob = viewModelScope.launch {
-            for (remain in CODE_RESEND_COUNTDOWN downTo 1) {
-                _codeCountdown.value = remain
-                delay(1_000L.milliseconds)
-            }
-            _codeCountdown.value = 0
-        }
-    }
+    private fun startResendCountdown() = codeResendCountdown.start(viewModelScope)
 
     /**
      * 携邮箱与验证码进入改密页 RESET 模式。
@@ -114,8 +97,9 @@ class ModifyPwdViewModel @Inject constructor(
      * 已登录改密：旧密码由服务端校验（A0210 旧密码错误）。
      * 改密成功即视为会话失效：清会话并回登录页（服务端改密已使该用户全部 token 失效）。
      *
-     * [UserSessionManager.clearSession] 是清会话的唯一入口，内部一次覆盖用户会话的
-     * 三处镜像（`user_session` SP、`spUtils` 兼容键、ProfileRepository 进程内身份流），
+     * [UserSessionManager.endSession] 是清会话的挂起出口（线程/取消/失败日志契约收在接口，
+     * ADR-0056），内部单点经 `clearSession` 一次覆盖用户会话的三处镜像
+     * （`user_session` SP、`spUtils` 兼容键、ProfileRepository 进程内身份流），
      * 故此处不得再补调资料侧的清理方法。
      */
     fun modify(oldPwd: String, newPwd: String, confirmPwd: String) {
@@ -133,8 +117,8 @@ class ModifyPwdViewModel @Inject constructor(
             val result = userRepository.modifyPwd(oldPwd, newPwd)
             result.onSuccess {
                 sendToast(context.getString(R.string.modify_success))
-                // 清会话单点收口：token + isLoggedIn + 三处镜像，见方法 KDoc
-                userSessionManager.clearSession()
+                // 清会话单点收口：token + isLoggedIn + 三处镜像，见方法 KDoc。
+                userSessionManager.endSession()
                 build(KeyCode.Login.LOGIN_PATH)
                     .navigation()
                 sendFinish()
@@ -169,12 +153,5 @@ class ModifyPwdViewModel @Inject constructor(
                 reportFailure(exception)
             }
         }
-    }
-
-
-    companion object {
-
-        /** 重发倒计时秒数，与服务端发码频控窗口一致 */
-        private const val CODE_RESEND_COUNTDOWN = 60
     }
 }

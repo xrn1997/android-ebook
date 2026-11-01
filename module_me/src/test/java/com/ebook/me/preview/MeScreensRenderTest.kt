@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import com.ebook.common.domain.ThemeMode
 import com.ebook.common.ui.preview.AppPreview
 import com.ebook.me.R
@@ -15,6 +16,7 @@ import com.ebook.me.page.MainMeScreen
 import com.ebook.me.repository.CacheType
 import com.ebook.me.view.CacheManageScreen
 import com.ebook.me.view.SettingScreen
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,6 +31,9 @@ import org.robolectric.annotation.GraphicsMode
  * 这一层把预览组合的同一组状态在 JVM 上跑一遍。要抓的不是布局好不好看，而是渲染期才炸的那类：
  * 头部取状态栏图标时要 Activity、渐变取色要读调板、缓存页要解析占位文案，任何一处写错，
  * 预览面板只会给一行看不出根因的错误。
+ *
+ * 「服务器地址」页自己的契约（进页才见地址、行内报错、重启提示等）住
+ * [ServerAddressScreenRenderTest]；本文件只锁设置页**行**的形态。
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -107,6 +112,10 @@ class MeScreensRenderTest {
                     onOpenAbout = {},
                     onThemeSelected = {},
                     onLogout = {},
+                    isServerAddressConfigured = true,
+                    onOpenServerAddress = {},
+                    onRestartApp = {},
+                    isServerRestartPending = false,
                 )
             }
         }
@@ -143,12 +152,165 @@ class MeScreensRenderTest {
                     onOpenAbout = {},
                     onThemeSelected = {},
                     onLogout = {},
+                    isServerAddressConfigured = false,
+                    onOpenServerAddress = {},
+                    onRestartApp = {},
+                    isServerRestartPending = false,
                 )
             }
         }
 
         composeRule.onNodeWithText(composeRule.activity.getString(R.string.setting_book_source))
             .assertDoesNotExist()
+    }
+
+    /**
+     * 服务器地址行**只显示状态、不显示地址值**（ADR-0052 形态调整）。
+     *
+     * 地址不是可以随便亮在锁屏/录屏里的东西：设置页是会被旁人一眼扫到的界面，
+     * 完整地址、明文警告与编辑都在服务器地址页（点进去再说）。
+     */
+    @Test
+    fun `设置页服务器地址行只显示状态不显示地址值`() {
+        composeRule.setContent {
+            AppPreview {
+                SettingScreen(
+                    cacheSize = "",
+                    sourcesCount = 2,
+                    appVersion = "1.4.0",
+                    isLoggedIn = true,
+                    hasUpdateAvailable = false,
+                    updateState = UpdateState.Idle,
+                    themeMode = ThemeMode.SYSTEM,
+                    onCheckUpdate = {},
+                    onDismissUpdateDialog = {},
+                    onOpenCacheManage = {},
+                    onOpenBookSource = {},
+                    onOpenAbout = {},
+                    onThemeSelected = {},
+                    onLogout = {},
+                    isServerAddressConfigured = true,
+                    onOpenServerAddress = {},
+                    onRestartApp = {},
+                    isServerRestartPending = false,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("自定义").assertIsDisplayed()
+        // 地址值（裸值与带 scheme 形态）都不得出现在设置页
+        composeRule.onNodeWithText("192.168.0.156:9090").assertDoesNotExist()
+        composeRule.onNodeWithText("http://192.168.0.156:9090").assertDoesNotExist()
+    }
+
+    /** 未配置这一档：行内标注「未配置」（应用不带默认地址，ADR-0053），同样不带地址值。 */
+    @Test
+    fun `服务器地址未配置时行内标注未配置`() {
+        composeRule.setContent {
+            AppPreview {
+                SettingScreen(
+                    cacheSize = "",
+                    sourcesCount = 2,
+                    appVersion = "1.4.0",
+                    isLoggedIn = true,
+                    hasUpdateAvailable = false,
+                    updateState = UpdateState.Idle,
+                    themeMode = ThemeMode.SYSTEM,
+                    onCheckUpdate = {},
+                    onDismissUpdateDialog = {},
+                    onOpenCacheManage = {},
+                    onOpenBookSource = {},
+                    onOpenAbout = {},
+                    onThemeSelected = {},
+                    onLogout = {},
+                    isServerAddressConfigured = false,
+                    onOpenServerAddress = {},
+                    onRestartApp = {},
+                    isServerRestartPending = false,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("未配置").assertIsDisplayed()
+        composeRule.onNodeWithText("10.0.2.2:9090").assertDoesNotExist()
+    }
+
+    /** 带箭头=点进去（同缓存/书源行的语义）：点行进服务器地址页，不在设置页里原地编辑。 */
+    @Test
+    fun `点服务器地址行进入服务器地址页`() {
+        var openCalls = 0
+        composeRule.setContent {
+            AppPreview {
+                SettingScreen(
+                    cacheSize = "",
+                    sourcesCount = 2,
+                    appVersion = "1.4.0",
+                    isLoggedIn = true,
+                    hasUpdateAvailable = false,
+                    updateState = UpdateState.Idle,
+                    themeMode = ThemeMode.SYSTEM,
+                    onCheckUpdate = {},
+                    onDismissUpdateDialog = {},
+                    onOpenCacheManage = {},
+                    onOpenBookSource = {},
+                    onOpenAbout = {},
+                    onThemeSelected = {},
+                    onLogout = {},
+                    isServerAddressConfigured = true,
+                    onOpenServerAddress = { openCalls++ },
+                    onRestartApp = {},
+                    isServerRestartPending = false,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(
+            composeRule.activity.getString(R.string.setting_server_address)
+        ).performClick()
+
+        assertEquals("点行应进服务器地址页而不是原地编辑", 1, openCalls)
+    }
+
+    /**
+     * 重启提示的可见性由「待重启」状态驱动，而不是由保存回调里的局部状态驱动。
+     *
+     * 这一档直接以 `isServerRestartPending = true` 进入（等价于保存成功后 store 的状态，
+     * 或 Activity 在写盘期间被重建、回调已丢的那一帧）：不点保存也必须有不可取消的重启提示。
+     * 服务器地址页同样按此状态渲染（见 [ServerAddressScreenRenderTest]），两处同源。
+     */
+    @Test
+    fun `地址已改待重启时设置页也渲染不可取消的重启提示`() {
+        composeRule.setContent {
+            AppPreview {
+                SettingScreen(
+                    cacheSize = "",
+                    sourcesCount = 2,
+                    appVersion = "1.4.0",
+                    isLoggedIn = true,
+                    hasUpdateAvailable = false,
+                    updateState = UpdateState.Idle,
+                    themeMode = ThemeMode.SYSTEM,
+                    onCheckUpdate = {},
+                    onDismissUpdateDialog = {},
+                    onOpenCacheManage = {},
+                    onOpenBookSource = {},
+                    onOpenAbout = {},
+                    onThemeSelected = {},
+                    onLogout = {},
+                    isServerAddressConfigured = true,
+                    onOpenServerAddress = {},
+                    onRestartApp = {},
+                    isServerRestartPending = true,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(
+            composeRule.activity.getString(R.string.setting_server_address_saved_title)
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText(
+            composeRule.activity.getString(R.string.setting_server_address_restart_now)
+        ).assertIsDisplayed()
     }
 
     @Test

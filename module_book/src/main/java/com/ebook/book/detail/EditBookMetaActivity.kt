@@ -38,6 +38,7 @@ import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
 import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.preview.AppPreview
+import com.ebook.common.util.reportFailure
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmActivity
 import dagger.hilt.android.AndroidEntryPoint
@@ -92,6 +93,43 @@ class EditBookMetaActivity : BaseMvvmActivity<EditBookMetaViewModel>() {
             }
         }
 
+        // 结论 → 文案在这一层做：ViewModel 只发 [EditBookNotice]（ADR-0061）。
+        // 文案先在组合期解析好，再交给一次性上报——LaunchedEffect 不是 Composable 上下文。
+        val notice by viewModel.notice.collectAsState()
+        val pendingNotice = notice?.let { it to editBookNoticeText(it) }
+        LaunchedEffect(pendingNotice) {
+            val (conclusion, text) = pendingNotice ?: return@LaunchedEffect
+            // 分支不带 else：新增一档结论时这里编译不过，不会静默少弹一条。
+            // 关不关页也归这一处映射：失败三档数据没动，关掉会让用户以为改成功了。
+            val closePanel = when (conclusion) {
+                // 失败三档仍走 reportFailure：会话过期只记日志、不重复提示那条不变量由它收口
+                is EditBookNotice.LoadFailed -> {
+                    viewModel.reportFailure(conclusion.cause, text)
+                    false
+                }
+                is EditBookNotice.SaveFailed -> {
+                    viewModel.reportFailure(conclusion.cause, text)
+                    false
+                }
+                is EditBookNotice.RemoveFailed -> {
+                    viewModel.reportFailure(conclusion.cause, text)
+                    false
+                }
+                // 回显与半成功先提示、后关页
+                is EditBookNotice.CommentsMigrated,
+                EditBookNotice.MigrateFailed,
+                EditBookNotice.Saved -> {
+                    viewModel.sendToast(text)
+                    true
+                }
+            }
+            viewModel.consumeNotice()
+            // 提示必须先于关页：sendToast 与 sendFinish 走同一条命令通道，通道 FIFO 即展示顺序；
+            // 顺序反过来 finish 先到，提示会随关闭的页面一起没人展示（SettingViewModel 记过同型陷阱）。
+            // 这也是本类不从 ViewModel 的 save() 里关页的原因——那里的结论要等下一帧重组才展示。
+            if (closePanel) viewModel.sendFinish()
+        }
+
         EditBookMetaScreen(
             state = state,
             matchName = matchName,
@@ -102,6 +140,24 @@ class EditBookMetaActivity : BaseMvvmActivity<EditBookMetaViewModel>() {
             onRemoveKey = { viewModel.removeAssociatedKey(it) },
         )
     }
+}
+
+/**
+ * 修键面板结论 → 文案：**本页唯一的句子来源**（ADR-0061）。
+ *
+ * `when` 不带 `else`：新增一档结论时这里编译不过，而不是运行时静默少弹一条。
+ * 带参模板（迁移条数）也留在 `strings.xml` 里可译，不在代码里拼中文。
+ */
+@Composable
+private fun editBookNoticeText(notice: EditBookNotice): String = when (notice) {
+    is EditBookNotice.LoadFailed -> stringResource(R.string.edit_book_meta_load_failed)
+    is EditBookNotice.CommentsMigrated ->
+        stringResource(R.string.edit_book_meta_migrated_toast, notice.count)
+
+    EditBookNotice.MigrateFailed -> stringResource(R.string.edit_book_meta_migrate_failed)
+    EditBookNotice.Saved -> stringResource(R.string.edit_book_meta_saved)
+    is EditBookNotice.SaveFailed -> stringResource(R.string.edit_book_meta_save_failed)
+    is EditBookNotice.RemoveFailed -> stringResource(R.string.edit_book_meta_remove_failed)
 }
 
 /**

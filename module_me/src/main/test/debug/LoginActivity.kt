@@ -100,11 +100,18 @@ class LoginActivity : BaseActivity() {
         }
     }
 
-    /** 模拟退出登录：清空会话后返回，用于验证未登录态 UI。 */
+    /**
+     * 模拟退出登录：清空会话后返回，用于验证未登录态 UI。
+     *
+     * 清会话走挂起出口 [UserSessionManager.endSession]：IO 派发、NonCancellable 段
+     * 与失败日志都收在接口里（ADR-0056），收尾一旦开始不得因离开本页被取消掉。
+     */
     private fun logoutAndBack() {
-        userSessionManager.clearSession()
-        ToastUtil.showShort(this, getString(R.string.me_test_logout_success))
-        onBackPressedDispatcher.onBackPressed()
+        lifecycleScope.launch {
+            userSessionManager.endSession()
+            ToastUtil.showShort(this@LoginActivity, getString(R.string.me_test_logout_success))
+            onBackPressedDispatcher.onBackPressed()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

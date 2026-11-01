@@ -1,9 +1,9 @@
 package com.ebook.common.manager
 
 import com.ebook.common.analyze.source.SourceResolver
-import com.ebook.common.analyze.source.parserOrThrow
-import com.ebook.common.repository.BookRepository
 import com.ebook.common.repository.BookShelfEvent
+import com.ebook.common.repository.ShelfEntryFetcher
+import com.ebook.common.repository.ShelfRepository
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.source.analyze.BookSourceNotFoundException
@@ -29,12 +29,19 @@ import kotlinx.coroutines.flow.update
 @Singleton
 class BookShelfManager @Inject constructor(
     private val sourceResolver: SourceResolver,
-    private val bookRepository: BookRepository
+    private val bookShelfRepository: ShelfRepository
 ) {
     private val _shelves = MutableStateFlow<List<BookShelfEntity>>(emptyList())
 
     /** 当前书架快照；页面在首次刷新后读它做标记，不再自己维护一份。 */
     val shelves: StateFlow<List<BookShelfEntity>> = _shelves.asStateFlow()
+
+    /**
+     * 「取源建条目」的唯一主人（ADR-0054）：[addFromSearch] 经它解析出条目，
+     * 「新条目必带 book_info」的守卫在它内部、置于任何写之前。换源侧
+     * （`BookRepository`）按同一形态自建一份，两处构造方式不分叉。
+     */
+    private val entryFetcher = ShelfEntryFetcher(sourceResolver)
 
     /**
      * 从仓库整体重载快照。
@@ -43,7 +50,7 @@ class BookShelfManager @Inject constructor(
      * 首帧拿到空快照会把所有条目标成「未加书架」，随后也没有第二次刷新）。
      */
     suspend fun refresh() {
-        _shelves.value = bookRepository.getAllBooks()
+        _shelves.value = bookShelfRepository.getAllBooks()
     }
 
     /**
@@ -84,12 +91,15 @@ class BookShelfManager @Inject constructor(
     }
 
     /**
-     * 从搜索结果加入书架（完整流程）
+     * 从搜索结果加入书架：经 [entryFetcher] 取源解析出条目，再整笔落库。
      *
-     * **按 `tag` 取 parser，不按「当前默认源」取**（见 ADR-0016）：结果来自哪个站，`getBookInfo` /
-     * `getChapterList` 就必须用那个站的规则去解——多书源共存后一条搜索列表里可能混着多个源的条目，
-     * 用默认源规则解另一源的 `noteUrl` 不会闪退，只会拉回一本不相干的书或空目录（错数据比崩溃难查得多）。
-     * 归属查不到（源被删 / tag 是脏数据）时抛 [BookSourceNotFoundException]，经下面的 catch 变成
+     * 解析链（`getBookInfo` → `getChapterList`）与「新条目必带 book_info」的守卫都收在
+     * [ShelfEntryFetcher] 里（与换源共用同一份，见其 KDoc），本方法只负责编排「解析 → 落库」。
+     *
+     * **按 `tag` 取 parser，不按「当前默认源」取**（见 ADR-0016）：结果来自哪个站，就用那个站的规则
+     * 去解——多书源共存后一条搜索列表里可能混着多个源的条目，用默认源规则解另一源的 `noteUrl`
+     * 不会闪退，只会拉回一本不相干的书或空目录（错数据比崩溃难查得多）。归属查不到（源被删 /
+     * tag 是脏数据）时 [ShelfEntryFetcher] 抛 [BookSourceNotFoundException]，经下面的 catch 变成
      * [Result.failure] 带回调用方，由 ViewModel 统一提示「书源已失效」。
      *
      * 本地书不会走到这里：`loc_book` 的条目不经搜索结果加入书架。
@@ -99,17 +109,9 @@ class BookShelfManager @Inject constructor(
      */
     suspend fun addFromSearch(searchBook: SearchBookEntity): Result<BookShelfEntity> {
         return try {
-            val shelf = BookShelfEntity().apply {
-                noteUrl = searchBook.noteUrl
-                tag = searchBook.tag
-            }
-            // 两次解析共用同一个 parser 实例：中途用户删了源也不至于一半新一半旧
-            val parser = sourceResolver.parserOrThrow(searchBook.tag)
-            val bookInfo = parser.getBookInfo(shelf)
-            val chapterResult = parser.getChapterList(bookInfo)
-            val bookShelf = chapterResult.data
-            bookRepository.addToShelf(bookShelf)
-            Result.success(bookShelf)
+            val shelf = entryFetcher.fetch(searchBook, "加书架 noteUrl=${searchBook.noteUrl}")
+            bookShelfRepository.addToShelf(shelf)
+            Result.success(shelf)
         } catch (e: CancellationException) {
             // 取消不是「加入书架失败」：原样上抛，避免调用方按失败路径弹 Toast
             throw e

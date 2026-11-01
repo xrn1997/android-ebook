@@ -9,7 +9,6 @@ import com.ebook.db.entity.DownloadChapterEntity
 import com.ebook.db.entity.PausedBookEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 
 internal class FakeShelfDao : BookShelfDao {
     private val books = linkedMapOf<String, BookShelfEntity>()
@@ -22,11 +21,8 @@ internal class FakeShelfDao : BookShelfDao {
     override suspend fun getAllBooksFullInfo(): List<BookShelfFullInfo> = emptyList()
     override fun getAllBooksFullInfoFlow(): Flow<List<BookShelfFullInfo>> = fullInfoFlow
     override suspend fun getBookFullInfoByUrl(noteUrl: String): BookShelfFullInfo? = null
-    override fun getAllBooksFlow(): Flow<List<BookShelfEntity>> = flowOf(books.values.toList())
     override suspend fun getAllBooks(): List<BookShelfEntity> = books.values.toList()
     override suspend fun getBookByUrl(noteUrl: String): BookShelfEntity? = books[noteUrl]
-    override suspend fun getBooksByUrls(noteUrls: List<String>): List<BookShelfEntity> =
-        books.values.filter { it.noteUrl in noteUrls }
     override suspend fun insert(bookShelf: BookShelfEntity) {
         books[bookShelf.noteUrl] = bookShelf
     }
@@ -42,7 +38,6 @@ internal class FakeShelfDao : BookShelfDao {
     override suspend fun deleteByUrl(noteUrl: String) {
         books.remove(noteUrl)
     }
-    override suspend fun getCount(): Int = books.size
 }
 
 internal class FakeDownloadChapterDao : DownloadChapterDao {
@@ -57,7 +52,6 @@ internal class FakeDownloadChapterDao : DownloadChapterDao {
     override suspend fun getLastByNoteUrl(noteUrl: String): DownloadChapterEntity? =
         sortedFor(noteUrl).lastOrNull()
     override suspend fun getByNoteUrl(noteUrl: String): List<DownloadChapterEntity> = sortedFor(noteUrl)
-    override suspend fun getFirst(): DownloadChapterEntity? = rows.values.minByOrNull { it.durChapterIndex }
     override suspend fun getAllTasks(): List<DownloadChapterEntity> =
         rows.values.sortedWith(compareBy({ it.noteUrl }, { it.durChapterIndex }))
     override suspend fun deleteByNoteUrl(noteUrl: String) {

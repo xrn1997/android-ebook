@@ -12,14 +12,9 @@ import com.xrn1997.common.BaseApplication.Companion.context
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import com.xrn1997.common.mvvm.viewmodel.Overlay
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * 注册 ViewModel：三步注册
@@ -32,8 +27,8 @@ class RegisterViewModel @Inject constructor(
     private val userRepository: UserRepository
 ) : BaseViewModel<UserRepository>(userRepository) {
 
-    /** 发码倒计时内部状态，对外只暴露只读 [codeCountdown] */
-    private val _codeCountdown = MutableStateFlow(0)
+    /** 发码倒计时的共享实现（60 秒频控口径见 [CodeResendCountdown]） */
+    private val codeResendCountdown = CodeResendCountdown()
 
     /**
      * 发码倒计时秒数（0 = 可再次发码）。
@@ -41,10 +36,7 @@ class RegisterViewModel @Inject constructor(
      * 与服务端发码端点的 60 秒频控对齐：倒计时期间禁用「获取验证码」，
      * 避免客户端连点触发 A0241（尝试超限）报错。
      */
-    val codeCountdown: StateFlow<Int> = _codeCountdown.asStateFlow()
-
-    /** 倒计时任务句柄：重发/页面销毁时取消，避免旧任务覆写新状态 */
-    private var countdownJob: Job? = null
+    val codeCountdown: StateFlow<Int> = codeResendCountdown.seconds
 
     /**
      * 发送注册验证码（注册专用发码端点，与忘记密码发码分离）。
@@ -75,16 +67,7 @@ class RegisterViewModel @Inject constructor(
      * 启动 60 秒重发倒计时（秒级递减，归零后按钮恢复可点）。
      * 倒计时驻留 ViewModel 而非 Compose 局部状态：配置变更（旋转）不丢倒计时进度。
      */
-    private fun startResendCountdown() {
-        countdownJob?.cancel()
-        countdownJob = viewModelScope.launch {
-            for (remain in CODE_RESEND_COUNTDOWN downTo 1) {
-                _codeCountdown.value = remain
-                delay(1_000L.milliseconds)
-            }
-            _codeCountdown.value = 0
-        }
-    }
+    private fun startResendCountdown() = codeResendCountdown.start(viewModelScope)
 
     /**
      * 注册：邮箱 + 验证码 + 密码。
@@ -128,12 +111,5 @@ class RegisterViewModel @Inject constructor(
                 updateOverlay(Overlay.None)
             }
         }
-    }
-
-
-    companion object {
-
-        /** 重发倒计时秒数，与服务端发码频控窗口一致 */
-        private const val CODE_RESEND_COUNTDOWN = 60
     }
 }

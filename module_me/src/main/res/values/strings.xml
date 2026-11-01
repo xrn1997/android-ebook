@@ -55,6 +55,27 @@
     <string name="setting_check_update_error">检查更新失败，请稍后重试。</string>
     <string name="setting_logout_confirm_message">确定要退出当前账号吗？</string>
 
+    <!-- 服务器地址：用户自配 ebook-server 基址，重启生效、换址清会话（ADR-0052/0053）。
+         应用不内置默认地址；设置行只显示状态、不显示地址值，完整值在「服务器地址」页看/改 -->
+    <string name="setting_server_address">服务器地址</string>
+    <string name="setting_server_address_status_unset">未配置</string>
+    <string name="setting_server_address_status_custom">自定义</string>
+    <string name="setting_server_address_hint">填入你自己的 ebook-server 地址（如 http://192.168.0.156:9090 或 https://api.example.com）。保存后重启应用生效，并会退出当前账号。未配置时阅读、书源与下载不受影响，仅登录/评论不可用。</string>
+    <string name="setting_server_address_placeholder">https://api.example.com</string>
+    <string name="setting_server_address_lan_note">Android 17 及以上访问局域网地址受系统本地网络权限限制；连本机后端建议用公网地址，或 adb reverse 后填 127.0.0.1。</string>
+    <string name="setting_server_address_invalid">地址格式不正确：支持 主机、主机:端口 或 http(s)://主机[:端口]，不要带路径</string>
+    <string name="setting_server_address_save_failed">保存失败：地址未能写入本地存储，请检查存储空间后重试</string>
+    <string name="setting_server_address_saving">正在保存…</string>
+    <string name="setting_server_address_cleartext_warning">当前为 http 明文连接，登录密码与令牌会以未加密方式发送；除本机回环外建议改用 https</string>
+    <string name="setting_server_address_save">保存</string>
+    <string name="setting_server_address_reset">清除配置</string>
+    <string name="setting_server_address_reset_confirm_title">清除服务器地址？</string>
+    <string name="setting_server_address_reset_confirm_message">清除后本机回到未配置状态：登录与评论不可用（阅读不受影响），需要时可重新填入。</string>
+    <string name="setting_server_address_reset_confirm_action">清除并退出登录</string>
+    <string name="setting_server_address_saved_title">重启后生效</string>
+    <string name="setting_server_address_saved_message">服务器地址变更已保存，登录状态已清除。为避免旧地址的登录凭证发往新地址，需要立即重启应用。</string>
+    <string name="setting_server_address_restart_now">立即重启</string>
+
     <!-- ===== 缓存管理页 ===== -->
     <string name="cache_manage_title">缓存管理</string>
     <string name="cache_total_label">缓存总占用</string>

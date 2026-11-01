@@ -86,6 +86,9 @@ interface KeyCode {
         companion object {
             private const val BASE_PATH = "/ebook/me/"
             const val SETTING_PATH = BASE_PATH + "setting"
+
+            /** 服务器地址页（设置 → 服务器地址，运行期覆盖 ebook-server 基址，ADR-0052） */
+            const val SERVER_ADDRESS_PATH = BASE_PATH + "server_address"
             const val MODIFY_PATH = BASE_PATH + "modify"
             const val COMMENT_PATH = BASE_PATH + "comment"
             const val CACHE_PATH = BASE_PATH + "cache"

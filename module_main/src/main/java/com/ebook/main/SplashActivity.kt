@@ -37,7 +37,7 @@ import android.text.TextUtils
 import com.ebook.common.domain.UserSessionManager
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
-import com.ebook.common.repository.BookRepository
+import com.ebook.common.repository.ShelfRepository
 import com.ebook.common.store.ReaderResumeStore
 import com.therouter.TheRouter
 import com.xrn1997.common.ui.theme.AppTheme
@@ -89,7 +89,7 @@ class SplashActivity : ComponentActivity() {
      * 功能模块互不依赖，故跳转只能走 TheRouter（见 [tryResumeReading]）。
      */
     @Inject
-    lateinit var bookRepository: BookRepository
+    lateinit var bookShelfRepository: ShelfRepository
 
     /** 跳转门控任务：最小展示时长 + 会话预载均完成后进入主页。 */
     private var gateJob: Job? = null
@@ -187,7 +187,7 @@ class SplashActivity : ComponentActivity() {
     private suspend fun tryResumeReading(): Boolean {
         val noteUrl = ReaderResumeStore.pendingNoteUrl() ?: return false
         // 查库切 IO：Room 调用不能在主线程；外层协程是 Main.immediate，仅供启动 Activity
-        val book = withContext(Dispatchers.IO) { bookRepository.getBookWithDetails(noteUrl) }
+        val book = withContext(Dispatchers.IO) { bookShelfRepository.getBookWithDetails(noteUrl) }
         if (book == null) {
             Logger.d(TAG, "恢复阅读跳过：条目已不存在 $noteUrl")
             ReaderResumeStore.clear()

@@ -76,16 +76,22 @@ object SPUtil {
     }
 
     /**
-     * 仅清除认证相关数据，保留其他偏好设置
+     * 仅清除认证相关数据，保留其他偏好设置。
+     *
+     * @return 同步落盘时返回 `commit()` 的结果；异步 `apply()` 没有失败反馈，恒为 true。
+     *   清会话的安全收尾必须用 `isCommit = true` 并检查返回值（ADR-0052）。
      */
-    fun clearAuthData(spName: String = DEFAULT_SP_NAME, isCommit: Boolean = false) {
+    fun clearAuthData(spName: String = DEFAULT_SP_NAME, isCommit: Boolean = false): Boolean {
         val editor = getSharedPreferences(spName).edit()
         editor.remove(KeyCode.Login.SP_IS_LOGIN)
         editor.remove(KeyCode.Login.SP_USERNAME)
         editor.remove(KeyCode.Login.SP_NICKNAME)
         editor.remove(KeyCode.Login.SP_USER_ID)
         editor.remove(KeyCode.Login.SP_IMAGE)
-        if (isCommit) editor.commit() else editor.apply()
+        return if (isCommit) editor.commit() else {
+            editor.apply()
+            true
+        }
     }
 
     fun getAll(spName: String = DEFAULT_SP_NAME): Map<String, *> =

@@ -8,7 +8,7 @@ Status: accepted
 
 ## 背景
 
-- 登出规格要求作废服务端该用户的全部 refresh token，服务端 `POST /api/auth/logout` 已实现，客户端 `UserDataSource.logout()` → `UserRepository.logout()` 一路也已就绪，但零调用方：此前的会话失效点（`module_me` 设置页的退出登录、`module_login` 改密成功后的清会话）只做本地清理，服务端凭证留活——换设备后旧 refresh token 仍可用。
+- 登出规格要求作废服务端该用户的全部 refresh token，服务端 `POST /api/auth/logout` 已实现，客户端登出端点（现属账号的 `AccountSignIn` 窄面，当时还是 `UserDataSource` 的一个方法）→ `UserRepository.logout()` 一路也已就绪，但零调用方：此前的会话失效点（`module_me` 设置页的退出登录、`module_login` 改密成功后的清会话）只做本地清理，服务端凭证留活——换设备后旧 refresh token 仍可用。
 - 跨模块障碍：登出按钮在 `module_me`，而持有该端点的仓库在 `module_login`。功能模块互不依赖，`module_me` 拿不到 `UserRepository`。
 
 ## 决策
@@ -36,7 +36,7 @@ Status: accepted
 
 - **不在 `lib_book_common` 新建会话/认证仓库**：那会与本仓既有范式（业务模块 repository 直接包装 `lib_ebook_api` 的 DataSource）重复一套认证归属，且登出语义本属登录域，`lib_book_common` 不该持有它。`ILoginProvider` 正好命中「项目专属件被 ≥2 个功能模块使用才进 `lib_book_common`」的上浮判据（`module_login` 实现、`module_me` 消费）。
 
-- **不让 `module_me` 的 ViewModel 直注 `UserDataSource`**：ViewModel 跨过 Model 层直接触网络，破坏 MVVM 三层约定，且会把认证端点的消费面扩散到登录域之外。
+- **不让 `module_me` 的 ViewModel 直注账号窄面**（当时是宽接口 `UserDataSource`）：ViewModel 跨过 Model 层直接触网络，破坏 MVVM 三层约定，且会把认证端点的消费面扩散到登录域之外。
 
 - **收尾写在 ViewModel，不留在页面作用域**（2026-09-06）：原处方把 `logout()` 做成 `suspend`、由 `SettingActivity` 用 `lifecycleScope.launch` 串起来，只防了 `finish()` 之后作用域被取消，漏了网络挂起期间旋转屏幕重建 Activity 取消页面作用域——同一个「等于从未发出」的现象换了触发者。而 `module_me` 的两份 Manifest 都没有锁竖屏，这条路径在真机上可达。不用 WorkManager：为一个幂等的登出请求引入后台任务调度不成比例。
 

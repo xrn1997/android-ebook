@@ -46,15 +46,10 @@ class FakeBookShelfDao : BookShelfDao {
     override suspend fun getBookFullInfoByUrl(noteUrl: String): BookShelfFullInfo? =
         fullInfoSeed.firstOrNull { it.bookShelf.noteUrl == noteUrl }
 
-    override fun getAllBooksFlow(): Flow<List<BookShelfEntity>> =
-        MutableStateFlow(shelfByNoteUrl.values.sortedByDescending { it.finalDate })
-
     override suspend fun getAllBooks(): List<BookShelfEntity> =
         shelfByNoteUrl.values.sortedByDescending { it.finalDate }
 
     override suspend fun getBookByUrl(noteUrl: String): BookShelfEntity? = shelfByNoteUrl[noteUrl]
-    override suspend fun getBooksByUrls(noteUrls: List<String>): List<BookShelfEntity> =
-        shelfByNoteUrl.values.filter { it.noteUrl in noteUrls }
 
     override suspend fun insert(bookShelf: BookShelfEntity) {
         shelfByNoteUrl[bookShelf.noteUrl] = bookShelf
@@ -77,8 +72,6 @@ class FakeBookShelfDao : BookShelfDao {
         shelfByNoteUrl.remove(noteUrl)
         deletedUrls.add(noteUrl)
     }
-
-    override suspend fun getCount(): Int = shelfByNoteUrl.size
 
     /** 返回当前内存中的所有行，供测试断言 */
     fun storedValues(): List<BookShelfEntity> = shelfByNoteUrl.values.toList()
@@ -206,9 +199,6 @@ class FakeDownloadChapterDao : DownloadChapterDao {
         sortedFor(noteUrl).lastOrNull()
 
     override suspend fun getByNoteUrl(noteUrl: String): List<DownloadChapterEntity> = sortedFor(noteUrl)
-
-    override suspend fun getFirst(): DownloadChapterEntity? =
-        rows.values.minByOrNull { it.durChapterIndex }
 
     override suspend fun getAllTasks(): List<DownloadChapterEntity> =
         rows.values.sortedWith(compareBy({ it.noteUrl }, { it.durChapterIndex }))

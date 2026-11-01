@@ -38,7 +38,7 @@ build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 - **独立运行宿主只有一份实现**：`debug-host/src/debug` 收 `BaseTestApplication`（路径替换/拦截扩展点）、`MockNetworkModule`（User/Comment/Release 全绑 mock）与 `DebugHostActivity`（主题、edge-to-edge、状态栏、双击退出）；约定插件只在 `isModule=true` 时把该目录并入各模块 main source set。各模块 `src/main/test/debug` 只留自己的 `TestApplication` 路由配置、`MainActivity` 首页入口与模块内桩页（如详情桩页、模拟登录页）。
 - **跨模块页面**：主 Tab 页面（书架/书城/我的）由 Provider 接口暴露 `@Composable () -> Unit`（非 Fragment），由 module_main 的 NavHost 直接组合；Provider 由 TheRouter 创建（非 Hilt），页面依赖经页面级 `@HiltViewModel` 注入。页面需要宿主提供的能力时，用**可空参数向下传**（宿主知道 Tab 路由、模块内不知道，独立运行态传 null 即降级不渲染），实例是 `IBookProvider.mainBookPage` 的 `onGoBookstore`；不要用 `CompositionLocal` 或另开 TheRouter 路由表达「切 Tab」。
 - **MVVM**：ViewModel 继承 lib_common 的 `BaseViewModel`/`BaseRefreshViewModel`，经 Hilt 构造注入。
-- **响应式编程**：统一 Kotlin Coroutines + Flow（`viewModelScope.launch`、`suspend` 函数）；RxJava3 依赖与代码引用已全部移除，**禁止重新引入**。事件总线是 SharedFlow（`BookRepository.bookShelfEvents`，ADR-0004），已替代 RxBus。`initBaseViewObservable()` 是 lib_common 基类的历史钩子名（实现均为协程），与 RxJava 无关，新代码不要望文生义。
+- **响应式编程**：统一 Kotlin Coroutines + Flow（`viewModelScope.launch`、`suspend` 函数）；RxJava3 依赖与代码引用已全部移除，**禁止重新引入**。事件总线是 SharedFlow（`ShelfRepository.bookShelfEvents`，ADR-0004；发布实现是 `BookRepository` 单例，事件面随写条目走、不复制，见 [ADR-0055](adr/0055-book-repository-narrow-faces.md)），已替代 RxBus。`initBaseViewObservable()` 是 lib_common 基类的历史钩子名（实现均为协程），与 RxJava 无关，新代码不要望文生义。
 - **Activity 基类**：Compose 业务页面统一继承 lib_common 的 `BaseActivity`（Compose 版）；例外场景（启动转场、模块独立运行的 test/debug 宿主）不继承基类的，必须自行对齐基类行为（主题、insets/沉浸式状态栏、状态覆盖层），以基类 KDoc 与现有宿主实现为准，禁止裸 `MaterialTheme` 造成配色分裂。
 
 ## 3. Compose 体系
@@ -101,6 +101,14 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - **可见性允许时**（根为 `internal`/`public`）每个被预览的屏幕根配一个 Robolectric 渲染用例（配方见 `EmptyStateTest`：`@GraphicsMode(NATIVE)` + `@Config(sdk = [34], qualifiers = …)` + `createAndroidComposeRule<ComponentActivity>()`），锁「组合得出来」与「取值顺序对」——这两类错不崩、不报错，只在渲染时显形。`private` 根测试源集看不见，那一档由预览面板人工确认。
 - **阅读器的正文排版层不进预览**：翻页/滚屏正文要吃 `ReadBookActivity` 的窗口旗标与排版实测块高，硬凑可预览等于再造一套假排版器。预览范围止于控制器层（顶/底栏、目录抽屉、亮度/字体面板、各类弹层）。
 
+### 3.5 一次性结论与文案分层
+
+宿主（ViewModel / 控制器）只发**语义结论**，不取字符串资源：结论类型只带语义、数字，以及需要上报的失败档所带的 cause；页面用**不带 `else` 的 `when`** 映射成句子。页面文案优先进 `strings.xml`；通用失败沿用异常自带的用户可读消息，取不到才用资源兜底（这一档不随语言切换）。承载件是 `lib_book_common` 的 `SingleNoticeSlot`——StateFlow 让页面重建后仍能读到未消费的结论；相等值（含同一实例）在 `consume()` 之前重复 emit 会被判等吞掉，所以页面展示后必须立即消费。
+
+- 采用本约定的宿主：`FindNotice`（搜索页与分类选书页共用 `findNoticeText`）、`BookDetailNotice`、`EditBookNotice`、`DownloadCenterNotice`、阅读器滚屏边界的 `ScrollEdge`。句子只在页面那一处拼，新增一档结论时映射处编译不过。
+- 带 cause 的失败档走共享的 `reportFailure(cause, 文案)`（ADR-0025）：会话过期由它只记日志、不重复提示；无 cause 的固定失败/半成功（`AddShelfFailed` / `RemoveShelfFailed` / `MigrateFailed`）与非失败回显（追加章数、保存成功、启动受限）走基类 `sendToast` 或页面 Toast，不进失败上报。
+- 约定**前向生效、不追溯**：新宿主与新改动照此写；存量 `context.getString` 在各自下次被改动时迁移。与本约定相关的点名存量（不穷举）：`DownloadRepository.startDownload` 在启动被拒时直接弹 `download_start_restricted`，`ReaderPager` 的同款边界文案仍由翻页控制器直取资源。为什么这样切见 [ADR-0061](adr/0061-semantic-notice-layering.md)。
+
 ## 4. 数据与存储
 
 ### 4.1 Room 主键与写事务
@@ -113,6 +121,8 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 **写「一个书架条目」的四张表一律收在同一笔写事务里**（由 `ShelfEntryStore` 的 `add`/`replaceRows`/`appendTailAndRemove` 经 `WriteTransactionRunner` 落地；`BookRepository` 的加书架、换源、导入与智能合并都委托它，事件在事务返回后才发）：逐张提交会留出窗口，让并发读方 `getAllBooksWithDetails` 看到「书架行已在、章节还没写完」的半截条目，而它把「取不到 `book_info`」的行当孤立记录**删掉**——半截状态不只被读到，还会被写实。该不变量由 `ShelfEntryStoreTest` 与 `BookRepositoryTest` 的 `addToShelf 把整个条目收进一次写事务并在提交后才发事件` 在纯 JVM 侧锁住。
 
 - **阅读进度不是新条目**：`saveProgress` 只更新已存在的 `book_shelf` 行；未加书架先读不写库（否则会造出没有 `book_info` 的半行，被书架读面带成「在架」并留下孤儿），在阅读器里点加书架时由 `ReaderSession` 用实时位置整笔写入。孤立条目的对账由 `ShelfEntryStore.deleteOrphan` 删四表，不只删 `book_shelf`。
+- **「取源建条目」（按 `tag` 取 parser、拉详情与目录）与「新条目必带 `book_info`」的守卫收在单一主人 `ShelfEntryFetcher`**：加书架（`BookShelfManager.addFromSearch`）与换源（`BookRepository.switchSource`）共用它，守卫置于任何写之前（parser 脏返回 = 一行不写）；四表落库仍归 `ShelfEntryStore` 的同一笔写事务（[ADR-0054](adr/0054-shelf-entry-builder-single-owner.md)）。
+- **书架仓库按调用方切四个窄面**：`ShelfRepository`（条目读写/进度/换源/书架事件）、`ContentReader`（正文读取）、`ChapterTocSync`（目录重抓与追加）、`CommentKeys`（`book_group` 读并集/写主键/修键），生产注入点只注实际用到的面；四面 `@Binds @Singleton` 到同一个 `BookRepository`，聚合类型只留给测试与启动对账（`reconcileContentStore` 不进任何面）（[ADR-0055](adr/0055-book-repository-narrow-faces.md)）。
 
 ### 4.2 Schema 演进
 
@@ -120,7 +130,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 ### 4.3 目录事实源与追更
 
-**目录的单一事实源是 `chapter_list`**：要渲染或写进度一律回读 `BookRepository.getStoredChapters`，不要拿「手上那份目录 + appended」自己拼（`Appended` 只带新增的那几行，够报条数不够拼），基数不保证等于库内行数——差一章的症状是「读至」变空白＋点进去提示章节加载失败、目录还会长出两遍末章。
+**目录的单一事实源是 `chapter_list`**：要渲染或写进度一律回读 `ChapterTocSync.getStoredChapters`，不要拿「手上那份目录 + appended」自己拼（`Appended` 只带新增的那几行，够报条数不够拼），基数不保证等于库内行数——差一章的症状是「读至」变空白＋点进去提示章节加载失败、目录还会长出两遍末章。
 
 **只有「本地每一章都还在远端、相对顺序一致」才追加**，分叉一律整笔放弃（章文件按序号命名，序号漂移＝静默读错章）：
 
@@ -139,9 +149,11 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - **邮箱为登录主标识**（用户名仅展示用、可重复；注册三步不发 token）。
 - **access token 只驻内存不落盘**（lib_common 的 `TokenHolder`），由 `AuthInterceptor` 附加到请求头，且**只对白名单内 host 附加**——第三方站点永远拿不到用户 token；冷启动为空，由首个请求的 A0230 经静默刷新补上。双 token 持久化由 `AndroidUserSessionManager` 负责（**密码不落盘**），会话生命周期各时点同步 `TokenHolder`。
 - **A0230 过期由网络层收口**：单飞静默刷新 → 成功重放一次原请求；刷新失败发会话过期事件全局处置（清会话 + 提示 + 跳登录）。调用方对会话过期**一律经 `lib_book_common` 的 `reportFailure` 上报**（其内部只记日志、不重复提示），**不要再手写 `isSessionExpiredHandled` 分支**。
+- **账号接口按调用方切四个窄面，信封只在缝内消化一次**（[ADR-0059](adr/0059-account-faces-envelope-in-seam.md)）：`AccountSignIn`（登录 / 注册发码 / 注册 / 登出）、`AccountPassword`（已登录改密 + 找回密码）、`AccountProfile`（`updateMe` + `uploadAvatar`，收**字节 + 文件名**，multipart 字段名归适配器）、`SessionRefresh`（`refreshToken`）——`UserRepository` 注前两面、`ModifyRepository` 只注资料面、`SessionTokenRefresher` 只注刷新面；四面各一条 `@Binds @Singleton` 指向同一个实现（真实 `UserNetwork` / mock `UserNetworkTest`），聚合的宽接口已删除，没有留一条绑定。`lib_ebook_api` 的 `UserEnvelope.kt` 是账号域**唯一**读 `RespDTO` 的地方：三面回 `Result<载荷>`（业务码仍翻成 `ApiException`，A0230 处置不变），成功码却没载荷是一档独立的 `MissingPayloadException`（不带文案，页面用 `missingPayloadAs` 给自己的那句）；回执型端点的 `data: null` 是正常形态，折成成功。**刷新面是唯一不回 `Result` 的**：回密封的 `TokenRefresh`（`Rotated` / `Rejected` / `NotEstablished`——服务端明确拒绝与「本次没能把请求成立」是两档，不许合成一句「刷新被拒」；对本层的处置同为「没有新凭证」），因为它必须绕开 `safeApiCall`（刷新自身失败再进那条管道就是死循环，ADR-0010）。`SessionTokenRefresher` 因此以 `Lazy<SessionRefresh>` 取面——刷新面与网络适配器是同一个单例，构造期直连成环。
 - **不同信任域各用各的客户端**：书源请求（第三方网站）走 `@Named("source")` 纯净客户端、版本检查走 `@Named("release")`，均**不得携带 token**；服务端载荷为蛇形命名，DTO 边界翻译用逐字段 `@SerialName`，不开全局命名策略。
-- ebook-server 基址经 `local.properties` 的 `ebook.server.host` 注入 BuildConfig，不硬编码。**本地调试地址**：Android 17（targetSdk 37）起 `10.0.0.0/8`、`192.168.0.0/16` 等算「本地网络」，访问需 `ACCESS_LOCAL_NETWORK` 运行时权限；本项目不申请该权限，真机/模拟器连本机后端一律用 `adb reverse tcp:9090 tcp:9090` + `ebook.server.host=127.0.0.1`（回环不属本地网络），或直接用公网 IP。
-- **用户会话有三处镜像**（① `user_session` SP 文件；② `spUtils` 的 `SP_IS_LOGIN` 等兼容键；③ `ProfileRepository` 的内存 StateFlow，装着昵称/头像供「我的」页渲染）。**清会话一律只调 `userSessionManager.clearSession()`**，三处由它内部一并覆盖；**禁止调用方自行「成对」补调 `ProfileRepository` 的清理方法**——旧约定是 SP 镜像尚未收进 `clearSession()` 时的写法，如今既多余、又会掩盖真正容易漏的内存镜像。
+- ebook-server 基址的唯一读取口是 `lib_ebook_api` 的 `ServerAddressStore`：应用**不内置服务器地址**（构建期不注入主机值，[ADR-0053](adr/0053-no-builtin-server-address.md)），用户在「设置 → 服务器地址」自行配置并持久化，未配置时服务端调用以 `ServerAddressNotConfiguredException` 快速失败、阅读/书源/下载不受影响；**重启后生效**（Retrofit 基址与 token 白名单都读 store 构造时冻结的进程快照 `effective()`，不读 SP 现值——读现值时「谁先被注入」会决定结果，两者能分到两个主机上；不做热切换），**换址/清除配置即清会话**——旧服务器的 refresh token 不得发往新主机；`save`/`reset` 以 `commit()` 返回值为准（失败不推进配置面、不清会话，UI 提示重试），并在同一笔 commit 落 `session_reset_pending` 标记。应用启动时在首个请求发出前先清会话再清标记；清会话落盘失败或抛异常时标记保留、下次启动重试，异常不阻断启动（覆盖协程取消、进程被杀与重启前重新登录）。基址只含 http(s) + 主机 + 端口，不带路径与凭据；非回环 http 地址在服务器地址页提示明文风险，设置行只显示「未配置/自定义」状态、不显示地址值（[ADR-0052](adr/0052-runtime-server-address-override.md)）。**本地调试地址**：Android 17（targetSdk 37）起 `10.0.0.0/8`、`192.168.0.0/16` 等算「本地网络」，访问需 `ACCESS_LOCAL_NETWORK` 运行时权限；本项目不申请该权限，真机/模拟器连本机后端一律用 `adb reverse tcp:9090 tcp:9090` 后在 App 内把服务器地址填 `127.0.0.1:9090`（回环不属本地网络），或直接用公网 IP。
+- **发码倒计时只有一个主人**：注册发码与忘记密码发码共用 `module_login` 的 `CodeResendCountdown`（internal），60 秒窗口对齐服务端频控（A0241）；`start(scope)` 同步置 60 再逐秒递减，重启先取消旧任务，状态留在 ViewModel 侧使旋转不丢。两个 VM 只转发 `codeCountdown`，不各写递减循环（[ADR-0061](adr/0061-semantic-notice-layering.md)）。
+- **用户会话有三处镜像**（① `user_session` SP 文件；② `spUtils` 的 `SP_IS_LOGIN` 等兼容键；③ `ProfileRepository` 的内存 StateFlow，装着昵称/头像供「我的」页渲染）。**清会话一律只调 `userSessionManager.clearSession()`**，三处由它内部一并覆盖；**禁止调用方自行「成对」补调 `ProfileRepository` 的清理方法**——旧约定是 SP 镜像尚未收进 `clearSession()` 时的写法，如今既多余、又会掩盖真正容易漏的内存镜像。「清完即走」的调用点（登出/改密/会话过期/调试宿主）走挂起出口 `userSessionManager.endSession()`——它在接口内包好「IO 派发 + NonCancellable + 落盘失败只记日志」三条契约（[ADR-0056](adr/0056-session-end-suspend-exit.md)）；需要布尔返回值门控的换址/清除配置与启动兜底仍直调 `clearSession()`。
 
 ## 6. 书源与内容获取
 
@@ -163,7 +175,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - `book_source.format` 列值是小写 `native`/`script`，读写一律取 `SourceFormat.raw`——拿枚举 `name` 当列值不报错也不闪退，只会让脚本行静默按原生规则解。
 - 两种格式同表共存时，各读面按 `book_source.format` 分路：规则类型化读面 `getAllSources` 经 `toRule` 只认原生行；默认源回落走 `defaultFromRows`（`toItem` 选行、`toDefinition` 构造），不经过 `toRule` 的格式门，两种出身都可承载——脚本行同样可被立为默认源（`toDefinition` 的 native 分支内部仍复用 `toRule` 解码）；`observeSources()` 则必须继续带出脚本行（管理页要看得见、能禁用、能删）——三处口径本就不同，不要「统一」。
 - `resolveSource` 对脚本行**永不返回 Missing/Broken、也不在取 parser 时抛**（`ScriptRuleSet.load` 惰性到首次求值才跑，坏 JSON 在那里抛类型化 `ScriptRuleParseException`）；`Missing`（没有这行）与 `Broken`（原生坏行）在 UI 上可给同一句提示，但日志必须分开。脚本失败层级已 public（ADR-0046），`lib_book_common` 可按类型处置（正文路径当前仍原样上抛）；**不得**把「这条规则解不动」折叠成「这条源已失效」。构造期抛则会在缓存锁内炸出未预期异常。
-- 跨模块可见性：Kotlin `internal` 只在同模块（含同模块测试源集）可见，依赖方的 test source set 不是 friend module，故 `JsoupBookParser.rule`、`ChapterPageMatcher` 与 `ScriptBookParser` 的生产构造都是 public——上浮解析器时不要顺手收窄，且解析器测试必须与实现放在同一模块。`rule` 的 public 现在只为「依赖方测试断言缓存换新行」服务，正文抓取已不读它（见下条）。
+- 跨模块可见性：Kotlin `internal` 只在同模块（含同模块测试源集）可见，依赖方的 test source set 不是 friend module，故 `ChapterPageMatcher` 与 `ScriptBookParser` 的生产构造都是 public——上浮解析器时不要顺手收窄，且解析器测试必须与实现放在同一模块。`JsoupBookParser.rule` 是 internal：正文抓取已不读它（见下条），对外没有别的跨模块消费者，「缓存换成新行」由测试断言实例更换即可。
 - `JsoupSourceReader` 住在 `lib_book_common`、**不随解析器迁走**：它依赖 `BookStore`/`ChapterReader`/`SourceResolver`，搬去 `lib_book_source` 就是一个 Gradle 环。它也不再需要 `OkHttpClient`：抓取在解析器一侧完成。
 - **取文接缝 `BookContentParser` 由两种出身共用**：原生 `JsoupBookParser.fetchChapterText`（PageWalker + 同章分页判定 + 清理规则）与脚本解析器都实现它；`JsoupSourceReader` 只认这一面，把「取到文本之后」的存储策略（空正文不落盘、`\n` 切段、缩进归 `TextNormalizer`）写一份。error mode **不合并**（[ADR-0046](adr/0046-script-failure-hierarchy-public.md)）：原生把抓取失败裹成「章节内容解析失败」，脚本把类型化异常原样上抛。原生取文由 `JsoupBookParserTest` 用带拦截器的 OkHttpClient 在纯 JVM 下锁住（[ADR-0050](adr/0050-content-parser-seam-parity.md)）。
 - 声明式求值链路全线接页面：`ScriptBookParser` 实现 `BookParser` 五面（搜索/详情/目录/发现分类/书库首屏）与 `BookContentParser` 取文接缝——聚合搜索候选含脚本行、正文读取走同一取文接缝、脚本源可搜索可加书架可全链路阅读。
@@ -198,7 +210,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 
 - **永不在主线程调沙箱**——脚本回调要回主进程，主线程调过去就是等自己；执行器客户端有主线程守卫。改它之前先想清楚回调线程模型（`HostHandler.handle` 同步、transport 是 suspend，靠 binder 线程池上 `runBlocking` 接起来）。
 - **未装配执行器与执行失败是两件事**：`ctx.js == null` 抛 `JsEvaluationPendingException`（消息片段「需脚本沙箱执行器」被 `SandboxScriptJsTest` 断言，改消息会红它；`JsoupSourceReader` 侧只把类型化异常原样透出、不解析这句话）；真跑了而失败抛 `JsExecutionFailedException` 带内核原文（唯一回落口是后位 `@js:` 解引用未提供绑定时的窄例外，见规格 §9）。把两者合并成「该源已失效」会把用户支去重导一条好源。
-- 沙箱外呼只用 `GuardedNetwork` 派生的守门客户端，host 白名单由 `SourceHostAllowlist` 从源规则原文导出——自己 new 一个 OkHttpClient 就等于绕过私网拒绝与白名单。守门目前只覆盖脚本自己发起的外呼；URL 选项 `js` 改写出的地址仍由取文层按原路径发出（不带凭证，但也不查白名单与私网）。
+- 沙箱外呼与取文的客户端同出 `SourceNetworkExit` 一个派生点（ADR-0058）：沙箱那路挂 `GuardedDns` 与 `SourceHostAllowlist`（host 白名单从源规则原文导出）——自己 new 一个 OkHttpClient 就等于绕过私网拒绝与白名单；取文那路（含 URL 选项 `js` 改写出的地址）首合并为等价派生，**不带**守门判定、同样永不附凭证（LAN/IP 直连源要能继续用，私网收紧另立决策）。base 一律是 `@Named("source")` 纯净客户端。
 - Hilt 装配在 `lib_book_common`（`lib_book_source` 无 Hilt/KSP），`JsSandboxHost`/`HostCallbackRouter` 为此上浮 public：`provideJsSandboxHost` 里转子必须**先建、再传进客户端**，两边不是同一个对象时每条回调都报「主进程没有正在进行的脚本任务」；这一条 JVM 测锁不住、只有装机能验。
 
 ### 6.5 分页与正文跟进
@@ -206,6 +218,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - **逐页走**的机制收在 `PageWalker`（回环守卫、页数/条目上限、可选「零新增即停」）；四条链路只注入「下一页怎么算、何时停」。原生正文仍用 `ChapterPageMatcher`、脚本仍用 `ScriptPageChain`，判定函数**不合并**（规格 §7.3/§12），`PageWalkerTest` 锁机制，各链测试锁语义。
 - 正文分页跟进（多页拼接）的判定基准是**目录页给出的原始章节 URL**（不对入口剥后缀），只对「下一页」候选链接剥一次分页后缀再比。对入口也剥离会让「章节号写在连字符后」的站点剥后同形而**串章**（一路跟进后续章节直到页数上限，正文错乱 + 数十次冗余请求）；「第 1 页也带后缀」的站点与此结构同形、无法靠 URL 区分，取舍是**宁漏页不串章**。边界形态由 `ChapterPageMatcherTest` 锁死。
 - 列表分页（分类页/搜索页 URL 模板）的模板**必须带 `{{page}}`**，否则「加载更多」每页都在请求同一个首页；页码换算与渲染统一走 `JsoupBookParser` 的 `ListPageUrl`（它把以 `/{{page}}` 结尾的模板在首页裁掉页码段——裸路径首页 `/xuanhuan/1` 是 404），取首页也必须经它。判「到底」不能只看空页：**越界页会以 HTTP 200 重复返回首页书目**（软 404），追加页一律按 `noteUrl` 去重、无新条目即置 `hasMore=false`——列表页以 `noteUrl` 作 item key，重复条目直接抛异常。形态由 `ListPageUrlTest` 与 `BookPageMergeTest` 锁死。
+- **列表页的翻页游标、在途闸门与刷新/加载信号的先后只有一个主人：`lib_book_common` 的 `PageSession`**（纯 JVM，[ADR-0057](adr/0057-page-session-pagination-single-owner.md)）。宿主只把各自的「到底」判据算成 boolean 交进去（书评区 = 服务端 `page.hasMore`、分类页 = `mergeBookPage` 非 null），再按序 apply 会话返回的 `PageSignal`——`onRefreshResult` 返回 `[StopRefresh, HasMore]` 的顺序承重（基类状态机在收到刷新结束信号时会自动复位 hasMore，显式结论必须后到才能覆盖复位值），会话把它锁在类型返回值上而不是靠调用点记得。`PageSessionTest` 锁协议，两宿主的接线由 `BookCommentsViewModelTest` 与 `ChoiceBookViewModelTest` 锁住；两个纯合并函数（`mergeCommentPage`/`mergeBookPage`）留在宿主不动。
 - **页内相对链接一律按当前页落位**：原生五面（搜索结果页、分类列表页含「加载更多」、详情页、目录页、正文章页）都以**本次请求的那一页**为基准，语义的事实源是规格 §6.5；基准为何归当前页、以及存量条目 `content_ref` 从此对不上而停更的后果见 [ADR-0027](adr/0027-source-pagination-boundary.md)。URL **规则串**（`searchUrl`/`discoverUrl`）此刻没有「当前页」，非绝对形态按源根拼（`BookSourceNetwork.absoluteUrl`），但形态判据与 join 前三条对齐。**点段折叠不做**：`../x.html` 按拼接原样保留，请求侧 `HttpUrl` 归一化后页面取得到，代价是 `content_ref` 存未归一串——补折叠会让当前正常追更的存量条目按新键重解析、多出一批停更，故不做（ADR-0027 权衡末条）。由 `JsoupBookParserTest`（搜索/分类含「加载更多」、详情、正文下一页）与 `TocPagerTest`（章节链接、查询串基准、空白、无路径与点段形态）锁住。
 
 ### 6.6 书库缓存
@@ -229,6 +242,7 @@ class XxxActivity : BaseMvvmActivity<XxxViewModel>() {
 - **批次循环与终态判定收在 `DownloadBatchLoop`**：取篇、跑章、跳过计数、章间隔与「跑空 / 只剩暂停书 / 被用户打断」三分只在那一处；`skippedCount` 是循环侧的事实，Service 收尾时只读它。`DownloadBatchLoopTest` 锁空队列、只剩暂停书、runner 暂停、跳过计数、打断与孤儿清理顺序（[ADR-0049](adr/0049-download-batch-loop-ownership.md)）。
 - **单章执行收在 `DownloadRunner`**：缓存命中、强刷删章、空正文判失败、重试耗尽出队与暂停中断不出队都在这里；`DownloadService` 只保留前台生命周期、通知、Intent 分派与按结局收尾。runner 之外逃出的意外异常也停在暂停态、不删任务（不把「没抓成」静默成跳过）。`DownloadRunnerTest` 锁住「失败耗尽出队、暂停不出队」，`DownloadBatchTest` 锁候选域、暂停跳过与孤儿清理。
 - **下载中心的选章计划收在 `ChapterSelectionPlan.kt`**：预勾选窗口由 `initialChapterSelection` 给出；未缓存集、确认任务、跳过数与书头三态动作由 `planChapterDownload` 一处算出；`DownloadManageViewModel` 与 `ChapterDownloadSheet` 消费同一份结果，`DownloadBatch` 仍是队列策略的唯一主人。`ChapterSelectionPlanTest` 锁计划本身，`ChapterSelectionTest` 锁三态与区间的纯逻辑（[ADR-0048](adr/0048-single-owner-derivation-extraction.md)）。
+- **下载中心的焦点章派生与刷新编排收在 `DownloadCenterSession`**：一级卡片与二级选章同读 `activeChapter(tasks)` 一处算出焦点章，服务结局→该刷哪几面由 `onDownloadState` 返回、`confirmDownload` 的暂停/排队乐观回显由 `optimisticEnqueue` 定义；宿主 ViewModel 只接线，`DownloadCenterScreen` 不持有 `when (DownloadState)` 编排（编排只在 ViewModel），「某本书算不算暂停」的真值源仍是 `paused_book` 表（[ADR-0060](adr/0060-download-center-session-single-owner.md)）。
 
 下载中心的当前交互（一级按书任务列表、二级选章、按书暂停/继续）与目录定位解耦见 ADR-0034/0035/0036；实现细节以对应页面代码与 KDoc 为准。
 

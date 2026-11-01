@@ -1,7 +1,5 @@
 package com.ebook.book.reader
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import com.ebook.db.event.DBCode
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.TestScope
@@ -11,20 +9,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 
 /**
- * [ReaderScrollController] 的回归测试（Robolectric 仅供 Context，不渲染任何 View）。
+ * [ReaderScrollController] 的回归测试（纯逻辑，不渲染任何 View；边界结论按 [ScrollEdge] 断言）。
  *
  * 锁的是**跨章连续列表**这套模型的口径（翻页模式的窗口收敛见 ReaderPagerControllerTest）：
  * 章段由「进入某章即物化相邻两章」产出、章界处只有标题项分隔、扁平 item 序号与 (章, 块)
  * 双向映射、锚点存语义值故上方插入 item 不动进度、哨兵落点在块数落定后才解析、
  * 保留集按**章距**裁剪（不是按块半径）、进度经与翻页模式同一个回调签名上报。
  */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class ReaderScrollControllerTest {
 
     @Test
@@ -216,7 +209,8 @@ class ReaderScrollControllerTest {
     @Test
     fun `整本书末尾再下一屏不推进也不发跳转`() = runTest {
         val book = FakeScrollBook(listOf(3))
-        val controller = newScroll(book)
+        val edges = mutableListOf<ScrollEdge>()
+        val controller = newScroll(book, onScrollEdge = { edges += it })
 
         controller.setInitData(0, 2)
         advanceUntilIdle()
@@ -228,6 +222,23 @@ class ReaderScrollControllerTest {
         assertEquals(0, controller.anchorChapter)
         assertEquals("整本书末尾不推进", 2, controller.anchorBlock)
         assertEquals("不推进就不该让容器再滚一次", tokenBefore, controller.jump?.token)
+        assertEquals("末端边界只报语义结论，句子与出口归页面", listOf(ScrollEdge.NoNextPage), edges)
+    }
+
+    @Test
+    fun `整本书开头再上一屏上报没有上一页`() = runTest {
+        val book = FakeScrollBook(listOf(3))
+        val edges = mutableListOf<ScrollEdge>()
+        val controller = newScroll(book, onScrollEdge = { edges += it })
+
+        controller.setInitData(0, DBCode.BookContentView.DUR_PAGE_INDEX_BEGIN)
+        advanceUntilIdle()
+
+        controller.scrollOneScreen(forward = false)
+        advanceUntilIdle()
+
+        assertEquals("首端边界同样不推进", 0, controller.anchorChapter)
+        assertEquals(listOf(ScrollEdge.NoPrevPage), edges)
     }
 
     @Test
@@ -435,11 +446,12 @@ class ReaderScrollControllerTest {
 private fun TestScope.newScroll(
     book: FakeScrollBook,
     onProgress: (Int, Int) -> Unit = { _, _ -> },
+    onScrollEdge: (ScrollEdge) -> Unit = {},
 ) = ReaderScrollController(
     scope = this,
-    context = ApplicationProvider.getApplicationContext<Context>(),
     chapterSize = { book.blocksPerChapter.size },
     chapterTitle = { "第${it + 1}章" },
     loadPage = { c, p -> book.load(c, p) },
     onProgress = onProgress,
+    onScrollEdge = onScrollEdge,
 )

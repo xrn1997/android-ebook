@@ -1,7 +1,8 @@
 package com.ebook.api.service.comment
 
 import com.ebook.api.RetrofitBuilder
-import com.ebook.api.config.API
+import com.ebook.api.config.ServerAddressNotConfiguredException
+import com.ebook.api.config.ServerAddressStore
 import com.ebook.api.entity.CommentMigrateRequest
 import com.ebook.api.entity.CommentMigrateResponse
 import com.xrn1997.common.dto.RespDTO
@@ -17,11 +18,19 @@ import javax.inject.Singleton
  */
 @Singleton
 class CommentNetwork @Inject constructor(
-    retrofitBuilder: RetrofitBuilder
+    retrofitBuilder: RetrofitBuilder,
+    serverAddressStore: ServerAddressStore,
 ) : CommentDataSource {
-    private val networkApi = retrofitBuilder.getRetrofitObject(
-        "http://${API.URL_HOST_COMMENT}:${API.URL_PORT_COMMENT}/"
-    ).create(CommentService::class.java)
+    /**
+     * 生效面而非配置面：本进程的基址在 store 构造时冻结，改地址要重启（ADR-0052）。
+     * 未配置即抛 [ServerAddressNotConfiguredException] 快速失败（应用不带默认地址，ADR-0053）；
+     * 评论是服务端能力，未配置时本就无处可发，阅读不受影响。
+     */
+    private val networkApi: CommentService by lazy {
+        val baseUrl = serverAddressStore.effective()?.baseUrl
+            ?: throw ServerAddressNotConfiguredException()
+        retrofitBuilder.getRetrofitObject(baseUrl).create(CommentService::class.java)
+    }
 
     override suspend fun addComment(comment: Comment): RespDTO<Comment> =
         networkApi.addComment(comment)

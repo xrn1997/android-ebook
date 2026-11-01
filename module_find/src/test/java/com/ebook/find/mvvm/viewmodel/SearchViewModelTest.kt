@@ -15,6 +15,7 @@ import com.ebook.db.dao.BookShelfDao
 import com.ebook.db.dao.ChapterListDao
 import com.ebook.db.dao.DownloadChapterDao
 import com.ebook.db.dao.SearchHistoryDao
+import com.ebook.db.entity.BookInfoEntity
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.LibraryEntity
 import com.ebook.db.entity.SearchBookEntity
@@ -230,6 +231,9 @@ class SearchViewModelTest {
 
         override suspend fun getBookInfo(bookShelf: BookShelfEntity): BookShelfEntity {
             bookInfoCalls += bookShelf
+            // 真解析器总会解出书籍信息；补上它才过得了「新条目必带 book_info」守卫（见 ShelfEntryFetcher）。
+            // 本用例锁的是「用的是哪个 parser」，不是「不解出 bookInfo 也放行」——后者正是已修掉的缺陷。
+            bookShelf.bookInfo = BookInfoEntity(name = "书", author = "作者", noteUrl = bookShelf.noteUrl)
             return bookShelf
         }
 
@@ -289,7 +293,7 @@ class SearchViewModelTest {
             searchHistoryRepository = SearchHistoryRepository(historyDao),
             sourceResolver = manager,
             bookShelfManager = BookShelfManager(manager, bookRepository),
-            bookRepository = bookRepository,
+            bookShelfRepository = bookRepository,
         )
     }
 

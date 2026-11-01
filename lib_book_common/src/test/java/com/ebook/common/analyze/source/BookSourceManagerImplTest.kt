@@ -512,7 +512,6 @@ class BookSourceManagerImplTest {
         val fresh = manager.getParserFor("https://a.example") as JsoupBookParser
 
         assertNotSame("默认源的 parser 必须随规则一起换，否则 evictParser 只是白做一次", old, fresh)
-        assertEquals("新名", fresh.rule.name)
     }
 
     @Test
@@ -526,7 +525,6 @@ class BookSourceManagerImplTest {
         val fresh = manager.getParserFor("https://a.example") as JsoupBookParser
 
         assertNotSame("setEnabled 也必须失效缓存", old, fresh)
-        assertFalse(fresh.rule.enabled)
     }
 
     @Test

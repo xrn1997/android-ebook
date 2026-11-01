@@ -47,7 +47,7 @@ import com.ebook.book.view.ReadBookControl
 import com.ebook.common.domain.CommentKey
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
-import com.ebook.common.repository.BookRepository
+import com.ebook.common.repository.CommentKeys
 import com.ebook.common.store.ReaderResumeStore
 import com.ebook.common.util.reportFailure
 import com.ebook.db.entity.BookShelfEntity
@@ -95,7 +95,7 @@ class ReadBookActivity : BaseMvvmActivity<BookReadViewModel>() {
     lateinit var bookImportRepository: BookImportRepository
 
     @Inject
-    lateinit var bookRepository: BookRepository
+    lateinit var commentKeys: CommentKeys
 
     /**
      * 阅读器导航：音量键与重分页只经它，不再以「哪个控制器非空」判模式。
@@ -514,14 +514,27 @@ private fun ReadBookScreen(
             onProgress = navigation.onProgress,
         )
     }
+    // 滚屏撞到书首/书末的两句文案在组合期解析好交给回调：回调不是 Composable，
+    // 在里面调 context.getString 会踩 lint LocalContextGetResourceValueCall（同 noChapter 的理由）
+    val noNextPageText = stringResource(R.string.no_next_page)
+    val noPrevPageText = stringResource(R.string.no_prev_page)
     val scrollController = remember {
         ReaderScrollController(
             scope = scope,
-            context = context,
             chapterSize = { viewModel.readerState.value.chapterCount },
             chapterTitle = { viewModel.session.chapterAt(it)?.durChapterName ?: noChapter },
             loadPage = { c, p -> activity.loadPage(c, p) },
             onProgress = navigation.onProgress,
+            // 边界结论 → 句子 → 出口全在这一层；控制器不认识资源（ADR-0061）
+            onScrollEdge = { edge ->
+                ToastUtil.showShort(
+                    context,
+                    when (edge) {
+                        ScrollEdge.NoNextPage -> noNextPageText
+                        ScrollEdge.NoPrevPage -> noPrevPageText
+                    },
+                )
+            },
         )
     }
     // 组合外入口（音量键、重分页）只认识导航；离开阅读器时置空。
@@ -754,7 +767,7 @@ private fun ReadBookScreen(
                     menuVisible = false
                     readerState.shelf?.let { shelf ->
                         scope.launch {
-                            val keys = activity.bookRepository.getCommentKeysForBook(shelf.noteUrl)
+                            val keys = activity.commentKeys.getCommentKeysForBook(shelf.noteUrl)
                             // 兜底：book_group 无行时（旧数据未迁移）退回当前书信息算一个键
                             val effectiveKeys = keys.ifEmpty {
                                 val name = shelf.matchName ?: shelf.bookInfo?.name
@@ -768,7 +781,7 @@ private fun ReadBookScreen(
                                 shelf,
                                 effectiveKeys,
                                 // 写入键取主键行；无 book_group 行的旧数据回落到并集首元素
-                                activity.bookRepository.getPrimaryKeyForBook(shelf.noteUrl)
+                                activity.commentKeys.getPrimaryKeyForBook(shelf.noteUrl)
                                     ?: effectiveKeys.firstOrNull()
                             )
                         }

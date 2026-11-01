@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -16,8 +17,10 @@ import androidx.compose.ui.Modifier
 import com.ebook.common.event.FROM_SEARCH
 import com.ebook.common.event.KeyCode
 import com.ebook.common.ui.CommonUiTokens
+import com.ebook.common.util.reportFailure
 import com.ebook.find.mvvm.viewmodel.ChoiceBookViewModel
 import com.ebook.find.view.SearchBookItem
+import com.ebook.find.view.findNoticeText
 import com.therouter.TheRouter
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmRefreshActivity
@@ -48,10 +51,21 @@ class ChoiceBookActivity : BaseMvvmRefreshActivity<ChoiceBookViewModel>() {
     @Composable
     override fun PageContent(state: LazyListState) {
         val books by viewModel.list.collectAsState()
+        val notice by viewModel.findNotice.collectAsState()
         // 加载更多底部状态：由基类渲染镜像推导，失败可点重试
         val loadingMore by remember { isLoadingMoreState }
         val loadMoreFailed by remember { loadMoreFailedState }
         val hasMore by remember { hasMoreDataState }
+        // 文案在组合期解析好再交给一次性上报（LaunchedEffect 不是 Composable 上下文）
+        val pendingNotice = notice?.let { it to findNoticeText(it) }
+        // 与搜索页同一处映射、同一个上报出口：`reportFailure` 收口「会话过期只记日志、
+        // 不重复提示」那条不变量（ADR-0061）
+        LaunchedEffect(pendingNotice) {
+            pendingNotice?.let { (conclusion, text) ->
+                viewModel.reportFailure(conclusion.cause, text)
+                viewModel.consumeFindNotice()
+            }
+        }
         LazyColumn(
             state = state,
             modifier = Modifier.fillMaxWidth(),

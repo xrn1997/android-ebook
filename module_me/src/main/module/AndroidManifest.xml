@@ -34,6 +34,10 @@
             android:label="@string/setting_title"
             android:theme="@style/ToolbarTheme.BackBar" />
         <activity
+            android:name=".view.ServerAddressActivity"
+            android:label="@string/setting_server_address"
+            android:theme="@style/ToolbarTheme.BackBar" />
+        <activity
             android:name=".view.CacheManageActivity"
             android:label="@string/cache_manage_title"
             android:theme="@style/ToolbarTheme.BackBar" />

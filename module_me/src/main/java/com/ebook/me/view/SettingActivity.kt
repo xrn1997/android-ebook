@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Source
 import androidx.compose.material.icons.outlined.WbSunny
@@ -109,6 +110,7 @@ class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
         val hasUpdateAvailable by viewModel.hasUpdateAvailable.collectAsState()
         val themeMode by viewModel.themeMode.collectAsState()
         val sourcesCount by viewModel.sourcesCount.collectAsState()
+        val serverAddress by viewModel.serverAddressState.collectAsState()
         // 书源管理页住在 module_find：集成态有这条路由，module_me 独立运行时没有。
         // 不在独立态留一个点了没反应的入口（ADR-0026 的既有处置口径）。
         val showBookSource = remember {
@@ -148,14 +150,27 @@ class SettingActivity : BaseMvvmActivity<SettingViewModel>() {
                 // 用户在请求回来前转屏就会把「清本地会话」一起取消掉；整条链改由 VM 跑完，
                 // 提示与关页经基类命令通道下发（见 SettingViewModel.runLogout）
                 viewModel.logout()
-            }
+            },
+            isServerAddressConfigured = serverAddress.isConfigured,
+            isServerRestartPending = serverAddress.pendingRestart,
+            onOpenServerAddress = {
+                TheRouter.build(KeyCode.Me.SERVER_ADDRESS_PATH).navigation()
+            },
+            onRestartApp = { restartApp(this) },
         )
     }
 }
 
 /**
- * 设置页内容：分组卡片 + 弹窗（检查更新/退出登录确认）。
+ * 设置页内容：分组卡片 + 弹窗（检查更新/退出登录确认/重启提示）。
  *
+ * 「服务器地址」行只显示状态（未配置/自定义）与入口，**不显示地址值**——服务器地址不是
+ * 可以随便亮在锁屏/录屏里的东西；完整地址、明文警告与编辑都在服务器地址页（点进去再说）。
+ *
+ * @param isServerRestartPending 已改服务器地址、本进程尚未重启。它是**状态**而不是某次保存的回调：
+ *   Activity 在 IO 写盘期间被重建（或页面被离开再回来），一次性回调会丢，强制重启就被绕过了；
+ *   本参数为 true 时无条件渲染不可取消的重启提示（服务器地址页同样按此状态渲染，
+ *   两处都是为了「转屏/离页后仍要弹」）。
  * @param showBookSource false 时整行隐藏书源入口——module_me 独立运行没有 module_find 的路由，
  *   不能留一个点了没反应的入口。
  */
@@ -175,6 +190,10 @@ fun SettingScreen(
     onOpenAbout: () -> Unit,
     onThemeSelected: (ThemeMode) -> Unit,
     onLogout: () -> Unit,
+    isServerAddressConfigured: Boolean,
+    onOpenServerAddress: () -> Unit,
+    onRestartApp: () -> Unit,
+    isServerRestartPending: Boolean,
     showBookSource: Boolean = true,
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -287,6 +306,25 @@ fun SettingScreen(
                             onClick = onOpenBookSource
                         )
                     }
+                    CommonListDivider()
+                    // 服务器地址：运行期覆盖后端基址，重启生效、换址清会话（ADR-0052）。
+                    // 所有构建可见；mock 包下不影响假数据源。
+                    // 行上只给「未配置/自定义」状态、不显示地址值：地址不是可以随便亮在
+                    // 锁屏/录屏里的东西，完整值进服务器地址页看（带箭头=点进去，同缓存/书源行）。
+                    CommonListItem(
+                        icon = Icons.Outlined.Dns,
+                        title = stringResource(R.string.setting_server_address),
+                        trailingText = stringResource(
+                            if (isServerAddressConfigured) {
+                                R.string.setting_server_address_status_custom
+                            } else {
+                                R.string.setting_server_address_status_unset
+                            }
+                        ),
+                        iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        onClick = onOpenServerAddress
+                    )
                 }
             }
 
@@ -477,6 +515,13 @@ fun SettingScreen(
             }
         )
     }
+
+    // 不可取消：旧地址下重新登录会把旧服务器的凭证带到新地址，没有「稍后」可言。
+    // 编辑在服务器地址页；这里也按 pendingRestart 渲染同一枚提示——写盘在途的极小窗口里
+    // 用户可能已返回本页，转屏/离页后回到设置同样要弹（两处同源状态，不是两套信号）
+    if (isServerRestartPending) {
+        ServerAddressRestartDialog(onRestart = onRestartApp)
+    }
 }
 
 /**
@@ -508,6 +553,10 @@ private fun SettingScreenPreview() {
             onOpenAbout = {},
             onThemeSelected = {},
             onLogout = {},
+            isServerAddressConfigured = false,
+            onOpenServerAddress = {},
+            onRestartApp = {},
+            isServerRestartPending = false,
         )
     }
 }
@@ -532,6 +581,10 @@ private fun SettingScreenLoggedOutPreview() {
             onOpenAbout = {},
             onThemeSelected = {},
             onLogout = {},
+            isServerAddressConfigured = false,
+            onOpenServerAddress = {},
+            onRestartApp = {},
+            isServerRestartPending = false,
         )
     }
 }

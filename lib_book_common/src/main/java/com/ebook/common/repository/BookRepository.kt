@@ -24,7 +24,6 @@ import com.ebook.db.entity.SearchBookEntity
 import com.ebook.db.event.DBCode
 import com.ebook.source.analyze.BookParser
 import com.ebook.source.analyze.BookSourceNotFoundException
-import com.xrn1997.common.mvvm.model.BaseModel
 import com.xrn1997.common.util.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -49,6 +48,12 @@ import javax.inject.Singleton
  * - 阅读中换源（[switchSource]，见 ADR-0016）：跨书源原地替换一条书架条目，章序号映射进度
  * - 内容仓库对账（[reconcileContentStore]，启动时调用）
  * - 书架变化事件发布（替代原 RxBus 的书籍相关事件）
+ *
+ * **生产代码不直接注入本类**（ADR-0055）：方法按调用方切进 [ShelfRepository] /
+ * [ContentReader] / [ChapterTocSync] / [CommentKeys] 四个窄面，本类是四面的唯一实现与
+ * 聚合——聚合类型只留给测试与对账入口（`MyApplication.ContentStoreEntryPoint`，
+ * 因为 [reconcileContentStore] 不进任何面）。四面经 Hilt 绑定到同一个本类单例，
+ * 切面是**声明层面**的收窄，不改变任何行为。
  */
 @Singleton
 class BookRepository @Inject constructor(
@@ -73,10 +78,10 @@ class BookRepository @Inject constructor(
     private val bookStore: BookStore,
     private val contentCache: ChapterContentCache,
     private val transactions: WriteTransactionRunner,
-) : BaseModel() {
+) : ShelfRepository(), ContentReader, ChapterTocSync, CommentKeys {
     // ===== 事件 =====
     private val _bookShelfEvents = MutableSharedFlow<BookShelfEvent>(extraBufferCapacity = 64)
-    val bookShelfEvents: SharedFlow<BookShelfEvent> = _bookShelfEvents.asSharedFlow()
+    override val bookShelfEvents: SharedFlow<BookShelfEvent> = _bookShelfEvents.asSharedFlow()
 
     /** 「一个书架条目」的四表写入、事务边界与提交后事件，见 [ShelfEntryStore]。 */
     private val shelfEntryStore = ShelfEntryStore(
@@ -88,10 +93,17 @@ class BookRepository @Inject constructor(
         events = _bookShelfEvents,
     )
 
+    /**
+     * 「取源建条目」的唯一主人（ADR-0054）：[switchSource] 的网络半边经它拉详情/目录，
+     * 「新条目必带 book_info」的守卫也在它内部、置于任何写之前。加书架侧
+     * （`BookShelfManager`）按同一形态自建一份，两处构造方式不分叉。
+     */
+    private val entryFetcher = ShelfEntryFetcher(sourceResolver)
+
     // ===== 数据操作 =====
 
     /** 获取所有书籍（简单列表，无关联数据） */
-    suspend fun getAllBooks(): List<BookShelfEntity> = withContext(Dispatchers.IO) {
+    override suspend fun getAllBooks(): List<BookShelfEntity> = withContext(Dispatchers.IO) {
         bookShelfDao.getAllBooks()
     }
 
@@ -102,7 +114,7 @@ class BookRepository @Inject constructor(
      * （清理有写副作用，不适合放在每次失效都重发的观察流里，由一次性查询负责）。
      * info 为 null 的孤立条目直接过滤，保证下游拿到的 bookInfo 非空。
      */
-    fun observeBookShelf(): Flow<List<BookShelfEntity>> =
+    override fun observeBookShelf(): Flow<List<BookShelfEntity>> =
         bookShelfDao.getAllBooksFullInfoFlow().map { fullInfoList ->
             fullInfoList.mapNotNull { fullInfo ->
                 fullInfo.info?.let { info ->
@@ -118,7 +130,7 @@ class BookRepository @Inject constructor(
      * 只删书架行会把 `chapter_list`/`book_info`/`book_group` 留成永久孤儿。
      * 清理统一委托 [ShelfEntryStore.deleteOrphan]，与加书架/移出书架共用同一份四表口径。
      */
-    suspend fun getAllBooksWithDetails(): List<BookShelfEntity> = withContext(Dispatchers.IO) {
+    override suspend fun getAllBooksWithDetails(): List<BookShelfEntity> = withContext(Dispatchers.IO) {
         val result = mutableListOf<BookShelfEntity>()
         val toDelete = mutableListOf<String>()
 
@@ -146,7 +158,7 @@ class BookRepository @Inject constructor(
     }
 
     /** 根据 URL 获取书架条目 */
-    suspend fun getBookByUrl(noteUrl: String): BookShelfEntity? = withContext(Dispatchers.IO) {
+    override suspend fun getBookByUrl(noteUrl: String): BookShelfEntity? = withContext(Dispatchers.IO) {
         bookShelfDao.getBookByUrl(noteUrl)
     }
 
@@ -162,7 +174,7 @@ class BookRepository @Inject constructor(
      *
      * @return null = 该书不在架上（调用方按「不可恢复」处理）
      */
-    suspend fun getBookWithDetails(noteUrl: String): BookShelfEntity? = withContext(Dispatchers.IO) {
+    override suspend fun getBookWithDetails(noteUrl: String): BookShelfEntity? = withContext(Dispatchers.IO) {
         bookShelfDao.getBookFullInfoByUrl(noteUrl)?.let { fullInfo ->
             fullInfo.bookShelf.apply {
                 bookInfo = fullInfo.info
@@ -203,7 +215,7 @@ class BookRepository @Inject constructor(
      * **书架行在但 `chapter_list` 为零时不钳**：0 行没有「最后一行」可钳，钳成 0 会把进度
      * 抹回第一章；这类行仍可更新进度，等章节补齐后再按行数钳。
      */
-    suspend fun saveProgress(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
+    override suspend fun saveProgress(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
         // 认在架先于认目录：没有书架行就不是一次进度更新，而是一次「未加书架先读」。
         // 插半行会让 getAllBooks 的多个读面把它当成已加书架（见方法 KDoc）。
         if (bookShelfDao.getBookByUrl(bookShelf.noteUrl) == null) return@withContext
@@ -244,7 +256,7 @@ class BookRepository @Inject constructor(
      *
      * 事件放在事务之外：**未提交的写不是事实**（与 [ShelfEntryStore.replaceRows] 同一口径）。
      */
-    suspend fun addToShelf(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
+    override suspend fun addToShelf(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
         shelfEntryStore.add(bookShelf)
     }
 
@@ -255,7 +267,7 @@ class BookRepository @Inject constructor(
      * 清目录失败只留孤儿目录（由启动时的内容对账回收）；反过来先删文件，会让
      * 「库里仍是事实」的窗口里正文先丢。
      */
-    suspend fun removeFromShelf(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
+    override suspend fun removeFromShelf(bookShelf: BookShelfEntity) = withContext(Dispatchers.IO) {
         shelfEntryStore.remove(bookShelf)
         // 章文件清理：本地书与网络书统一走 BookStore（book_content 表已在 v3→v4 删除）
         val format = resolveFormat(bookShelf)
@@ -332,7 +344,7 @@ class BookRepository @Inject constructor(
      *   [BookAlreadyOnShelfException]（目标那条 `noteUrl` 本是书架上另一个条目）、
      *   [IllegalArgumentException]（本地书没有源可换、目标就是当前条目本身）或解析与写库抛出的原异常
      */
-    suspend fun switchSource(
+    override suspend fun switchSource(
         oldShelf: BookShelfEntity,
         newBook: SearchBookEntity,
     ): Result<BookShelfEntity> {
@@ -380,36 +392,16 @@ class BookRepository @Inject constructor(
     }
 
     /**
-     * 换源的「网络那一半」：按 [newBook] 的归属取 parser，拉详情与目录，再把 [oldShelf] 的进度映射过去。
+     * 换源的「网络那一半」：委托 [entryFetcher] 拉详情与目录（含「新条目必带 book_info」守卫），
+     * 再把 [oldShelf] 的进度经 `carryOver` 映射过去。
      *
-     * 入参实体的构造照 `BookShelfManager.addFromSearch` 的既有写法（只用 `noteUrl` + `tag` 起头，
-     * 其余字段交给 parser 填），不另立一套：两处走的是同一条解析链，构造方式一旦分叉，
-     * 换源拉回来的书就会和「从搜索加书架」拉回来的不一样。
-     *
-     * 取不到 parser 时：`Missing`/`Broken` 抛 [BookSourceNotFoundException]（用户可处置的源失效），
-     * `Local` 抛 [IllegalStateException]（本地书走换源是编程错误）。见 [SourceResolver.resolveSource]。
+     * 解析链、取源失败的四档翻译与 book_info 守卫的主人是 [ShelfEntryFetcher]（与加书架共用一份，
+     * 见其 KDoc）；本方法只保留换源特有的进度映射，且映射在守卫**通过之后**才跑——脏条目不映射进度。
      */
     private suspend fun fetchEntryFromSource(
         newBook: SearchBookEntity,
         oldShelf: BookShelfEntity,
-    ): BookShelfEntity {
-        val parser = sourceResolver.parserOrThrow(
-            newBook.tag,
-            detail = "换源目标 noteUrl=${newBook.noteUrl}",
-        )
-        val stub = BookShelfEntity().apply {
-            noteUrl = newBook.noteUrl
-            tag = newBook.tag
-        }
-        // 两次解析共用同一个 parser 实例（同 addFromSearch 的理由）：中途用户删了源也不至于一半新一半旧
-        val withInfo = parser.getBookInfo(stub)
-        val newShelf = parser.getChapterList(withInfo).data
-        // 新条目必须自带 book_info：换源紧接着就删旧条目的全部行，少了这一行等于往 book_shelf 里
-        // 塞一条「有书架、无书籍信息」的孤立行——getAllBooksWithDetails 每次启动都会把它当垃圾清掉，
-        // 用户看到的现象是这本书凭空消失。真解析器（JsoupBookParser.getBookInfo）总会填上，
-        // 这里挡的是「换了个 parser 实现、或规则缺项导致没填」这种脏返回，且挡在任何写之前。
-        checkNotNull(newShelf.bookInfo) { "新源没有解出书籍信息，放弃换源：noteUrl=${newBook.noteUrl}" }
-
+    ): BookShelfEntity = entryFetcher.fetch(newBook, "换源目标 noteUrl=${newBook.noteUrl}") { newShelf ->
         val newChapterCount = newShelf.chapterList.size
         newShelf.durChapter = if (newChapterCount == 0) {
             0
@@ -420,7 +412,6 @@ class BookRepository @Inject constructor(
         newShelf.finalDate = oldShelf.finalDate
         newShelf.matchName = oldShelf.matchName
         newShelf.matchAuthor = oldShelf.matchAuthor
-        return newShelf
     }
 
     /**
@@ -479,11 +470,11 @@ class BookRepository @Inject constructor(
      * 本层**不吞**（仓库层吞掉就分不清「解析失败」与「没源了」），一路上抛由 ViewModel 统一处置；
      * 已缓存的章命中 reader 的读盘分支，不取 parser，因此不受影响（离线仍可读）。
      */
-    suspend fun loadChapter(
+    override suspend fun loadChapter(
         bookShelf: BookShelfEntity,
         index: Int,
         title: String,
-        chapterContentRef: String = "",
+        chapterContentRef: String,
     ): ChapterContent? {
         val format = resolveFormat(bookShelf)
         val reader = chapterReaders[format] ?: return null
@@ -506,7 +497,7 @@ class BookRepository @Inject constructor(
 
      * 本地书不走网络，章文件即最终源，无需刷新。
      */
-    suspend fun refreshChapter(bookShelf: BookShelfEntity, index: Int) {
+    override suspend fun refreshChapter(bookShelf: BookShelfEntity, index: Int) {
         if (bookShelf.tag == BookShelfEntity.LOCAL_TAG) return
         withContext(Dispatchers.IO) {
             val format = resolveFormat(bookShelf)
@@ -539,9 +530,9 @@ class BookRepository @Inject constructor(
      *
      * @param force 跳过限频。自动触发一律 false；用户主动刷新才 true（阶段 1 没有手动入口）
      */
-    suspend fun syncChaptersFromSource(
+    override suspend fun syncChaptersFromSource(
         bookShelf: BookShelfEntity,
-        force: Boolean = false,
+        force: Boolean,
     ): ChapterSyncResult {
         // 本地书没有「源」可抓：tag 恒为 loc_book，目录由导入那一刻决定。
         // 不挡就会拿 loc_book 去查 book_source 表（必然查不到）并误报「书源已失效」——
@@ -592,7 +583,7 @@ class BookRepository @Inject constructor(
      *
      * @param remoteChapters 该书上一步抓到的远端目录（parser 原样产出即可，序号由本方法重排）
      */
-    suspend fun appendRemoteChapters(
+    override suspend fun appendRemoteChapters(
         bookShelf: BookShelfEntity,
         remoteChapters: List<ChapterListEntity>,
     ): ChapterSyncResult {
@@ -676,7 +667,7 @@ class BookRepository @Inject constructor(
      * （parser 刚抓的、或上一个页面拼出来的）不保证等于库里那份，差一章就是
      * 要么读至空白、要么两章并排显示两遍。
      */
-    suspend fun getStoredChapters(noteUrl: String): List<ChapterListEntity> =
+    override suspend fun getStoredChapters(noteUrl: String): List<ChapterListEntity> =
         withContext(Dispatchers.IO) { chapterListDao.getChaptersForBook(noteUrl) }
 
     /**
@@ -698,7 +689,7 @@ class BookRepository @Inject constructor(
      * 同一作品可能从多个书源加入书架（不同 noteUrl），每条在 [addToShelf] 时写入一行
      * `book_group`；此方法返回该 noteUrl 对应的所有 `commentKey`，供评论区做并集查询。
      */
-    suspend fun getCommentKeysForBook(noteUrl: String): List<String> =
+    override suspend fun getCommentKeysForBook(noteUrl: String): List<String> =
         withContext(Dispatchers.IO) {
             bookGroupDao.getKeysForNoteUrl(noteUrl)
         }
@@ -711,7 +702,7 @@ class BookRepository @Inject constructor(
      * （spec §9.2「读评论 = 并集、写评论 = 只用主键」）。无 book_group 行时返回 null，
      * 由调用方决定是否回落。
      */
-    suspend fun getPrimaryKeyForBook(noteUrl: String): String? =
+    override suspend fun getPrimaryKeyForBook(noteUrl: String): String? =
         withContext(Dispatchers.IO) {
             bookGroupDao.getPrimaryForNoteUrl(noteUrl)
         }
@@ -721,7 +712,7 @@ class BookRepository @Inject constructor(
     /**
      * 取某本书的全部 book_group 行（含 isPrimary 标记），供修键面板展示。
      */
-    suspend fun getBookGroupRows(noteUrl: String): List<BookGroupEntity> =
+    override suspend fun getBookGroupRows(noteUrl: String): List<BookGroupEntity> =
         withContext(Dispatchers.IO) {
             bookGroupDao.getAllForNoteUrl(noteUrl)
         }
@@ -737,7 +728,7 @@ class BookRepository @Inject constructor(
      * 与 target 主键同名的那行会被 [BookGroupDao.addSecondary] 的 IGNORE 挡掉（复合主键
      * `(comment_key, note_url)` 已存在），不必在此特判。
      */
-    suspend fun absorbGroupKeys(targetNoteUrl: String, sourceNoteUrl: String) =
+    override suspend fun absorbGroupKeys(targetNoteUrl: String, sourceNoteUrl: String) =
         withContext(Dispatchers.IO) {
             shelfEntryStore.absorbGroupKeys(targetNoteUrl, sourceNoteUrl)
         }
@@ -768,7 +759,7 @@ class BookRepository @Inject constructor(
      * @param newNoteUrl 刚导入完成的那本（会被删除）
      * @param oldNoteUrl 书架上已有的那本（被补章，保留）
      */
-    suspend fun mergeTailChapters(newNoteUrl: String, oldNoteUrl: String): ImportMergeResult =
+    override suspend fun mergeTailChapters(newNoteUrl: String, oldNoteUrl: String): ImportMergeResult =
         withContext(Dispatchers.IO) {
             val oldShelf = bookShelfDao.getBookByUrl(oldNoteUrl)
                 ?: return@withContext ImportMergeResult.EntryMissing
@@ -822,7 +813,7 @@ class BookRepository @Inject constructor(
      * 语义见 spec §9.2：拆分 = 删一行。不得删主键行（主键行是这本书自身的身份，
      * 删了就没法写评论了），只能删 secondary 行。
      */
-    suspend fun splitBook(noteUrl: String, commentKeyToRemove: String) =
+    override suspend fun splitBook(noteUrl: String, commentKeyToRemove: String) =
         withContext(Dispatchers.IO) {
             val primary = bookGroupDao.getPrimaryForNoteUrl(noteUrl)
             if (commentKeyToRemove == primary) return@withContext // 不允许删主键
@@ -837,7 +828,7 @@ class BookRepository @Inject constructor(
      *
      * @return Pair(oldPrimaryKey, newPrimaryKey) 供调用方做评论迁移
      */
-    suspend fun updateMatchMeta(
+    override suspend fun updateMatchMeta(
         noteUrl: String,
         newMatchName: String,
         newMatchAuthor: String,

@@ -108,7 +108,7 @@ class SourceCookieJarTest {
     @Test
     fun `派生的守门客户端确实带上这只罐，取体与探测共用同一份`() {
         val guard = JsNetworkGuard(SourceHostAllowlist.of("", listOf("https://novel.example/")))
-        val client = GuardedNetwork.clientFor(OkHttpClient(), guard, jar)
+        val client = SourceNetworkExit.sandboxClientFor(OkHttpClient(), guard, jar)
 
         assertSame(jar, client.cookieJar)
     }

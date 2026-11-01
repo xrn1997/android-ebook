@@ -163,7 +163,7 @@ class ScriptedCorpusRecorderTest {
             .callTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
             .build()
         val main = RecordingTransport(OkHttpScriptTransport(baseClient))
-        val sandbox = RecordingTransport(OkHttpScriptTransport(GuardedNetwork.clientFor(baseClient, guard)))
+        val sandbox = RecordingTransport(OkHttpScriptTransport(SourceNetworkExit.sandboxClientFor(baseClient, guard)))
         val parser = ScriptBookParser(raw, main, DirectJsRuntime.host, sandbox)
 
         suspend fun <T> stage(name: String, block: suspend () -> T): T = try {

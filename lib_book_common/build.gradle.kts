@@ -101,6 +101,9 @@ dependencies {
     // EmptyState…），组件的契约（可省字段不渲染、动作槽可点）只能在组件自己的模块里锁住；
     // 此前本模块零 Compose 测试，改共享件只能靠消费方回归，故补齐这套基建（口径同 module_book）
     testImplementation(libs.bundles.androidx.compose.ui.test)
+    // SP 测试假件（FakeSharedPreferences）：与 lib_ebook_api / module_me 共用一份，
+    // 住 lib_ebook_api 的 testFixtures（依赖图最底层，两边都够得着）
+    testImplementation(testFixtures(project(":lib_ebook_api")))
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 

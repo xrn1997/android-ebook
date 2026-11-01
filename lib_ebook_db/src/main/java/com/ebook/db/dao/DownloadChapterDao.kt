@@ -56,15 +56,6 @@ interface DownloadChapterDao {
     suspend fun getByNoteUrl(noteUrl: String): List<DownloadChapterEntity>
 
     /**
-     * 跨书的全局队头（仅按章序号取最小，不区分哪本书）。
-     *
-     * 与 [getFirstByNoteUrl] 的差别只在少了 `note_url` 过滤：服务取任务是"按书架逐本"遍历的
-     * （DownloadRepository.getNextDownloadTask → [getFirstByNoteUrl]），不经本方法。
-     */
-    @Query("SELECT * FROM download_chapter ORDER BY dur_chapter_index ASC LIMIT 1")
-    suspend fun getFirst(): DownloadChapterEntity?
-
-    /**
      * 全部待下载任务（按 `note_url` 再按章序号升序，供下载管理页按书分组）。
      *
      * 排序用的是 note_url 而非书名，分组键与之一致（书名只是展示字段）。

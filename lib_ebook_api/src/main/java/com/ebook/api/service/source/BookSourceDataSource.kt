@@ -1,7 +1,5 @@
 package com.ebook.api.service.source
 
-import com.ebook.api.entity.BookSourceRule
-
 /**
  * 书源数据源接口
  * 定义书源的通用操作
@@ -15,9 +13,4 @@ interface BookSourceDataSource {
      * @return 页面 HTML 内容
      */
     suspend fun getPage(url: String, method: String = "", body: String = ""): String
-
-    /**
-     * 获取当前书源规则
-     */
-    fun getCurrentRule(): BookSourceRule
 }

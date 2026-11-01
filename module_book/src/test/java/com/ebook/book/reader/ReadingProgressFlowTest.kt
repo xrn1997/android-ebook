@@ -57,6 +57,11 @@ import org.robolectric.annotation.Config
  * `SourceResolver` 与 `BookParser` 用 [Proxy] 桩而不是手写实现：两个接口成员多，本流程只用到
  * `resolveSource` / `getBookInfo` / `getChapterList`，其余成员一旦被问就抛，「其实没走到那条路径」
  * 不会假绿。lib_book_common 里那两份同名假件是 internal，跨模块看不到，只能各留一份。
+ *
+ * **为什么仍留 Robolectric**：本文件的价值是「真 Room 跑真 SQL」与「主 looper 驱动的后台执行器」，
+ * 纯 JVM 没有 Android 运行时可承载；阅读会话标记经 `ReaderResumeStore` 落到 `SPUtil`，也要真
+ * `BaseApplication.context`。VM 侧已不取字符串资源，context/文案相关的可纯 JVM 断言不在这里——
+ * 它们住在 `BookDetailViewModelSourceTest` 与各页的语义结论测试里。
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -86,7 +91,13 @@ class ReadingProgressFlowTest {
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        // 失败提示要取 string 资源（与 BookDetailViewModelSourceTest 同一套跑法）
+        // Robolectric 在这里承担两件事，都不是文案：
+        // ① 真 Room（in-memory 库与后台执行器都落在 Android 运行时上）；
+        // ② `ReaderSession.adopt` 经 `ReaderResumeStore` 写阅读会话标记，终点是 `SPUtil`，
+        //    后者读 `BaseApplication.context` 取 SharedPreferences。删掉本行会让 6 例里的
+        //    5 例以「lateinit property context has not been initialized」失败（单跑本类即可复现；
+        //    整模块跑时会被同 JVM 里别的 Robolectric 用例偶然盖上）。
+        // 两个 VM 的失败提示已改成带 cause 的语义结论（ADR-0061），不取 string 资源。
         BaseApplication.context = context
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
@@ -232,7 +243,7 @@ class ReadingProgressFlowTest {
         seedLocal(localIndices = listOf(0, 1, 2))
         var chapterListCalls = 0
         parsers[SOURCE_A] = parserStub((0 until 5).map { chapter(SOURCE_A, it) }) { chapterListCalls++ }
-        val detail = BookDetailViewModel(repository, managerStub(parsers))
+        val detail = BookDetailViewModel(repository, managerStub(parsers), repository)
         detail.initFromSearch(SearchBookEntity(noteUrl = NOTE_URL, tag = SOURCE_A))
 
         detail.getBookShelfInfo()
@@ -240,7 +251,7 @@ class ReadingProgressFlowTest {
         assertEquals("详情页目录该是落库后回读的那份", 5, detail.mBookShelf?.chapterList?.size)
 
         // BookDetailActivity.onReadClick 交出去的就是详情页这份
-        val reader = BookReadViewModel(repository).apply {
+        val reader = BookReadViewModel(repository, repository, repository).apply {
             session.adopt(detail.mBookShelf!!.copy())
         }
         // 会话先判「在不在末章」再碰网络：先把位置移到末章，下面这次追更才落进限频判据
@@ -271,7 +282,7 @@ class ReadingProgressFlowTest {
         markTocCheckDue()
         parsers[SOURCE_A] = parserStub((0 until 5).map { chapter(SOURCE_A, it) })
         // 这条路径没有详情页参与：书架页把库内条目直接交给阅读器
-        val reader = BookReadViewModel(repository).apply {
+        val reader = BookReadViewModel(repository, repository, repository).apply {
             session.adopt(runBlocking { repository.getAllBooksWithDetails().single() })
         }
 
@@ -295,7 +306,7 @@ class ReadingProgressFlowTest {
         val carrier = BookShelfEntity(noteUrl = NOTE_URL, tag = SOURCE_A).apply {
             bookInfo = BookInfoEntity(noteUrl = NOTE_URL, name = "斗破苍穹", origin = SOURCE_A)
         }
-        val reader = BookReadViewModel(repository).apply {
+        val reader = BookReadViewModel(repository, repository, repository).apply {
             session.adopt(carrier.copy(chapterList = (0 until 100).map { chapter(SOURCE_A, it) }))
         }
         reader.session.updateProgress(99, 0)
@@ -332,7 +343,7 @@ class ReadingProgressFlowTest {
         val stampBefore = runBlocking { db.bookInfoDao().getBookInfoByUrl(NOTE_URL)?.finalRefreshData }
         assertTrue("播种后应已有一次目录结论的时间戳", (stampBefore ?: 0L) > 0L)
         parsers[SOURCE_B] = parserStub((0 until 5).map { chapter(SOURCE_B, it) })
-        val detail = BookDetailViewModel(repository, managerStub(parsers))
+        val detail = BookDetailViewModel(repository, managerStub(parsers), repository)
         detail.initFromSearch(SearchBookEntity(noteUrl = NOTE_URL, tag = SOURCE_B))
 
         detail.getBookShelfInfo()
@@ -365,7 +376,7 @@ class ReadingProgressFlowTest {
         val stampBefore = runBlocking { db.bookInfoDao().getBookInfoByUrl(NOTE_URL)?.finalRefreshData }
         var chapterListCalls = 0
         parsers[SOURCE_B] = parserStub((0 until 5).map { chapter(SOURCE_B, it) }) { chapterListCalls++ }
-        val reader = BookReadViewModel(repository).apply {
+        val reader = BookReadViewModel(repository, repository, repository).apply {
             // 停在末章：会话先判「是否在末章」，不在末章就换不到归属门这一步
             session.adopt(
                 BookShelfEntity(noteUrl = NOTE_URL, tag = SOURCE_B, durChapter = 2).copy(
@@ -396,7 +407,7 @@ class ReadingProgressFlowTest {
         // book_shelf 没有对应行，书架读不到它，而「移出书架」清理章节又是从书架行发起的
         var chapterListCalls = 0
         parsers[SOURCE_A] = parserStub((0 until 5).map { chapter(SOURCE_A, it) }) { chapterListCalls++ }
-        val reader = BookReadViewModel(repository).apply {
+        val reader = BookReadViewModel(repository, repository, repository).apply {
             // 停在末章：会话先判「是否在末章」，不在末章就换不到归属门这一步
             session.adopt(
                 BookShelfEntity(noteUrl = NOTE_URL, tag = SOURCE_A, durChapter = 2)

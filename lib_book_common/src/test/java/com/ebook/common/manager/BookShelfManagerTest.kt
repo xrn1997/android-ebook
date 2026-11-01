@@ -10,11 +10,15 @@ import com.ebook.common.repository.DirectTransactionRunner
 import com.ebook.common.repository.FakeDaos
 import com.ebook.common.store.BookStore
 import com.ebook.common.store.ChapterContentCache
+import com.ebook.db.entity.BookInfoEntity
 import com.ebook.db.entity.BookShelfEntity
+import com.ebook.db.entity.LibraryEntity
 import com.ebook.db.entity.SearchBookEntity
+import com.ebook.db.entity.WebChapterEntity
 import com.ebook.source.analyze.BookParser
 import com.ebook.source.analyze.BookSourceNotFoundException
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -82,10 +86,19 @@ class BookShelfManagerTest {
         name = "书",
     )
 
+    /** 造一个能解出 `book_info` 的 parser（成功路径要过守卫，见 [ShelfEntryFetcher]） */
+    private fun parserCarryingBookInfo(sourceUrl: String): RecordingBookParser {
+        val noteUrl = "$sourceUrl/book/1.html"
+        val withInfo = BookShelfEntity(noteUrl = noteUrl, tag = sourceUrl).apply {
+            bookInfo = BookInfoEntity(name = "书", author = "作者", noteUrl = noteUrl)
+        }
+        return RecordingBookParser(sourceUrl, bookInfoResult = withInfo)
+    }
+
     @Test
     fun `加入书架用的是该书 tag 对应的 parser`(): Unit = runTest {
-        val parserA = RecordingBookParser(SOURCE_A)
-        val parserB = RecordingBookParser(SOURCE_B)
+        val parserA = parserCarryingBookInfo(SOURCE_A)
+        val parserB = parserCarryingBookInfo(SOURCE_B)
         val f = fixture(mapOf(SOURCE_A to parserA, SOURCE_B to parserB))
 
         val result = f.bookShelfManager.addFromSearch(searchBookOf(SOURCE_B))
@@ -115,6 +128,39 @@ class BookShelfManagerTest {
         assertEquals("https://gone.example", (failure as BookSourceNotFoundException).sourceUrl)
         assertEquals("没有归属的书不该进书架", 0, daos.shelf.getAllBooks().size)
         assertEquals("更不该退回默认源去解析", 0, parserA.bookInfoCalls.size + parserA.chapterListCalls.size)
+    }
+
+    @Test
+    fun `加书架时源没解出书籍信息则失败且一行都不写`(): Unit = runTest {
+        // 脏 parser：getBookInfo 原样返回（不填 bookInfo），getChapterList 也带回不带 bookInfo 的条目
+        val dirtyParser = RecordingBookParser(SOURCE_A)
+        val f = fixture(mapOf(SOURCE_A to dirtyParser))
+
+        val result = f.bookShelfManager.addFromSearch(searchBookOf(SOURCE_A))
+
+        assertTrue("脏返回要报成失败，而不是把半截条目写进书架", result.isFailure)
+        assertTrue(
+            "守卫与换源同一口径：IllegalStateException",
+            result.exceptionOrNull() is IllegalStateException,
+        )
+        assertEquals("书架行一行都不该写", 0, daos.shelf.getAllBooks().size)
+        assertEquals("book_info 一行都不该写", 0, daos.info.storedValues().size)
+        assertEquals("章节一行都不该写", 0, daos.chapter.storedValues().size)
+        assertEquals("关联键一行都不该写", 0, daos.group.storedValues().size)
+    }
+
+    @Test
+    fun `加书架途中取消原样上抛而不是转成失败`(): Unit = runTest {
+        val f = fixture(mapOf(SOURCE_A to CancellingBookParser()))
+
+        val error = runCatching { f.bookShelfManager.addFromSearch(searchBookOf(SOURCE_A)) }
+            .exceptionOrNull()
+
+        assertTrue(
+            "取消必须原样上抛，不能被 catch 转成失败（否则调用方会按失败弹 Toast）",
+            error is CancellationException,
+        )
+        assertEquals("取消不是一次入库，书架不该有变化", 0, daos.shelf.getAllBooks().size)
     }
 
     // region 书架快照（书架标记列表的唯一主人）
@@ -180,6 +226,30 @@ class BookShelfManagerTest {
     }
 
     // endregion
+
+    /**
+     * 只服务「取消上抛」用例的 parser：`getBookInfo` 抛 [CancellationException]，模拟解析途中调用方取消。
+     *
+     * 其余成员一调就抛——假件把未实现成员静默返回空值，会让「其实没走到那条路径」的断言假绿。
+     */
+    private class CancellingBookParser : BookParser {
+        override suspend fun getBookInfo(bookShelf: BookShelfEntity): BookShelfEntity =
+            throw CancellationException("调用方已取消")
+
+        override suspend fun getChapterList(bookShelf: BookShelfEntity): WebChapterEntity<BookShelfEntity> =
+            throw UnsupportedOperationException("详情都没拉到，不该问目录")
+
+        private fun unsupported(who: String): Nothing =
+            throw UnsupportedOperationException("CancellingBookParser 未实现 $who")
+
+        override suspend fun searchBook(content: String, page: Int): List<SearchBookEntity> =
+            unsupported("searchBook")
+
+        override suspend fun getKindBook(url: String, page: Int): List<SearchBookEntity> =
+            unsupported("getKindBook")
+
+        override suspend fun fetchLibraryData(): LibraryEntity = unsupported("fetchLibraryData")
+    }
 
     private companion object {
         const val SOURCE_A = "https://a.example"

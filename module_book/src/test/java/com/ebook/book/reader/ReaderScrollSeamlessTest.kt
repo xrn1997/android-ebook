@@ -1,6 +1,5 @@
 package com.ebook.book.reader
 
-import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -12,7 +11,6 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.test.core.app.ApplicationProvider
 import com.ebook.db.event.DBCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -134,11 +132,11 @@ class ReaderScrollSeamlessTest {
         onProgress: (Int, Int) -> Unit = { _, _ -> },
     ) = ReaderScrollController(
         scope = scope,
-        context = ApplicationProvider.getApplicationContext<Context>(),
         chapterSize = { book.blocksPerChapter.size },
         chapterTitle = { "第${it + 1}章" },
         loadPage = { c, p -> book.load(c, p) },
         onProgress = onProgress,
+        onScrollEdge = {},
     )
 
     @Composable

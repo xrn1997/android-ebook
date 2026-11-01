@@ -11,7 +11,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  *
  * 两件事必须是同一个对象：如果外呼走一份罐、显式读写走另一份，脚本 `getCookie` 就只能永远读到空串，
  * 而「先 ajax 登录拿会话、再读出来拼签名头」这类源正是靠这条链活着。所以罐由 `ScriptBookParser`
- * 持有一份，[GuardedNetwork.clientFor] 的客户端与 [JsCallbackProxy] 拿到的是同一个实例。
+ * 持有一份，[SourceNetworkExit.sandboxClientFor] 的客户端与 [JsCallbackProxy] 拿到的是同一个实例。
  *
  * ## 为什么作用域是「一个源实例」
  *

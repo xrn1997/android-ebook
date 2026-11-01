@@ -20,6 +20,7 @@ import com.ebook.db.event.DBCode
 import com.ebook.source.analyze.BookParser
 import com.ebook.source.analyze.BookSourceNotFoundException
 import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
@@ -376,6 +377,18 @@ class BookRepositorySwitchSourceTest {
         assertNull(daos.shelf.getBookByUrl(NEW_URL))
     }
 
+    @Test
+    fun `换源途中取消原样上抛而不是转成失败`(): Unit = runTest {
+        val old = seedShelf(chapterCount = 5, durChapter = 2)
+        manager.putParser(SOURCE_B, CancellingBookParser())
+
+        val error = runCatching { repository.switchSource(old, candidate()) }.exceptionOrNull()
+
+        assertTrue("取消必须原样上抛，不能被 catch 转成换源失败", error is CancellationException)
+        assertNotNull("取消不是一次换源，旧条目完好", daos.shelf.getBookByUrl(OLD_URL))
+        assertNull(daos.shelf.getBookByUrl(NEW_URL))
+    }
+
     // ===== 6. 非法入参 =====
 
     @Test
@@ -570,6 +583,30 @@ class BookRepositorySwitchSourceTest {
 
         private fun unsupported(who: String): Nothing =
             throw UnsupportedOperationException("BrokenBookParser 未实现 $who")
+
+        override suspend fun searchBook(content: String, page: Int): List<SearchBookEntity> =
+            unsupported("searchBook")
+
+        override suspend fun getKindBook(url: String, page: Int): List<SearchBookEntity> =
+            unsupported("getKindBook")
+
+        override suspend fun fetchLibraryData(): LibraryEntity = unsupported("fetchLibraryData")
+    }
+
+    /**
+     * 只服务「取消上抛」用例的 parser：`getBookInfo` 抛 [CancellationException]，模拟解析途中调用方取消。
+     *
+     * 其余成员一调就抛——假件把未实现成员静默返回空值，会让「其实没走到那条路径」的断言假绿。
+     */
+    private class CancellingBookParser : BookParser {
+        override suspend fun getBookInfo(bookShelf: BookShelfEntity): BookShelfEntity =
+            throw CancellationException("调用方已取消")
+
+        override suspend fun getChapterList(bookShelf: BookShelfEntity): WebChapterEntity<BookShelfEntity> =
+            throw UnsupportedOperationException("详情都没拉到，不该问目录")
+
+        private fun unsupported(who: String): Nothing =
+            throw UnsupportedOperationException("CancellingBookParser 未实现 $who")
 
         override suspend fun searchBook(content: String, page: Int): List<SearchBookEntity> =
             unsupported("searchBook")

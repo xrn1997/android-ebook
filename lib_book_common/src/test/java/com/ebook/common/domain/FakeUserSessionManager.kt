@@ -43,11 +43,17 @@ class FakeUserSessionManager : UserSessionManager {
         rotated.add(accessToken to refreshToken)
     }
 
-    override fun clearSession() {
+    override fun clearSession(): Boolean {
         _currentUser.value = null
         _isLoggedIn.value = false
         tokenHolder.clear()
         clearCount++
+        return true
+    }
+
+    /** 假件里内联跑 [clearSession]：纯 JVM 无 IO/取消语义可模拟，契约面归真实现的测试。 */
+    override suspend fun endSession() {
+        clearSession()
     }
 
     override fun getToken(): String? = tokenHolder.token

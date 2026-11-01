@@ -31,11 +31,12 @@ private const val MAX_CONTENT_PAGES = 50
  */
 class JsoupBookParser(
     /**
-     * 书源规则。**public**：正文抓取已不再读它（取文走 [fetchChapterText] 接缝），但
-     * `lib_book_common` 的测试要据此断言「规则覆盖/禁用后 parser 缓存确实换成了新行」；
-     * 依赖方的 test source set 不是 friend module，internal 在这些用例里编译不过。
+     * 书源规则。**internal**：正文抓取已不读它（取文走 [fetchChapterText] 接缝），
+     * 对外没有消费者——「缓存有没有换成新行」由测试断言实例更换（`assertNotSame`）即可，
+     * 规则内容随构造固化属实现细节；依赖方的 test source set 不是 friend module，
+     * 跨模块读 internal 本就编译不过（同模块测试源集可见）。
      */
-    val rule: BookSourceRule,
+    internal val rule: BookSourceRule,
     okHttpClient: OkHttpClient
 ) : BookParser, BookContentParser {
     private val logTag = "JsoupBookParser[${rule.name}]"

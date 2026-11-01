@@ -22,7 +22,7 @@ import org.jsoup.Jsoup
  *
  * 全部跑在 JVM 上：网络与求值都从构造参数进来（`ScriptTransport` 是 2c 就有的假件接缝，
  * `statusProbe` / `evaluateNested` 同理），所以这条链上没有一处需要设备或真 DNS。
- * `GuardedNetwork` 那条用例只锁「守门 DNS 确实挂上了客户端」，真实拦截由 Task 5 的
+ * `SourceNetworkExit` 那条用例只锁「守门 DNS 确实挂上了客户端」，真实拦截由 Task 5 的
  * `JsNetworkGuardTest` 与 Task 8 的设备用例负责。
  */
 class JsCallbackProxyTest {
@@ -236,7 +236,7 @@ class JsCallbackProxyTest {
     @Test
     fun `代理用的客户端把 DNS 挂在守门判定点上，且不污染注入的源客户端`() {
         val base = okhttp3.OkHttpClient()
-        val guarded = GuardedNetwork.clientFor(base, JsNetworkGuard(SourceHostAllowlist.of("", emptyList())))
+        val guarded = SourceNetworkExit.sandboxClientFor(base, JsNetworkGuard(SourceHostAllowlist.of("", emptyList())))
         assertTrue(guarded.dns is GuardedDns)
         assertNotSame(base.dns, guarded.dns)
     }

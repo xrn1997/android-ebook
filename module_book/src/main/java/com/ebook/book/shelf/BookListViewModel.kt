@@ -3,8 +3,8 @@ package com.ebook.book.shelf
 import androidx.lifecycle.viewModelScope
 import com.ebook.book.importer.LocalImportCoordinator
 import com.ebook.book.importer.ParsingBook
-import com.ebook.common.repository.BookRepository
 import com.ebook.common.repository.BookShelfEvent
+import com.ebook.common.repository.ShelfRepository
 import com.ebook.db.entity.BookShelfEntity
 import com.xrn1997.common.mvvm.viewmodel.BaseRefreshViewModel
 import com.xrn1997.common.util.Logger
@@ -18,7 +18,7 @@ import javax.inject.Inject
  *
  * 职责：
  * - 刷新书架列表（下拉刷新 + 事件驱动刷新，共用 [refreshData]）
- * - 收集 [BookRepository.bookShelfEvents]（Added/Removed/ProgressUpdated → 自动刷新）
+ * - 收集 [ShelfRepository.bookShelfEvents]（Added/Removed/ProgressUpdated → 自动刷新）
  * - 转发 [LocalImportCoordinator.parsingBooks]（正在解析中的导入，供"解析中"占位行）
  *
  * 曾经还有「书架加载后扫重复对 + 推合并建议 + 执行合并」三项职责，已随 ADR-0023 移除：
@@ -26,9 +26,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class BookListViewModel @Inject constructor(
-    bookRepository: BookRepository,
+    bookShelfRepository: ShelfRepository,
     importCoordinator: LocalImportCoordinator,
-) : BaseRefreshViewModel<BookShelfEntity, BookRepository>(bookRepository) {
+) : BaseRefreshViewModel<BookShelfEntity, ShelfRepository>(bookShelfRepository) {
 
     /** 正在解析中的导入：书架行落库前，先以占位行出现在书架（spec §6）。协调器为进程级单例，直接转发 */
     val parsingBooks: StateFlow<List<ParsingBook>> = importCoordinator.parsingBooks

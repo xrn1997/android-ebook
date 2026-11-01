@@ -40,8 +40,9 @@
   `?page=` 查询式与页码段在中段的模板不裁；`module_find/src/test/.../mvvm/viewmodel/BookPageMergeTest.kt`
   （5 例，纯 JVM）锁死「按 noteUrl 去重」与「本页无新条目 = 到底」（站点越界页以 HTTP 200 重复返回首页
   书目，只看空页判不到底；重复条目还会撞 `LazyColumn` 的 item key 而抛异常）。
-  **仍未覆盖**：ViewModel 侧的页码递增、`hasMore` 信号与刷新状态机的接线（需 Robolectric + 假仓库，
-  或直接人工装机验证），本轮按人工验证处理
+  **已收口（2026-11-01 分页会话单主，ADR-0057）**：ViewModel 侧的页码递增、在途闸门与信号时序
+  收进 `PageSession` 后，协议本身由 `PageSessionTest`（11 例，纯 JVM）锁住，宿主接线由
+  `ChoiceBookViewModelTest`（Robolectric + 假仓库：连点触底只向仓库发一笔请求）锁住
 - [x] 为导入判重与处置添加回归测试（ADR-0023）
   —— 判重口径由 `lib_book_common/src/test/.../domain/DuplicateBookDetectorTest.kt` 锁死（6 例，纯 JVM）：
   同名同作者命中、**同名不同作者不命中**（命中即给删除入口，误判等于删掉另一本书）、作者占位词两边归空、
@@ -76,6 +77,21 @@
   越界勾选被丢弃、有效数取实际任务数、跳过数只数已在队列者；三态动作矩阵（有队列→暂停、有队列已暂停→继续、
   无队列→下载）；空勾选已暂停有队列时继续且不下发、空勾选无队列时下载不可用。
   `ChapterSelectionTest`（23 例）与 `ChapterDownloadStatusTest`（6 例）保持原样、口径未变。
+- [x] module_login 从「测试全是渲染冒烟」补到逻辑级（C7，2026-11-02，ADR-0061）
+  —— 该模块原先 8 个测试是 7 个 `LoginScreensRenderTest` 渲染冒烟 + 1 个示例，发码倒计时的 60 秒口径只靠
+  页面断言间接覆盖。倒计时抽成 `CodeResendCountdown` 后，时间口径由 `CodeResendCountdownTest`（5 例，纯 JVM，
+  虚拟时间）锁住：启动即 60、每秒递减、60 秒归零、重启不叠加、宿主 scope 取消后不再写状态；注册/验证/改密
+  四屏的渲染仍由 `LoginScreensRenderTest` 覆盖。**仍未覆盖**：两个 VM 的发码/注册/改密请求编排与页面级 Toast
+  （需要 `UserRepository` 假件与命令通道观测），只能人工装机验证。
+- [x] 为下载中心的焦点章派生与刷新编排（`DownloadCenterSession`）添加回归测试（架构深化 C8，2026-11-01，ADR-0060）
+  —— `module_book/src/test/.../download/DownloadCenterSessionTest.kt`（4 例，纯 JVM，无 Android 依赖）锁住会话单主：
+  一级卡片与二级选章**同读** `activeChapter(tasks)` 得到同一个焦点章（旧写法两处各算、靠「与一级卡片同口径」
+  注释维持的病根就此消失）；书在架但零任务（活跃章 URL 不属这本书）不给焦点；`onDownloadState` 对
+  Progress/Paused/Finished 都返回「两面都刷」的路由，且暂停/完成时 `isDownloading` 收起、焦点章随之为 null
+  （防队列里的章冒充「正在下载」）；`optimisticEnqueue` 确认后即时收起 `paused`、把新勾章并入 `queuedIndices`。
+  ViewModel 接线（删 `activeChapterUrl`/`isDownloading` 裸字段、`LaunchedEffect` 的 `when` 编排移出 Composable）
+  属页面级联，`BookScreensRenderTest` 的下载一级渲染冒烟保持绿；服务侧「先入库再拉服务、暂停不出队」等语义
+  仍由 `DownloadBatchTest`/`DownloadRunnerTest`/`DownloadBatchLoopTest` 锁住，本会话不回查库、不碰队列策略
 - [x] ~~为 `CommentRepository` 添加单元测试（当前**零覆盖**）~~
   **已覆盖（2026-09-07 评论分页改造时）**：`CommentRepositoryTest`（纯 JVM，`CoroutineAdapter` 的
   刷新器/事件总线/令牌桶直接构造，假件路子沿用 `SessionTokenRefresherTest`，未引入 Robolectric）
@@ -84,8 +100,9 @@
   （不依赖服务端 total）、page/pageSize 透传、非成功业务码与数据源异常的失败翻译、
   data=null 兜底。页合并（去重 + 全局时间倒序）由 module_book 的 `MergeCommentPageTest` 锁住；
   mock 聚合查询的切页契约（页间不重叠、并集覆盖全集）补进 `CommentNetworkTestTest`。
-  **仍未覆盖**：`BookCommentsViewModel` 的翻页状态机接线（游标推进、在途闸门、信号时序）
-  ——需 Robolectric，与既有「VM 接线需 Robolectric + 假仓库」缺口一并处理
+  **已收口（2026-11-01 分页会话单主，ADR-0057）**：翻页状态机接线（游标推进、在途闸门、信号时序）
+  收进 `PageSession` 后，协议由 `PageSessionTest` 锁住，宿主接线由 `BookCommentsViewModelTest`
+  （Robolectric + 假仓库：刷新后第一次触底取第 2 页、连点只放行一笔）锁住
 - [ ] 为 Compose 页面添加 UI 测试
   —— 首个样例已落地：`module_book/src/test/.../shelf/DownloadQueueActionRenderTest.kt`，
   锁住书架顶栏下载角标在 1/2/3/4 位剩余数下都被完整画出（回归的是 material3 1.4.0 起
@@ -157,11 +174,14 @@
   根治方向（对齐 android-practice 形态）：compose 插件不再自套基础插件、只加 compose 能力
   （模块先应用 library/application），删掉 `isModule` 分支后该坑从根上消失。
   当前规避方式见 `gradle.properties` 注释（独立调试直接改文件，勿用 `-P`）
-- [ ] **零调用方的 Room DAO 方法**（实测确认：`BookShelfDao.getAllBooksFlow`、`getBookFullInfoByUrl`、
-  `getBooksByUrls`、`getCount`、`DownloadChapterDao.getFirst`）—— 按 ADR-0015「无任何调用方 → 删除」
-  应删，但本轮不动：不影响 schema、无用户可见症状，删除需连带去掉刚补的注释并重跑回归，
-  宜单独一次 `refactor(lib_ebook_db)` 提交处理。删前先确认不是为 Flow 化书架预留
-  （`getAllBooksFlow` 看着像，但无任何文档这么写）
+- [x] **零调用方的 Room DAO 方法已删**（零碎清理，2026-11-01，提交 `refactor(all): 清理零调用方接口与 DAO 方法`）
+  —— 按 ADR-0015「无任何调用方 → 删除」删掉 `BookShelfDao.getAllBooksFlow`、`getBooksByUrls`、
+  `getCount` 与 `DownloadChapterDao.getFirst`（两套测试替身的对应 override 同批移除；全仓 grep 无调用方，
+  也无反射/字符串调用路径——Room DAO 只经接口与注解处理器生成代码触达）。
+  原条目还把 `BookShelfDao.getBookFullInfoByUrl` 列为零调用，复核发现它有真实调用方
+  （`BookRepository.getBookWithDetails`、`module_book` 的 `DownloadRepository`），**不删**——原结论有误，已修正。
+  同批清理：`BookSourceDataSource.getCurrentRule()` 声明与实现零调用删除；
+  `JsoupBookParser.rule` 收成 internal（依赖方那两条「缓存换新行」断言判冗余删除，实例更换由 `assertNotSame` 锁住）。
 - [ ] **独立调试宿主绕过 `clearSession()`**：`module_login/src/main/test/debug/MainActivity.kt:73`
   的「退出登录」只 `SPUtil.remove(SP_IS_LOGIN)`，不清 `user_session` SP 与 `ProfileRepository` 内存态——
   与本轮修掉的「会话三处镜像未一并失效」是同一类缺陷（仅影响独立调试宿主，不影响集成构建）。
@@ -176,7 +196,7 @@
   `CacheModel` 是 concrete 类且清理跑在真实 `Dispatchers.IO` 上，既没法让第二次调用确实落在
   第一次在途期间，也没有「执行了几次」可断言——硬凑时序只会得到一只随机器负载闪的 flaky 测试。
   解锁方向：给清理路径留一个可注入的挂起钩子（或把「一笔清理」收进带状态的小接缝）。
-  `ModifyViewModel` 侧同理（要凑 `ModifyRepository` 的 10 方法 `UserDataSource` 假件）。
+  `ModifyViewModel` 侧同理（`ModifyRepository` 只注账号资料面 `AccountProfile`，假件是两个方法而不是原先十方法的 `UserDataSource`，ADR-0059 后构造成本已降）。
   本轮按人工装机验证处理（见清单第 8 项）
 - [x] ~~**第二份字节格式化实现（`module_book` 的 `convertByte`）暂不收口**~~
   **已收口（2026-09-07）**：`formatSize` 上移至 `lib_book_common/util/FormatSize.kt`，
@@ -184,17 +204,13 @@
   `module_me` 的本地 `formatSize` 删除、三处 import 改指共享件。
   展示口径统一为 `formatSize`（`Locale.US` + 空格分隔）。
   最终家仍是 `lib_common`，本轮先落 `lib_book_common`，等下次联动窗口上移
-- [ ] **「我的评论」页每次配置变更都重拉全量评论**（2026-09-06 从依赖源码证实，未修）
-  —— lib\_common 0.3.2 的 Compose `BaseActivity.onCreate` 无条件调 `initData()`
-  （`compose/BaseActivity.kt:80`），而 `MyCommentActivity.initData()` 直接 `viewModel.refreshData()`
-  （:61-63）。`CommentViewModel` 跨配置变更存活、列表本来还在，却每次转屏都重发一次
-  `getMyComments` 并把覆盖层打回 `Overlay.Loading`——症状是转一下屏幕列表闪一次加载态、白跑一个请求。
-  **不能直接删掉 `initData()` 覆写**：基类的错误页重试钩子 `onNetworkErrorRetry()` 也走 `initData()`
-  （`compose/BaseMvvmActivity.kt:39`），删了重试就没反应了。
-  建议修法（幂等而非删钩子）：页面入口调 `viewModel.loadData()`，VM 内
-  `fun loadData() { if (list.value.isEmpty()) refreshData() }`——首开拉、有数据时转屏不重拉、
-  失败后列表仍空时重试照常生效；`BaseRefreshViewModel` 自带下拉刷新，用户要新数据有显式入口。
-  测试为什么没顺手补：`CommentViewModel` 要真 `CommentRepository`，后者的 mock 数据源
+- [x] ~~**「我的评论」页每次配置变更都重拉全量评论**~~（2026-09-06 从依赖源码证实）
+  **已修（2026-11-01）**：`CommentViewModel` 加幂等入口 `loadData()`（`list` 为空才 `refreshData()`），
+  `MyCommentActivity.initData()` 改调它——首开才拉、有数据时转屏不重拉、失败后列表仍空时
+  错误页重试钩子 `onNetworkErrorRetry()` 照常生效
+  （提交 `fix(module_me): 我的评论页转屏不再重拉全量`）。`initData()` 仍身兼首次加载与
+  错误页重试钩子双职责，是后续 C7 约定要统一的对象，本次只加守卫、不动职责划分。
+  **脚手架缺口保持登记**：`CommentViewModel` 要真 `CommentRepository`，后者的 mock 数据源
   `CommentNetworkTest` 需要 `Json` + `TestAssetManager` 两件套（本仓 `lib_ebook_api` 的
   `CommentNetworkTestTest` 用的是文件版 `TestAssetManager`），搭这套脚手架的成本远超这条
   一行守卫本身，故与既有的「VM 接线需 Robolectric + 假仓库」缺口一并处理
@@ -534,12 +550,15 @@ isolated 不再需要 `dumpsys` 手工核对：`SandboxConnectionTest` 在 host 
 
 ### 4. 沙箱请求不带凭证、不出私网
 
-抓包（或 `adb shell dumpsys netstats`）看脚本 `java.ajax` 发出的请求。期望：无 `Authorization` 头、
-无本 App 的 cookie；对 `127.0.0.1`/`192.168.x`/`10.x` 的脚本请求被拒且日志给出拒绝原因。
+「不带凭证」半句已由 JVM 锁定：`SourceNetworkExitTest` 断言沙箱/取文两路派生都不往拦截器链上添任何东西
+（附 `Authorization` 的拦截器就住在那一层），base 按生产口径是无 token 的 `@Named("source")` 纯净客户端。
+抓包（或 `adb shell dumpsys netstats`）仍值得做一次端到端确认：脚本 `java.ajax` 发出的请求无 `Authorization` 头、
+无本 App 的 cookie。**「不出私网」仍是设备侧项**：对 `127.0.0.1`/`192.168.x`/`10.x` 的脚本请求被拒且日志给出拒绝原因。
 顺带确认源 host 白名单：脚本请求一个规则里没出现过的第三方 host，应被拒并明示。
 
 **本条只验脚本自己发起的外呼**（`java.ajax`/`load`/`post`/`responseCode`）。URL 选项 `js` 改写出的地址
-由取文层按原路径发出，不经这道守门（已登记为遗留项），不要指望本条把它一并验掉；要验它就单独记一条
+从取文出口发出（ADR-0058：与沙箱同出一个派生点、同样不带凭证，但**不带**私网/白名单判定——LAN/IP 直连源
+继续可用是首合并的既定口径，不是漏验），本条验不到它的私网边界；要验就单独记一条
 「脚本经 `js` 选项让取文层去打内网」的实验，把结果写回结论里。
 
 ### 5. 真实源覆盖：62% 含 JS 的那一批到底能跑多少

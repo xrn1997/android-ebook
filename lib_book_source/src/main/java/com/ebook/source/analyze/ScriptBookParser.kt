@@ -6,11 +6,11 @@ import com.ebook.db.entity.LibraryEntity
 import com.ebook.db.entity.LibraryKindBookListEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.db.entity.WebChapterEntity
-import com.ebook.source.sandbox.GuardedNetwork
 import com.ebook.source.sandbox.JsNetworkGuard
 import com.ebook.source.sandbox.JsSandboxHost
 import com.ebook.source.sandbox.SourceCookieJar
 import com.ebook.source.sandbox.SourceHostAllowlist
+import com.ebook.source.sandbox.SourceNetworkExit
 import com.ebook.source.script.EvalContext
 import com.ebook.source.script.ExploreUrlFormat
 import com.ebook.source.script.OkHttpScriptTransport
@@ -50,6 +50,8 @@ import okhttp3.OkHttpClient
  * 生产构造（parserFactory 用）只收原始 JSON + `@Named("source")` 纯净客户端 + 装配好的
  * [JsSandboxHost]；测试构造收 `ScriptTransport` 假件断言「请求长什么样」。`internal` 主构造引用
  * internal 类型合法，public 次构造签名只出现 public 类型——跨模块（lib_book_common）只用 public 次构造。
+ * 取文 transport 由 [SourceNetworkExit.contentClientFor] 从注入客户端派生（ADR-0058：取文与沙箱外呼
+ * 同出一个出网派生点、永不附凭证；私网/DNS 判定仍只在沙箱外呼那一路）。
  *
  * `jsHost` 为 null 就是「本机没装配沙箱」，五处 JS 抛点照 2d 报「待执行」：脚本行因此在没有
  * `.so`、没有 `:js` 进程的机器上仍然可解（只要它不含 JS），含 JS 的那部分报得清清楚楚。
@@ -65,7 +67,11 @@ class ScriptBookParser internal constructor(
 
     constructor(rawJson: String, okHttpClient: OkHttpClient?, jsHost: JsSandboxHost? = null) : this(
         rawJson,
-        OkHttpScriptTransport(okHttpClient ?: error("okHttpClient 未注入（生产接线必须传真客户端）")),
+        OkHttpScriptTransport(
+            // 取文出口经 SourceNetworkExit 派生（ADR-0058）：与沙箱外呼同出一个派生点、同一份
+            // @Named("source") base、永不附凭证；首合并不挂 GuardedDns（LAN/IP 直连源要能继续用）
+            SourceNetworkExit.contentClientFor(okHttpClient ?: error("okHttpClient 未注入（生产接线必须传真客户端）")),
+        ),
         jsHost,
     )
 
@@ -104,10 +110,10 @@ class ScriptBookParser internal constructor(
      */
     private val cookieJar by lazy { SourceCookieJar() }
 
-    /** 沙箱外呼用的传输：生产走带 `GuardedDns` 的派生客户端，测试给假件（见主构造参数注释） */
+    /** 沙箱外呼用的传输：生产走带 `GuardedDns` 的派生客户端（[SourceNetworkExit.sandboxClientFor]），测试给假件（见主构造参数注释） */
     private val sandboxGateway: ScriptTransport by lazy {
         sandboxTransportOverride
-            ?: OkHttpScriptTransport(GuardedNetwork.clientFor(jsHost!!.baseClient, guard, cookieJar))
+            ?: OkHttpScriptTransport(SourceNetworkExit.sandboxClientFor(jsHost!!.baseClient, guard, cookieJar))
     }
 
     /**

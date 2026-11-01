@@ -5,6 +5,8 @@ import com.ebook.book.R
 import com.ebook.common.domain.BookComment
 import com.ebook.common.domain.CommentTime
 import com.ebook.common.domain.UserSessionManager
+import com.ebook.common.pagination.PageSession
+import com.ebook.common.pagination.PageSignal
 import com.ebook.common.repository.CommentRepository
 import com.ebook.common.util.reportFailure
 import com.xrn1997.common.BaseApplication.Companion.context
@@ -48,36 +50,23 @@ class BookCommentsViewModel @Inject constructor(
     val mVoidSingleLiveEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     /**
-     * 下一页页码（页大小由 [CommentRepository] 的缺省值统一）。
+     * 翻页会话（ADR-0057）：持有游标、在途闸门与「到底」置位，信号时序也由它给出。
      *
-     * 初始即指向第 2 页：首屏前列表为空，[com.xrn1997.common.ui.RefreshableList] 的
-     * 短列表守卫不会触发 loadMore，该初值不会被消费；刷新成功后无条件重置回 2。
+     * 起始页 2——首页 1 由 [refreshData] 直接请求（会话不接管刷新的取数，只在结果落地后
+     * 用 [PageSession.onRefreshResult] 复位游标并同步「还有没有更多」）。原先散在本类的
+     * `nextPage`/`hasMoreData`/`loadMoreInProgress` 三个裸字段与「先停刷新再同步 hasMore」的
+     * 顺序纪律都收进会话，本类只把服务端的 [BookCommentPage.hasMore] 算成 boolean 交进去、
+     * 再按序 apply 返回的 [PageSignal]。
      */
-    private var nextPage = 2
-
-    /**
-     * 是否还有下一页（VM 侧闸门 + 经 [updateHasMoreData] 同步给刷新状态机）。
-     * 刷新成功按返回页是否为整页重算；加载到短页/空页后置 false。
-     */
-    private var hasMoreData = true
-
-    /**
-     * 加载更多在途闸门：触底信号可能在滚动中连续到来，只放行一笔在途请求。
-     * 刷新不做此闸门——下拉刷新总是允许的，刷新会用新首页整体替换列表。
-     */
-    private var loadMoreInProgress = false
+    private val pageSession = PageSession(startPage = 2)
 
     override fun refreshData() {
+        pageSession.startRefresh()
         viewModelScope.launch {
             commentRepository.getComments(commentKeys, page = 1)
                 .onSuccess { page ->
                     updateList(mergeCommentPage(emptyList(), page.items))
-                    nextPage = 2
-                    hasMoreData = page.hasMore
-                    // 先结束刷新再同步 hasMore：状态机在收到刷新结束信号时会自动复位 hasMore，
-                    // 显式信号随后到达才能以本页的真实结论覆盖复位值
-                    updateStopRefresh()
-                    updateHasMoreData(page.hasMore)
+                    applySignals(pageSession.onRefreshResult(1, page.hasMore))
                 }
                 .onFailure { exception ->
                     reportFailure(exception)
@@ -87,26 +76,27 @@ class BookCommentsViewModel @Inject constructor(
     }
 
     override fun loadMore() {
-        if (loadMoreInProgress || !hasMoreData) return
-        loadMoreInProgress = true
-        val page = nextPage
+        val page = pageSession.requestLoadMore() ?: return
         viewModelScope.launch {
-            var success = false
-            try {
-                commentRepository.getComments(commentKeys, page = page)
-                    .onSuccess { newPage ->
-                        updateList(mergeCommentPage(list.value, newPage.items))
-                        nextPage = page + 1
-                        hasMoreData = newPage.hasMore
-                        updateHasMoreData(newPage.hasMore)
-                        success = true
-                    }
-                    .onFailure { exception ->
-                        reportFailure(exception)
-                    }
-            } finally {
-                loadMoreInProgress = false
-                updateStopLoadMore(success)
+            commentRepository.getComments(commentKeys, page = page)
+                .onSuccess { newPage ->
+                    updateList(mergeCommentPage(list.value, newPage.items))
+                    applySignals(pageSession.onLoadMoreSuccess(page, newPage.hasMore))
+                }
+                .onFailure { exception ->
+                    reportFailure(exception)
+                    applySignals(pageSession.onLoadMoreFailure())
+                }
+        }
+    }
+
+    /** 按序把会话给出的信号落到基类刷新状态机上；顺序由会话保证，这里只转发（ADR-0057）。 */
+    private fun applySignals(signals: List<PageSignal>) {
+        for (signal in signals) {
+            when (signal) {
+                PageSignal.StopRefresh -> updateStopRefresh()
+                is PageSignal.HasMore -> updateHasMoreData(signal.value)
+                is PageSignal.StopLoadMore -> updateStopLoadMore(signal.success)
             }
         }
     }

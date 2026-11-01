@@ -75,10 +75,12 @@ import com.ebook.common.ui.CommonUiTokens
 import com.ebook.common.ui.InfoChip
 import com.ebook.common.ui.preview.AppPreview
 import com.ebook.common.ui.preview.sampleSearchHistories
+import com.ebook.common.util.reportFailure
 import com.ebook.db.entity.SearchHistoryEntity
 import com.ebook.find.mvvm.viewmodel.SearchViewModel
 import com.ebook.find.search.SearchProgress
 import com.ebook.find.view.SearchBookItem
+import com.ebook.find.view.findNoticeText
 import com.therouter.TheRouter
 import com.therouter.router.Route
 import com.xrn1997.common.mvvm.compose.BaseMvvmRefreshActivity
@@ -247,10 +249,21 @@ class SearchActivity : BaseMvvmRefreshActivity<SearchViewModel>() {
     override fun PageContent(state: LazyListState) {
         val books by viewModel.list.collectAsState()
         val progress by viewModel.searchProgress.collectAsState()
+        val notice by viewModel.findNotice.collectAsState()
         // 加载更多底部状态：由基类渲染镜像推导，失败可点重试
         val loadingMore by remember { isLoadingMoreState }
         val loadMoreFailed by remember { loadMoreFailedState }
         val hasMore by remember { hasMoreDataState }
+        // 文案在组合期解析好再交给一次性上报（LaunchedEffect 不是 Composable 上下文）
+        val pendingNotice = notice?.let { it to findNoticeText(it) }
+        // 加书架失败：VM 只给结论，句子在这里取、上报仍走共享的 reportFailure
+        // （「A0230 会话过期已由网络层全局处置、这里只记日志不重复提示」由它收口，见 ADR-0061）
+        LaunchedEffect(pendingNotice) {
+            pendingNotice?.let { (conclusion, text) ->
+                viewModel.reportFailure(conclusion.cause, text)
+                viewModel.consumeFindNotice()
+            }
+        }
         Column(modifier = Modifier.fillMaxWidth()) {
             if (progress.isRunning) {
                 SourceProgressRow(progress)

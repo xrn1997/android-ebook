@@ -35,7 +35,7 @@ class JsSandboxHost(
      *
      * internal 成员可以收 internal 类型：`EvalContext`/`ScriptJsBridge` 都不出模块，
      * `lib_book_common` 只负责把本类的实例递给 `ScriptBookParser`。
-     * [transport] 必须是**过守门的**传输（`GuardedNetwork.clientFor(baseClient, guard)` 派生出的那条），
+     * [transport] 必须是**过守门的**传输（`SourceNetworkExit.sandboxClientFor(baseClient, guard)` 派生出的那条），
      * 否则脚本拼出来的 URL 会绕过 DNS 重绑防护；调用点只有 `ScriptBookParser.sandboxGateway` 一处。
      */
     internal fun bridgeFor(
@@ -55,6 +55,6 @@ class JsSandboxHost(
         // 探测与取体共用一只罐：只在一侧带 cookie 会让「HEAD 探得到、取体拿不到会话」这种
         // 半截会话状态出现在同一轮任务里
         cookies = cookies,
-        statusProbe = HeadStatusProbe(GuardedNetwork.clientFor(baseClient, guard, cookies))::status,
+        statusProbe = HeadStatusProbe(SourceNetworkExit.sandboxClientFor(baseClient, guard, cookies))::status,
     )
 }

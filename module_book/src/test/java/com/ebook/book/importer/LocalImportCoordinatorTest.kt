@@ -76,12 +76,13 @@ class LocalImportCoordinatorTest {
             bookShelfDao = daos.shelf,
             bookInfoDao = daos.info,
             chapterListDao = daos.chapter,
-            bookRepository = bookRepository,
+            bookShelfRepository = bookRepository,
         )
         coordinator = LocalImportCoordinator(
             importer = importer,
             duplicateBookDetector = DuplicateBookDetector(daos.shelf, daos.info, daos.group),
-            bookRepository = bookRepository,
+            bookShelfRepository = bookRepository,
+            commentKeys = bookRepository,
         )
     }
 

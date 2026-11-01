@@ -73,7 +73,8 @@ class MainActivity : BaseActivity() {
         lifecycleScope.launch {
             sessionEventBus.events.collect { event ->
                 if (event is SessionEvent.SessionExpired) {
-                    userSessionManager.clearSession()
+                    // 清会话走挂起出口：IO 派发、NonCancellable 段与失败日志都收在接口里（ADR-0056）
+                    userSessionManager.endSession()
                     ToastUtil.showShort(this@MainActivity, getString(R.string.session_expired))
                     TheRouter.build(KeyCode.Login.LOGIN_PATH).navigation()
                 }

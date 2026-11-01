@@ -2,13 +2,11 @@ package com.ebook.book.download
 
 import android.content.Context
 import androidx.lifecycle.viewModelScope
-import com.ebook.book.R
-import com.ebook.common.util.reportFailure
+import com.ebook.common.util.SingleNoticeSlot
 import com.ebook.db.entity.ChapterListEntity
 import com.ebook.db.entity.DownloadChapterEntity
 import com.xrn1997.common.mvvm.viewmodel.BaseViewModel
 import com.xrn1997.common.util.Logger
-import com.xrn1997.common.util.ToastUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -102,6 +100,27 @@ data class BookChapterSelection(
 )
 
 /**
+ * 下载中心的一次性**语义结论**：只带语义与异常，句子归页面（ADR-0061）。
+ *
+ * 装载失败这一档仍走共享的 `reportFailure` 上报（「A0230 会话过期已由网络层全局处置、
+ * 这里只记日志不重复提示」那条不变量由它收口），只是**文案改由页面拼**。
+ *
+ * 「启动被系统挡下」不是失败（没有异常、也没有会话过期语义），但它同样只发结论：
+ * 这条提示的展示方式与位置归页面。本 VM 虽然还被 `BookShelfPage` 以 `hiltViewModel()` 承载，
+ * 但书架宿主只读 `remainingCount`，从不触发下载动作；`sendAction` 的两个调用点
+ * （`resumeIfPending` / `resumeBook`）都只在下载中心页的编排路径上。槽是 StateFlow，
+ * 页面重建后仍能重放到这条结论，不存在「该提示的没提示」。
+ */
+sealed interface DownloadCenterNotice {
+
+    /** 服务启动被系统拒绝（dataSync 前台配额用尽）：任务仍在库里，稍后重试即续跑 */
+    data object StartRestricted : DownloadCenterNotice
+
+    /** 二级选章数据装载失败（Room / 章文件 IO 异常）；[cause] 交回 `reportFailure` 的共享口径 */
+    data class LoadFailed(val cause: Throwable) : DownloadCenterNotice
+}
+
+/**
  * 下载管理页 ViewModel（Model = [DownloadRepository]，遵循本仓库"仓库即 Model"约定）。
  *
  * 职责：
@@ -135,6 +154,15 @@ class DownloadManageViewModel @Inject constructor(
     private val _bookSheet = MutableStateFlow<BookSelectionState?>(null)
     val bookSheet: StateFlow<BookSelectionState?> = _bookSheet.asStateFlow()
 
+    /** 本 VM 的一次性结论（文案与出口在页面，见 [DownloadCenterNotice]） */
+    private val notices = SingleNoticeSlot<DownloadCenterNotice>()
+
+    /** 待页面消费的结论；页面展示后经 [consumeNotice] 清零 */
+    val notice: StateFlow<DownloadCenterNotice?> = notices.notice
+
+    /** 结论已被页面取走并展示 */
+    fun consumeNotice() = notices.consume()
+
     /** 阅读器进入时携带的当前章（>=0 才启用「当前章+50」预勾选与定位；一级入口为 -1）。 */
     private var pendingFocusChapter: Int = -1
 
@@ -150,20 +178,23 @@ class DownloadManageViewModel @Inject constructor(
     val remainingCount: StateFlow<Int> = model.observeRemainingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    /** 当前正在下载的章节 URL（用于判断哪本书处于活跃态） */
-    private var activeChapterUrl: String? = null
-
-    /** 服务当前是否在真正下载（只有 Progress 时才能断言「正在下载第 N 章」，暂停/完成时收起） */
-    private var isDownloading: Boolean = false
+    /**
+     * 下载中心派生与刷新编排的单一主人（纯 JVM，见 [DownloadCenterSession]）。
+     *
+     * 「哪一章在跑 / 服务是否在下载 / 结局该刷哪面 / 确认下载的乐观回显」都收在这里，
+     * [loadGroups] 与 [loadSelection] 读同一个 [DownloadCenterSession.activeChapter]，不再各算一遍
+     * （旧写法靠宿主裸字段 + 「与一级卡片同口径」的注释维持，是本次收口的病根，见 ADR-0060）。
+     */
+    private val session = DownloadCenterSession()
 
     /**
      * 加载/刷新按书分组：读队列任务表 + 逐书叠加缓存覆盖率。
      *
-     * 每次任务增删后都应重调（进度事件驱动，见 DownloadManageActivity 的状态收集）。
+     * 每次任务增删后都应重调（进度事件驱动，见 [onDownloadState]）。
      */
     fun loadGroups() {
         viewModelScope.launch {
-            // 暂停集一次取出：分组的「已暂停」胶囊与 activeChapter 的「下载中」口径互斥
+            // 暂停集一次取出：分组的「已暂停」胶囊与焦点章的「下载中」口径互斥
             // （暂停书不可能同时是活跃书——取篇跳过它），一行查一次即够
             val pausedBooks = model.getPausedBooks()
             val grouped = model.getAllTasks()
@@ -174,7 +205,6 @@ class DownloadManageViewModel @Inject constructor(
                     // 换源会把旧 noteUrl 名下的任务整批删掉（见 BookRepository.commitSwitch），
                     // 不会出现「一本书的组里混着两个源的任务」，故不必回查 book_shelf
                     val coverage = model.getCacheCoverage(noteUrl, first.tag)
-                    val active = isDownloading && tasks.any { it.durChapterUrl == activeChapterUrl }
                     DownloadBookGroup(
                         noteUrl = noteUrl,
                         bookName = first.bookName,
@@ -183,9 +213,8 @@ class DownloadManageViewModel @Inject constructor(
                         remaining = tasks.size,
                         totalChapters = coverage.total,
                         cachedChapters = coverage.cached,
-                        activeChapter = if (active) {
-                            tasks.first { it.durChapterUrl == activeChapterUrl }
-                        } else null,
+                        // 焦点章与会话共用同一判据：一级展示这一行，二级取它的 index（ADR-0060）
+                        activeChapter = session.activeChapter(tasks),
                         paused = noteUrl in pausedBooks
                     )
                 }
@@ -194,14 +223,16 @@ class DownloadManageViewModel @Inject constructor(
     }
 
     /**
-     * 服务状态事件统一入口：Progress 时记录活跃章并高亮所属书；Paused/Finished 时
-     * 收起「正在下载」断言（队列不出队，章还在表里，仅靠队列判会误报）。
+     * 服务状态事件统一入口：把结局交 [DownloadCenterSession] 推进下载态，再按会话返回的路由
+     * 刷新对应页面（编排从 [DownloadManageActivity] 的 `LaunchedEffect` 移回这里，见 ADR-0060）。
+     *
+     * Progress 记录活跃章并高亮所属书；Paused/Finished 收起「正在下载」断言（队列不出队，
+     * 章还在表里，仅靠队列判会误报——焦点章判据经会话的 isDownloading 门自动收起）。
      */
     fun onDownloadState(state: DownloadState) {
-        isDownloading = state is DownloadState.Progress
-        if (state is DownloadState.Progress && activeChapterUrl != state.chapter.durChapterUrl) {
-            activeChapterUrl = state.chapter.durChapterUrl
-        }
+        val targets = session.onDownloadState(state)
+        if (DownloadRefreshTarget.Groups in targets) loadGroups()
+        if (DownloadRefreshTarget.Selection in targets) refreshSelection()
     }
 
     /**
@@ -210,16 +241,18 @@ class DownloadManageViewModel @Inject constructor(
      *
      * Intent 直达，服务已存活或被回收都能送达（见 DownloadService 类注释）。
      * 启动被拒只剩一种现实情形：dataSync 前台配额（24 小时/6 小时）已用尽——此时页内提示
-     * 用户而不能未捕获抛异常（点“全部开始”直接闪退），任务仍在库里，稍后重试即续跑
-     * （见 [DownloadService.start]）。
+     * 用户而不能未捕获抛异常。触发路径是打开下载页时 [resumeIfPending] 的自动续跑与二级页
+     * 「继续下载」[resumeBook]；确认下载走 [DownloadRepository.startDownload] 的同款拒绝分支。
+     * 任务仍在库里，稍后重试即续跑（见 [DownloadService.start]）。
      *
-     * 提示走 [ToastUtil] 而非基类的 `sendToast` 命令通道：本 VM 除下载管理页外，还被
-     * `BookShelfPage` 以 `hiltViewModel()` 承载（见该页），那条宿主路径上没有 `MvvmBinder`
-     * 消费命令，`sendToast` 只会堆在 Channel 里随 VM 销毁丢弃——即「该提示的没提示」。
+     * 被拒时只发结论 [DownloadCenterNotice.StartRestricted]，句子与出口归页面：
+     * 槽是 StateFlow，页面重建后能重放到这条还没展示的结论。调用点只有 [resumeIfPending]
+     * 与 [resumeBook]，两者都只在下载中心页的编排路径上被驱动；`BookShelfPage`
+     * 虽以 `hiltViewModel()` 承载本 VM，只读 `remainingCount`，不调本方法。
      */
     fun sendAction(action: String) {
         if (!DownloadService.start(context, DownloadService.buildActionIntent(context, action))) {
-            ToastUtil.showShort(context, context.getString(R.string.download_start_restricted))
+            notices.emit(DownloadCenterNotice.StartRestricted)
         }
     }
 
@@ -302,8 +335,9 @@ class DownloadManageViewModel @Inject constructor(
     /**
      * 装载二级数据：书架信息 + 章目录 + 缓存 + 队列三方合并。
      *
-     * 失败（Room / 章文件 IO 异常）落 [BookSelectionState.Failed] 并经 [reportFailure] 提示，
-     * 不会让页面无限停在「正在加载…」（同模块范式：EditBookMetaViewModel.loadState）。
+     * 失败（Room / 章文件 IO 异常）落 [BookSelectionState.Failed] 并发
+     * [DownloadCenterNotice.LoadFailed]（提示由页面经 `reportFailure` 落地，
+     * 不会让页面无限停在「正在加载…」，同模块范式：EditBookMetaViewModel.loadState）。
      */
     private fun loadSelection() {
         val pick = _step.value as? DownloadCenterStep.PickBook ?: return
@@ -324,11 +358,9 @@ class DownloadManageViewModel @Inject constructor(
                 val cached = model.getCachedIndices(noteUrl, tag, chapters)
                 val tasks = model.getTasksByBook(noteUrl)
                 val queued = tasks.mapTo(mutableSetOf()) { it.durChapterIndex }
-                // 当前下载章只在 Progress 期间断言：暂停/完成时 isDownloading=false，
-                // 即便该章仍在队列里，二级「下载中」徽章也随之收起（与一级卡片同口径）
-                val active = if (isDownloading) {
-                    tasks.firstOrNull { it.durChapterUrl == activeChapterUrl }?.durChapterIndex
-                } else null
+                // 焦点章与一级卡片同读一处（DownloadCenterSession.activeChapter）：只在 Progress
+                // 期间非空，暂停/收尾时随 isDownloading 收起，二级「下载中」徽章不再误显
+                val active = session.activeChapter(tasks)?.durChapterIndex
                 val initialSelected = initialChapterSelection(
                     chapters = chapters,
                     cachedIndices = cached,
@@ -357,7 +389,9 @@ class DownloadManageViewModel @Inject constructor(
             } catch (e: Exception) {
                 Logger.e(TAG, "loadSelection 失败", e)
                 _bookSheet.value = BookSelectionState.Failed
-                reportFailure(e, context.getString(R.string.download_center_load_failed))
+                // 只发结论：文案由页面拼、上报仍走页面那一次的 reportFailure（ADR-0061）。
+                // 二级这条路径只在下载中心页发生（书架宿主不装载二级），所以结论必然有消费者。
+                notices.emit(DownloadCenterNotice.LoadFailed(e))
             }
         }
     }
@@ -387,9 +421,9 @@ class DownloadManageViewModel @Inject constructor(
         if (plan.tasks.isEmpty()) return
         // 先解暂停再下发：startDownload 会拉起服务，此刻标记已清，新任务立即进入取篇候选
         _bookSheet.value = BookSelectionState.Ready(
-            selection.copy(
-                paused = false,
-                queuedIndices = selection.queuedIndices + plan.tasks.map { it.durChapterIndex }
+            session.optimisticEnqueue(
+                selection,
+                queuedIndices = plan.tasks.map { it.durChapterIndex }.toSet(),
             )
         )
         viewModelScope.launch {

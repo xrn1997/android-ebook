@@ -69,7 +69,7 @@ class LocalBookImporterTest {
         bookShelfDao = daos.shelf,
         bookInfoDao = daos.info,
         chapterListDao = daos.chapter,
-        bookRepository = BookRepository(
+        bookShelfRepository = BookRepository(
             daos.shelf, daos.info, daos.chapter, daos.group, daos.download,
             chapterReaders = mapOf(BookFormat.TXT to reader),
             // 导入路径不换源，空清单的假书源管理器只为补齐构造参数

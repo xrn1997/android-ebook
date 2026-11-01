@@ -3,7 +3,7 @@ package com.ebook.book.reader
 import androidx.lifecycle.viewModelScope
 import com.ebook.common.analyze.source.SourceResolver
 import com.ebook.common.domain.CommentKey
-import com.ebook.common.repository.BookRepository
+import com.ebook.common.repository.ShelfRepository
 import com.ebook.db.entity.BookShelfEntity
 import com.ebook.db.entity.SearchBookEntity
 import com.ebook.source.analyze.AggregateSearchEvent
@@ -23,7 +23,7 @@ import javax.inject.Inject
  * 阅读中换源的候选页 ViewModel（ADR-0016 决策 8，P3-d）。
  *
  * 只做两件事：**找候选**（拿当前书的书名+作者跨源聚合搜索，按匹配度排序）与**执行换源**
- * （把决定交给 [BookRepository.switchSource] 那条事务）。界面怎么摆、点完关不关弹层都不归它管。
+ * （把决定交给 [ShelfRepository.switchSource] 那条事务）。界面怎么摆、点完关不关弹层都不归它管。
  *
  * Model 位用 [NoOpModel] 占位（无一次性命令门面需求，见 docs/architecture.md「Hilt 与 Application」）；
  * 状态流命名避开基类的 `uiState`（那是覆盖层专用），沿用「页面名 + State」的口径。
@@ -50,7 +50,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SourceSwitchViewModel @Inject constructor(
     private val sourceResolver: SourceResolver,
-    private val bookRepository: BookRepository,
+    private val bookShelfRepository: ShelfRepository,
 ) : BaseViewModel<NoOpModel>(NoOpModel()) {
 
     /**
@@ -167,7 +167,7 @@ class SourceSwitchViewModel @Inject constructor(
         onResult: (Result<SourceSwitchOutcome>) -> Unit,
     ) {
         viewModelScope.launch {
-            val result = bookRepository.switchSource(oldShelf, newBook)
+            val result = bookShelfRepository.switchSource(oldShelf, newBook)
             onResult(
                 result.mapCatching { newShelf ->
                     SourceSwitchOutcome(newShelf = newShelf, previousChapter = oldShelf.durChapter)

@@ -16,7 +16,7 @@ Status: accepted
 2. **读取器只保留一份存储策略**：取文本 → 记错误 URL 清单 → 规范化切段 → 空则返回空段落、否则写章文件。取源仍在任何 try 之外（书源失效不能被裹成解析失败）。
 3. **error mode 不合并**（ADR-0046）：原生把抓取失败裹成「章节内容解析失败」（选择器失配，重试可能好），脚本把 `ScriptRuleException` 子类原样上抛（消息面向用户，重试不会好）。读取器只记同一份排查线索、不改写类型。
 4. **读取器不再注入 `OkHttpClient`**：抓取由解析器一侧完成，`JsoupSourceReader` 的构造面随之收缩。
-5. **`JsoupBookParser.rule` 保持 public**：正文抓取已不读它，但 `lib_book_common` 的测试要据此断言「规则覆盖/禁用后 parser 缓存确实换成了新行」，而依赖方的 test source set 不是 friend module，收成 internal 会让这些用例编译不过。
+5. **`JsoupBookParser.rule` 收成 internal**：正文抓取已不读它，对外也没有别的跨模块消费者——「缓存有没有换成新行」由测试断言实例更换（`assertNotSame`）即可，规则内容随构造固化属实现细节；曾因依赖方测试读它而保持 public，那两条断言判冗余后删除。
 
 ## 被拒方案
 

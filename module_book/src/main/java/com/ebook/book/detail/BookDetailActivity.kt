@@ -24,6 +24,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -39,6 +40,7 @@ import com.ebook.book.R
 import com.ebook.book.manager.BitIntentDataManager
 import com.ebook.book.reader.BookReadViewModel.Companion.OPEN_FROM_APP
 import com.ebook.book.reader.ReadBookActivity
+import com.ebook.common.util.reportFailure
 import com.ebook.common.event.FROM_BOOKSHELF
 import com.ebook.common.event.KeyCode
 import com.ebook.common.event.RouteArgs
@@ -101,6 +103,23 @@ class BookDetailActivity : BaseMvvmActivity<BookDetailViewModel>() {
 
     @Composable
     override fun PageContent() {
+        // 结论 → 文案在这一层（壳层）做：ViewModel 只发 [BookDetailNotice]（ADR-0061）。
+        // 文案先在组合期解析好，再交给一次性上报——LaunchedEffect 不是 Composable 上下文。
+        val notice by viewModel.notice.collectAsState()
+        val pendingNotice = notice?.let { it to bookDetailNoticeText(it) }
+        LaunchedEffect(pendingNotice) {
+            val (conclusion, text) = pendingNotice ?: return@LaunchedEffect
+            // 分支不带 else：新增一档结论时这里编译不过，不会静默少弹一条
+            when (conclusion) {
+                // 书源失效仍是「失败」：会话过期只记日志、不重复提示那条不变量由 reportFailure 收口
+                is BookDetailNotice.SourceInvalid -> viewModel.reportFailure(conclusion.cause, text)
+                // 其余三档是回显/固定文案，走改动前同一条命令通道
+                is BookDetailNotice.ChaptersAppended,
+                BookDetailNotice.AddShelfFailed,
+                BookDetailNotice.RemoveShelfFailed -> viewModel.sendToast(text)
+            }
+            viewModel.consumeNotice()
+        }
         BookDetailScreen(
             state = rememberBookDetailRenderState(viewModel),
             onReadClick = {
@@ -130,6 +149,20 @@ class BookDetailActivity : BaseMvvmActivity<BookDetailViewModel>() {
             },
         )
     }
+}
+
+/**
+ * 详情页结论 → 文案：**本页唯一的句子来源**（ADR-0061）。
+ *
+ * `when` 不带 `else`：新增一档结论时这里编译不过，而不是运行时静默少弹一条。
+ * 带参模板（`chapters_appended` 的章数）也留在 `strings.xml` 里可译，不在代码里拼中文。
+ */
+@Composable
+private fun bookDetailNoticeText(notice: BookDetailNotice): String = when (notice) {
+    is BookDetailNotice.ChaptersAppended -> stringResource(R.string.chapters_appended, notice.count)
+    BookDetailNotice.AddShelfFailed -> stringResource(R.string.import_add_failed)
+    BookDetailNotice.RemoveShelfFailed -> stringResource(R.string.remove_shelf_failed)
+    is BookDetailNotice.SourceInvalid -> stringResource(R.string.book_source_invalid)
 }
 
 /**

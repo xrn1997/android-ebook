@@ -50,10 +50,6 @@ interface BookShelfDao {
     @Query("SELECT * FROM book_shelf WHERE note_url = :noteUrl")
     suspend fun getBookFullInfoByUrl(noteUrl: String): BookShelfFullInfo?
 
-    /** 书架全量的响应式观察，只查书架行、不做关联拼装（用不到书名/章节的场景走它，省掉子查询） */
-    @Query("SELECT * FROM book_shelf ORDER BY final_date DESC")
-    fun getAllBooksFlow(): Flow<List<BookShelfEntity>>
-
     /** 书架全量快照（仅书架行），按最后阅读时间倒序；下载队列遍历书架找待下载书时用此入口 */
     @Query("SELECT * FROM book_shelf ORDER BY final_date DESC")
     suspend fun getAllBooks(): List<BookShelfEntity>
@@ -61,10 +57,6 @@ interface BookShelfDao {
     /** 按 `note_url` 取单条书架记录（判定某书是否在架、读当前进度），未加书架返回 null */
     @Query("SELECT * FROM book_shelf WHERE note_url = :noteUrl")
     suspend fun getBookByUrl(noteUrl: String): BookShelfEntity?
-
-    /** 按 `note_url` 批量取书架记录：一次查询判定多本书是否在架，避免逐条 [getBookByUrl] */
-    @Query("SELECT * FROM book_shelf WHERE note_url IN (:noteUrls)")
-    suspend fun getBooksByUrls(noteUrls: List<String>): List<BookShelfEntity>
 
     /**
      * 写入书架行：主键是自然键 `note_url`，REPLACE 即「按 URL upsert」，存在则整行替换。
@@ -107,8 +99,4 @@ interface BookShelfDao {
      */
     @Query("DELETE FROM book_shelf WHERE note_url = :noteUrl")
     suspend fun deleteByUrl(noteUrl: String)
-
-    /** 在架书籍总数 */
-    @Query("SELECT COUNT(*) FROM book_shelf")
-    suspend fun getCount(): Int
 }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -90,6 +91,12 @@ object CommonUiTokens {
 
     /** 卡片区块之间的垂直间距 */
     val sectionSpacing = 12.dp
+
+    /**
+     * 列表条目尾部值的宽度上界：外部数据（昵称、主机名…）不能把带 weight 的标题压到逐字换行。
+     * 超出省略，完整值由调用方提供详情/编辑入口。
+     */
+    val listItemTrailingMaxWidth = 160.dp
 
     /** 列表条目卡之间的垂直间距 */
     val listSpacing = 8.dp
@@ -231,10 +238,17 @@ fun CommonListItem(
             Spacer(modifier = Modifier.width(4.dp))
         } else {
             trailingText?.let {
+                // 尾部值是外部数据（昵称、自定义主机名…），必须既限行数又限宽度：
+                // Row 里不带 weight 的子项先按「剩余全宽」测量，只加 maxLines 的话长值照样
+                // 把带 weight(1f) 的标题压到最小内在宽度，标题逐字换行、行高失控。
+                // 上界见 CommonUiTokens.listItemTrailingMaxWidth；超出省略，完整值由调用方提供入口。
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.widthIn(max = CommonUiTokens.listItemTrailingMaxWidth),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.width(4.dp))
             }

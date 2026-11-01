@@ -64,6 +64,8 @@ bash scripts/check-docs.sh
 - **新增接口同步 mock**：新增 `DataSource` 接口方法时，必须同步更新对应的 `XxxNetworkTest` mock 实现。JSON 资产只适用于**返回固定结构的读接口**（这类方法同时要在 `lib_ebook_api/src/main/assets/` 补对应资产）；**回显入参的写接口与文件上传接口**应在 mock 里以代码合成响应，并注释说明「为何无静态资产可对应」——静态资产表达不了「按入参变化」与「上传后真实地址」，禁止为凑规则造一份固定 JSON 冒充响应。例外：`ReleaseDataSource` 的 mock 忽略 endpoint 入参、固定回一份资产，双源 failover 因此不在 mock 里验，由 `module_me` 的 `ReleaseRepositoryTest` 用假数据源锁住。
 - **资产形态与解码类型同步**：mock 读资产用 `getDataFromJsonFile<T>` 的 reified 类型，必须与资产的 `data` 实际形态一致（服务端改分页包裹时 `T` 要跟着换）。错配抛的 `SerializationException` 会被 `CoroutineAdapter` 吞成「未知错误」，**页面不闪退、数据永远加载不出来**，只有一行看不出根因的 ERROR 日志——因此这类改动必须同步更新 mock 资产契约测试。第三方平台的原始 JSON 资产不带 `RespDTO` 信封，不走 `getDataFromJsonFile<T>`，把整个资产直接解成实体。
 
+**mock 的非成功码开关（账号面）**：mock 资产清一色是成功信封，「业务码非成功」那一档在不连后端时本来走不到——失败文案上屏与「刷新被拒 → 会话过期 → 跳登录」整条链都得连真后端才验得动。`UserNetworkTest` 因此带一个开关：把 `fail` 填进任一文本入参（邮箱 / 密码 / 验证码 / 昵称 / 头像文件名 / 待刷新的 refresh token）即回放 `user_rejected.json`（`A0001` + 一句服务端文案）。它只存在于 mock flavor 与独立调试宿主，真实后端不看这些值；读数由 `UserNetworkTestTest` 钉住（为什么要有这条开关见 [ADR-0059](adr/0059-account-faces-envelope-in-seam.md)）。
+
 ## 4. 原生构建（脚本书源沙箱）
 
 `lib_book_source` 经 build-logic 的 `xrn1997.android.native` 约定插件编 C++，QuickJS 内核 vendored 在 `third_party/quickjs/`、桥接层在 `lib_book_source/src/main/cpp/`。
@@ -84,6 +86,7 @@ release 混淆已开启：`module_app` release 恒开；功能模块 `isMinifyEn
 
 - 单元测试使用 JUnit 4，位于各模块 `src/test/java`；插桩测试位于 `src/androidTest/java`。
 - 测试类命名 `<Subject>Test`；测试方法使用反引号包裹的句子式描述。
+- 新写的 ViewModel 与纯控制器测试只断言语义结论与状态，不取字符串资源；页面映射由页面里不带 `else` 的 `when` 在编译期兜住。Robolectric 保留给 Compose 渲染冒烟（组合 + 资源解析）、真 Room 端到端与仍需真实 Android Context 的存量接线测试；约定前向生效、不追溯。
 - 行为变更时同步更新已有测试，保持测试与实现一致。
 - 测试覆盖待办见 [`docs/test-coverage-todo.md`](test-coverage-todo.md)。
 - `ReadBookControl` 是 `object`，类初始化即读 `BaseApplication.context` 并调 `DisplayUtil.dp2px`；JVM/Robolectric 下拿不到应用图，单测会卡在单例初始化。它的纯逻辑（如 `fitLines`、落点换算）应抽成可测函数；不要为这个 object 强行造测试。

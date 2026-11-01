@@ -7,7 +7,7 @@ import com.ebook.common.analyze.local.ChapterEntry
 import com.ebook.common.analyze.local.ChapterSink
 import com.ebook.common.analyze.local.SourceReader
 import com.ebook.common.domain.ParsedBookMeta
-import com.ebook.common.repository.BookRepository
+import com.ebook.common.repository.ShelfRepository
 import com.ebook.common.store.BookStore
 import com.ebook.db.dao.BookInfoDao
 import com.ebook.db.dao.BookShelfDao
@@ -45,7 +45,7 @@ class LocalBookImporter @Inject constructor(
     private val bookShelfDao: BookShelfDao,
     private val bookInfoDao: BookInfoDao,
     private val chapterListDao: ChapterListDao,
-    private val bookRepository: BookRepository,
+    private val bookShelfRepository: ShelfRepository,
 ) {
 
     /**
@@ -112,7 +112,7 @@ class LocalBookImporter @Inject constructor(
                     // 导入器只负责把文件与实体准备好。
                     shelf.chapterList = chapters
                     shelf.bookInfo = info
-                    bookRepository.addToShelf(shelf)
+                    bookShelfRepository.addToShelf(shelf)
                 } catch (e: CancellationException) {
                     // 取消不是库写失败：addToShelf 在事务提交后才发事件，事件阶段被取消时
                     // 事务可能已落库；此时删文件会把已入库的书变成空壳。未提交留下的孤儿

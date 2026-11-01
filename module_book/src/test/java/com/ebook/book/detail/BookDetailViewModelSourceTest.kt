@@ -1,6 +1,5 @@
 package com.ebook.book.detail
 
-import androidx.test.core.app.ApplicationProvider
 import com.ebook.common.analyze.local.BookFormat
 import com.ebook.common.analyze.local.ChapterReader
 import com.ebook.common.analyze.source.SourceBinding
@@ -22,7 +21,6 @@ import com.ebook.db.entity.SearchBookEntity
 import com.ebook.db.entity.WebChapterEntity
 import com.ebook.source.analyze.BookParser
 import com.ebook.source.analyze.BookSourceNotFoundException
-import com.xrn1997.common.BaseApplication
 import java.io.File
 import java.lang.reflect.Proxy
 import kotlinx.coroutines.Dispatchers
@@ -40,26 +38,24 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 
 /**
  * [BookDetailViewModel] 的「按书绑源」测试（ADR-0016 P3-a）。
  *
- * 锁三条：
+ * 锁四条：
  * 1. 详情页的两次解析（详情 + 目录）都按**这本书的 `tag`** 取 parser，全局默认源一次都没被问起；
  * 2. `tag` 查不到源时页面必须落到 [BookDetailUiState.loadError] 且 `loading` 收掉——
  *    「静默返回成功」会让覆盖层永远转下去，用户既等不到结果也看不到原因；
- * 3. 详情拿到了、目录取不到源，同样是错误态（不能停在「半本已加载」的样子）。
+ * 3. 详情拿到了、目录取不到源，同样是错误态（不能停在「半本已加载」的样子）；
+ * 4. 结论只发 [BookDetailNotice] 且事实齐全：成功路径的 `ChaptersAppended` 带本次真实追加章数，
+ *    书源失效与目录取源失败都发 `SourceInvalid(cause)`，cause 原样携带（页面拿它走 `reportFailure`）。
  *
- * 用 Robolectric 的理由：书源失效那条分支要取 string 资源（`BaseApplication.context`），
- * 纯 JVM 下它是抛「Stub!」的桩实现；调度器仍全部挂在 [mainDispatcher] 上，`advanceUntilIdle` 即可驱动。
+ * 纯 JVM：VM 的失败提示已改成带 cause 的语义结论（[BookDetailNotice]，ADR-0061），
+ * 句子由页面取 string 资源，构造与路径上不再碰 `BaseApplication.context`，
+ * 故不需要 Robolectric 提供资源环境。调度器仍全部挂在 [mainDispatcher] 上，`advanceUntilIdle` 即可驱动。
  * DAO 用「白名单空库」替身（见 [emptyDaoStub]）：本组用例只关心详情页选哪个 parser，
  * 仓库层取数由 lib_book_common 自己的用例锁，不在这里重做。
  */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class BookDetailViewModelSourceTest {
 
     private companion object {
@@ -73,8 +69,6 @@ class BookDetailViewModelSourceTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(mainDispatcher)
-        // 失败提示走 string 资源，资源解析要真 Context（与 AndroidUserSessionManagerTest 同一套跑法）
-        BaseApplication.context = ApplicationProvider.getApplicationContext()
     }
 
     @After
@@ -95,7 +89,8 @@ class BookDetailViewModelSourceTest {
             chapterListResult = (0 until 5).map { storedChapter(it, "源") }
         }
         val manager = FakeSourceManager(parsers = mapOf(SOURCE_B to parserB))
-        val viewModel = BookDetailViewModel(repository(manager, chapters, shelfRow), manager)
+        val repository = repository(manager, chapters, shelfRow)
+        val viewModel = BookDetailViewModel(repository, manager, repository)
         viewModel.initFromSearch(SearchBookEntity(noteUrl = NOTE_URL, tag = SOURCE_B))
 
         viewModel.getBookShelfInfo()
@@ -122,6 +117,9 @@ class BookDetailViewModelSourceTest {
         )
         assertEquals("改用库里那份不该把进度抹回默认值", 1, state.bookShelf.durChapter)
         assertEquals("为落库不该再翻一遍目录页", 1, parserB.chapterListCalls)
+        val appended = viewModel.notice.value
+        assertTrue("追加成功的回显也要只发结论（句子归页面）", appended is BookDetailNotice.ChaptersAppended)
+        assertEquals("结论带的是本次真实追加的章数", 2, (appended as BookDetailNotice.ChaptersAppended).count)
     }
 
     /** 按方法名给返回值的 DAO 替身；白名单外（map 里没有）的方法被调用即抛，口径同 [emptyDaoStub] */
@@ -195,8 +193,10 @@ class BookDetailViewModelSourceTest {
         transactions = DirectRunner,
     )
 
-    private fun viewModelWith(manager: FakeSourceManager): BookDetailViewModel =
-        BookDetailViewModel(repository(manager), manager)
+    private fun viewModelWith(manager: FakeSourceManager): BookDetailViewModel {
+        val repository = repository(manager)
+        return BookDetailViewModel(repository, manager, repository)
+    }
 
     /**
      * 换成「有状态章节表 + 单行书架」的仓库：详情页的目录落库流程要先读库、写库、再回读，
@@ -285,6 +285,11 @@ class BookDetailViewModelSourceTest {
         assertFalse("覆盖层必须收掉，否则页面永远在转圈", state.loading)
         assertEquals("只按该书归属取源", listOf(SOURCE_B), manager.parserForCalls)
         assertEquals("没有归属的书不该被默认源解析", 0, parserA.bookInfoCalls)
+        val conclusion = viewModel.notice.value
+        assertTrue("书源失效要单独成档，不能混进通用失败", conclusion is BookDetailNotice.SourceInvalid)
+        val cause = (conclusion as BookDetailNotice.SourceInvalid).cause
+        assertTrue("cause 要原样带出（页面拿它走 reportFailure）", cause is BookSourceNotFoundException)
+        assertEquals(SOURCE_B, (cause as BookSourceNotFoundException).sourceUrl)
     }
 
     @Test
@@ -302,6 +307,10 @@ class BookDetailViewModelSourceTest {
         assertFalse("覆盖层同样要收掉", state.loading)
         assertEquals(listOf(SOURCE_B, SOURCE_B), manager.parserForCalls)
         assertEquals(1, parserB.chapterListCalls)
+        assertTrue(
+            "目录这一步的取源失败同样按书源失效上报",
+            viewModel.notice.value is BookDetailNotice.SourceInvalid,
+        )
     }
 
     /**

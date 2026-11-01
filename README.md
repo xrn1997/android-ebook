@@ -77,7 +77,7 @@ git clone git@github.com:xrn1997/android-ebook.git
 
 补充说明：
 
-- **后端基址**：经 `local.properties` 的 `ebook.server.host` 注入（缺省 `10.0.2.2`，即模拟器访问宿主机）。局域网真机调试时改成宿主机 IP
+- **后端基址**：应用**不内置服务器地址**（ADR-0053）——在 App 内「设置 → 服务器地址」填入你自己的 ebook-server 地址，重启后生效、改址会退出登录；未配置时阅读与书源照常，仅登录/评论不可用。局域网真机调试的限制见 [docs/architecture.md](docs/architecture.md) 认证与会话一节。
 
 - **lib\_common 联动**：基础库 `lib_common` 仍在迭代，根 `settings.gradle.kts` 默认走 Maven 中央坐标（`io.github.xrn1997:common`）。本地源码联调时取消 `includeBuild` 注释，经 `lib-common-build/` 迷你独立构建以**相对路径**引用源码（两边可同步改），改完切回中央坐标、联动态不提交
 
@@ -141,7 +141,7 @@ docs/adr/         → 架构决策记录（ADR）
 
 **后端与离线开发**
 
-- [ebook-server](https://github.com/xrn1997/ebook-server)（Go）重写替代 2022 年过期的旧服务器，提供注册/登录/刷新/改密/忘记密码/评论等能力，基址经 `local.properties` 注入不硬编码
+- [ebook-server](https://github.com/xrn1997/ebook-server)（Go）重写替代 2022 年过期的旧服务器，提供注册/登录/刷新/改密/忘记密码/评论等能力；应用不内置服务器地址（ADR-0053），基址由用户在 App 内自行配置（重启生效），代码不硬编码
 
 - mock 数据源机制：`real`/`mock` 双 flavor + 独立模块自动切换，无后端也能完整开发调试
 

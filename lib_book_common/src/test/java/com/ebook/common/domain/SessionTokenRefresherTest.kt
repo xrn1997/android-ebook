@@ -1,28 +1,26 @@
 package com.ebook.common.domain
 
-import com.ebook.api.entity.LoginDTO
-import com.ebook.api.entity.LoginRequest
-import com.ebook.api.entity.ModifyPwdRequest
+import com.ebook.api.auth.SessionEvent
+import com.ebook.api.auth.SessionEventBus
 import com.ebook.api.entity.RefreshTokenRequest
-import com.ebook.api.entity.RegisterRequest
-import com.ebook.api.entity.ResetPasswordRequest
-import com.ebook.api.entity.SendCodeRequest
-import com.ebook.api.entity.UpdateUserRequest
-import com.ebook.api.entity.UploadResponse
-import com.ebook.api.entity.User
-import com.ebook.api.service.user.UserDataSource
+import com.ebook.api.service.user.SessionRefresh
+import com.ebook.api.service.user.TokenRefresh
+import com.ebook.api.utils.CoroutineAdapter
 import com.xrn1997.common.constant.ErrorCode
 import com.xrn1997.common.di.TokenHolder
 import com.xrn1997.common.dto.RespDTO
+import dagger.Lazy
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import okhttp3.MultipartBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -40,8 +38,17 @@ import org.junit.Test
  * - (c) 内部 `catch (e: Exception)` 曾把 [CancellationException] 吞成「刷新失败」，
  *   上层据此误发 SessionExpired、把用户踢到登录页。
  *
- * 边界说明：日志与会话过期事件（`SessionEventBus`）不属本层职责（由 lib_ebook_api 的
- * `CoroutineAdapter` 发），本测试不覆盖，也不为此引入 Robolectric/Android 依赖。
+ * (d) 组不是缺陷而是**接缝的两条出口**（ADR-0059 把刷新切成窄面后必须重新钉一遍）：
+ * 刷新成功后原请求只重放一次即止；刷新被拒时会话过期事件只发一次且不重放。
+ *
+ * 边界说明：日志不属本层职责；会话过期事件（`SessionEventBus`）由 lib_ebook_api 的
+ * `CoroutineAdapter` 发，因此 (d) 组只在**生产装配**上直断它的两条出口，本层单测不覆盖，
+ * 也不为此引入 Robolectric/Android 依赖。
+ * 同样不覆盖的是**信封怎么折成结论**：自 ADR-0059 起本层只消费窄面 [SessionRefresh] 的
+ * [TokenRefresh]，业务码与 `data` 空判归 `lib_ebook_api`（读数在 `UserFacesDigestTest`）。
+ * 因此下面的假件回的是结论而不是 `RespDTO`——它测的是「拿到某一档结论时本层怎么处置」，
+ * 单飞、重放次数与「旧凭据不被写空」这些时序断言一字未改（窄面只有一个方法，原先按整张
+ * 宽接口写的九个 `error("unused in this test")` 占位实现随之消失）。
  */
 class SessionTokenRefresherTest {
 
@@ -62,8 +69,8 @@ class SessionTokenRefresherTest {
         // （TokenHolder 把空串归一化为 null，与生产 loadSessionFromSp 的结果一致）
         sessionManager.saveSession(session(token = ""), REFRESH_TOKEN)
         assertNull(tokenHolder.token)
-        val dataSource = CountingUserDataSource()
-        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, dataSource)
+        val dataSource = CountingSessionRefresh()
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
 
         val results = coroutineScope {
             List(5) { async { refresher.refresh(null) } }.map { it.await() }
@@ -80,8 +87,8 @@ class SessionTokenRefresherTest {
         val tokenHolder = TokenHolder()
         val sessionManager = SharedTokenSessionManager(tokenHolder)
         sessionManager.saveSession(session(token = OLD_ACCESS_TOKEN), REFRESH_TOKEN)
-        val dataSource = CountingUserDataSource()
-        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, dataSource)
+        val dataSource = CountingSessionRefresh()
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
 
         val newToken = refresher.refresh(OLD_ACCESS_TOKEN)
 
@@ -95,8 +102,8 @@ class SessionTokenRefresherTest {
         val tokenHolder = TokenHolder()
         val sessionManager = SharedTokenSessionManager(tokenHolder)
         sessionManager.saveSession(session(token = OLD_ACCESS_TOKEN), REFRESH_TOKEN)
-        val dataSource = CountingUserDataSource()
-        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, dataSource)
+        val dataSource = CountingSessionRefresh()
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
 
         val results = coroutineScope {
             List(3) { async { refresher.refresh(OLD_ACCESS_TOKEN) } }.map { it.await() }
@@ -113,10 +120,10 @@ class SessionTokenRefresherTest {
         val tokenHolder = TokenHolder()
         val sessionManager = SharedTokenSessionManager(tokenHolder)
         sessionManager.saveSession(session(token = OLD_ACCESS_TOKEN), REFRESH_TOKEN)
-        val dataSource = CountingUserDataSource {
-            RespDTO(ErrorCode.SUCCESS.code, "", LoginDTO(token = NEW_ACCESS_TOKEN, refreshToken = null))
+        val dataSource = CountingSessionRefresh {
+            TokenRefresh.Rotated(accessToken = NEW_ACCESS_TOKEN, refreshToken = null)
         }
-        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, dataSource)
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
 
         assertEquals(NEW_ACCESS_TOKEN, refresher.refresh(OLD_ACCESS_TOKEN))
 
@@ -130,10 +137,10 @@ class SessionTokenRefresherTest {
         val tokenHolder = TokenHolder()
         val sessionManager = SharedTokenSessionManager(tokenHolder)
         sessionManager.saveSession(session(token = OLD_ACCESS_TOKEN), REFRESH_TOKEN)
-        val dataSource = CountingUserDataSource {
-            RespDTO(ErrorCode.SUCCESS.code, "", LoginDTO(token = NEW_ACCESS_TOKEN, refreshToken = ""))
+        val dataSource = CountingSessionRefresh {
+            TokenRefresh.Rotated(accessToken = NEW_ACCESS_TOKEN, refreshToken = "")
         }
-        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, dataSource)
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
 
         refresher.refresh(OLD_ACCESS_TOKEN)
 
@@ -146,8 +153,8 @@ class SessionTokenRefresherTest {
         val tokenHolder = TokenHolder()
         val sessionManager = SharedTokenSessionManager(tokenHolder)
         sessionManager.saveSession(session(token = OLD_ACCESS_TOKEN), REFRESH_TOKEN)
-        val dataSource = CountingUserDataSource()
-        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, dataSource)
+        val dataSource = CountingSessionRefresh()
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
 
         refresher.refresh(OLD_ACCESS_TOKEN)
 
@@ -165,8 +172,8 @@ class SessionTokenRefresherTest {
         val tokenHolder = TokenHolder()
         val sessionManager = SharedTokenSessionManager(tokenHolder)
         sessionManager.saveSession(session(token = OLD_ACCESS_TOKEN), REFRESH_TOKEN)
-        val dataSource = CountingUserDataSource { throw CancellationException("调用方已取消") }
-        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, dataSource)
+        val dataSource = CountingSessionRefresh { throw CancellationException("调用方已取消") }
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
 
         val outcome = runCatching { refresher.refresh(OLD_ACCESS_TOKEN) }
 
@@ -183,8 +190,8 @@ class SessionTokenRefresherTest {
         val tokenHolder = TokenHolder()
         val sessionManager = SharedTokenSessionManager(tokenHolder)
         sessionManager.saveSession(session(token = OLD_ACCESS_TOKEN), REFRESH_TOKEN)
-        val dataSource = CountingUserDataSource { RespDTO("A0230", "用户登录已过期", null) }
-        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, dataSource)
+        val dataSource = CountingSessionRefresh { TokenRefresh.Rejected("A0230", "用户登录已过期") }
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
 
         assertNull(refresher.refresh(OLD_ACCESS_TOKEN))
 
@@ -199,13 +206,20 @@ class SessionTokenRefresherTest {
         val tokenHolder = TokenHolder()
         val sessionManager = SharedTokenSessionManager(tokenHolder)
         sessionManager.saveSession(session(token = OLD_ACCESS_TOKEN), REFRESH_TOKEN)
-        val dataSource = CountingUserDataSource {
-            RespDTO(ErrorCode.SUCCESS.code, "", LoginDTO(token = null, refreshToken = NEW_REFRESH_TOKEN))
+        // 缝内消化后，「成功码但缺 access token」是**请求没成立**那一档（结论未定，不是服务端
+        // 拒绝；折信封那一步的读数在 lib_ebook_api 的 UserFacesDigestTest）。本层对两档的处置
+        // 一字不差：都回 null、都不轮换
+        val dataSource = CountingSessionRefresh {
+            TokenRefresh.NotEstablished(reason = "响应缺少 access token")
         }
-        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, dataSource)
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
 
         assertNull(refresher.refresh(OLD_ACCESS_TOKEN))
 
+        assertTrue(
+            "缺 access token 应作为「请求没成立」那一档送达本层，实际是 ${dataSource.outcomes}",
+            dataSource.outcomes.singleOrNull() is TokenRefresh.NotEstablished,
+        )
         assertTrue(sessionManager.rotatedAccessTokens.isEmpty())
     }
 
@@ -213,8 +227,8 @@ class SessionTokenRefresherTest {
     fun `未登录无 refresh token 时不发起任何请求直接返回 null`() = runTest {
         val tokenHolder = TokenHolder()
         val sessionManager = SharedTokenSessionManager(tokenHolder)
-        val dataSource = CountingUserDataSource()
-        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, dataSource)
+        val dataSource = CountingSessionRefresh()
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
 
         assertNull(refresher.refresh(null))
 
@@ -227,11 +241,92 @@ class SessionTokenRefresherTest {
         val tokenHolder = TokenHolder()
         val sessionManager = SharedTokenSessionManager(tokenHolder)
         sessionManager.saveSession(session(token = OLD_ACCESS_TOKEN), REFRESH_TOKEN)
-        val dataSource = CountingUserDataSource { throw IOException("connection reset") }
-        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, dataSource)
+        val dataSource = CountingSessionRefresh { throw IOException("connection reset") }
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
 
         // 普通异常仍归「刷新失败」：返回 null，由上层决定是否发会话过期事件
         assertNull(refresher.refresh(OLD_ACCESS_TOKEN))
+    }
+
+    // ===== (d) 刷新面两条出口（ADR-0059：信封收在缝内之后，出口仍要直接钉住） =====
+
+    /**
+     * A0230 → 刷新成功 → 原请求重放**一次**即止。
+     *
+     * 重放仍拿到 A0230 时不再刷第二次、也不再重放，而是把那一码透传成普通业务失败：
+     * 刷新成功过，所以**不发**会话过期事件（发了会把还在用的会话误踢成过期）。
+     * 这条出口原先只能靠读 CoroutineAdapter 的代码确认；接口重切后仍在生产装配上直断。
+     */
+    @Test
+    fun `刷新成功后原请求只重放一次即止且不误发会话过期`() = runTest {
+        val tokenHolder = TokenHolder()
+        val sessionManager = SharedTokenSessionManager(tokenHolder)
+        sessionManager.saveSession(session(token = OLD_ACCESS_TOKEN), REFRESH_TOKEN)
+        val dataSource = CountingSessionRefresh()
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
+        val bus = SessionEventBus()
+        val adapter = CoroutineAdapter(refresher, bus, tokenHolder)
+
+        var attempts = 0
+        val outcome = adapter.safeApiCall {
+            attempts++
+            RespDTO<Unit>(ErrorCode.USER_ERROR_A0230.code, "用户登录已过期", null)
+        }
+        advanceUntilIdle()
+
+        assertEquals("原请求 + 一次重放", 2, attempts)
+        assertEquals("重放那一码不该再触发刷新", 1, dataSource.refreshCallCount)
+        assertEquals(1, sessionManager.rotatedAccessTokens.size)
+        val error = outcome.exceptionOrNull()
+        assertTrue("应透传成业务码失败，实际是 $error", error is CoroutineAdapter.ApiException)
+        assertEquals(ErrorCode.USER_ERROR_A0230.code, (error as CoroutineAdapter.ApiException).code)
+    }
+
+    /**
+     * A0230 → 刷新被拒 → **会话过期事件只发一次**，且原请求不再重放。
+     *
+     * 「只发一次」是单响不变量的网络层那一半：订阅方据此清会话 + 提示 + 跳登录，
+     * 发两遍就是同一件事响两遍。刷新被拒时重放也没有意义（token 没换），必须一次都不重放。
+     */
+    @Test
+    fun `刷新被拒时会话过期事件只发一次且不重放`() = runTest {
+        val tokenHolder = TokenHolder()
+        val sessionManager = SharedTokenSessionManager(tokenHolder)
+        sessionManager.saveSession(session(token = OLD_ACCESS_TOKEN), REFRESH_TOKEN)
+        val dataSource = CountingSessionRefresh {
+            TokenRefresh.Rejected(code = ErrorCode.USER_ERROR_A0230.code, reason = "用户登录已过期")
+        }
+        val refresher = SessionTokenRefresher(sessionManager, tokenHolder, Lazy { dataSource })
+        val bus = SessionEventBus()
+        val adapter = CoroutineAdapter(refresher, bus, tokenHolder)
+        val events = mutableListOf<SessionEvent>()
+        // 用 Unconfined 调度器把订阅**同步**挂上：SessionEventBus 是 replay=0 的 SharedFlow，
+        // 发射时若还没有订上去，事件就被丢掉，断言会假绿/假红（这里要的是如实计数）
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            bus.events.collect { events += it }
+        }
+
+        var attempts = 0
+        val outcome = adapter.safeApiCall {
+            attempts++
+            RespDTO<Unit>(ErrorCode.USER_ERROR_A0230.code, "用户登录已过期", null)
+        }
+        advanceUntilIdle()
+
+        assertTrue(
+            "应回会话过期标记，调用方据此只记日志，实际是 ${outcome.exceptionOrNull()}",
+            outcome.exceptionOrNull() is CoroutineAdapter.SessionExpiredException,
+        )
+        assertEquals(1, dataSource.refreshCallCount)
+        assertEquals("刷新被拒不重放", 1, attempts)
+        // 触发这条出口的**必须是**「服务端明确拒绝」那一档，不是「请求没成立」（ADR-0059 分档；
+        // 没有这条断言，把假件换成另一档也叫「被拒」测试照样绿，档位就白分了）
+        assertTrue(
+            "会话过期事件由拒绝档触发，实际送达的是 ${dataSource.outcomes}",
+            dataSource.outcomes.singleOrNull() is TokenRefresh.Rejected,
+        )
+        assertEquals(listOf<SessionEvent>(SessionEvent.SessionExpired), events)
+        assertTrue("会话救不回来时不许轮换", sessionManager.rotatedAccessTokens.isEmpty())
     }
 
     private fun session(token: String) = UserSession(
@@ -245,14 +340,14 @@ class SessionTokenRefresherTest {
 
 // ===== 用例常量（文件级私有：假件的默认响应也要用） =====
 
-private const val USER_ID = 1001L
-private const val USERNAME = "login_name"
-private const val NICKNAME = "展示昵称"
-private const val AVATAR = "https://example.com/avatar.png"
-private const val REFRESH_TOKEN = "refresh-old"
-private const val NEW_REFRESH_TOKEN = "refresh-new"
-private const val OLD_ACCESS_TOKEN = "access-old"
-private const val NEW_ACCESS_TOKEN = "access-new"
+const val USER_ID = 1001L
+const val USERNAME = "login_name"
+const val NICKNAME = "展示昵称"
+const val AVATAR = "https://example.com/avatar.png"
+const val REFRESH_TOKEN = "refresh-old"
+const val NEW_REFRESH_TOKEN = "refresh-new"
+const val OLD_ACCESS_TOKEN = "access-old"
+const val NEW_ACCESS_TOKEN = "access-new"
 
 // ===== 测试假件 =====
 
@@ -263,7 +358,7 @@ private const val NEW_ACCESS_TOKEN = "access-new"
  * 两者指向同一实例；已有的 `FakeUserSessionManager` 自己 new 了一个 TokenHolder，
  * 用它测守卫会失真——守卫读的永远是没人写入的那个实例。
  */
-private class SharedTokenSessionManager(
+class SharedTokenSessionManager(
     private val tokenHolder: TokenHolder,
 ) : UserSessionManager {
 
@@ -295,11 +390,16 @@ private class SharedTokenSessionManager(
         rotatedRefreshTokens += refreshToken
     }
 
-    override fun clearSession() {
+    override fun clearSession(): Boolean {
         _currentUser.value = null
         _isLoggedIn.value = false
         tokenHolder.clear()
         refreshToken = null
+        return true
+    }
+
+    override suspend fun endSession() {
+        clearSession()
     }
 
     override fun getToken(): String? = tokenHolder.token
@@ -308,21 +408,22 @@ private class SharedTokenSessionManager(
 }
 
 /**
- * 只关心 `refreshToken` 的 [UserDataSource] 假件：计数真实调用次数，其余方法未被用到。
+ * 会话刷新面 [SessionRefresh] 的假件：计数真实调用次数，其余什么都不必带——
+ * 面收窄到只剩一个方法之后，原先那九个 `error("unused in this test")` 的占位实现整批消失
+ * （ADR-0059：宽接口让测试替身也只能按整张面接）。
  *
  * [delayMillis] 提供挂起点，保证并发调用真的在 [SessionTokenRefresher] 的 Mutex 上排队
  * （没有挂起点的话，首个调用会在让出线程前一路跑完，守卫就测不出来）。
+ *
+ * [outcomes] 留存本层实际收到的那一档结论：失败分成两档之后，用例必须能说清自己钉的是哪一档
+ * （否则把假件换成另一档、用例名仍写「被拒」，测试照样绿）。
  */
-private class CountingUserDataSource(
+class CountingSessionRefresh(
     private val delayMillis: Long = 100L,
-    private val response: () -> RespDTO<LoginDTO> = {
-        RespDTO(
-            ErrorCode.SUCCESS.code,
-            "",
-            LoginDTO(token = NEW_ACCESS_TOKEN, refreshToken = NEW_REFRESH_TOKEN),
-        )
+    private val response: () -> TokenRefresh = {
+        TokenRefresh.Rotated(accessToken = NEW_ACCESS_TOKEN, refreshToken = NEW_REFRESH_TOKEN)
     },
-) : UserDataSource {
+) : SessionRefresh {
 
     var refreshCallCount = 0
         private set
@@ -330,29 +431,13 @@ private class CountingUserDataSource(
     /** 记录每次真实请求携带的 refresh token，用于验证没拿错凭据 */
     val requestedRefreshTokens = mutableListOf<String>()
 
-    override suspend fun refreshToken(refreshToken: RefreshTokenRequest): RespDTO<LoginDTO> {
+    /** 记录刷新面交回本层的结论档位（抛出的用例不收进这里） */
+    val outcomes = mutableListOf<TokenRefresh>()
+
+    override suspend fun refresh(refreshToken: RefreshTokenRequest): TokenRefresh {
         refreshCallCount++
         requestedRefreshTokens += refreshToken.refreshToken
         delay(delayMillis)
-        return response()
+        return response().also { outcomes += it }
     }
-
-    override suspend fun login(request: LoginRequest): RespDTO<LoginDTO> = error("unused in this test")
-
-    override suspend fun sendRegisterCode(request: SendCodeRequest): RespDTO<Unit> = error("unused in this test")
-
-    override suspend fun register(request: RegisterRequest): RespDTO<Unit> = error("unused in this test")
-
-    override suspend fun logout(): RespDTO<Unit> = error("unused in this test")
-
-    override suspend fun modifyPwd(request: ModifyPwdRequest): RespDTO<Unit> = error("unused in this test")
-
-    override suspend fun sendForgotPasswordCode(request: SendCodeRequest): RespDTO<Unit> =
-        error("unused in this test")
-
-    override suspend fun resetPassword(request: ResetPasswordRequest): RespDTO<Unit> = error("unused in this test")
-
-    override suspend fun updateMe(request: UpdateUserRequest): RespDTO<User> = error("unused in this test")
-
-    override suspend fun uploadAvatar(file: MultipartBody.Part): RespDTO<UploadResponse> = error("unused in this test")
 }

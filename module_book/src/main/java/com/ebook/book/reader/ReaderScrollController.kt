@@ -1,13 +1,10 @@
 package com.ebook.book.reader
 
-import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.ebook.book.R
 import com.ebook.db.event.DBCode
-import com.xrn1997.common.util.ToastUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlin.math.abs
 
@@ -36,6 +33,20 @@ sealed interface ScrollItem {
  * [animate] 区分两种来路——点击/按键滚一屏是动画滚动，跳章与冷启动恢复是瞬移。
  */
 data class ScrollJump(val itemIndex: Int, val animate: Boolean, val token: Int)
+
+/**
+ * 滚屏到整本书边界的语义结论：书首再往前 / 书末再往后。
+ *
+ * 控制器只报「撞到了哪一端」，句子与出口（Toast 等）归页面：控制器不认识资源，
+ * 文案才能在页面组合期按当前语言解析（ADR-0061）。
+ */
+enum class ScrollEdge {
+    /** 书末再往后滚：没有下一页 */
+    NoNextPage,
+
+    /** 书首再往前滚：没有上一页 */
+    NoPrevPage,
+}
 
 /**
  * 一章在连续列表里占的段：1 个标题项 + [blockCount] 个块项。
@@ -85,14 +96,17 @@ private data class ChapterSection(val chapterIndex: Int, val blockCount: Int) {
  * 而滚屏按真实块号渲染，哨兵键（-1/-2）永远不会被读到——那样首屏会停在加载态等到
  * 天荒地老。故块数未知时先探第 0 块（加载器按具体页号处理，同样回出整章的 `pageAll`），
  * 块数落定后再把哨兵落点解析成具体块号并补发它的加载。
+ *
+ * @param onScrollEdge 滚到整本书边界的结论出口（[ScrollEdge]）：控制器不拼句子，
+ *   文案由页面在组合期解析后自行展示（ADR-0061）。
  */
 class ReaderScrollController internal constructor(
     scope: CoroutineScope,
-    private val context: Context,
     private val chapterSize: () -> Int,
     private val chapterTitle: (Int) -> String,
     loadPage: suspend (chapterIndex: Int, pageIndex: Int) -> ReaderPageUi.Loaded?,
     private val onProgress: (chapterIndex: Int, pageIndex: Int) -> Unit,
+    private val onScrollEdge: (ScrollEdge) -> Unit,
 ) : ReaderTurnController {
 
     /** 已物化的章段，按章索引升序且连续（只在 [materialize] 里插入） */
@@ -305,7 +319,7 @@ class ReaderScrollController internal constructor(
      *
      * 列表是跨章连续的，所以「下一屏」就是下一项——它可能是下一章的标题项，
      * 于是不需要任何章界特例：标题矮于一屏，滚过去正好露出标题加下一章首块。
-     * 只有走到列表尽头且确实没有相邻章（整本书的首末）才提示「没有上一页/下一页」，
+     * 只有走到列表尽头且确实没有相邻章（整本书的首末）才上报边界结论（[ScrollEdge]），
      * 判据与 [ReaderPagerController] 的 prevKey/nextKey 为 null 同源。
      */
     fun scrollOneScreen(forward: Boolean) {
@@ -322,10 +336,7 @@ class ReaderScrollController internal constructor(
         }
         val edge = if (forward) anchorChapter + 1 else anchorChapter - 1
         if (edge !in 0 until chapterSize()) {
-            ToastUtil.showShort(
-                context,
-                context.getString(if (forward) R.string.no_next_page else R.string.no_prev_page),
-            )
+            onScrollEdge(if (forward) ScrollEdge.NoNextPage else ScrollEdge.NoPrevPage)
             return
         }
         // 走到列表尽头但还有相邻章：说明它尚未物化（探测失败，或刚被 clear 掉）。

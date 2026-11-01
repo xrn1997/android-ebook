@@ -69,7 +69,9 @@ class MyCommentActivity : BaseMvvmActivity<CommentViewModel>() {
     }
 
     override fun initData() {
-        viewModel.refreshData()
+        // 首开才拉（转屏不重发全量）；错误页重试钩子 onNetworkErrorRetry 也走这里，
+        // 失败后列表仍空，loadData 守卫放行、重试照常生效（双职责说明见 CommentViewModel.loadData）
+        viewModel.loadData()
     }
 
     @Composable

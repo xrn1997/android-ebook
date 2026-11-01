@@ -27,6 +27,7 @@ Windows PowerShell 用 `.\gradlew`；完整命令见 [`docs/development.md`](doc
 
 - 界面全部 Jetpack Compose；ViewBinding 与 XML 布局已移除，不再引入。异步只用 Coroutines + Flow；RxJava3 已移除，禁止重新引入。
 - 图片只用 Coil，日志只用 `com.xrn1997.common.util.Logger`，不要引入 Glide 或直接调用 `android.util.Log`。
+- 宿主只发语义结论，文案映射归页面（穷尽 `when`；带 cause 的失败档走 `reportFailure`，无 cause 的固定失败/半成功走 `sendToast`）；前向生效、不追溯存量。
 - Compose 用 `MaterialTheme.colorScheme` 语义色；只有阅读器正文层用阅读背景主题。
 
 **模块与构建**
@@ -40,9 +41,10 @@ Windows PowerShell 用 `.\gradlew`；完整命令见 [`docs/development.md`](doc
 **数据与领域**
 
 - 应用不内置书源，`book_source` 表是清单唯一事实源；每本书按 `tag` 绑定归属源，解析一律跟书走，不按全局默认源。`resolveSource` 返回 `SourceBinding` 四档；脚本行永不为 Missing/Broken，脚本求值失败与「源不存在/坏行」不得混用。
-- 脚本书源沙箱**永不在主线程调用**；外呼只用 `GuardedNetwork` 派生的守门客户端，不自己 new OkHttpClient；未装配执行器与执行失败是两种类型化异常，不得合并成「该源已失效」。
+- 脚本书源沙箱**永不在主线程调用**；外呼只用 `SourceNetworkExit` 派生的守门客户端，不自己 new OkHttpClient；未装配执行器与执行失败是两种类型化异常，不得合并成「该源已失效」。
 - Room 主键两套：自然键整行 REPLACE；自增键 upsert 必须查回旧行、用 `existing?.id ?: 0L` 回填主键。写书架条目（书架行 + 章节 + 书籍信息 + 关联键）必须在同一笔写事务里，事件在提交后才发。改实体必须接迁移链，禁止 `fallbackToDestructiveMigration`。
-- access token 只驻内存、只对白名单 host 附加；书源与版本检查走不带 token 的 `@Named("source")`/`@Named("release")` 客户端。清会话一律只调 `userSessionManager.clearSession()`；会话过期统一经 `reportFailure` 上报，不手写 `isSessionExpiredHandled`。
+- 账号接口按调用方切四个窄面（`AccountSignIn`/`AccountPassword`/`AccountProfile`/`SessionRefresh`，ADR-0059），宽接口已删除、不留聚合绑定。`RespDTO` 只在 `lib_ebook_api` 的 `UserEnvelope` 内消化一次，面上只回类型化结论：调用方不写 `resp.data ?: throw`，「成功码却没载荷」是 `MissingPayloadException`，文案用 `missingPayloadAs` 在页面侧翻译；刷新面回密封的 `TokenRefresh`，因为它必须绕开 `safeApiCall`。
+- access token 只驻内存、只对白名单 host 附加；书源与版本检查走不带 token 的 `@Named("source")`/`@Named("release")` 客户端。清会话一律只调 `userSessionManager.clearSession()`；会话过期统一经 `reportFailure` 上报，不手写 `isSessionExpiredHandled`。服务端基址只从 `ServerAddressStore` 读（网络栈读生效面 `effective()`、服务器地址页读配置面 `current()`），不内置默认地址（ADR-0053，用户自配）、换址即清会话、重启生效。
 - 下载一律经 `DownloadService.start(context, intent)`；先入库再拉服务；失败章在重试耗尽后出队，暂停中断不出队；`onTimeout` 内只做数秒收尾。
 - 阅读器块高取排版实测值；页面跳转走 `gotoPage`；滚屏 item key 只由 `(章, 块)` 构成、锚点存语义值、单次上方插入不超过约 100 项；进度只在 `onPause` 落库，「异常关闭后恢复」看标记残留而不是进度。
 - 本地书导入按 `comment_key` 判重；处置顺序先导入新条目、后处置旧条目；补章要求旧书章名序列是新书前缀，新索引取 `max(durChapterIndex) + 1`；书籍目录名由 `BookStore` 从 `note_url` 派生。
@@ -63,7 +65,7 @@ Windows PowerShell 用 `.\gradlew`；完整命令见 [`docs/development.md`](doc
 | 阅读器、翻页/滚屏、进度 | [`docs/architecture.md`](docs/architecture.md)「阅读器」；ADR-0012/0032/0037/0040 |
 | 本地书导入、正文读取 | [`docs/architecture.md`](docs/architecture.md)「本地书导入」；ADR-0017/0023/0038；[`docs/specs/local-book-import-design.md`](docs/specs/local-book-import-design.md) |
 | Room、实体、迁移 | [`docs/architecture.md`](docs/architecture.md)「数据与存储」；ADR-0003 |
-| 认证、会话、token | [`docs/architecture.md`](docs/architecture.md)「认证与会话」；ADR-0008/0009/0010/0011/0025 |
+| 认证、会话、token、账号窄面 | [`docs/architecture.md`](docs/architecture.md)「认证与会话」；ADR-0008/0009/0010/0011/0025/0052/0053/0059 |
 | 版本更新检查 | [`docs/architecture.md`](docs/architecture.md)「版本更新检查」；ADR-0021 |
 | 评论接口、评论标识 | [`docs/specs/comment-api-contract.md`](docs/specs/comment-api-contract.md)；ADR-0013 |
 | 清单权限 | [`docs/architecture.md`](docs/architecture.md)「权限」；ADR-0022 |

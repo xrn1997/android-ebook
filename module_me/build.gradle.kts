@@ -89,4 +89,6 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     // 屏幕渲染冒烟（预览组合的同一组状态在 JVM 上跑一遍）：需要 compose ui-test 规则
     testImplementation(libs.bundles.androidx.compose.ui.test)
+    // SP 测试假件（FakeSharedPreferences）：与 lib_ebook_api / lib_book_common 共用一份
+    testImplementation(testFixtures(project(":lib_ebook_api")))
 }

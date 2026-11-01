@@ -64,6 +64,9 @@ dependencies {
     ksp(libs.dagger.compiler)
 
     testImplementation(libs.junit)
+    // 发码倒计时抽件的虚拟时间测试（runTest/advanceTimeBy）：真等 60 秒的测试没人会跑
+    // （与 module_book / module_me 同款测试依赖）
+    testImplementation(libs.kotlinx.coroutines.test)
     // 屏幕渲染冒烟（预览组合的同一组状态在 JVM 上跑一遍）：
     // Robolectric 提供 SDK 环境、compose ui-test 提供 createAndroidComposeRule
     // （声明与 module_me / module_find 对齐）

@@ -53,6 +53,21 @@ class CommentViewModel @Inject constructor(
     }
 
     /**
+     * 幂等加载入口：仅列表为空时才真正发请求（首开、或失败后列表仍空）。
+     *
+     * 基类对每次配置变更都调页面的 `initData()`，若它直接调 [refreshData]，转屏即重发全量
+     * 并把覆盖层打回 Loading；[refreshData] 本身保留无条件语义，供下拉刷新与删除成功后的重拉使用。
+     *
+     * 注意：`initData()` 目前身兼首次加载与基类错误页重试钩子（`onNetworkErrorRetry`）双职责，
+     * 是后续 C7 约定要统一的对象；本次只加此守卫，不动职责划分。
+     */
+    fun loadData() {
+        if (list.value.isEmpty()) {
+            refreshData()
+        }
+    }
+
+    /**
      * 我的评论无分页（一次性全量拉取），不需要加载更多。
      */
     override fun loadMore() {
