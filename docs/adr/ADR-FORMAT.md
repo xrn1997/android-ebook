@@ -46,7 +46,7 @@ Status: accepted
 ## 互引与取代
 
 - 互引允许，用相对链接或 `ADR-NNNN-slug` 指路；但开篇第一段必须自足，别把别篇正文抄过来当前情。
-- 不引用其他仓库的 ADR 编号：android-ebook、android-practice（lib_common）与 ebook-server 各有连续递增、互不对齐的编号序列；跨仓溯源用提交 hash 或本仓可验证的锚点。
+- 不引用其他仓库的 ADR 编号：android-ebook、android-foundation（lib_common）与 ebook-server 各有连续递增、互不对齐的编号序列；跨仓溯源用提交 hash 或本仓可验证的锚点。
 - 整篇不再成立：新写一篇，旧篇改为 `Status: superseded by NNNN`，正文保留；索引保留旧行并标「（已被 NNNN 取代）」。
 - 只翻其中一条：属事实漂移（文件改名、符号搬家、路径变化）就就地改正文；属决定反转就按整篇取代处理，不写「后来又改回……」的补丁串。
 - 每篇 ADR 写完后做一次取代检查：搜索现有篇目，若有同一决定，更新或取代旧篇，不新建第二份。

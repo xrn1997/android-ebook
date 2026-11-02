@@ -32,7 +32,7 @@ Status: accepted
 ## 被否方案
 
 - **留在宿主、只补接线测试**：被否。顺序约束依旧只活在注释里，新宿主没有编译期或类型层面的提醒；且判据裹在 ViewModel 里，测它必须搭 Robolectric + 假仓库全套，纯 JVM 测不到（同 [ADR-0048](0048-single-owner-derivation-extraction.md) 拒绝「留在宿主只补测试」的理由）。
-- **把顺序做进基类（改 lib_common 的刷新状态机）**：被否。lib_common 是跨仓依赖（android-practice），改动窗口与本仓不同步；且基类信号是通用通道，把「谁先谁后」焊死在基类会让其它宿主失去按自己状态机排序的余地。顺序收在会话这一层，恰好只约束本仓这两个宿主。
+- **把顺序做进基类（改 lib_common 的刷新状态机）**：被否。lib_common 是跨仓依赖（android-foundation），改动窗口与本仓不同步；且基类信号是通用通道，把「谁先谁后」焊死在基类会让其它宿主失去按自己状态机排序的余地。顺序收在会话这一层，恰好只约束本仓这两个宿主。
 - **会话直接持有列表并合并**：被否。合并判据是域知识（评论按服务端 hasMore、分类按 noteUrl 去重），塞进通用会话会把两种口径搅成一个「策略枚举」，判据分叉的风险换个地方复发。
 
 锚点：`lib_book_common` 的 `PageSession`（游标/闸门/信号顺序的唯一主人）、`PageSignal`（三种信号的 sealed interface）、`PageSessionTest`（顺序锁 `[StopRefresh, HasMore]` 的读数）；`BookCommentsViewModel.pageSession`（startPage=2）、`ChoiceBookViewModel.pageSession`（startPage=1）、`BookCommentsViewModelTest`（刷新后触底取第 2 页）、`ChoiceBookViewModelTest`（连点触底只发一笔请求）；[ADR-0048](0048-single-owner-derivation-extraction.md)（同族先例）。

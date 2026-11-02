@@ -112,7 +112,7 @@
   （走 PixelCopy + frame commit 回调，paused looper 不驱动，2s 必抛 `ComposeTimeoutException`）。
   **仍未覆盖**：其余 Compose 页面（列表滚动、对话框、手势）同样只能用像素断言锁「画出来没有」，
   按此回路逐页补
-- [ ] `AuthInterceptor` 测试归属 lib_common（android-practice 仓库，随认证体系对齐后不再在本仓库维护）
+- [ ] `AuthInterceptor` 测试归属 lib_common（android-foundation 仓库，随认证体系对齐后不再在本仓库维护）
 - [x] 阅读器位置收进单一会话（`ReaderSession`）后的回归
   —— `module_book/src/test/.../reader/ReaderSessionTest.kt`（37 例，纯 JVM，假网关）锁位置所有权：
   书架快照与实时章页分离、`saveProgress` 把实时位置合并进副本（未 adopt 为 no-op）、标题/章数/滑条派生与封顶、
@@ -163,15 +163,15 @@
   ② `@After` 里先取消 `viewModelScope` 再**有界**排空调度器，并把「不该有在飞协程」写成显式断言。
   本轮不动它：与脚本书源/沙箱执行器无关，且改的是他人模块的测试基建。
 - [ ] **`xrn1997.android.compose` 约定插件自带 `isModule` 分支并重复应用基础插件（当前休眠：根 `includeBuild` 为注释态）**
-  —— 2026-09-04 两仓对齐后 `xrn1997.android.compose` 已是与 android-practice 一致的**唯一 ID（无别名）**，
-  但「同 ID」不等于「同实现」：android-practice 版不自套基础插件、且额外注入 compose ui-test 依赖，
+  —— 2026-09-04 两仓对齐后 `xrn1997.android.compose` 已是与 android-foundation 一致的**唯一 ID（无别名）**，
+  但「同 ID」不等于「同实现」：android-foundation 版不自套基础插件、且额外注入 compose ui-test 依赖，
   本仓版按 `findProperty("isModule")` 自行应用 application/library（差异与影响见 ADR-0020）。
   本仓实现里该分支原为 `module_main` 只挂组件插件时的便利，如今 `module_main` 已同时应用
   `xrn1997.android.component`（它本就按 isModule 应用基础插件），compose 插件里的自套是冗余的。
   一旦取消根 settings 的 `includeBuild("lib-common-build")` 注释恢复本地联动，命令行 `-P` 就会渗进去：
   `lib_common` 已自行应用 `xrn1997.android.library`，又被 compose 插件套上 `com.android.application`——
   `'com.android.application' and 'com.android.library' plugins cannot be applied in the same project`。
-  根治方向（对齐 android-practice 形态）：compose 插件不再自套基础插件、只加 compose 能力
+  根治方向（对齐 android-foundation 形态）：compose 插件不再自套基础插件、只加 compose 能力
   （模块先应用 library/application），删掉 `isModule` 分支后该坑从根上消失。
   当前规避方式见 `gradle.properties` 注释（独立调试直接改文件，勿用 `-P`）
 - [x] **零调用方的 Room DAO 方法已删**（零碎清理，2026-11-01，提交 `refactor(all): 清理零调用方接口与 DAO 方法`）

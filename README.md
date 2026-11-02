@@ -52,9 +52,9 @@
 
 | 项              | 要求                                              |
 | -------------- | ----------------------------------------------- |
-| Android Studio | >= 2025.1.3（低版本不支持当前 Gradle）                    |
+| Android Studio | >= 2026.2.2（Rabbit 2，低版本不支持当前 AGP，见[官方兼容表](https://developer.android.com/studio/releases#android_gradle_plugin_and_android_studio_compatibility)） |
 | JDK            | 17（Android Studio 自带 JBR 即可）                    |
-| Gradle / AGP   | 9.4.1 / 9.2.1（wrapper 自带，无需本地安装）                |
+| Gradle / AGP   | 9.6.0 / 9.5.0（wrapper 自带，无需本地安装）                |
 | 目标设备           | compileSdk/targetSdk 37、minSdk 26（Android 8.0+） |
 
 ### 构建运行
@@ -79,7 +79,7 @@ git clone git@github.com:xrn1997/android-ebook.git
 
 - **后端基址**：应用**不内置服务器地址**（ADR-0053）——在 App 内「设置 → 服务器地址」填入你自己的 ebook-server 地址，重启后生效、改址会退出登录；未配置时阅读与书源照常，仅登录/评论不可用。局域网真机调试的限制见 [docs/architecture.md](docs/architecture.md) 认证与会话一节。
 
-- **lib\_common 联动**：基础库 `lib_common` 仍在迭代，根 `settings.gradle.kts` 默认走 Maven 中央坐标（`io.github.xrn1997:common`）。本地源码联调时取消 `includeBuild` 注释，经 `lib-common-build/` 迷你独立构建以**相对路径**引用源码（两边可同步改），改完切回中央坐标、联动态不提交
+- **lib\_common 联动**：基础库 `lib_common` 仍在迭代，依赖方式以根 `settings.gradle.kts` 为事实源：注释 `includeBuild` 时走 Maven 中央坐标（`io.github.xrn1997:common`），启用时经 `lib-common-build/` 迷你独立构建以**相对路径**引用本地源码（两边可同步改）。切换是双向的，改完切回中央坐标、联动态不提交
 
 - **独立模块开发**：`gradle.properties` 中 `isModule=true` 时，各功能模块可作为独立 App 运行（自带 mock 数据源，免后端），便于单模块开发调试
 
@@ -107,7 +107,7 @@ docs/adr/         → 架构决策记录（ADR）
 
 > 完整版本以 [`gradle/libs.versions.toml`](gradle/libs.versions.toml) 为准。
 
-- **语言与构建**：Kotlin 2.4.10、Gradle 9.4.1 + AGP 9.2.1（内置 Kotlin）、KSP、版本目录
+- **语言与构建**：Kotlin 2.4.10、Gradle 9.6.0 + AGP 9.5.0（内置 Kotlin）、KSP、版本目录
 
 - **UI**：Jetpack Compose（全部页面，含阅读器），Material Design 3
 
@@ -161,7 +161,7 @@ docs/adr/         → 架构决策记录（ADR）
 
 - 增加 build-logic 约定插件（支持 KTS 模块 lib/app 互转）；common 模块（lib\_common）已上传 Maven 中央仓库（迭代期经迷你独立构建联动，如需源码请联系我）
 
-- KSP 全面替代 KAPT；Gradle 升级至 **9.4.1**，Kotlin 升级至 **2.4.10**，AGP **9.2.1**（内置 Kotlin），目标设备 API 37
+- KSP 全面替代 KAPT；Gradle 升级至 **9.6.0**，Kotlin 升级至 **2.4.10**，AGP **9.5.0**（内置 Kotlin），目标设备 API 37
 
 **UI 与功能**
 

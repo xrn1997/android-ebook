@@ -39,7 +39,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 configureKotlinAndroid(this)
                 testOptions.targetSdk = 37
                 // 单元测试中 android.util.Log 返回默认值（returnDefaultValues），
-                // 与 lib_common（android-practice）一致：Logger 的纯 JVM 测试不 mock Log
+                // 与 lib_common（android-foundation）一致：Logger 的纯 JVM 测试不 mock Log
                 testOptions.unitTests.isReturnDefaultValues = true
                 defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
                 testOptions.animationsDisabled = true

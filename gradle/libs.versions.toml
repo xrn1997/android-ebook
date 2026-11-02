@@ -2,7 +2,7 @@
 
 androidDesugarJdkLibs = "2.1.5"
 # AGP and tools should be updated together
-androidGradlePlugin = "9.2.1"
+androidGradlePlugin = "9.5.0"
 # NDK 钉死而非用 AGP 默认：默认值随 AGP 小版本漂移，会让同一份 C++ 在不同机器上编出不同 .so。
 # 升级它是一次显式改动（需重跑 lib_book_source 的设备用例），口径见 AndroidNativeConventionPlugin
 androidNdk = "28.2.13676358"
@@ -149,7 +149,7 @@ androidx-window-core = { group = "androidx.window", name = "window-core", versio
 androidx-work-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "androidxWork" }
 androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "androidxWork" }
 annotations = { group = "org.jetbrains", name = "annotations", version.ref = "annotations" }
-# 来自 android-practice 的 lib_common（composite build 替换为本地项目）
+# 来自 android-foundation 的 lib_common（composite build 替换为本地项目）
 common = { group = "io.github.xrn1997", name = "common", version.ref = "common" }
 coil-kt = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
 coil-kt-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }

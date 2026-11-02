@@ -43,8 +43,8 @@ dependencyResolutionManagement {
 }
 
 
-// 临时启用 includeBuild 走本地源码联调（lib_common 改动即时生效）。
-// common 新版本发布并升级 libs.versions.toml 后，注释掉下方 includeBuild 改回中央坐标解析：
+// 需要本地联调 lib_common（改动即时生效）时取消下方注释；源码位置见 lib-common-build/settings.gradle.kts。
+// common 新版本发布并升级 libs.versions.toml 后注释掉本块、改回中央坐标解析；联动态不提交。
 // includeBuild("lib-common-build") {
 //     dependencySubstitution {
 //         substitute(module("io.github.xrn1997:common"))

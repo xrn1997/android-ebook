@@ -43,10 +43,10 @@ gradlePlugin {
             id = libs.plugins.xrn1997.android.application.get().pluginId
             implementationClass = "AndroidApplicationConventionPlugin"
         }
-        // 规范 ID 与 android-practice 侧一致（xrn1997.android.compose）：lib-common-build
-        // 复合构建只 includeBuild 本仓 build-logic，却要满足 android-practice 各模块应用的
+        // 规范 ID 与 android-foundation 侧一致（xrn1997.android.compose）：lib-common-build
+        // 复合构建只 includeBuild 本仓 build-logic，却要满足 android-foundation 各模块应用的
         // 同一 ID，故两边命名统一、不再留别名。注意统一的是 ID 而非实现：本仓版按 isModule
-        // 自套基础插件，与 android-practice 版语义有差，差异与影响见 docs/adr/0020
+        // 自套基础插件，与 android-foundation 版语义有差，差异与影响见 docs/adr/0020
         register("androidCompose") {
             id = libs.plugins.xrn1997.android.compose.get().pluginId
             implementationClass = "AndroidComposeConventionPlugin"

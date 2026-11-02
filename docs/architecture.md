@@ -27,7 +27,7 @@ lib_ebook_db      → Room 数据库实体和 DAO
 build-logic/      → 自定义 Gradle 约定插件（统一构建配置）
 ```
 
-`lib_common`（android-practice）是仓库外的共享基类库。依赖方式以根 `settings.gradle.kts` 为事实源：默认走 Maven 中央坐标；本地源码联调时启用 `includeBuild("lib-common-build")` 迷你独立构建（`lib-common-build/settings.gradle.kts` 以相对路径定位 android-practice 源码）。联动态不提交；本地改完 common 即切回 Maven 坐标。
+`lib_common`（android-foundation）是仓库外的共享基类库。依赖方式以根 `settings.gradle.kts` 为事实源：注释 `includeBuild` 时走 Maven 中央坐标，启用时走 `lib-common-build` 迷你独立构建（`lib-common-build/settings.gradle.kts` 以相对路径定位 android-foundation 源码）。联动态不提交；本地改完 common 即切回 Maven 坐标。
 
 ## 2. 模块化与跨模块协作
 

@@ -2,7 +2,7 @@
 
 Status: accepted
 
-lib_common（android-practice 仓库的通用脚手架）与 lib_book_common（本项目专属 common）长期存在归属模糊——同一件能力可能被误放进任一模块，或在 Compose 迁移后作为死代码滞留；本仓又长出了带原生代码与隔离进程的专项库，归属问题从「两边分」变成「三处放」。评审定下两条可操作判据：以「换一个与书籍领域完全无关的 Android 项目能否原样开箱复用」分开通用件与项目专属件，以「构建形态是否与共享层同源」决定项目专属件该并入 lib_book_common 还是自立模块。
+lib_common（android-foundation 仓库的通用脚手架）与 lib_book_common（本项目专属 common）长期存在归属模糊——同一件能力可能被误放进任一模块，或在 Compose 迁移后作为死代码滞留；本仓又长出了带原生代码与隔离进程的专项库，归属问题从「两边分」变成「三处放」。评审定下两条可操作判据：以「换一个与书籍领域完全无关的 Android 项目能否原样开箱复用」分开通用件与项目专属件，以「构建形态是否与共享层同源」决定项目专属件该并入 lib_book_common 还是自立模块。
 
 ## 决策
 
@@ -45,7 +45,7 @@ lib_common（android-practice 仓库的通用脚手架）与 lib_book_common（�
 
 ## 遗留
 
-以下通用件经判据应归 lib_common，但上移依赖 android-practice（lib_common）侧的收纳与发版，暂留在 lib_book_common：
+以下通用件经判据应归 lib_common，但上移依赖 android-foundation（lib_common）侧的收纳与发版，暂留在 lib_book_common：
 
 - `com.ebook.common.util.DateUtil`（日期格式化，调用方只有 lib_book_common 内部的 `CommentTime`——用它算评论的相对时间，页面侧是「书评」与「我的评论」；阅读器链路不引用它。`FileTree` 的 KDoc 把它列为同一批待迁移项，但不调用它。类上的 `@Suppress("unused")` 早已失效，随上移一并清）
 - `com.ebook.common.util.SPUtil`（SharedPreferences 封装，会话持久化、登录拦截与阅读设置多处依赖）

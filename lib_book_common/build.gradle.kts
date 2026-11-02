@@ -47,7 +47,7 @@ kotlin {
 }
 dependencies {
     // ── api：调用方要直接编译的契约面 ───────────────────────────────────────────
-    // common 库（composite build 直接引用 android-practice 的 lib_common 项目）
+    // common 库（composite build 直接引用 android-foundation 的 lib_common 项目）
     api(libs.common)
     api(project(":lib_ebook_api"))
     api(project(":lib_ebook_db"))

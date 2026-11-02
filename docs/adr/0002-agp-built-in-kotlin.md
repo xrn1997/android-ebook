@@ -2,7 +2,7 @@
 
 Status: accepted
 
-AGP 9.0 起 Kotlin 支持内置，传统 KGP Android 插件路径被标记弃用并在 AGP 10.0 移除——此前为兼容 KGP 2.3.0 与旧 DSL 显式设置的两个 opt-out 开关属未迁移的过渡状态，上游 android-practice（lib_common）已先行完成迁移。决定对齐上游迁移到内置 Kotlin：Android 模块不再应用 `org.jetbrains.kotlin.android`（KGP）插件，删除 `gradle.properties` 中的 `android.builtInKotlin=false` 与 `android.newDsl=false`，Kotlin 编译支持由 AGP 9 直接提供；各模块顶层 `kotlin { compilerOptions {} }` 块保留（内置 Kotlin 仍注册 `KotlinAndroidProjectExtension`，行为不变），lib-common-build 迷你构建的开关一并保持一致。
+AGP 9.0 起 Kotlin 支持内置，传统 KGP Android 插件路径被标记弃用并在 AGP 10.0 移除——此前为兼容 KGP 2.3.0 与旧 DSL 显式设置的两个 opt-out 开关属未迁移的过渡状态，上游 android-foundation（lib_common）已先行完成迁移。决定对齐上游迁移到内置 Kotlin：Android 模块不再应用 `org.jetbrains.kotlin.android`（KGP）插件，删除 `gradle.properties` 中的 `android.builtInKotlin=false` 与 `android.newDsl=false`，Kotlin 编译支持由 AGP 9 直接提供；各模块顶层 `kotlin { compilerOptions {} }` 块保留（内置 Kotlin 仍注册 `KotlinAndroidProjectExtension`，行为不变），lib-common-build 迷你构建的开关一并保持一致。
 
 ## 被拒方案
 

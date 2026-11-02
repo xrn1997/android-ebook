@@ -1,6 +1,6 @@
 # android-ebook
 
-安卓小说阅读器应用，与 lib_common（android-practice）联动开发的项目。本语境描述内容的获取、存储、阅读与社交互动。
+安卓小说阅读器应用，与 lib_common（android-foundation）联动开发的项目。本语境描述内容的获取、存储、阅读与社交互动。
 
 ## 内容获取
 

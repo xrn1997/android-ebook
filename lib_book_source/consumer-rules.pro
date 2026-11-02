@@ -7,6 +7,6 @@
 -keep class com.ebook.source.sandbox.HostDispatcher { *; }
 
 # QuickJsNative 的四个 external fun 不写：AGP 自带规则已覆盖
-# （gradle-9.2.1.jar 内 com/android/build/gradle/proguard-common.txt：
+# （AGP 插件 jar 内 com/android/build/gradle/proguard-common.txt：
 #   `-keepclasseswithmembernames,includedescriptorclasses class * { native <methods>; }`），
 # 这里再写一遍只会让后来人以为本仓的 native 面是自己照顾的。

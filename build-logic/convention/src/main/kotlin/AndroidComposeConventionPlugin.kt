@@ -25,11 +25,11 @@ import org.gradle.kotlin.dsl.configure
 /**
  * Compose 约定插件：开启 compose 编译能力并装配 Compose BOM 等依赖。
  *
- * 命名：与 android-practice 侧同 ID（xrn1997.android.compose），供 `lib-common-build` 复合构建
+ * 命名：与 android-foundation 侧同 ID（xrn1997.android.compose），供 `lib-common-build` 复合构建
  * 只用一套 build-logic 时两边都能解析（曾因 `xrn1997.android.library.compose` 与本 ID 并存而
  * 需要别名，现只留这一个）。compose 能力与模块类型无关，故 ID 不带 library./application. 前缀。
  *
- * **同 ID 不等于同实现**：android-practice 版不自套基础插件（要求先应用 library/application）、
+ * **同 ID 不等于同实现**：android-foundation 版不自套基础插件（要求先应用 library/application）、
  * 并额外注入 compose ui-test 依赖；本仓版按 `isModule` 自套基础插件。复合构建里的 lib_common
  * 用的是本仓实现。差异与待删方向（该 isModule 分支对 module_main 已冗余）见
  * `docs/adr/0020-compose-convention-plugin-id-unification.md` 与 `docs/test-coverage-todo.md`。

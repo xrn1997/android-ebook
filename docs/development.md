@@ -46,7 +46,7 @@ bash scripts/check-docs.sh
 
 ### lib_common 的本地联调
 
-`lib_common`（android-practice）默认从 Maven 中央坐标依赖。需要在本地改 common 时，启用根 `settings.gradle.kts` 里的 `includeBuild("lib-common-build")` 迷你独立构建：`lib-common-build/settings.gradle.kts` 以相对路径定位 android-practice 源码，开发者需把 android-practice 克隆到匹配位置（事实源以该 settings 脚本为准）。切换是双向的：本地改完 common 即切回 Maven 坐标，**联动态不提交**。
+需要在本地改 common 时，启用根 `settings.gradle.kts` 里的 `includeBuild("lib-common-build")` 迷你独立构建（依赖方式与机制见 [`docs/architecture.md`](architecture.md)「模块与依赖方向」）：`lib-common-build/settings.gradle.kts` 以相对路径定位 android-foundation 源码，开发者需把 android-foundation 克隆到匹配位置（事实源以该 settings 脚本为准）。切换是双向的：本地改完 common 即切回 Maven 坐标，**联动态不提交**。
 
 ## 3. 模块独立运行与 mock
 
